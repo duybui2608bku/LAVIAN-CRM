@@ -1,13 +1,11 @@
-import { LogOut } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import avatarFallback from "@/app/assets/avt.webp";
 import { LanguageSwitcher } from "@/components/common/language-switcher";
 import { ThemeToggle } from "@/components/common/theme-toggle";
-import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { signOut } from "@/lib/actions/auth";
 
 export async function AppHeader({
   userName,
@@ -38,17 +36,7 @@ export async function AppHeader({
             <span className="max-w-[12rem] truncate text-sm text-muted-foreground">
               {userName}
             </span>
-            <form action={signOut}>
-              <Button
-                type="submit"
-                variant="ghost"
-                size="icon"
-                title={t("auth.signOut")}
-                aria-label={t("auth.signOut")}
-              >
-                <LogOut className="size-4" />
-              </Button>
-            </form>
+            <SignOutButton />
           </>
         )}
       </div>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lexend, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -34,6 +35,7 @@ export default async function RootLayout({
       className={`${lexendSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <NextTopLoader color="var(--primary)" height={2} showSpinner={false} />
         <NextIntlClientProvider>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>

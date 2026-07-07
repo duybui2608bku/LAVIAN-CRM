@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { LayoutDashboard, UserCog } from "lucide-react";
+import { LayoutDashboard, SlidersHorizontal, UserCog, Users } from "lucide-react";
 
 import {
   Sidebar,
@@ -21,6 +21,7 @@ import { Logo } from "@/components/layout/logo";
 // Chỉ giữ mục có trang thật. Thêm dần khi dựng tính năng.
 const items = [
   { key: "dashboard", href: "/", icon: LayoutDashboard },
+  { key: "customers", href: "/customers", icon: Users },
 ] as const;
 
 export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
@@ -29,7 +30,11 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
 
   // Mục quản trị chỉ hiện với admin.
   const navItems = isAdmin
-    ? [...items, { key: "users", href: "/users", icon: UserCog } as const]
+    ? [
+        ...items,
+        { key: "users", href: "/users", icon: UserCog } as const,
+        { key: "enums", href: "/enums", icon: SlidersHorizontal } as const,
+      ]
     : items;
 
   return (

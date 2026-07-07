@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useTopLoader } from "nextjs-toploader";
 import { useTransition } from "react";
 
 import {
@@ -53,13 +54,25 @@ const flags: Record<Locale, React.ReactElement> = {
 export function LanguageSwitcher({ className }: { className?: string }) {
   const t = useTranslations("common");
   const current = useLocale() as Locale;
+  const loader = useTopLoader();
   const [pending, startTransition] = useTransition();
 
+  // Đổi ngôn ngữ chạy revalidatePath("/", "layout") → re-render toàn bộ server
+  // components, khá lâu. Chạy đúng thanh top-loader để có phản hồi trực quan.
   return (
     <Select
       value={current}
       disabled={pending}
-      onValueChange={(v) => startTransition(() => setLocale(v as Locale))}
+      onValueChange={(v) =>
+        startTransition(async () => {
+          loader.start();
+          try {
+            await setLocale(v as Locale);
+          } finally {
+            loader.done();
+          }
+        })
+      }
     >
       <SelectTrigger
         size="sm"
