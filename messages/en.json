@@ -1,0 +1,82 @@
+{
+  "common": {
+    "appName": "LAVIAN CRM",
+    "getStarted": "Get started",
+    "language": "Language"
+  },
+  "home": {
+    "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "contacts": "Contacts",
+    "deals": "Deals",
+    "tasks": "Tasks",
+    "reports": "Reports",
+    "settings": "Settings",
+    "users": "Users",
+    "toggleSidebar": "Toggle sidebar"
+  },
+  "theme": {
+    "toggle": "Toggle theme"
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you are looking for doesn't exist or has been moved.",
+    "backHome": "Back to home",
+    "genericTitle": "Something went wrong",
+    "genericBody": "An unexpected error occurred. Please try again.",
+    "retry": "Try again"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "emailInvalid": "Invalid email",
+    "passwordRequired": "Password is required",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "signOut": "Sign out",
+    "loginTitle": "Sign in",
+    "loginSubtitle": "Sign in to LAVIAN CRM",
+    "bannedTitle": "Account locked",
+    "bannedBody": "Your account has been locked. Please contact an administrator."
+  },
+  "users": {
+    "title": "Users",
+    "create": "New user",
+    "searchPlaceholder": "Search by name or email…",
+    "colName": "Name",
+    "colEmail": "Email",
+    "colRole": "Role",
+    "colStatus": "Status",
+    "colCreated": "Created",
+    "colActions": "Actions",
+    "empty": "No users",
+    "role_admin": "Admin",
+    "role_user": "User",
+    "status_active": "Active",
+    "status_banned": "Banned",
+    "ban": "Ban",
+    "unban": "Unban",
+    "resetPassword": "Reset password",
+    "bannedOk": "User banned",
+    "unbannedOk": "User unbanned",
+    "createTitle": "Create user",
+    "createDesc": "Admin sets the password directly; the account is ready immediately.",
+    "createSubmit": "Create",
+    "createOk": "User created",
+    "newPassword": "New password",
+    "passwordMin": "Password must be at least 6 characters",
+    "nameRequired": "Name is required",
+    "avatarUrl": "Avatar",
+    "urlInvalid": "Invalid URL",
+    "makeAdmin": "Grant admin role",
+    "resetTitle": "Reset password",
+    "resetSubmit": "Update",
+    "resetOk": "Password reset",
+    "cancel": "Cancel",
+    "saving": "Saving…"
+  }
+}

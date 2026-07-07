@@ -1,0 +1,82 @@
+{
+  "common": {
+    "appName": "LAVIAN CRM",
+    "getStarted": "Bắt đầu",
+    "language": "Ngôn ngữ"
+  },
+  "home": {
+    "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
+  },
+  "nav": {
+    "dashboard": "Tổng quan",
+    "contacts": "Khách hàng",
+    "deals": "Cơ hội",
+    "tasks": "Công việc",
+    "reports": "Báo cáo",
+    "settings": "Cài đặt",
+    "users": "Người dùng",
+    "toggleSidebar": "Đóng/mở thanh bên"
+  },
+  "theme": {
+    "toggle": "Chuyển giao diện sáng/tối"
+  },
+  "errors": {
+    "notFoundTitle": "Không tìm thấy trang",
+    "notFoundBody": "Trang bạn tìm không tồn tại hoặc đã được di chuyển.",
+    "backHome": "Về trang chủ",
+    "genericTitle": "Đã có lỗi xảy ra",
+    "genericBody": "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.",
+    "retry": "Thử lại"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Mật khẩu",
+    "emailInvalid": "Email không hợp lệ",
+    "passwordRequired": "Vui lòng nhập mật khẩu",
+    "showPassword": "Hiện mật khẩu",
+    "hidePassword": "Ẩn mật khẩu",
+    "signIn": "Đăng nhập",
+    "signingIn": "Đang đăng nhập…",
+    "signOut": "Đăng xuất",
+    "loginTitle": "Đăng nhập",
+    "loginSubtitle": "Đăng nhập vào LAVIAN CRM",
+    "bannedTitle": "Tài khoản bị khoá",
+    "bannedBody": "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên."
+  },
+  "users": {
+    "title": "Người dùng",
+    "create": "Tạo user",
+    "searchPlaceholder": "Tìm theo tên hoặc email…",
+    "colName": "Tên",
+    "colEmail": "Email",
+    "colRole": "Vai trò",
+    "colStatus": "Trạng thái",
+    "colCreated": "Ngày tạo",
+    "colActions": "Thao tác",
+    "empty": "Không có người dùng nào",
+    "role_admin": "Admin",
+    "role_user": "User",
+    "status_active": "Hoạt động",
+    "status_banned": "Bị khoá",
+    "ban": "Cấm",
+    "unban": "Bỏ cấm",
+    "resetPassword": "Đặt lại mật khẩu",
+    "bannedOk": "Đã cấm người dùng",
+    "unbannedOk": "Đã bỏ cấm người dùng",
+    "createTitle": "Tạo user mới",
+    "createDesc": "Admin đặt mật khẩu trực tiếp; tài khoản dùng được ngay.",
+    "createSubmit": "Tạo",
+    "createOk": "Đã tạo người dùng",
+    "newPassword": "Mật khẩu mới",
+    "passwordMin": "Mật khẩu tối thiểu 6 ký tự",
+    "nameRequired": "Vui lòng nhập tên",
+    "avatarUrl": "Ảnh đại diện",
+    "urlInvalid": "URL không hợp lệ",
+    "makeAdmin": "Cấp quyền admin",
+    "resetTitle": "Đặt lại mật khẩu",
+    "resetSubmit": "Cập nhật",
+    "resetOk": "Đã đặt lại mật khẩu",
+    "cancel": "Huỷ",
+    "saving": "Đang lưu…"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "common": {
+    "appName": "LAVIAN CRM",
+    "getStarted": "Mulai",
+    "language": "Bahasa"
+  },
+  "home": {
+    "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
+  },
+  "nav": {
+    "dashboard": "Dasbor",
+    "contacts": "Kontak",
+    "deals": "Kesepakatan",
+    "tasks": "Tugas",
+    "reports": "Laporan",
+    "settings": "Pengaturan",
+    "users": "Pengguna",
+    "toggleSidebar": "Alihkan bilah sisi"
+  },
+  "theme": {
+    "toggle": "Alihkan tema"
+  },
+  "errors": {
+    "notFoundTitle": "Halaman tidak ditemukan",
+    "notFoundBody": "Halaman yang Anda cari tidak ada atau telah dipindahkan.",
+    "backHome": "Kembali ke beranda",
+    "genericTitle": "Terjadi kesalahan",
+    "genericBody": "Terjadi kesalahan tak terduga. Silakan coba lagi.",
+    "retry": "Coba lagi"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Kata sandi",
+    "emailInvalid": "Email tidak valid",
+    "passwordRequired": "Kata sandi wajib diisi",
+    "showPassword": "Tampilkan kata sandi",
+    "hidePassword": "Sembunyikan kata sandi",
+    "signIn": "Masuk",
+    "signingIn": "Sedang masuk…",
+    "signOut": "Keluar",
+    "loginTitle": "Masuk",
+    "loginSubtitle": "Masuk ke LAVIAN CRM",
+    "bannedTitle": "Akun dikunci",
+    "bannedBody": "Akun Anda telah dikunci. Silakan hubungi administrator."
+  },
+  "users": {
+    "title": "Pengguna",
+    "create": "Pengguna baru",
+    "searchPlaceholder": "Cari berdasarkan nama atau email…",
+    "colName": "Nama",
+    "colEmail": "Email",
+    "colRole": "Peran",
+    "colStatus": "Status",
+    "colCreated": "Dibuat",
+    "colActions": "Aksi",
+    "empty": "Tidak ada pengguna",
+    "role_admin": "Admin",
+    "role_user": "Pengguna",
+    "status_active": "Aktif",
+    "status_banned": "Diblokir",
+    "ban": "Blokir",
+    "unban": "Buka blokir",
+    "resetPassword": "Atur ulang kata sandi",
+    "bannedOk": "Pengguna diblokir",
+    "unbannedOk": "Blokir pengguna dibuka",
+    "createTitle": "Buat pengguna",
+    "createDesc": "Admin menetapkan kata sandi langsung; akun langsung siap.",
+    "createSubmit": "Buat",
+    "createOk": "Pengguna dibuat",
+    "newPassword": "Kata sandi baru",
+    "passwordMin": "Kata sandi minimal 6 karakter",
+    "nameRequired": "Nama wajib diisi",
+    "avatarUrl": "Avatar",
+    "urlInvalid": "URL tidak valid",
+    "makeAdmin": "Beri peran admin",
+    "resetTitle": "Atur ulang kata sandi",
+    "resetSubmit": "Perbarui",
+    "resetOk": "Kata sandi diatur ulang",
+    "cancel": "Batal",
+    "saving": "Menyimpan…"
+  }
+}
