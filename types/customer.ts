@@ -8,6 +8,8 @@ export interface EnumOption {
   label_vi: string;
   label_en: string;
   label_id: string;
+  icon: string | null; // tên icon Lucide (kebab-case)
+  color: string | null; // hex #rrggbb
   sort_order: number;
   is_active: boolean;
   created_at: string;
@@ -18,6 +20,7 @@ export interface EnumOption {
 export interface CustomerNote {
   text: string;
   at: string; // ISO timestamp
+  by?: string | null; // tên người ghi (server stamp) — note cũ không có
 }
 
 /** Dữ liệu tạo/sửa khách hàng gửi lên Server Action. */
@@ -30,7 +33,6 @@ export interface CustomerInput {
   lost_reason?: string | null;
   staff_id?: string | null;
   first_contact?: string | null; // "YYYY-MM-DD"
-  notes: CustomerNote[];
 }
 
 /** Khách hàng — ánh xạ bảng `public.customers`. */

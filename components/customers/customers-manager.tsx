@@ -7,18 +7,30 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Pencil, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
+import { Info, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
 
 import {
+  addCustomerNote,
   createCustomer,
   deleteCustomer,
+  patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
 import { matchesCustomerFilters, optionLabel } from "@/lib/customers";
 import { cn } from "@/lib/utils";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
-import { Badge } from "@/components/ui/badge";
+import { EnumTag } from "@/components/common/enum-tag";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,8 +39,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -71,15 +94,21 @@ export function CustomersManager({
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [target, setTarget] = useState<Customer | "new" | null>(null);
+  const [historyFor, setHistoryFor] = useState<Customer | null>(null);
+  const [deleting, setDeleting] = useState<Customer | null>(null);
 
-  const activeByKind = (kind: EnumKind) =>
-    options.filter((o) => o.kind === kind && o.is_active);
-
-  // Nhãn (theo locale) cho một value bất kỳ — dùng cả option inactive để hiện dữ liệu cũ.
-  const labelFor = (kind: EnumKind, value: string | null) => {
-    if (!value) return "—";
+  // Tag (theo locale) cho một value bất kỳ — dùng cả option inactive để hiện dữ
+  // liệu cũ; value mất option hiển thị thô trong badge trung tính.
+  const tagFor = (kind: EnumKind, value: string | null) => {
+    if (!value) return <span className="text-muted-foreground">—</span>;
     const opt = options.find((o) => o.kind === kind && o.value === value);
-    return opt ? optionLabel(opt, locale) : value;
+    return (
+      <EnumTag
+        icon={opt?.icon}
+        color={opt?.color}
+        label={opt ? optionLabel(opt, locale) : value}
+      />
+    );
   };
   const staffName = (id: string | null) =>
     (id && staff.find((s) => s.id === id)?.user_name) || "—";
@@ -92,8 +121,10 @@ export function CustomersManager({
     [customers, search, stage, source, staffId, from, to],
   );
 
-  const onDelete = (c: Customer) => {
-    if (!window.confirm(t("deleteConfirm"))) return;
+  const confirmDelete = () => {
+    const c = deleting;
+    if (!c) return;
+    setDeleting(null);
     start(async () => {
       const res = await deleteCustomer(c.id);
       if (res.error) {
@@ -104,6 +135,32 @@ export function CustomersManager({
       router.refresh();
     });
   };
+
+  // Inline edit 1 trường từ bảng: lưu xong toast + refresh.
+  const patchField = (
+    id: string,
+    patch: { stage?: string; source?: string | null; staff_id?: string | null },
+  ) =>
+    start(async () => {
+      const res = await patchCustomer(id, patch);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(t("updateOk"));
+      router.refresh();
+    });
+
+  // Option cho Select: active + giá trị hiện tại (kể cả inactive), theo sort_order.
+  const kindOptions = (kind: EnumKind, current?: string | null) =>
+    options
+      .filter((o) => o.kind === kind && (o.is_active || o.value === current))
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
+  const staffOptions = staff.map((s) => ({
+    value: s.id,
+    label: s.user_name || "—",
+  }));
 
   const editing = target && target !== "new" ? target : null;
 
@@ -141,10 +198,7 @@ export function CustomersManager({
         <ClearableSelect
           value={stage}
           onValueChange={setStage}
-          options={activeByKind("stage").map((o) => ({
-            value: o.value,
-            label: optionLabel(o, locale),
-          }))}
+          options={kindOptions("stage")}
           placeholder={t("allStage")}
           clearLabel={t("clear")}
           ariaLabel={t("colStage")}
@@ -152,10 +206,7 @@ export function CustomersManager({
         <ClearableSelect
           value={source}
           onValueChange={setSource}
-          options={activeByKind("source").map((o) => ({
-            value: o.value,
-            label: optionLabel(o, locale),
-          }))}
+          options={kindOptions("source")}
           placeholder={t("allSource")}
           clearLabel={t("clear")}
           ariaLabel={t("colSource")}
@@ -163,10 +214,7 @@ export function CustomersManager({
         <ClearableSelect
           value={staffId}
           onValueChange={setStaffId}
-          options={staff.map((s) => ({
-            value: s.id,
-            label: s.user_name || "—",
-          }))}
+          options={staffOptions}
           placeholder={t("allStaff")}
           clearLabel={t("clear")}
           ariaLabel={t("colStaff")}
@@ -195,6 +243,7 @@ export function CustomersManager({
               <TableHead>{t("colStaff")}</TableHead>
               <TableHead>{t("colFirstContact")}</TableHead>
               <TableHead>{t("colCreated")}</TableHead>
+              <TableHead>{t("colNotes")}</TableHead>
               <TableHead className="text-right">{t("colActions")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -202,7 +251,7 @@ export function CustomersManager({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {t("empty")}
@@ -214,12 +263,37 @@ export function CustomersManager({
                   <TableCell className="font-medium">{c.full_name}</TableCell>
                   <TableCell>{c.phone}</TableCell>
                   <TableCell>
-                    <Badge variant={c.stage === "lost" ? "destructive" : "secondary"}>
-                      {labelFor("stage", c.stage)}
-                    </Badge>
+                    <InlineSelect
+                      value={c.stage}
+                      display={tagFor("stage", c.stage)}
+                      options={kindOptions("stage", c.stage)}
+                      ariaLabel={t("colStage")}
+                      disabled={pending}
+                      onSave={(v) => patchField(c.id, { stage: v })}
+                    />
                   </TableCell>
-                  <TableCell>{labelFor("source", c.source)}</TableCell>
-                  <TableCell>{staffName(c.staff_id)}</TableCell>
+                  <TableCell>
+                    <InlineSelect
+                      value={c.source ?? ""}
+                      display={tagFor("source", c.source)}
+                      options={kindOptions("source", c.source)}
+                      noneLabel={t("noneOption")}
+                      ariaLabel={t("colSource")}
+                      disabled={pending}
+                      onSave={(v) => patchField(c.id, { source: v || null })}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <InlineSelect
+                      value={c.staff_id ?? ""}
+                      display={staffName(c.staff_id)}
+                      options={staffOptions}
+                      noneLabel={t("noneOption")}
+                      ariaLabel={t("colStaff")}
+                      disabled={pending}
+                      onSave={(v) => patchField(c.id, { staff_id: v || null })}
+                    />
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {c.first_contact
                       ? new Date(c.first_contact).toLocaleDateString()
@@ -227,6 +301,25 @@ export function CustomersManager({
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {new Date(c.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="space-x-1">
+                    <QuickNote customerId={c.id} />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="relative"
+                      title={t("viewNotes")}
+                      aria-label={t("viewNotes")}
+                      disabled={!c.notes?.length}
+                      onClick={() => setHistoryFor(c)}
+                    >
+                      <Info className="size-4" />
+                      {c.notes?.length ? (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                          {c.notes.length > 9 ? "9+" : c.notes.length}
+                        </span>
+                      ) : null}
+                    </Button>
                   </TableCell>
                   <TableCell className="space-x-1 text-right">
                     <Button
@@ -245,7 +338,7 @@ export function CustomersManager({
                       title={t("delete")}
                       aria-label={t("delete")}
                       disabled={pending}
-                      onClick={() => onDelete(c)}
+                      onClick={() => setDeleting(c)}
                     >
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
@@ -265,7 +358,160 @@ export function CustomersManager({
         onClose={() => setTarget(null)}
         onDone={() => router.refresh()}
       />
+
+      {/* Popconfirm xóa (AlertDialog dùng chung cho mọi dòng) */}
+      <AlertDialog
+        open={deleting !== null}
+        onOpenChange={(o) => !o && setDeleting(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("deleteConfirmBody", { name: deleting?.full_name ?? "" })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Lịch sử ghi chú (icon Info) — mới nhất trước */}
+      <Dialog
+        open={historyFor !== null}
+        onOpenChange={(o) => !o && setHistoryFor(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {t("noteHistoryTitle", { name: historyFor?.full_name ?? "" })}
+            </DialogTitle>
+          </DialogHeader>
+          <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
+            {[...(historyFor?.notes ?? [])].reverse().map((n, i) => (
+              <li key={i} className="space-y-1">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="rounded bg-primary/15 px-1.5 py-0.5 font-medium text-primary">
+                    {new Date(n.at).toLocaleString()}
+                  </span>
+                  <span className="text-muted-foreground">{n.by || "—"}</span>
+                </div>
+                <p className="rounded-md border bg-muted/30 px-2.5 py-1.5 text-sm whitespace-pre-wrap">
+                  {n.text}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+/** Nút Plus + Popover thêm ghi chú nhanh cho 1 khách. */
+function QuickNote({ customerId }: { customerId: string }) {
+  const t = useTranslations("customers");
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [pending, start] = useTransition();
+
+  const save = () =>
+    start(async () => {
+      const res = await addCustomerNote(customerId, text);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(t("noteOk"));
+      setText("");
+      setOpen(false);
+      router.refresh();
+    });
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          size="sm"
+          variant="ghost"
+          title={t("addNote")}
+          aria-label={t("addNote")}
+        >
+          <Plus className="size-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72 space-y-2">
+        <textarea
+          className={fieldCls + " h-auto min-h-16 resize-y py-1.5"}
+          rows={3}
+          autoFocus
+          placeholder={t("addNotePlaceholder")}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <div className="flex justify-end">
+          <Button size="sm" disabled={pending || !text.trim()} onClick={save}>
+            {pending ? t("saving") : t("save")}
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+const NONE = "__none";
+
+/** Select inline trong ô bảng: trigger là chính giá trị đang hiển thị (tag/tên). */
+function InlineSelect({
+  value,
+  display,
+  options,
+  noneLabel,
+  ariaLabel,
+  disabled,
+  onSave,
+}: {
+  value: string; // "" = chưa chọn
+  display: React.ReactNode;
+  options: { value: string; label: string }[];
+  noneLabel?: string; // có = cho phép bỏ chọn
+  ariaLabel: string;
+  disabled?: boolean;
+  onSave: (value: string) => void;
+}) {
+  return (
+    <Select
+      value={value || NONE}
+      onValueChange={(v) => {
+        const next = v === NONE ? "" : v;
+        if (next !== value) onSave(next);
+      }}
+      disabled={disabled}
+    >
+      <SelectTrigger
+        aria-label={ariaLabel}
+        className="-m-1 rounded-md border-none bg-transparent p-1 hover:bg-accent/50 data-[size=default]:h-auto dark:bg-transparent dark:hover:bg-accent/50 [&>svg]:size-3"
+      >
+        {display}
+      </SelectTrigger>
+      <SelectContent>
+        {noneLabel && (
+          <SelectItem value={NONE} className="text-muted-foreground">
+            {noneLabel}
+          </SelectItem>
+        )}
+        {options.map((o) => (
+          <SelectItem key={o.value} value={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -278,7 +524,6 @@ const schema = z.object({
   staff_id: z.string().optional(),
   lost_reason: z.string().optional(),
   first_contact: z.string().optional(),
-  note: z.string().optional(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -322,7 +567,6 @@ function CustomerDialog({
       first_contact: editing?.first_contact
         ? editing.first_contact.slice(0, 10)
         : "",
-      note: "",
     },
   });
 
@@ -338,10 +582,6 @@ function CustomerDialog({
 
   const onSubmit = (v: Values) =>
     start(async () => {
-      const notes = [...(editing?.notes ?? [])];
-      const noteText = v.note?.trim();
-      if (noteText) notes.push({ text: noteText, at: new Date().toISOString() });
-
       const input: CustomerInput = {
         full_name: v.full_name,
         phone: v.phone,
@@ -351,7 +591,6 @@ function CustomerDialog({
         lost_reason: v.lost_reason || null,
         staff_id: v.staff_id || null,
         first_contact: v.first_contact || null,
-        notes,
       };
       const res = editing
         ? await updateCustomer(editing.id, input)
@@ -484,32 +723,6 @@ function CustomerDialog({
               />
             </Field>
           </div>
-
-          {/* Ghi chú: lịch sử note cũ + ô thêm note mới */}
-          {editing?.notes?.length ? (
-            <div className="space-y-1.5">
-              <Label>{t("noteHistory")}</Label>
-              <ul className="max-h-32 space-y-1 overflow-y-auto rounded-md border p-2 text-sm">
-                {editing.notes.map((n, i) => (
-                  <li key={i} className="flex flex-col">
-                    <span>{n.text}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(n.at).toLocaleString()}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <Field label={t("addNote")}>
-            <textarea
-              className={fieldCls + " h-auto min-h-16 resize-y py-1.5"}
-              rows={2}
-              placeholder={t("addNotePlaceholder")}
-              {...register("note")}
-            />
-          </Field>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

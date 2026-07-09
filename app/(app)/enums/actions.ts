@@ -22,6 +22,8 @@ export async function createOption(input: {
   label_vi: string;
   label_en: string;
   label_id: string;
+  icon: string | null;
+  color: string | null;
   sort_order: number;
   is_active: boolean;
 }): Promise<Result> {
@@ -43,6 +45,8 @@ export async function updateOption(
     label_vi: string;
     label_en: string;
     label_id: string;
+    icon: string | null;
+    color: string | null;
     sort_order: number;
     is_active: boolean;
   },

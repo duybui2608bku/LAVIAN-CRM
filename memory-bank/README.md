@@ -30,10 +30,60 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 - **Auth + Quản lý user (tính năng nghiệp vụ đầu tiên):** bảng `public.profiles` (role `admin`|`user`, status `active`|`banned`, KHÔNG lưu mật khẩu) ánh xạ `auth.users`. Đăng nhập `/login`, đăng xuất (header), trang `/banned`. `proxy.ts` là **cổng bảo vệ** (chưa-login → `/login`; banned → `/banned`; `/users` chỉ admin). Trang admin `/users`: tạo/cấm/bỏ cấm/đặt lại mật khẩu/tìm kiếm qua **Server Action + `SUPABASE_SECRET_KEY`** (server-only, `lib/supabase/admin.ts`). User KHÔNG tự đăng ký — admin tạo. Admin helper: `lib/auth.ts` (`getCurrentProfile`, `requireAdmin`).
 - **Migration DB:** đặt ở `supabase/migrations/*.sql`, **chạy tay** trong Supabase SQL Editor. Quy tắc mới **CLAUDE.md §4**: mọi thay đổi DB phải kèm file migration idempotent.
 - **Storage:** bucket public **`images`** (5MB, chỉ ảnh) — đọc công khai qua public URL, upload theo thư mục `{user_id}/`, RLS chặn ghi ngoài thư mục mình. Helper `lib/supabase/storage.ts` (`uploadImage`/`removeImage`) + component `components/common/image-upload.tsx` (`<ImageUpload value onChange folder label>`).
-- **Danh mục Enum (admin):** bảng `public.enum_options` (kind ∈ stage/source/lost_reason, value + label 3 ngữ vi/en/id, sort_order, is_active) thay cho Postgres enum — admin CRUD ở `/enums`. Seed sẵn đủ giá trị mặc định. `types/customer.ts` (`EnumOption`). Customers lưu **giá trị text** của stage/source/lost_reason (không FK); nhãn tra theo locale bằng `lib/customers.ts` (`optionLabel`).
-- **Khách hàng (mọi user):** bảng `public.customers` (identity full_name/phone/social_link; phân loại source/stage/lost_reason/staff_id; first_contact; `notes` jsonb `[{text,at}]`; system created/updated/deleted_at soft-delete). Trang `/customers` CRUD + lọc (stage/source/staff/khoảng ngày created_at) + tìm (tên/phone), lọc **client-side** (`matchesCustomerFilters`). **KHÔNG unique** (cho phép trùng, kể cả phone) — chỉ index thường. RLS: mọi authenticated toàn quyền customers; **thêm policy `profiles_select_authenticated`** để user đọc tên nhân viên. Dropdown/lọc dùng **shadcn Select**; ngày dùng **shadcn date picker** (`components/common/date-picker.tsx`: `DatePicker` đơn + `DateRangePicker` range) trên nền `react-day-picker`+`date-fns`; bộ lọc ngày = 1 **date range**; có nút **Tải lại**. `/enums` gác admin trong `proxy.ts`.
+- **Danh mục Enum (admin):** bảng `public.enum_options` (kind ∈ stage/source/lost_reason, value + label 3 ngữ vi/en/id, **icon + color** cho tag, sort_order, is_active) thay cho Postgres enum — admin CRUD ở `/enums` (chọn icon qua IconPicker, màu qua swatch/`input color`, có xem trước tag). Seed sẵn đủ giá trị mặc định + màu & icon mặc định cho cả 3 kind. `types/customer.ts` (`EnumOption`). Customers lưu **giá trị text** của stage/source/lost_reason (không FK); nhãn tra theo locale bằng `lib/customers.ts` (`optionLabel`); bảng /customers hiển thị stage/source bằng `EnumTag`.
+- **Icon Lucide:** component dùng chung `components/common/icon-picker.tsx` (search toàn bộ icon qua `lucide-react/dynamic` — `iconNames` + `DynamicIcon` lazy-load, KHÔNG import tĩnh cả bộ icon) và `components/common/enum-tag.tsx` (tag từ 1 hex: chữ = màu, nền hex+1a, viền hex+40).
+- **Khách hàng (mọi user):** bảng `public.customers` (identity full_name/phone/social_link; phân loại source/stage/lost_reason/staff_id; first_contact; `notes` jsonb `[{text,at}]`; system created/updated/deleted_at soft-delete). Trang `/customers` CRUD + lọc (stage/source/staff/khoảng ngày created_at) + tìm (tên/phone), lọc **client-side** (`matchesCustomerFilters`). **KHÔNG unique** (cho phép trùng, kể cả phone) — chỉ index thường. RLS: mọi authenticated toàn quyền customers; **thêm policy `profiles_select_authenticated`** để user đọc tên nhân viên. Dropdown/lọc dùng **shadcn Select**; ngày dùng **shadcn date picker** (`components/common/date-picker.tsx`: `DatePicker` đơn + `DateRangePicker` range) trên nền `react-day-picker`+`date-fns`; bộ lọc ngày = 1 **date range**; có nút **Tải lại**. Stage/Source/Staff **sửa inline ngay trên bảng** (`InlineSelect` + action `patchCustomer`); xóa dùng **AlertDialog** xác nhận; dialog tạo/sửa KHÔNG chứa ghi chú (ghi chú chỉ qua cột Ghi chú: QuickNote + lịch sử). `/enums` gác admin trong `proxy.ts`.
 
 ## Nhật ký session
+
+### 2026-07-08 — /customers: inline edit trên bảng, popconfirm xóa, gọn dialog
+- **Thay đổi:**
+  - **OpenSpec:** `openspec/changes/customers-table-inline-edit/` (proposal/design/specs/tasks, 7/7 done) — **chưa archive**. Không migration DB.
+  - **Dialog tạo/sửa gọn:** bỏ khối "Lịch sử ghi chú" + ô "Thêm ghi chú" (ghi chú chỉ còn qua cột Ghi chú ở bảng). `CustomerInput` **bỏ hẳn `notes`/`note`**; `clean()` thành sync, không đụng cột `notes` (create dựa default `[]` DB) → **fix luôn race** "dialog gửi snapshot notes đè note thêm từ popover" ghi nhận session trước.
+  - **Xóa khách = AlertDialog shadcn** (popconfirm): state `deleting`, 1 dialog dùng chung ngoài vòng map, title `deleteConfirm` + body `deleteConfirmBody {name}`, nút Xóa destructive. Bỏ `window.confirm`.
+  - **Inline edit trên bảng:** component `InlineSelect` (trong `customers-manager.tsx`) — Radix Select với trigger là chính giá trị hiển thị (EnumTag/tên, hover bg-accent, chevron nhỏ, override `data-[size=default]:h-auto`); sentinel `__none` bỏ chọn cho Nguồn/Nhân viên; Giai đoạn luôn có giá trị. Action mới **`patchCustomer(id, {stage?, source?, staff_id?})`** whitelist từng trường, stage ≠ lost → `lost_reason=null` (đồng nhất `clean()`); toast `updateOk` + refresh; select disable khi pending. Helper `kindOptions`/`staffOptions` dùng chung cho cả thanh lọc (bỏ `activeByKind`).
+  - **i18n:** vi/en/id — sửa `deleteConfirm` ngắn lại, thêm `deleteConfirmBody {name}`, xóa key `noteHistory` (không còn dùng).
+  - **Kiểm chứng:** `tsc --noEmit` sạch; `next build` PASS.
+- **File ảnh hưởng:** thêm `openspec/changes/customers-table-inline-edit/*`; sửa `types/customer.ts`, `app/(app)/customers/actions.ts`, `components/customers/customers-manager.tsx`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:**
+  - Chưa test tay runtime (cần đăng nhập) — mới verify build/tsc.
+  - Đổi Giai đoạn sang `lost` inline **không hỏi lý do** — lost_reason để trống, bổ sung qua dialog sửa (chấp nhận, đã ghi trong design).
+  - Chưa archive 3 openspec change: `customers-table-inline-edit`, `add-customer-notes-column`, `add-enum-tag-icons`.
+
+### 2026-07-08 — Cột Ghi chú ở bảng /customers (thêm nhanh + lịch sử, lưu người ghi)
+- **Thay đổi:**
+  - **OpenSpec:** `openspec/changes/add-customer-notes-column/` (proposal/design/specs/tasks, 7/7 done) — **chưa archive**.
+  - **Không migration DB** — `customers.notes` là jsonb, chỉ thêm trường `by` trong JSON.
+  - **Types:** `CustomerNote.by?: string|null` (tên người ghi — snapshot, không phải id); `CustomerInput.note?: string` (text note mới) — client KHÔNG tự đặt `at`/`by` nữa.
+  - **Actions (`app/(app)/customers/actions.ts`):** `stampNote(text)` = `{text, at: now, by: profile.user_name}` server-side; `clean()` thành async, append note stamped từ `input.note`; action mới **`addCustomerNote(id, text)`** — đọc `notes` từ DB → append → update (không nhận mảng từ client).
+  - **UI (`customers-manager.tsx`):** cột **Ghi chú** (trước Thao tác, colSpan empty 8→9) với 2 nút ghost: **Plus** = `QuickNote` (Popover: textarea + nút Lưu, disable khi rỗng/pending, toast + refresh) và **Info** (badge đếm số note ở góc nút, >9 hiện "9+") = mở Dialog "Lịch sử ghi chú - {tên}" (state `historyFor`; danh sách **mới nhất trước** — reverse; mỗi mục: badge thời gian `bg-primary/15 text-primary` + tên người ghi ("—" nếu note cũ thiếu `by`) + text box `whitespace-pre-wrap`); Info **disabled khi chưa có note**. Dialog tạo/sửa: gửi `note` text rời (server stamp), lịch sử trong dialog hiện `— {by}`.
+  - **i18n:** thêm `customers.{colNotes, viewNotes, noteHistoryTitle {name}, noteOk}` cho vi/en/id.
+  - **Kiểm chứng:** `tsc --noEmit` sạch; `next build` PASS.
+- **File ảnh hưởng:** thêm `openspec/changes/add-customer-notes-column/*`; sửa `types/customer.ts`, `app/(app)/customers/actions.ts`, `components/customers/customers-manager.tsx`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:**
+  - Chưa test tay runtime (cần đăng nhập) — mới verify build/tsc.
+  - Race cũ vẫn còn: dialog sửa gửi snapshot `notes` từ lúc mở → note thêm bằng popover trong lúc dialog đang mở có thể bị đè khi bấm Lưu dialog (hiếm; nâng cấp RPC jsonb append nếu thành vấn đề).
+  - Note cũ không có `by` → hiện "—" (không backfill).
+  - Chưa archive openspec change `add-customer-notes-column` (và `add-enum-tag-icons` từ session trước).
+
+### 2026-07-08 — IconPicker Lucide + tag (icon + màu) cho Giai đoạn/Nguồn
+- **Thay đổi:**
+  - **OpenSpec:** `openspec/changes/add-enum-tag-icons/` (proposal/design/specs/tasks, 4/4 done) — **chưa archive**.
+  - **DB:** `supabase/migrations/20260708090000_enum_options_icon_color.sql` — thêm cột `icon` (tên icon Lucide kebab-case) + `color` (hex `#rrggbb`) vào `enum_options`, check constraint định dạng (drop/add idempotent), seed **màu + icon mặc định cho cả 3 kind** (stage/source/lost_reason; `where color/icon is null`, không đè lựa chọn admin). Lucide đã bỏ icon thương hiệu → instagrams dùng `camera`, whatsapp dùng `message-circle`. Chạy tay SQL Editor, SAU migration customers_and_enums.
+  - **IconPicker** (`components/common/icon-picker.tsx`, dùng chung): Popover + Input search trên `iconNames` từ **`lucide-react/dynamic`** (~1600 icon, `DynamicIcon` lazy-load từng icon = `import()` riêng, không phình bundle). Grid tối đa **96** kết quả + bộ đếm "x/y" (`useDeferredValue` giữ ô gõ mượt); chọn/bỏ chọn; value = string kebab-case; text qua props (nơi dùng tự i18n).
+  - **EnumTag** (`components/common/enum-tag.tsx`, dùng chung): Badge outline, chữ/icon = màu gốc, nền `hex+"1a"`, viền `hex+"40"` (đọc được cả sáng/tối); không màu → fallback Badge secondary.
+  - **/enums:** dialog thêm chọn Icon (IconPicker) + Màu tag (12 swatch preset + `<input type="color">` + nút bỏ màu) + ô **xem trước tag** live; bảng thêm cột "Tag" (colSpan empty 7→8); actions `createOption`/`updateOption` nhận `icon`/`color`. Dialog thêm `max-h-[90vh] overflow-y-auto`.
+  - **/customers:** cột Giai đoạn + Nguồn render `EnumTag` (helper `tagFor` thay `labelFor`; option mất → value thô trong badge trung tính; bỏ style destructive riêng cho lost — màu đỏ đã seed).
+  - **i18n:** thêm 12 key vào namespace `enums` (colLabel, iconLabel, pickIcon, searchIcon, clearIcon, noIconResults, iconShown `{shown}/{total}`, colorLabel, customColor, clearColor, preview) cho vi/en/id.
+  - **UI polish /enums (theo feedback):** bảng **6 cột** (Mã | Tiếng Việt | English | Bahasa | Kích hoạt | Thao tác) — mỗi cột ngôn ngữ render **EnumTag** với nhãn ngôn ngữ đó (bỏ cột Tag riêng); ẩn cột Thứ tự (vẫn sửa trong dialog). **Kích hoạt = checkbox toggle trực tiếp** trong bảng (gọi `updateOption` giữ nguyên các trường còn lại, disabled khi pending). Bảng dùng `table-fixed` + width cố định (value 220px, active/actions w-28) để 3 bảng kind xếp dọc thẳng cột nhau. **Dialog layout 2 cột** (`sm:max-w-xl`): Mã|Thứ tự, Vi|En, Id|Icon; chọn màu làm lại thành `ColorSwatches` — ô tròn size-7: ô "không màu" (X), 12 preset (check trắng khi chọn), ô **màu tùy chỉnh** (conic-gradient + Pipette, `input type=color` opacity-0 phủ trong label; hiện màu custom + check khi đang chọn màu ngoài preset); hàng xem trước + checkbox kích hoạt gộp trong khung dashed.
+  - **Kiểm chứng:** `tsc --noEmit` sạch; `next build` PASS (2 lần); eslint chỉ warning React Compiler về `watch()` react-hook-form (pattern có sẵn).
+- **File ảnh hưởng:** thêm `supabase/migrations/20260708090000_enum_options_icon_color.sql`, `components/common/{icon-picker,enum-tag}.tsx`, `openspec/changes/add-enum-tag-icons/*`; sửa `types/customer.ts`, `app/(app)/enums/actions.ts`, `components/enums/enums-manager.tsx`, `components/customers/customers-manager.tsx`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:**
+  - ⚠️ **Phải chạy migration** `20260708090000` trong Supabase SQL Editor thì cột/constraint/seed màu mới có.
+  - Chưa test tay runtime (cần migration + đăng nhập admin) — mới verify build/tsc.
+  - Màu + icon đã seed mặc định cho cả stage/source/lost_reason (admin đổi được ở /enums).
+  - Select lọc/form ở /customers chưa hiện icon+màu trong option — thêm sau nếu cần.
+  - Chưa archive openspec change `add-enum-tag-icons`.
 
 ### 2026-07-07 — Loading điều hướng (nextjs-toploader) + phản hồi khi đổi ngôn ngữ
 - **Thay đổi:**

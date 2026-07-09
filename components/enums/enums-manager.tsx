@@ -2,15 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Pencil, Pipette, Plus, Trash2, X } from "lucide-react";
 
 import { createOption, deleteOption, updateOption } from "@/app/(app)/enums/actions";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { EnumTag } from "@/components/common/enum-tag";
+import { IconPicker } from "@/components/common/icon-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +34,12 @@ import {
 import type { EnumKind, EnumOption } from "@/types/customer";
 
 const KINDS: EnumKind[] = ["stage", "source", "lost_reason"];
+
+// Bảng màu preset cho tag (đọc được cả nền sáng lẫn tối).
+const TAG_COLORS = [
+  "#7b68ee", "#3b82f6", "#0ea5e9", "#14b8a6", "#22c55e", "#65a30d",
+  "#ca8a04", "#f97316", "#ef4444", "#ec4899", "#a855f7", "#6b7280",
+];
 
 // Trạng thái dialog: đang mở cho kind nào, sửa option nào (null = tạo mới).
 type DialogState = { kind: EnumKind; option: EnumOption | null } | null;
@@ -60,6 +68,25 @@ export function EnumsManager({ options }: { options: EnumOption[] }) {
     });
   };
 
+  // Bật/tắt trực tiếp từ checkbox trong bảng (giữ nguyên các trường còn lại).
+  const onToggleActive = (o: EnumOption) =>
+    start(async () => {
+      const res = await updateOption(o.id, {
+        label_vi: o.label_vi,
+        label_en: o.label_en,
+        label_id: o.label_id,
+        icon: o.icon,
+        color: o.color,
+        sort_order: o.sort_order,
+        is_active: !o.is_active,
+      });
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      router.refresh();
+    });
+
   return (
     <div className="flex flex-1 flex-col gap-8 p-4">
       <h1 className="text-lg font-semibold">{t("title")}</h1>
@@ -79,23 +106,27 @@ export function EnumsManager({ options }: { options: EnumOption[] }) {
           </div>
 
           <div className="rounded-md border">
-            <Table>
+            {/* table-fixed + width cố định để 3 bảng xếp dọc thẳng cột nhau. */}
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("colValue")}</TableHead>
+                  <TableHead className="w-[180px]">{t("colValue")}</TableHead>
                   <TableHead>{t("colVi")}</TableHead>
                   <TableHead>{t("colEn")}</TableHead>
                   <TableHead>{t("colId")}</TableHead>
-                  <TableHead className="text-center">{t("colSort")}</TableHead>
-                  <TableHead className="text-center">{t("colActive")}</TableHead>
-                  <TableHead className="text-right">{t("colActions")}</TableHead>
+                  <TableHead className="w-28 text-center">
+                    {t("colActive")}
+                  </TableHead>
+                  <TableHead className="w-28 text-right">
+                    {t("colActions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {byKind(kind).length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={6}
                       className="h-16 text-center text-muted-foreground"
                     >
                       {t("empty")}
@@ -107,16 +138,25 @@ export function EnumsManager({ options }: { options: EnumOption[] }) {
                       <TableCell className="font-mono text-xs">
                         {o.value}
                       </TableCell>
-                      <TableCell>{o.label_vi}</TableCell>
-                      <TableCell>{o.label_en}</TableCell>
-                      <TableCell>{o.label_id}</TableCell>
-                      <TableCell className="text-center text-muted-foreground">
-                        {o.sort_order}
+                      <TableCell>
+                        <EnumTag icon={o.icon} color={o.color} label={o.label_vi} />
+                      </TableCell>
+                      <TableCell>
+                        <EnumTag icon={o.icon} color={o.color} label={o.label_en} />
+                      </TableCell>
+                      <TableCell>
+                        <EnumTag icon={o.icon} color={o.color} label={o.label_id} />
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant={o.is_active ? "secondary" : "outline"}>
-                          {o.is_active ? t("active") : t("inactive")}
-                        </Badge>
+                        <input
+                          type="checkbox"
+                          className="size-4 cursor-pointer accent-primary"
+                          checked={o.is_active}
+                          disabled={pending}
+                          aria-label={t("colActive")}
+                          title={o.is_active ? t("active") : t("inactive")}
+                          onChange={() => onToggleActive(o)}
+                        />
                       </TableCell>
                       <TableCell className="space-x-1 text-right">
                         <Button
@@ -163,6 +203,8 @@ const schema = z.object({
   label_vi: z.string().min(1),
   label_en: z.string().min(1),
   label_id: z.string().min(1),
+  icon: z.string(), // tên icon Lucide; "" = không icon
+  color: z.string(), // hex #rrggbb; "" = không màu
   sort_order: z.string(), // input number trả string; convert khi submit
   is_active: z.boolean(),
 });
@@ -178,12 +220,15 @@ function OptionDialog({
   onDone: () => void;
 }) {
   const t = useTranslations("enums");
+  const locale = useLocale();
   const [pending, start] = useTransition();
   const editing = state?.option ?? null;
 
   const {
     register,
+    control,
     handleSubmit,
+    watch,
     reset,
     formState: { errors },
   } = useForm<Values>({
@@ -194,10 +239,19 @@ function OptionDialog({
       label_vi: editing?.label_vi ?? "",
       label_en: editing?.label_en ?? "",
       label_id: editing?.label_id ?? "",
+      icon: editing?.icon ?? "",
+      color: editing?.color ?? "",
       sort_order: String(editing?.sort_order ?? 0),
       is_active: editing?.is_active ?? true,
     },
   });
+
+  // Xem trước tag theo giá trị đang nhập (nhãn theo locale hiện tại).
+  const w = watch();
+  const previewLabel =
+    (locale === "en" ? w.label_en : locale === "id" ? w.label_id : w.label_vi) ||
+    w.value ||
+    "…";
 
   const onSubmit = (v: Values) =>
     start(async () => {
@@ -208,6 +262,8 @@ function OptionDialog({
             label_vi: v.label_vi,
             label_en: v.label_en,
             label_id: v.label_id,
+            icon: v.icon || null,
+            color: v.color || null,
             sort_order,
             is_active: v.is_active,
           })
@@ -217,6 +273,8 @@ function OptionDialog({
             label_vi: v.label_vi,
             label_en: v.label_en,
             label_id: v.label_id,
+            icon: v.icon || null,
+            color: v.color || null,
             sort_order,
             is_active: v.is_active,
           });
@@ -232,36 +290,84 @@ function OptionDialog({
 
   return (
     <Dialog open={!!state} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{editing ? t("editTitle") : t("addTitle")}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <Field label={t("colValue")} error={errors.value && t("required")}>
-            {/* value cố định sau khi tạo (đổi sẽ mồ côi customers). */}
-            <Input
-              {...register("value")}
-              disabled={!!editing}
-              placeholder="vd: new_lead"
-              autoComplete="off"
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("colValue")} error={errors.value && t("required")}>
+              {/* value cố định sau khi tạo (đổi sẽ mồ côi customers). */}
+              <Input
+                {...register("value")}
+                disabled={!!editing}
+                placeholder="vd: new_lead"
+                autoComplete="off"
+              />
+            </Field>
+            <Field label={t("colSort")}>
+              <Input type="number" {...register("sort_order")} />
+            </Field>
+            <Field label={t("colVi")} error={errors.label_vi && t("required")}>
+              <Input {...register("label_vi")} />
+            </Field>
+            <Field label={t("colEn")} error={errors.label_en && t("required")}>
+              <Input {...register("label_en")} />
+            </Field>
+            <Field label={t("colId")} error={errors.label_id && t("required")}>
+              <Input {...register("label_id")} />
+            </Field>
+            <Field label={t("iconLabel")}>
+              <Controller
+                control={control}
+                name="icon"
+                render={({ field }) => (
+                  <IconPicker
+                    value={field.value || null}
+                    onChange={(i) => field.onChange(i ?? "")}
+                    placeholder={t("pickIcon")}
+                    searchPlaceholder={t("searchIcon")}
+                    clearLabel={t("clearIcon")}
+                    emptyText={t("noIconResults")}
+                    countText={(shown, total) =>
+                      t("iconShown", { shown, total })
+                    }
+                  />
+                )}
+              />
+            </Field>
+          </div>
+
+          <Field label={t("colorLabel")}>
+            <Controller
+              control={control}
+              name="color"
+              render={({ field }) => <ColorSwatches field={field} />}
             />
           </Field>
-          <Field label={t("colVi")} error={errors.label_vi && t("required")}>
-            <Input {...register("label_vi")} />
-          </Field>
-          <Field label={t("colEn")} error={errors.label_en && t("required")}>
-            <Input {...register("label_en")} />
-          </Field>
-          <Field label={t("colId")} error={errors.label_id && t("required")}>
-            <Input {...register("label_id")} />
-          </Field>
-          <Field label={t("colSort")}>
-            <Input type="number" {...register("sort_order")} />
-          </Field>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="size-4" {...register("is_active")} />
-            {t("activeLabel")}
-          </label>
+
+          {/* Xem trước + kích hoạt */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed p-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {t("preview")}
+              </span>
+              <EnumTag
+                icon={w.icon || null}
+                color={w.color || null}
+                label={previewLabel}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="size-4 cursor-pointer accent-primary"
+                {...register("is_active")}
+              />
+              {t("activeLabel")}
+            </label>
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               {t("cancel")}
@@ -273,6 +379,84 @@ function OptionDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Ô màu tròn: preset + "không màu" + màu tùy chỉnh (input color native ẩn bên trong).
+const swatchCls =
+  "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full border outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+const ringCls = "ring-2 ring-ring ring-offset-2 ring-offset-background";
+
+function ColorSwatches({
+  field,
+}: {
+  field: { value: string; onChange: (v: string) => void };
+}) {
+  const t = useTranslations("enums");
+  const isCustom = !!field.value && !TAG_COLORS.includes(field.value);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        title={t("clearColor")}
+        aria-label={t("clearColor")}
+        onClick={() => field.onChange("")}
+        className={cn(
+          swatchCls,
+          "border-input bg-background text-muted-foreground",
+          !field.value && ringCls,
+        )}
+      >
+        <X className="size-3.5" />
+      </button>
+
+      {TAG_COLORS.map((c) => (
+        <button
+          key={c}
+          type="button"
+          title={c}
+          aria-label={c}
+          onClick={() => field.onChange(c)}
+          className={cn(swatchCls, "border-foreground/10", field.value === c && ringCls)}
+          style={{ backgroundColor: c }}
+        >
+          {field.value === c && (
+            <Check className="size-3.5 text-white drop-shadow-sm" />
+          )}
+        </button>
+      ))}
+
+      <label
+        title={t("customColor")}
+        className={cn(
+          swatchCls,
+          "relative border-foreground/10 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
+          isCustom && ringCls,
+        )}
+        style={
+          isCustom
+            ? { backgroundColor: field.value }
+            : {
+                background:
+                  "conic-gradient(#ef4444,#f97316,#ca8a04,#22c55e,#0ea5e9,#7b68ee,#ec4899,#ef4444)",
+              }
+        }
+      >
+        {isCustom ? (
+          <Check className="size-3.5 text-white drop-shadow-sm" />
+        ) : (
+          <Pipette className="size-3.5 text-white drop-shadow-sm" />
+        )}
+        <input
+          type="color"
+          aria-label={t("customColor")}
+          value={field.value || "#7b68ee"}
+          onChange={(e) => field.onChange(e.target.value)}
+          className="absolute inset-0 size-full cursor-pointer opacity-0"
+        />
+      </label>
+    </div>
   );
 }
 
