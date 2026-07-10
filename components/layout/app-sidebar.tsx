@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { LayoutDashboard, SlidersHorizontal, UserCog, Users } from "lucide-react";
+import {
+  Briefcase,
+  CalendarDays,
+  LayoutDashboard,
+  SlidersHorizontal,
+  UserCog,
+  Users,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -14,33 +21,39 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/layout/logo";
+import { ENUM_KINDS } from "@/types/customer";
 
 // Chỉ giữ mục có trang thật. Thêm dần khi dựng tính năng.
 const items = [
   { key: "dashboard", href: "/", icon: LayoutDashboard },
   { key: "customers", href: "/customers", icon: Users },
+  { key: "appointments", href: "/appointments", icon: CalendarDays },
 ] as const;
 
 export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
+  const tEnums = useTranslations("enums");
 
   // Mục quản trị chỉ hiện với admin.
   const navItems = isAdmin
     ? [
         ...items,
         { key: "users", href: "/users", icon: UserCog } as const,
-        { key: "enums", href: "/enums", icon: SlidersHorizontal } as const,
+        { key: "services", href: "/services", icon: Briefcase } as const,
       ]
     : items;
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex h-10 items-center gap-2 px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+        <div className="flex h-12 items-center gap-2.5 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <Logo className="size-8 shrink-0" />
           <span className="truncate text-[15px] font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
             LAVIAN <span className="text-primary">CRM</span>
@@ -49,9 +62,9 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup className="px-3 group-data-[collapsible=icon]:px-2">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
+            <SidebarMenu className="gap-1.5 group-data-[collapsible=icon]:items-center">
               {navItems.map(({ key, href, icon: Icon }) => {
                 const active =
                   href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -61,6 +74,7 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                       asChild
                       isActive={active}
                       tooltip={t(key)}
+                      className="h-10 gap-2.5 rounded-lg px-3"
                     >
                       <Link href={href}>
                         <Icon />
@@ -70,6 +84,38 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                   </SidebarMenuItem>
                 );
               })}
+
+              {/* Danh mục (admin): menu cha + menu con theo kind. Sub tự ẩn khi
+                  sidebar thu gọn icon — mục cha vẫn điều hướng được. */}
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/enums")}
+                    tooltip={t("enums")}
+                    className="h-10 gap-2.5 rounded-lg px-3"
+                  >
+                    <Link href="/enums/stage">
+                      <SlidersHorizontal />
+                      <span>{t("enums")}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                  <SidebarMenuSub className="mx-5 gap-1 py-1">
+                    {ENUM_KINDS.map((kind) => (
+                      <SidebarMenuSubItem key={kind}>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={pathname === `/enums/${kind}`}
+                        >
+                          <Link href={`/enums/${kind}`}>
+                            <span>{tEnums(`kind_${kind}`)}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -74,7 +74,9 @@ export async function proxy(request: NextRequest) {
 
   // Route quản trị chỉ dành cho admin.
   const isAdminRoute =
-    path.startsWith("/users") || path.startsWith("/enums");
+    path.startsWith("/users") ||
+    path.startsWith("/enums") ||
+    path.startsWith("/services");
   if (isAdminRoute && profile?.role !== "admin") {
     return redirectTo("/");
   }

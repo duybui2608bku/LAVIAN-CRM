@@ -1,8 +1,9 @@
 // Self-check: `node --test lib/customers.test.ts` (Node ≥ 23).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { matchesCustomerFilters, optionLabel } from "./customers.ts";
+import { matchesCustomerFilters, optionLabel, serviceName } from "./customers.ts";
 import type { Customer, EnumOption } from "../types/customer.ts";
+import type { Service } from "../types/service.ts";
 
 const base: Customer = {
   id: "1",
@@ -15,6 +16,7 @@ const base: Customer = {
   staff_id: "staff-1",
   first_contact: null,
   notes: [],
+  service_ids: [],
   created_at: "2026-07-05T10:00:00.000Z",
   updated_at: "2026-07-05T10:00:00.000Z",
   deleted_at: null,
@@ -35,6 +37,13 @@ test("lọc stage / source / staff", () => {
   assert.equal(matchesCustomerFilters(base, { stage: "lost" }), false);
   assert.equal(matchesCustomerFilters(base, { source: "whatsapp" }), false);
   assert.equal(matchesCustomerFilters(base, { staffId: "staff-2" }), false);
+});
+
+test("lọc theo dịch vụ đã gắn", () => {
+  const withSvc = { ...base, service_ids: ["s1", "s2"] };
+  assert.equal(matchesCustomerFilters(withSvc, { serviceId: "s1" }), true);
+  assert.equal(matchesCustomerFilters(withSvc, { serviceId: "s9" }), false);
+  assert.equal(matchesCustomerFilters(base, { serviceId: "s1" }), false);
 });
 
 test("khoảng ngày created_at (bao gồm biên)", () => {
@@ -65,4 +74,23 @@ test("optionLabel theo locale, fallback vi", () => {
   assert.equal(optionLabel(opt, "en"), "New lead");
   assert.equal(optionLabel(opt, "id"), "Prospek baru");
   assert.equal(optionLabel(opt, "fr"), "Khách mới");
+  // Nhãn en/id không bắt buộc — thiếu thì fallback tiếng Việt.
+  assert.equal(optionLabel({ ...opt, label_en: null }, "en"), "Khách mới");
+  assert.equal(optionLabel({ ...opt, label_id: null }, "id"), "Khách mới");
+});
+
+test("serviceName theo locale, fallback vi", () => {
+  const svc: Service = {
+    id: "s1",
+    name_vi: "Chăm sóc da",
+    name_en: "Skin care",
+    name_id: null,
+    sort_order: 10,
+    is_active: true,
+    created_at: "",
+    updated_at: "",
+  };
+  assert.equal(serviceName(svc, "vi"), "Chăm sóc da");
+  assert.equal(serviceName(svc, "en"), "Skin care");
+  assert.equal(serviceName(svc, "id"), "Chăm sóc da");
 });

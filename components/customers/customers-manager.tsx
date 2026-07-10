@@ -7,8 +7,23 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Info, Pencil, Plus, RefreshCw, Search, Trash2, UserPlus } from "lucide-react";
+import {
+  CalendarDays,
+  CalendarPlus,
+  Info,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
 
+import {
+  staffLabel,
+  UserAvatar,
+  type StaffRef,
+} from "@/components/common/user-avatar";
 import {
   addCustomerNote,
   createCustomer,
@@ -16,11 +31,19 @@ import {
   patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
-import { matchesCustomerFilters, optionLabel } from "@/lib/customers";
+import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
+import { outstanding } from "@/lib/appointments";
 import { cn } from "@/lib/utils";
-import { ClearableSelect } from "@/components/common/clearable-select";
+import { AppointmentDialog } from "@/components/appointments/appointment-dialog";
+import { AppointmentStatusTag } from "@/components/appointments/status-tag";
+import {
+  ClearableSelect,
+  type SelectOption,
+} from "@/components/common/clearable-select";
+import { MultiSelect } from "@/components/common/multi-select";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
 import { EnumTag } from "@/components/common/enum-tag";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,15 +58,22 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,14 +90,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Appointment } from "@/types/appointment";
 import type {
   Customer,
   CustomerInput,
   EnumKind,
   EnumOption,
 } from "@/types/customer";
+import type { Service } from "@/types/service";
 
-type Staff = { id: string; user_name: string };
+type Staff = StaffRef;
 
 // Class cho <textarea> ghi chú — khớp trông với <Input>.
 const fieldCls =
@@ -75,14 +107,19 @@ const fieldCls =
 
 export function CustomersManager({
   customers,
+  appointments,
   staff,
   options,
+  services,
 }: {
   customers: Customer[];
+  appointments: Appointment[];
   staff: Staff[];
   options: EnumOption[];
+  services: Service[];
 }) {
   const t = useTranslations("customers");
+  const tAppt = useTranslations("appointments");
   const locale = useLocale();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -91,11 +128,17 @@ export function CustomersManager({
   const [stage, setStage] = useState("");
   const [source, setSource] = useState("");
   const [staffId, setStaffId] = useState("");
+  const [serviceId, setServiceId] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [target, setTarget] = useState<Customer | "new" | null>(null);
   const [historyFor, setHistoryFor] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState<Customer | null>(null);
+  const [bookingFor, setBookingFor] = useState<Customer | null>(null);
+  const [apptsFor, setApptsFor] = useState<Customer | null>(null);
+
+  const apptsOf = (customerId: string) =>
+    appointments.filter((a) => a.customer_id === customerId);
 
   // Tag (theo locale) cho một value bất kỳ — dùng cả option inactive để hiện dữ
   // liệu cũ; value mất option hiển thị thô trong badge trung tính.
@@ -110,16 +153,48 @@ export function CustomersManager({
       />
     );
   };
-  const staffName = (id: string | null) =>
-    (id && staff.find((s) => s.id === id)?.user_name) || "—";
+  // Avatar + tên nhân viên cho cell bảng; chưa gán → "—" (không avatar).
+  const staffDisplay = (id: string | null) => {
+    const s = id ? staff.find((x) => x.id === id) : undefined;
+    if (!s) return <span className="text-muted-foreground">—</span>;
+    return staffLabel(s);
+  };
+  // Avatar người ghi note — note chỉ lưu tên snapshot nên tra theo user_name.
+  const staffAvatarByName = (name: string | null | undefined) =>
+    name ? staff.find((s) => s.user_name === name)?.avatar_url : undefined;
 
   const filtered = useMemo(
     () =>
       customers.filter((c) =>
-        matchesCustomerFilters(c, { search, stage, source, staffId, from, to }),
+        matchesCustomerFilters(c, {
+          search,
+          stage,
+          source,
+          staffId,
+          serviceId,
+          from,
+          to,
+        }),
       ),
-    [customers, search, stage, source, staffId, from, to],
+    [customers, search, stage, source, staffId, serviceId, from, to],
   );
+
+  // Badge tên dịch vụ đã gắn (theo locale, fallback vi); trống → "—".
+  const serviceBadges = (ids: string[]) => {
+    if (!ids?.length) return <span className="text-muted-foreground">—</span>;
+    return (
+      <div className="flex max-w-[220px] flex-wrap gap-1">
+        {ids.map((id) => {
+          const s = services.find((x) => x.id === id);
+          return s ? (
+            <Badge key={id} variant="secondary">
+              {serviceName(s, locale)}
+            </Badge>
+          ) : null;
+        })}
+      </div>
+    );
+  };
 
   const confirmDelete = () => {
     const c = deleting;
@@ -139,7 +214,12 @@ export function CustomersManager({
   // Inline edit 1 trường từ bảng: lưu xong toast + refresh.
   const patchField = (
     id: string,
-    patch: { stage?: string; source?: string | null; staff_id?: string | null },
+    patch: {
+      stage?: string;
+      source?: string | null;
+      staff_id?: string | null;
+      service_ids?: string[];
+    },
   ) =>
     start(async () => {
       const res = await patchCustomer(id, patch);
@@ -159,8 +239,17 @@ export function CustomersManager({
       .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
   const staffOptions = staff.map((s) => ({
     value: s.id,
-    label: s.user_name || "—",
+    label: staffLabel(s),
   }));
+  // Bộ lọc dịch vụ: chỉ dịch vụ active (đồng nhất kindOptions không current).
+  const serviceOptions = services
+    .filter((s) => s.is_active)
+    .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
+  // Option cho select gắn dịch vụ: active + dịch vụ đang gắn (kể cả inactive).
+  const serviceSelectOptions = (current: string[]) =>
+    services
+      .filter((s) => s.is_active || current.includes(s.id))
+      .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
 
   const editing = target && target !== "new" ? target : null;
 
@@ -219,6 +308,14 @@ export function CustomersManager({
           clearLabel={t("clear")}
           ariaLabel={t("colStaff")}
         />
+        <ClearableSelect
+          value={serviceId}
+          onValueChange={setServiceId}
+          options={serviceOptions}
+          placeholder={t("allServices")}
+          clearLabel={t("clear")}
+          ariaLabel={t("colServices")}
+        />
         <DateRangePicker
           from={from}
           to={to}
@@ -240,6 +337,7 @@ export function CustomersManager({
               <TableHead>{t("colPhone")}</TableHead>
               <TableHead>{t("colStage")}</TableHead>
               <TableHead>{t("colSource")}</TableHead>
+              <TableHead>{t("colServices")}</TableHead>
               <TableHead>{t("colStaff")}</TableHead>
               <TableHead>{t("colFirstContact")}</TableHead>
               <TableHead>{t("colCreated")}</TableHead>
@@ -251,7 +349,7 @@ export function CustomersManager({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {t("empty")}
@@ -284,9 +382,19 @@ export function CustomersManager({
                     />
                   </TableCell>
                   <TableCell>
+                    <InlineServices
+                      ids={c.service_ids}
+                      options={serviceSelectOptions(c.service_ids)}
+                      display={serviceBadges(c.service_ids)}
+                      ariaLabel={t("colServices")}
+                      disabled={pending}
+                      onSave={(v) => patchField(c.id, { service_ids: v })}
+                    />
+                  </TableCell>
+                  <TableCell>
                     <InlineSelect
                       value={c.staff_id ?? ""}
-                      display={staffName(c.staff_id)}
+                      display={staffDisplay(c.staff_id)}
                       options={staffOptions}
                       noneLabel={t("noneOption")}
                       ariaLabel={t("colStaff")}
@@ -321,7 +429,33 @@ export function CustomersManager({
                       ) : null}
                     </Button>
                   </TableCell>
-                  <TableCell className="space-x-1 text-right">
+                  <TableCell className="space-x-1 text-right whitespace-nowrap">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title={tAppt("book")}
+                      aria-label={tAppt("book")}
+                      disabled={pending}
+                      onClick={() => setBookingFor(c)}
+                    >
+                      <CalendarPlus className="size-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="relative"
+                      title={tAppt("historyTitle", { name: c.full_name })}
+                      aria-label={tAppt("historyTitle", { name: c.full_name })}
+                      disabled={apptsOf(c.id).length === 0}
+                      onClick={() => setApptsFor(c)}
+                    >
+                      <CalendarDays className="size-4" />
+                      {apptsOf(c.id).length > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                          {apptsOf(c.id).length > 9 ? "9+" : apptsOf(c.id).length}
+                        </span>
+                      )}
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -355,9 +489,78 @@ export function CustomersManager({
         editing={editing}
         staff={staff}
         options={options}
+        services={services}
         onClose={() => setTarget(null)}
         onDone={() => router.refresh()}
       />
+
+      {/* Đặt lịch hẹn cho 1 khách (khách bị khóa cứng trong dialog) */}
+      <AppointmentDialog
+        open={bookingFor !== null}
+        editing={null}
+        customerLock={bookingFor}
+        customers={[]}
+        staff={staff}
+        options={options}
+        services={services}
+        onClose={() => setBookingFor(null)}
+        onDone={() => router.refresh()}
+      />
+
+      {/* Lịch sử lịch hẹn của 1 khách — mới nhất trước (page đã order desc) */}
+      <Dialog
+        open={apptsFor !== null}
+        onOpenChange={(o) => !o && setApptsFor(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {tAppt("historyTitle", { name: apptsFor?.full_name ?? "" })}
+            </DialogTitle>
+          </DialogHeader>
+          <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
+            {apptsFor && apptsOf(apptsFor.id).length === 0 && (
+              <li className="text-sm text-muted-foreground">
+                {tAppt("historyEmpty")}
+              </li>
+            )}
+            {(apptsFor ? apptsOf(apptsFor.id) : []).map((a) => (
+              <li key={a.id} className="space-y-1 rounded-md border px-2.5 py-2">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-medium tabular-nums">
+                    {a.scheduled_at ? (
+                      new Date(a.scheduled_at).toLocaleString(locale)
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {tAppt("tabWaiting")}
+                      </span>
+                    )}
+                  </span>
+                  <AppointmentStatusTag status={a.status} />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {serviceBadges(a.service_ids)}
+                </div>
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  {tAppt("colDeposit")}: {a.deposit_amount.toLocaleString(locale)}
+                  {" · "}
+                  {tAppt("colFinal")}:{" "}
+                  {a.final_amount != null
+                    ? a.final_amount.toLocaleString(locale)
+                    : "—"}
+                  {outstanding(a) > 0 && (
+                    <span className="text-destructive">
+                      {" · "}
+                      {tAppt("colOutstanding")}:{" "}
+                      {outstanding(a).toLocaleString(locale)}
+                    </span>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
 
       {/* Popconfirm xóa (AlertDialog dùng chung cho mọi dòng) */}
       <AlertDialog
@@ -398,7 +601,14 @@ export function CustomersManager({
                   <span className="rounded bg-primary/15 px-1.5 py-0.5 font-medium text-primary">
                     {new Date(n.at).toLocaleString()}
                   </span>
-                  <span className="text-muted-foreground">{n.by || "—"}</span>
+                  {n.by ? (
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <UserAvatar src={staffAvatarByName(n.by)} />
+                      {n.by}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </div>
                 <p className="rounded-md border bg-muted/30 px-2.5 py-1.5 text-sm whitespace-pre-wrap">
                   {n.text}
@@ -478,7 +688,7 @@ function InlineSelect({
 }: {
   value: string; // "" = chưa chọn
   display: React.ReactNode;
-  options: { value: string; label: string }[];
+  options: { value: string; label: React.ReactNode }[];
   noneLabel?: string; // có = cho phép bỏ chọn
   ariaLabel: string;
   disabled?: boolean;
@@ -497,9 +707,10 @@ function InlineSelect({
         aria-label={ariaLabel}
         className="-m-1 rounded-md border-none bg-transparent p-1 hover:bg-accent/50 data-[size=default]:h-auto dark:bg-transparent dark:hover:bg-accent/50 [&>svg]:size-3"
       >
-        {display}
+        {/* item-aligned của Radix cần node SelectValue trong trigger để đo vị trí. */}
+        <SelectValue>{display}</SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent position="popper">
         {noneLabel && (
           <SelectItem value={NONE} className="text-muted-foreground">
             {noneLabel}
@@ -515,6 +726,51 @@ function InlineSelect({
   );
 }
 
+/** Multi-select inline trong ô bảng: gom thay đổi, lưu 1 lần khi đóng popover. */
+function InlineServices({
+  ids,
+  options,
+  display,
+  ariaLabel,
+  disabled,
+  onSave,
+}: {
+  ids: string[];
+  options: SelectOption[];
+  display: React.ReactNode;
+  ariaLabel: string;
+  disabled?: boolean;
+  onSave: (next: string[]) => void;
+}) {
+  const [draft, setDraft] = useState<string[] | null>(null); // null = đang đóng
+  return (
+    <MultiSelect
+      value={draft ?? ids}
+      onValueChange={setDraft}
+      onOpenChange={(open) => {
+        if (open) {
+          setDraft(ids);
+          return;
+        }
+        // So như tập hợp (toggle có thể đổi thứ tự) — chỉ lưu khi thật sự đổi.
+        if (
+          draft &&
+          (draft.length !== ids.length || draft.some((d) => !ids.includes(d)))
+        ) {
+          onSave(draft);
+        }
+        setDraft(null);
+      }}
+      options={options}
+      ariaLabel={ariaLabel}
+      disabled={disabled}
+      className="-m-1 min-h-0 w-auto rounded-md border-none bg-transparent p-1 hover:bg-accent/50 dark:bg-transparent dark:hover:bg-accent/50 [&>svg]:size-3"
+    >
+      {display}
+    </MultiSelect>
+  );
+}
+
 const schema = z.object({
   full_name: z.string().min(1),
   phone: z.string().min(1),
@@ -524,6 +780,7 @@ const schema = z.object({
   staff_id: z.string().optional(),
   lost_reason: z.string().optional(),
   first_contact: z.string().optional(),
+  service_ids: z.array(z.string()).optional(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -532,6 +789,7 @@ function CustomerDialog({
   editing,
   staff,
   options,
+  services,
   onClose,
   onDone,
 }: {
@@ -539,6 +797,7 @@ function CustomerDialog({
   editing: Customer | null;
   staff: Staff[];
   options: EnumOption[];
+  services: Service[];
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -567,6 +826,7 @@ function CustomerDialog({
       first_contact: editing?.first_contact
         ? editing.first_contact.slice(0, 10)
         : "",
+      service_ids: editing?.service_ids ?? [],
     },
   });
 
@@ -580,6 +840,11 @@ function CustomerDialog({
       )
       .sort((a, b) => a.sort_order - b.sort_order);
 
+  // Option dịch vụ: active + dịch vụ khách đang gắn (kể cả inactive, để bỏ được).
+  const serviceOpts: SelectOption[] = services
+    .filter((s) => s.is_active || editing?.service_ids.includes(s.id))
+    .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
+
   const onSubmit = (v: Values) =>
     start(async () => {
       const input: CustomerInput = {
@@ -591,6 +856,7 @@ function CustomerDialog({
         lost_reason: v.lost_reason || null,
         staff_id: v.staff_id || null,
         first_contact: v.first_contact || null,
+        service_ids: v.service_ids ?? [],
       };
       const res = editing
         ? await updateCustomer(editing.id, input)
@@ -606,13 +872,18 @@ function CustomerDialog({
     });
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? t("editTitle") : t("createTitle")}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full gap-0 sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>{editing ? t("editTitle") : t("createTitle")}</SheetTitle>
+        </SheetHeader>
+        {/* Footer nằm ngoài form (nút submit nối qua form id) — thân cuộn, footer dính đáy */}
+        <form
+          id="customer-form"
+          onSubmit={handleSubmit(onSubmit)}
+          className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-4"
+        >
+          <div className="grid gap-3">
             <Field label={t("colName")} error={errors.full_name && t("required")}>
               <Input {...register("full_name")} />
             </Field>
@@ -628,7 +899,7 @@ function CustomerDialog({
             <Input placeholder="https://…" {...register("social_link")} />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3">
             <Field label={t("colStage")}>
               <Controller
                 control={control}
@@ -689,7 +960,7 @@ function CustomerDialog({
             </Field>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3">
             <Field label={t("colStaff")}>
               <Controller
                 control={control}
@@ -700,7 +971,7 @@ function CustomerDialog({
                     onValueChange={field.onChange}
                     options={staff.map((s) => ({
                       value: s.id,
-                      label: s.user_name || "—",
+                      label: staffLabel(s),
                     }))}
                     placeholder={t("noneOption")}
                     clearLabel={t("clear")}
@@ -724,17 +995,35 @@ function CustomerDialog({
             </Field>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              {t("cancel")}
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? t("saving") : editing ? t("save") : t("createSubmit")}
-            </Button>
-          </DialogFooter>
+          {serviceOpts.length > 0 && (
+            <Field label={t("colServices")}>
+              <Controller
+                control={control}
+                name="service_ids"
+                render={({ field }) => (
+                  <MultiSelect
+                    value={field.value ?? []}
+                    onValueChange={field.onChange}
+                    options={serviceOpts}
+                    placeholder={t("pickServices")}
+                    ariaLabel={t("colServices")}
+                  />
+                )}
+              />
+            </Field>
+          )}
+
         </form>
-      </DialogContent>
-    </Dialog>
+        <SheetFooter className="flex-row justify-end border-t">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button type="submit" form="customer-form" disabled={pending}>
+            {pending ? t("saving") : editing ? t("save") : t("createSubmit")}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 

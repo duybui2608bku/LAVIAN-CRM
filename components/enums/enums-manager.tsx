@@ -33,8 +33,6 @@ import {
 } from "@/components/ui/table";
 import type { EnumKind, EnumOption } from "@/types/customer";
 
-const KINDS: EnumKind[] = ["stage", "source", "lost_reason"];
-
 // Bảng màu preset cho tag (đọc được cả nền sáng lẫn tối).
 const TAG_COLORS = [
   "#7b68ee", "#3b82f6", "#0ea5e9", "#14b8a6", "#22c55e", "#65a30d",
@@ -44,16 +42,18 @@ const TAG_COLORS = [
 // Trạng thái dialog: đang mở cho kind nào, sửa option nào (null = tạo mới).
 type DialogState = { kind: EnumKind; option: EnumOption | null } | null;
 
-export function EnumsManager({ options }: { options: EnumOption[] }) {
+// Mỗi trang /enums/[kind] render manager cho đúng 1 kind (page đã query + sort sẵn).
+export function EnumsManager({
+  kind,
+  options,
+}: {
+  kind: EnumKind;
+  options: EnumOption[];
+}) {
   const t = useTranslations("enums");
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [pending, start] = useTransition();
-
-  const byKind = (k: EnumKind) =>
-    options
-      .filter((o) => o.kind === k)
-      .sort((a, b) => a.sort_order - b.sort_order);
 
   const onDelete = (o: EnumOption) => {
     if (!window.confirm(t("deleteConfirm"))) return;
@@ -88,106 +88,107 @@ export function EnumsManager({ options }: { options: EnumOption[] }) {
     });
 
   return (
-    <div className="flex flex-1 flex-col gap-8 p-4">
-      <h1 className="text-lg font-semibold">{t("title")}</h1>
+    <div className="flex flex-1 flex-col gap-3 p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg font-semibold">{t(`kind_${kind}`)}</h1>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setDialog({ kind, option: null })}
+        >
+          <Plus className="size-4" />
+          {t("add")}
+        </Button>
+      </div>
 
-      {KINDS.map((kind) => (
-        <section key={kind} className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-medium">{t(`kind_${kind}`)}</h2>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setDialog({ kind, option: null })}
-            >
-              <Plus className="size-4" />
-              {t("add")}
-            </Button>
-          </div>
-
-          <div className="rounded-md border">
-            {/* table-fixed + width cố định để 3 bảng xếp dọc thẳng cột nhau. */}
-            <Table className="table-fixed">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[180px]">{t("colValue")}</TableHead>
-                  <TableHead>{t("colVi")}</TableHead>
-                  <TableHead>{t("colEn")}</TableHead>
-                  <TableHead>{t("colId")}</TableHead>
-                  <TableHead className="w-28 text-center">
-                    {t("colActive")}
-                  </TableHead>
-                  <TableHead className="w-28 text-right">
-                    {t("colActions")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {byKind(kind).length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="h-16 text-center text-muted-foreground"
+      <div className="rounded-md border">
+        <Table className="table-fixed">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[180px]">{t("colValue")}</TableHead>
+              <TableHead>{t("colVi")}</TableHead>
+              <TableHead>{t("colEn")}</TableHead>
+              <TableHead>{t("colId")}</TableHead>
+              <TableHead className="w-28 text-center">
+                {t("colActive")}
+              </TableHead>
+              <TableHead className="w-28 text-right">
+                {t("colActions")}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {options.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="h-16 text-center text-muted-foreground"
+                >
+                  {t("empty")}
+                </TableCell>
+              </TableRow>
+            ) : (
+              options.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell className="font-mono text-xs">
+                    {o.value}
+                  </TableCell>
+                  <TableCell>
+                    <EnumTag icon={o.icon} color={o.color} label={o.label_vi} />
+                  </TableCell>
+                  <TableCell>
+                    {o.label_en ? (
+                      <EnumTag icon={o.icon} color={o.color} label={o.label_en} />
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {o.label_id ? (
+                      <EnumTag icon={o.icon} color={o.color} label={o.label_id} />
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <input
+                      type="checkbox"
+                      className="size-4 cursor-pointer accent-primary"
+                      checked={o.is_active}
+                      disabled={pending}
+                      aria-label={t("colActive")}
+                      title={o.is_active ? t("active") : t("inactive")}
+                      onChange={() => onToggleActive(o)}
+                    />
+                  </TableCell>
+                  <TableCell className="space-x-1 text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title={t("edit")}
+                      aria-label={t("edit")}
+                      disabled={pending}
+                      onClick={() => setDialog({ kind, option: o })}
                     >
-                      {t("empty")}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  byKind(kind).map((o) => (
-                    <TableRow key={o.id}>
-                      <TableCell className="font-mono text-xs">
-                        {o.value}
-                      </TableCell>
-                      <TableCell>
-                        <EnumTag icon={o.icon} color={o.color} label={o.label_vi} />
-                      </TableCell>
-                      <TableCell>
-                        <EnumTag icon={o.icon} color={o.color} label={o.label_en} />
-                      </TableCell>
-                      <TableCell>
-                        <EnumTag icon={o.icon} color={o.color} label={o.label_id} />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <input
-                          type="checkbox"
-                          className="size-4 cursor-pointer accent-primary"
-                          checked={o.is_active}
-                          disabled={pending}
-                          aria-label={t("colActive")}
-                          title={o.is_active ? t("active") : t("inactive")}
-                          onChange={() => onToggleActive(o)}
-                        />
-                      </TableCell>
-                      <TableCell className="space-x-1 text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          title={t("edit")}
-                          aria-label={t("edit")}
-                          disabled={pending}
-                          onClick={() => setDialog({ kind, option: o })}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          title={t("delete")}
-                          aria-label={t("delete")}
-                          disabled={pending}
-                          onClick={() => onDelete(o)}
-                        >
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </section>
-      ))}
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title={t("delete")}
+                      aria-label={t("delete")}
+                      disabled={pending}
+                      onClick={() => onDelete(o)}
+                    >
+                      <Trash2 className="size-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <OptionDialog
         state={dialog}
@@ -201,8 +202,8 @@ export function EnumsManager({ options }: { options: EnumOption[] }) {
 const schema = z.object({
   value: z.string().min(1),
   label_vi: z.string().min(1),
-  label_en: z.string().min(1),
-  label_id: z.string().min(1),
+  label_en: z.string(), // không bắt buộc — "" = chưa dịch, lưu null
+  label_id: z.string(),
   icon: z.string(), // tên icon Lucide; "" = không icon
   color: z.string(), // hex #rrggbb; "" = không màu
   sort_order: z.string(), // input number trả string; convert khi submit
@@ -260,8 +261,8 @@ function OptionDialog({
       const res = editing
         ? await updateOption(editing.id, {
             label_vi: v.label_vi,
-            label_en: v.label_en,
-            label_id: v.label_id,
+            label_en: v.label_en || null,
+            label_id: v.label_id || null,
             icon: v.icon || null,
             color: v.color || null,
             sort_order,
@@ -271,8 +272,8 @@ function OptionDialog({
             kind: state.kind,
             value: v.value,
             label_vi: v.label_vi,
-            label_en: v.label_en,
-            label_id: v.label_id,
+            label_en: v.label_en || null,
+            label_id: v.label_id || null,
             icon: v.icon || null,
             color: v.color || null,
             sort_order,
@@ -311,11 +312,11 @@ function OptionDialog({
             <Field label={t("colVi")} error={errors.label_vi && t("required")}>
               <Input {...register("label_vi")} />
             </Field>
-            <Field label={t("colEn")} error={errors.label_en && t("required")}>
-              <Input {...register("label_en")} />
+            <Field label={t("colEn")}>
+              <Input {...register("label_en")} placeholder={t("optional")} />
             </Field>
-            <Field label={t("colId")} error={errors.label_id && t("required")}>
-              <Input {...register("label_id")} />
+            <Field label={t("colId")}>
+              <Input {...register("label_id")} placeholder={t("optional")} />
             </Field>
             <Field label={t("iconLabel")}>
               <Controller

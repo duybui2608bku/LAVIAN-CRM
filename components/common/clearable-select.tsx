@@ -11,7 +11,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type SelectOption = { value: string; label: string };
+// label là ReactNode để option có thể kèm avatar/icon (ItemText của Radix
+// nhận node và tự phản chiếu lên trigger khi được chọn).
+export type SelectOption = { value: string; label: React.ReactNode };
 
 /**
  * Select shadcn kèm nút xoá giá trị.

@@ -1,4 +1,5 @@
-export type EnumKind = "stage" | "source" | "lost_reason";
+export const ENUM_KINDS = ["stage", "source", "lost_reason"] as const;
+export type EnumKind = (typeof ENUM_KINDS)[number];
 
 /** Một giá trị danh mục (admin CRUD) — ánh xạ bảng `public.enum_options`. */
 export interface EnumOption {
@@ -6,8 +7,8 @@ export interface EnumOption {
   kind: EnumKind;
   value: string;
   label_vi: string;
-  label_en: string;
-  label_id: string;
+  label_en: string | null; // không bắt buộc — UI fallback label_vi
+  label_id: string | null;
   icon: string | null; // tên icon Lucide (kebab-case)
   color: string | null; // hex #rrggbb
   sort_order: number;
@@ -33,6 +34,7 @@ export interface CustomerInput {
   lost_reason?: string | null;
   staff_id?: string | null;
   first_contact?: string | null; // "YYYY-MM-DD"
+  service_ids?: string[]; // đồng bộ bảng nối customer_services; không gửi = giữ nguyên
 }
 
 /** Khách hàng — ánh xạ bảng `public.customers`. */
@@ -47,6 +49,7 @@ export interface Customer {
   staff_id: string | null;
   first_contact: string | null;
   notes: CustomerNote[];
+  service_ids: string[]; // map từ bảng nối customer_services (page query nested)
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

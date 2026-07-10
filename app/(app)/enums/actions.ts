@@ -20,8 +20,8 @@ export async function createOption(input: {
   kind: EnumKind;
   value: string;
   label_vi: string;
-  label_en: string;
-  label_id: string;
+  label_en: string | null;
+  label_id: string | null;
   icon: string | null;
   color: string | null;
   sort_order: number;
@@ -43,8 +43,8 @@ export async function updateOption(
   id: string,
   input: {
     label_vi: string;
-    label_en: string;
-    label_id: string;
+    label_en: string | null;
+    label_id: string | null;
     icon: string | null;
     color: string | null;
     sort_order: number;
