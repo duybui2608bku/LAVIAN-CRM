@@ -7,7 +7,7 @@ Khách nhắn tin qua SMAX (livechat Facebook) hiện phải được nhân viê
 ## What Changes
 
 - Trang form public mới `/lead-form` (không cần đăng nhập, nhúng được iframe): họ tên + SĐT bắt buộc, ghi chú tùy chọn.
-- Submit → Server Action `submitLead` tạo `customers` mới bằng **admin client** (anonymous không qua được RLS): `stage='new_lead'`, `source` mặc định `'smax'` (đổi được qua query `?source=`), ghi chú append vào `notes` kèm dấu vết SMAX (id/name).
+- Submit → Server Action `submitLead` tạo `customers` mới bằng **admin client** (anonymous không qua được RLS): `stage='new_lead'`, `source` mặc định `'smax'` (đổi được qua query `?source=`), `staff_id` theo select nhân viên (không bắt buộc), ghi chú append vào `notes` (bỏ note dấu vết SMAX theo feedback).
 - Tích hợp SMAX theo tài liệu: form gửi `__SM_FORM_CUSTOMER` xin dữ liệu khách → prefill tên/SĐT; sau khi tạo thành công gửi `__SM_FORM_POPUP` action `HIDE` đóng popup.
 - `proxy.ts`: `/lead-form` thành route public, KHÔNG redirect người đã đăng nhập (khác /login, /banned).
 - Migration seed enum `source` giá trị `smax` (idempotent, chạy tay).

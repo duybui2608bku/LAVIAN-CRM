@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
@@ -11,6 +11,7 @@ import { CircleCheck } from "lucide-react";
 
 import { submitLead } from "@/app/lead-form/actions";
 import { Button } from "@/components/ui/button";
+import { ClearableSelect } from "@/components/common/clearable-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -21,12 +22,17 @@ const fieldCls =
 const schema = z.object({
   full_name: z.string().trim().min(1).max(120),
   phone: z.string().trim().regex(/^[0-9+ ().-]{8,15}$/),
+  staff_id: z.string(), // "" = không chọn
   note: z.string().trim().max(1000),
   website: z.string(), // honeypot ẩn
 });
 type Values = z.infer<typeof schema>;
 
-export function LeadForm() {
+export function LeadForm({
+  staff,
+}: {
+  staff: { id: string; user_name: string }[];
+}) {
   const t = useTranslations("leadForm");
   const params = useSearchParams();
   const integrationId = params.get("integration_id") ?? "";
@@ -38,18 +44,24 @@ export function LeadForm() {
   const [embedded] = useState(
     () => typeof window !== "undefined" && window.parent !== window,
   );
-  const [smax, setSmax] = useState<{ id: string; name: string } | null>(null);
 
   const {
     register,
     handleSubmit,
     getValues,
     setValue,
+    control,
     reset,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { full_name: "", phone: "", note: "", website: "" },
+    defaultValues: {
+      full_name: "",
+      phone: "",
+      staff_id: "",
+      note: "",
+      website: "",
+    },
   });
 
   // Tích hợp SMAX "Nhúng form" (tailieu.smax.ai) — chỉ chạy khi nằm trong iframe:
@@ -60,7 +72,6 @@ export function LeadForm() {
       const msg = event.data;
       if (typeof msg !== "object" || msg?.name !== "__SM_FORM_CUSTOMER") return;
       const c = msg.data?.customer ?? {};
-      setSmax({ id: String(c.id ?? ""), name: String(c.name ?? "") });
       if (c.name && !getValues("full_name"))
         setValue("full_name", String(c.name));
       if (c.phone && !getValues("phone")) setValue("phone", String(c.phone));
@@ -85,7 +96,7 @@ export function LeadForm() {
 
   const onSubmit = (values: Values) =>
     start(async () => {
-      const res = await submitLead({ ...values, source, smax });
+      const res = await submitLead({ ...values, source });
       if (res?.error) toast.error(res.error);
       else setDone(true);
     });
@@ -133,6 +144,25 @@ export function LeadForm() {
           <p className="text-xs text-destructive">{t("phoneInvalid")}</p>
         )}
       </div>
+
+      {staff.length > 0 && (
+        <div className="space-y-1.5">
+          <Label>{t("staff")}</Label>
+          <Controller
+            control={control}
+            name="staff_id"
+            render={({ field }) => (
+              <ClearableSelect
+                value={field.value}
+                onValueChange={field.onChange}
+                options={staff.map((s) => ({ value: s.id, label: s.user_name }))}
+                placeholder={t("noteOptional")}
+                ariaLabel={t("staff")}
+              />
+            )}
+          />
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="note">{t("note")}</Label>

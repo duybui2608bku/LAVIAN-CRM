@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { LOCALE_COOKIE } from "@/i18n/config";
+
 // Next.js 16 renamed Middleware -> Proxy (see node_modules/next/dist/docs proxy guide).
 // Cổng xác thực: refresh session + chặn chưa-đăng-nhập / banned / route admin.
 
@@ -11,6 +13,16 @@ const AUTH_PAGES = ["/login", "/banned"];
 const PUBLIC_PATHS = [...AUTH_PAGES, "/lead-form"];
 
 export async function proxy(request: NextRequest) {
+  // /lead-form hướng tới khách quốc tế: chưa chọn ngôn ngữ thì mặc định tiếng Anh.
+  // Chỉ override cookie trên request (SSR đọc "en"), không ghi cookie thật —
+  // khách chọn tay qua switcher mới ghi (i18n/actions.ts setLocale).
+  if (
+    request.nextUrl.pathname.startsWith("/lead-form") &&
+    !request.cookies.has(LOCALE_COOKIE)
+  ) {
+    request.cookies.set(LOCALE_COOKIE, "en");
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

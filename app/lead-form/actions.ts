@@ -13,11 +13,9 @@ const schema = z.object({
   full_name: z.string().trim().min(1).max(120),
   phone: z.string().trim().regex(/^[0-9+ ().-]{8,15}$/),
   note: z.string().trim().max(1000),
+  staff_id: z.uuid().or(z.literal("")), // chọn từ danh sách; "" = không chọn
   website: z.string(), // honeypot — bot điền là bỏ qua lặng lẽ
   source: z.string(), // từ ?source= — sai định dạng value thì rơi về 'smax'
-  smax: z
-    .object({ id: z.string().max(64), name: z.string().max(120) })
-    .nullable(), // dấu vết khách SMAX (postMessage) — chỉ dùng ghi note
 });
 
 export type LeadInput = z.infer<typeof schema>;
@@ -28,15 +26,9 @@ export async function submitLead(input: LeadInput): Promise<{ error?: string }> 
   const d = parsed.data;
   if (d.website) return {}; // honeypot: trả success giả, không insert
 
-  const at = new Date().toISOString();
-  const notes: CustomerNote[] = [];
-  if (d.smax && (d.smax.id || d.smax.name))
-    notes.push({
-      text: `Từ SMAX: ${d.smax.name || "?"} (id ${d.smax.id || "?"})`,
-      at,
-      by: "Form SMAX",
-    });
-  if (d.note) notes.push({ text: d.note, at, by: "Form SMAX" });
+  const notes: CustomerNote[] = d.note
+    ? [{ text: d.note, at: new Date().toISOString(), by: "Form SMAX" }]
+    : [];
 
   try {
     const supabase = createAdminClient();
@@ -45,6 +37,8 @@ export async function submitLead(input: LeadInput): Promise<{ error?: string }> 
       phone: d.phone,
       source: /^[a-z0-9_]{1,50}$/.test(d.source) ? d.source : "smax",
       stage: "new_lead",
+      // FK -> profiles; uuid lạ (request tự chế) sẽ bị DB từ chối.
+      staff_id: d.staff_id || null,
       // Ngày theo giờ VN — server UTC không lệch ngày lúc sáng sớm (bài học localDay).
       first_contact: new Date().toLocaleDateString("en-CA", {
         timeZone: "Asia/Ho_Chi_Minh",

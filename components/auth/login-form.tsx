@@ -16,8 +16,21 @@ import { Label } from "@/components/ui/label";
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  remember: z.boolean(),
 });
 type Values = z.infer<typeof schema>;
+
+// ponytail: "ghi nhớ đăng nhập" = lưu email+mật khẩu plaintext trong
+// localStorage để prefill — máy dùng chung thì bỏ tick lúc đăng nhập.
+const CREDS_KEY = "lavian-login";
+
+function savedCreds(): { email: string; password: string } | null {
+  try {
+    return JSON.parse(localStorage.getItem(CREDS_KEY) ?? "null");
+  } catch {
+    return null; // SSR (không có localStorage) hoặc JSON hỏng
+  }
+}
 
 export function LoginForm() {
   const t = useTranslations("auth");
@@ -27,11 +40,22 @@ export function LoginForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<Values>({ resolver: zodResolver(schema) });
+  } = useForm<Values>({
+    resolver: zodResolver(schema),
+    // RHF đổ defaultValues vào input qua ref sau mount → không lệch hydration.
+    defaultValues: { remember: true, email: "", password: "", ...savedCreds() },
+  });
 
   const onSubmit = (values: Values) =>
     start(async () => {
-      const res = await signIn(values);
+      // Lưu TRƯỚC khi gọi signIn — thành công sẽ redirect ngay.
+      if (values.remember)
+        localStorage.setItem(
+          CREDS_KEY,
+          JSON.stringify({ email: values.email, password: values.password }),
+        );
+      else localStorage.removeItem(CREDS_KEY);
+      const res = await signIn({ email: values.email, password: values.password });
       if (res?.error) toast.error(res.error);
     });
 
@@ -79,6 +103,15 @@ export function LoginForm() {
           <p className="text-xs text-destructive">{t("passwordRequired")}</p>
         )}
       </div>
+
+      <label className="flex w-fit items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="size-4 accent-primary"
+          {...register("remember")}
+        />
+        {t("rememberMe")}
+      </label>
 
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? t("signingIn") : t("signIn")}
