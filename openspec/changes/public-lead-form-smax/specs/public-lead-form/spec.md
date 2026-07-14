@@ -47,11 +47,15 @@ Form SHALL có select "Nhân viên tư vấn" (không bắt buộc, xoá đượ
 - **THEN** `staff_id` là null, submit vẫn thành công
 
 ### Requirement: Tích hợp SMAX postMessage
-Khi chạy trong iframe (`window.parent !== window`), form SHALL gửi `{name:'__SM_FORM_CUSTOMER', data:{integration_id}}` lên parent lúc mount (integration_id từ query param) và khi nhận event `__SM_FORM_CUSTOMER` SHALL prefill các ô tên/SĐT còn trống từ `customer.name`/`customer.phone`. Sau khi gửi thành công, màn hình cảm ơn SHALL có nút Đóng gửi `{name:'__SM_FORM_POPUP', action:'HIDE'}`.
+Khi chạy trong iframe (`window.parent !== window`), form SHALL gửi `{name:'__SM_FORM_CUSTOMER', data:{integration_id}}` lên parent lúc mount (integration_id từ query param) và khi nhận event `__SM_FORM_CUSTOMER` SHALL prefill các ô tên/SĐT còn trống từ `customer.name`/`customer.phone`. Vì SMAX không tự bắn event khi đổi khách trong inbox, form SHALL poll gửi lại `__SM_FORM_CUSTOMER` mỗi ~3 giây (chỉ khi nhúng): event có `customer.id` KHÁC lần trước SHALL nạp lại ô tên/SĐT theo khách mới; id không đổi SHALL không đụng form (không đè thứ khách đang gõ). Nút "Gửi thông tin khác" trên màn hình cảm ơn SHALL prefill lại theo khách SMAX đang mở. Sau khi gửi thành công, màn hình cảm ơn SHALL có nút Đóng gửi `{name:'__SM_FORM_POPUP', action:'HIDE'}`.
 
 #### Scenario: Prefill từ SMAX
 - **WHEN** SMAX gửi event `__SM_FORM_CUSTOMER` với `customer.name = "Hoàng Đức"` khi ô tên đang trống
 - **THEN** ô họ tên tự điền "Hoàng Đức"; ô khách đã gõ dở không bị đè
+
+#### Scenario: Đổi khách trong SMAX
+- **WHEN** nhân viên đang xem khách A rồi chuyển sang khách B trong SMAX (không thao tác gì trên form)
+- **THEN** trong vòng ~3 giây ô tên/SĐT tự nạp lại theo khách B (id đổi); nếu vẫn là khách A thì form giữ nguyên thứ đang gõ
 
 #### Scenario: Đóng popup sau khi gửi
 - **WHEN** khách bấm nút Đóng trên màn hình cảm ơn trong iframe

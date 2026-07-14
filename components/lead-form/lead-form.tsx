@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +18,13 @@ import { Label } from "@/components/ui/label";
 // Khớp trông với <Input> (pattern customers-manager).
 const fieldCls =
   "w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+
+// Xin dữ liệu khách đang mở ở SMAX (parent trả về event __SM_FORM_CUSTOMER).
+const requestCustomer = (integrationId: string) =>
+  window.parent.postMessage(
+    { name: "__SM_FORM_CUSTOMER", data: { integration_id: integrationId } },
+    "*",
+  );
 
 const schema = z.object({
   full_name: z.string().trim().min(1).max(120),
@@ -64,24 +71,38 @@ export function LeadForm({
     },
   });
 
-  // Tích hợp SMAX "Nhúng form" (tailieu.smax.ai) — chỉ chạy khi nằm trong iframe:
-  // xin dữ liệu khách qua __SM_FORM_CUSTOMER rồi prefill các ô còn TRỐNG.
+  // Tích hợp SMAX "Nhúng form" (tailieu.smax.ai) — chỉ chạy khi nằm trong iframe.
+  // SMAX không tự bắn event khi đổi khách trong inbox nên poll xin lại
+  // __SM_FORM_CUSTOMER; id khách đổi (A→B) mới nạp lại tên/SĐT, id giữ
+  // nguyên thì không đụng form (không phá thứ nhân viên đang gõ).
+  // ponytail: poll 3s — SMAX không có event chủ động; nếu có thì bỏ poll.
+  const smaxIdRef = useRef<string | null>(null); // null = chưa nhận event nào
   useEffect(() => {
     if (!embedded) return;
     const onMessage = (event: MessageEvent) => {
       const msg = event.data;
       if (typeof msg !== "object" || msg?.name !== "__SM_FORM_CUSTOMER") return;
       const c = msg.data?.customer ?? {};
-      if (c.name && !getValues("full_name"))
-        setValue("full_name", String(c.name));
-      if (c.phone && !getValues("phone")) setValue("phone", String(c.phone));
+      const id = c.id ? String(c.id) : "";
+      const prev = smaxIdRef.current;
+      smaxIdRef.current = id;
+      if (prev === null) {
+        // Event đầu tiên: chỉ điền ô còn TRỐNG (không đè thứ khách gõ dở).
+        if (c.name && !getValues("full_name"))
+          setValue("full_name", String(c.name));
+        if (c.phone && !getValues("phone")) setValue("phone", String(c.phone));
+      } else if (id !== prev) {
+        setValue("full_name", c.name ? String(c.name) : "");
+        setValue("phone", c.phone ? String(c.phone) : "");
+      }
     };
     window.addEventListener("message", onMessage);
-    window.parent.postMessage(
-      { name: "__SM_FORM_CUSTOMER", data: { integration_id: integrationId } },
-      "*",
-    );
-    return () => window.removeEventListener("message", onMessage);
+    requestCustomer(integrationId);
+    const timer = setInterval(() => requestCustomer(integrationId), 3000);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("message", onMessage);
+    };
   }, [embedded, getValues, setValue, integrationId]);
 
   const closePopup = () =>
@@ -113,6 +134,9 @@ export function LeadForm({
             onClick={() => {
               reset();
               setDone(false);
+              // Prefill lại theo khách SMAX đang mở (event kế tiếp coi như đầu tiên).
+              smaxIdRef.current = null;
+              if (embedded) requestCustomer(integrationId);
             }}
           >
             {t("again")}
