@@ -203,6 +203,23 @@
     "updateOk": "Updated",
     "createOk": "Customer added"
   },
+  "leadForm": {
+    "title": "Book a consultation",
+    "subtitle": "Leave your info and we'll get back to you shortly.",
+    "name": "Full name",
+    "nameRequired": "Please enter your name",
+    "phone": "Phone number",
+    "phoneInvalid": "Invalid phone number",
+    "note": "Note",
+    "noteOptional": "Optional",
+    "noteTooLong": "Note must be at most 1000 characters",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "successTitle": "Thank you!",
+    "successBody": "We've received your info and will contact you soon.",
+    "again": "Submit another",
+    "close": "Close"
+  },
   "appointments": {
     "title": "Appointments",
     "create": "Book appointment",

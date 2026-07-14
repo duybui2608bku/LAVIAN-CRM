@@ -4,8 +4,11 @@ import { NextResponse, type NextRequest } from "next/server";
 // Next.js 16 renamed Middleware -> Proxy (see node_modules/next/dist/docs proxy guide).
 // Cổng xác thực: refresh session + chặn chưa-đăng-nhập / banned / route admin.
 
-// Route công khai (không cần đăng nhập).
-const PUBLIC_PATHS = ["/login", "/banned"];
+// Trang auth: đã đăng nhập thì đá về trang chủ.
+const AUTH_PAGES = ["/login", "/banned"];
+// Route công khai (không cần đăng nhập) — /lead-form nhúng iframe SMAX,
+// người đã đăng nhập vẫn mở được (không redirect như trang auth).
+const PUBLIC_PATHS = [...AUTH_PAGES, "/lead-form"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -68,8 +71,13 @@ export async function proxy(request: NextRequest) {
   }
 
   // Active mà vào lại trang login/banned → về trang chủ.
-  if (isPublic) {
+  if (AUTH_PAGES.some((p) => path === p || path.startsWith(p + "/"))) {
     return redirectTo("/");
+  }
+
+  // Route public còn lại (vd /lead-form): ai cũng xem được, không gác gì thêm.
+  if (isPublic) {
+    return response;
   }
 
   // Route quản trị chỉ dành cho admin.

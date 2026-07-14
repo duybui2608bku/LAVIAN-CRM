@@ -203,6 +203,23 @@
     "updateOk": "Đã cập nhật",
     "createOk": "Đã thêm khách hàng"
   },
+  "leadForm": {
+    "title": "Đăng ký tư vấn",
+    "subtitle": "Để lại thông tin, chúng tôi sẽ liên hệ với bạn sớm nhất.",
+    "name": "Họ và tên",
+    "nameRequired": "Vui lòng nhập họ tên",
+    "phone": "Số điện thoại",
+    "phoneInvalid": "Số điện thoại không hợp lệ",
+    "note": "Ghi chú",
+    "noteOptional": "Không bắt buộc",
+    "noteTooLong": "Ghi chú tối đa 1000 ký tự",
+    "submit": "Gửi thông tin",
+    "submitting": "Đang gửi...",
+    "successTitle": "Đã nhận thông tin!",
+    "successBody": "Cảm ơn bạn, chúng tôi sẽ liên hệ lại sớm nhất.",
+    "again": "Gửi thông tin khác",
+    "close": "Đóng"
+  },
   "appointments": {
     "title": "Lịch hẹn",
     "create": "Đặt lịch hẹn",

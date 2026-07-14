@@ -203,6 +203,23 @@
     "updateOk": "Diperbarui",
     "createOk": "Pelanggan ditambahkan"
   },
+  "leadForm": {
+    "title": "Daftar konsultasi",
+    "subtitle": "Tinggalkan info Anda, kami akan segera menghubungi.",
+    "name": "Nama lengkap",
+    "nameRequired": "Silakan masukkan nama",
+    "phone": "Nomor telepon",
+    "phoneInvalid": "Nomor telepon tidak valid",
+    "note": "Catatan",
+    "noteOptional": "Tidak wajib",
+    "noteTooLong": "Catatan maksimal 1000 karakter",
+    "submit": "Kirim",
+    "submitting": "Mengirim...",
+    "successTitle": "Terima kasih!",
+    "successBody": "Info Anda sudah kami terima, kami akan segera menghubungi.",
+    "again": "Kirim lagi",
+    "close": "Tutup"
+  },
   "appointments": {
     "title": "Janji temu",
     "create": "Buat janji temu",
