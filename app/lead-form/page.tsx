@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/common/theme-toggle";
 import { LeadForm } from "@/components/lead-form/lead-form";
 import { Logo } from "@/components/layout/logo";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { EnumOption } from "@/types/customer";
 
 // Trang public (không cần đăng nhập) — nhúng iframe vào SMAX hoặc mở trực tiếp.
 
@@ -21,13 +22,23 @@ export async function generateMetadata() {
 
 export default async function LeadFormPage() {
   const t = await getTranslations("leadForm");
-  // Trang anonymous nên đọc profiles bằng admin client (RLS chỉ cho authenticated).
-  const { data: staff } = await createAdminClient()
-    .from("profiles")
-    .select("id, user_name")
-    .eq("status", "active")
-    .neq("user_name", "")
-    .order("user_name");
+  // Trang anonymous nên đọc profiles/enum_options bằng admin client
+  // (RLS chỉ cho authenticated).
+  const admin = createAdminClient();
+  const [{ data: staff }, { data: stages }] = await Promise.all([
+    admin
+      .from("profiles")
+      .select("id, user_name")
+      .eq("status", "active")
+      .neq("user_name", "")
+      .order("user_name"),
+    admin
+      .from("enum_options")
+      .select("*")
+      .eq("kind", "stage")
+      .eq("is_active", true)
+      .order("sort_order"),
+  ]);
 
   return (
     <main className="relative flex min-h-svh items-center justify-center p-4">
@@ -44,7 +55,10 @@ export default async function LeadFormPage() {
         </div>
         {/* useSearchParams trong LeadForm cần Suspense boundary */}
         <Suspense>
-          <LeadForm staff={staff ?? []} />
+          <LeadForm
+            staff={staff ?? []}
+            stages={(stages ?? []) as EnumOption[]}
+          />
         </Suspense>
       </div>
     </main>

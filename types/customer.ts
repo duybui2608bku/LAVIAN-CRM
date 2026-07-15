@@ -24,11 +24,27 @@ export interface CustomerNote {
   by?: string | null; // tên người ghi (server stamp) — note cũ không có
 }
 
+/** Tag SMAX gắn cho khách — lưu nguyên mảng từ event `__SM_FORM_CUSTOMER`. */
+export interface SmaxTag {
+  id?: string;
+  name: string;
+  alias?: string;
+  time?: string; // ISO timestamp
+}
+
+/** Hội thoại SMAX tạo ra lead — lưu từ `data.thread` của event. */
+export interface SmaxThread {
+  id?: string;
+  tid?: string;
+  message?: string;
+  link?: string;
+}
+
 /** Dữ liệu tạo/sửa khách hàng gửi lên Server Action. */
 export interface CustomerInput {
   full_name: string;
   phone: string;
-  social_link?: string | null;
+  social_name?: string | null;
   source?: string | null;
   stage: string;
   lost_reason?: string | null;
@@ -42,7 +58,10 @@ export interface Customer {
   id: string;
   full_name: string;
   phone: string;
-  social_link: string | null;
+  social_name: string | null; // tên hiển thị MXH (SMAX name_original)
+  picture: string | null; // URL avatar khách (SMAX customer.picture)
+  tags: SmaxTag[];
+  thread: SmaxThread | null;
   source: string | null;
   stage: string;
   lost_reason: string | null;

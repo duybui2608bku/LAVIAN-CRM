@@ -775,7 +775,7 @@ function InlineServices({
 const schema = z.object({
   full_name: z.string().min(1),
   phone: z.string().min(1),
-  social_link: z.string().url().optional().or(z.literal("")),
+  social_name: z.string().optional(),
   stage: z.string().min(1),
   source: z.string().optional(),
   staff_id: z.string().optional(),
@@ -819,7 +819,7 @@ function CustomerDialog({
     values: {
       full_name: editing?.full_name ?? "",
       phone: editing?.phone ?? "",
-      social_link: editing?.social_link ?? "",
+      social_name: editing?.social_name ?? "",
       stage: editing?.stage ?? "new_lead",
       source: editing?.source ?? "",
       staff_id: editing?.staff_id ?? "",
@@ -851,7 +851,7 @@ function CustomerDialog({
       const input: CustomerInput = {
         full_name: v.full_name,
         phone: v.phone,
-        social_link: v.social_link || null,
+        social_name: v.social_name || null,
         source: v.source || null,
         stage: v.stage,
         lost_reason: v.lost_reason || null,
@@ -893,11 +893,8 @@ function CustomerDialog({
             </Field>
           </div>
 
-          <Field
-            label={t("socialLink")}
-            error={errors.social_link && t("urlInvalid")}
-          >
-            <Input placeholder="https://…" {...register("social_link")} />
+          <Field label={t("socialName")}>
+            <Input {...register("social_name")} />
           </Field>
 
           <div className="grid gap-3">

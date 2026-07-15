@@ -22,7 +22,7 @@ function clean(input: CustomerInput) {
   return {
     full_name: input.full_name.trim(),
     phone: input.phone.trim(),
-    social_link: nz(input.social_link),
+    social_name: nz(input.social_name),
     source: nz(input.source),
     stage: input.stage,
     lost_reason: input.stage === "lost" ? nz(input.lost_reason) : null,
