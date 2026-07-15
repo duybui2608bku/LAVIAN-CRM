@@ -6,18 +6,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Wallet } from "lucide-react";
 
 import {
   createAppointment,
   updateAppointment,
 } from "@/app/(app)/appointments/actions";
+import { ledgerPaid, paidTotal } from "@/lib/appointments";
+import { formatVnd } from "@/lib/currency";
 import { optionLabel, serviceName } from "@/lib/customers";
 import { formatISODate } from "@/lib/date";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { ClearableSelect } from "@/components/common/clearable-select";
-import { MultiSelect } from "@/components/common/multi-select";
+import { CurrencyInput } from "@/components/common/currency-input";
 import { DatePicker } from "@/components/common/date-picker";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -28,10 +31,12 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { Locale } from "@/i18n/config";
 import type {
   Appointment,
   AppointmentInput,
   PaymentMethod,
+  ServiceLedger,
 } from "@/types/appointment";
 import { PAYMENT_METHODS } from "@/types/appointment";
 import type { EnumOption } from "@/types/customer";
@@ -55,13 +60,12 @@ const schema = z.object({
   duration_minutes: z.string().optional(),
   staff_id: z.string().optional(),
   source: z.string().optional(),
-  expected_amount: z.string().optional(),
-  deposit_amount: z.string().optional(),
-  final_amount: z.string().optional(),
+  total_amount: z.string().optional(), // tổng giá liệu trình — ghi vào SỔ chung
+  deposit_amount: z.string().optional(), // chỉ dùng khi TẠO — thành dòng sổ deposit
   payment_method: z.string().optional(),
   booking_note: z.string().optional(),
   internal_note: z.string().optional(),
-  service_ids: z.array(z.string()).optional(),
+  service_id: z.string().min(1), // bắt buộc đúng 1 dịch vụ
 });
 type Values = z.infer<typeof schema>;
 
@@ -87,8 +91,11 @@ export function AppointmentDialog({
   staff,
   options,
   services,
+  appointments = [],
+  returningIds,
   onClose,
   onDone,
+  onOpenPayments,
 }: {
   open: boolean;
   editing: Appointment | null;
@@ -97,8 +104,14 @@ export function AppointmentDialog({
   staff: StaffRef[];
   options: EnumOption[];
   services: Service[];
+  /** Toàn bộ lịch hẹn đã nạp — để tra SỔ MỞ của (khách, dịch vụ) khi tạo mới. */
+  appointments?: Appointment[];
+  /** id các khách đã có lịch hẹn từ trước — hiện badge "Khách cũ". */
+  returningIds?: Set<string>;
   onClose: () => void;
   onDone: () => void;
+  /** Mở dialog Thanh toán của lịch đang sửa (chỉ /appointments truyền). */
+  onOpenPayments?: (id: string) => void;
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
@@ -108,11 +121,32 @@ export function AppointmentDialog({
   // mới — sửa lịch giữ nguyên dữ liệu của chính lịch hẹn.
   const lock = editing ? null : customerLock;
 
+  // Sổ MỞ của (khách, dịch vụ) trong data đã nạp — nguồn chân lý là server
+  // (resolveLedger); đây chỉ để prefill Tổng giá + báo "sổ hiện có".
+  const openLedger = (
+    customerId: string,
+    serviceId: string,
+  ): ServiceLedger | null =>
+    appointments
+      .map((a) => a.ledger)
+      .find(
+        (l) =>
+          l &&
+          l.customer_id === customerId &&
+          l.service_id === serviceId &&
+          !l.closed_at,
+      ) ?? null;
+
+  const initialServiceId =
+    editing?.service_ids?.[0] ?? lock?.service_ids?.[0] ?? "";
+  const lockLedger = lock ? openLedger(lock.id, initialServiceId) : null;
+
   const {
     register,
     control,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors },
   } = useForm<Values>({
@@ -128,15 +162,31 @@ export function AppointmentDialog({
       duration_minutes: String(editing?.duration_minutes ?? 60),
       staff_id: editing?.staff_id ?? lock?.staff_id ?? "",
       source: editing?.source ?? lock?.source ?? "",
-      expected_amount: editing?.expected_amount?.toString() ?? "",
-      deposit_amount: editing?.deposit_amount?.toString() ?? "0",
-      final_amount: editing?.final_amount?.toString() ?? "",
+      total_amount:
+        (editing ? editing.ledger?.total_amount : lockLedger?.total_amount)
+          ?.toString() ?? "",
+      deposit_amount: "0",
       payment_method: editing?.payment_method ?? "",
       booking_note: editing?.booking_note ?? "",
       internal_note: editing?.internal_note ?? "",
-      service_ids: editing?.service_ids ?? lock?.service_ids ?? [],
+      service_id: initialServiceId,
     },
   });
+
+  // Sổ đang khớp lựa chọn hiện tại (để hiện "Sổ hiện có — đã thu X").
+  const wCustomerId = watch("customer_id");
+  const wServiceId = watch("service_id");
+  const liveLedger = editing
+    ? editing.ledger
+    : openLedger(wCustomerId, wServiceId);
+
+  // Đổi khách/dịch vụ khi TẠO MỚI → nạp Tổng giá theo sổ mở của cặp mới
+  // (không có sổ → để trống, tránh mang giá của cặp cũ sang).
+  const syncTotalFromLedger = (customerId: string, serviceId: string) => {
+    if (editing) return;
+    const l = openLedger(customerId, serviceId);
+    setValue("total_amount", l?.total_amount?.toString() ?? "");
+  };
 
   // Option nguồn: active + giá trị hiện tại (kể cả inactive) — pattern customers.
   const sourceOptions = options
@@ -151,6 +201,7 @@ export function AppointmentDialog({
   const serviceOpts = services
     .filter((s) => s.is_active || presetServiceIds.includes(s.id))
     .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
+  const isReturning = (id: string) => !!id && !!returningIds?.has(id);
   const staffOptions = staff.map((s) => ({ value: s.id, label: staffLabel(s) }));
   const customerOptions = customers.map((c) => ({
     value: c.id,
@@ -179,12 +230,12 @@ export function AppointmentDialog({
         duration_minutes: num(v.duration_minutes) ?? 60,
         source: v.source || null,
         payment_method: (v.payment_method || null) as PaymentMethod | null,
-        deposit_amount: num(v.deposit_amount) ?? 0,
-        expected_amount: num(v.expected_amount),
-        final_amount: num(v.final_amount),
+        total_amount: num(v.total_amount), // ghi vào SỔ (khách, dịch vụ)
         booking_note: v.booking_note || null,
         internal_note: v.internal_note || null,
-        service_ids: v.service_ids ?? [],
+        service_ids: [v.service_id],
+        // Cọc ban đầu chỉ khi TẠO — thành dòng deposit trong sổ thanh toán.
+        deposit: editing ? undefined : { amount: num(v.deposit_amount) ?? 0 },
       };
       const res = editing
         ? await updateAppointment(editing.id, input)
@@ -217,41 +268,46 @@ export function AppointmentDialog({
             label={t("customer")}
             error={errors.customer_id && t("required")}
           >
-            {lockedName ? (
-              <p className="flex min-h-8 items-center rounded-lg border border-input bg-muted/30 px-2.5 text-sm">
-                {lockedName}
-              </p>
-            ) : (
-              <Controller
-                control={control}
-                name="customer_id"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      // Tạo mới: nạp thông tin ban đầu theo khách vừa chọn
-                      // (khách chưa có → để trống, không giữ của khách trước).
-                      const c = customers.find((x) => x.id === v);
-                      if (!editing && c) {
-                        setValue("source", c.source ?? "");
-                        setValue("staff_id", c.staff_id ?? "");
-                        setValue(
-                          "service_ids",
-                          (c.service_ids ?? []).filter((id) =>
+            <div className="flex items-center gap-2">
+              {lockedName ? (
+                <p className="flex min-h-8 flex-1 items-center rounded-lg border border-input bg-muted/30 px-2.5 text-sm">
+                  {lockedName}
+                </p>
+              ) : (
+                <Controller
+                  control={control}
+                  name="customer_id"
+                  render={({ field }) => (
+                    <ClearableSelect
+                      value={field.value}
+                      onValueChange={(v) => {
+                        field.onChange(v);
+                        // Tạo mới: nạp thông tin ban đầu theo khách vừa chọn
+                        // (khách chưa có → để trống, không giữ của khách trước).
+                        const c = customers.find((x) => x.id === v);
+                        if (!editing && c) {
+                          setValue("source", c.source ?? "");
+                          setValue("staff_id", c.staff_id ?? "");
+                          const svc = (c.service_ids ?? []).filter((id) =>
                             serviceOpts.some((o) => o.value === id),
-                          ),
-                        );
-                      }
-                    }}
-                    clearable={false}
-                    options={customerOptions}
-                    placeholder={t("pickCustomer")}
-                    ariaLabel={t("customer")}
-                  />
-                )}
-              />
-            )}
+                          )[0];
+                          setValue("service_id", svc ?? "");
+                          syncTotalFromLedger(v, svc ?? "");
+                        }
+                      }}
+                      clearable={false}
+                      options={customerOptions}
+                      placeholder={t("pickCustomer")}
+                      ariaLabel={t("customer")}
+                      className="flex-1"
+                    />
+                  )}
+                />
+              )}
+              {isReturning(wCustomerId) && (
+                <Badge className="border-transparent bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">{t("returningCustomer")}</Badge>
+              )}
+            </div>
           </Field>
 
           <div className="grid gap-3">
@@ -312,17 +368,25 @@ export function AppointmentDialog({
                 )}
               />
             </Field>
-            <Field label={t("colServices")}>
+            <Field
+              label={t("colServices")}
+              error={errors.service_id && t("required")}
+            >
               <Controller
                 control={control}
-                name="service_ids"
+                name="service_id"
                 render={({ field }) => (
-                  <MultiSelect
-                    value={field.value ?? []}
-                    onValueChange={field.onChange}
+                  <ClearableSelect
+                    value={field.value}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      syncTotalFromLedger(wCustomerId, v);
+                    }}
+                    clearable={false}
                     options={serviceOpts}
                     placeholder={t("pickServices")}
                     ariaLabel={t("colServices")}
+                    className="w-full"
                   />
                 )}
               />
@@ -330,35 +394,81 @@ export function AppointmentDialog({
           </div>
 
           <div className="grid gap-3">
-            <Field label={t("expected")}>
-              <Input type="number" min={0} {...register("expected_amount")} />
-            </Field>
-            <Field label={t("deposit")}>
-              <Input type="number" min={0} {...register("deposit_amount")} />
-            </Field>
-          </div>
-
-          <div className="grid gap-3">
-            <Field label={t("final")}>
-              <Input type="number" min={0} {...register("final_amount")} />
-            </Field>
-            <Field label={t("paymentMethod")}>
+            <Field label={t("totalAmount")}>
               <Controller
                 control={control}
-                name="payment_method"
+                name="total_amount"
                 render={({ field }) => (
-                  <ClearableSelect
+                  <CurrencyInput
+                    locale={locale as Locale}
                     value={field.value ?? ""}
                     onValueChange={field.onChange}
-                    options={methodOptions}
-                    placeholder={t("noneOption")}
-                    clearLabel={t("clear")}
-                    ariaLabel={t("paymentMethod")}
+                    placeholder={t("currencyPlaceholder")}
+                    aria-label={t("totalAmount")}
                   />
                 )}
               />
+              {/* Khách cũ cùng dịch vụ → nối SỔ hiện có (tiền dùng chung) */}
+              {!editing && liveLedger && (
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  {t("ledgerHint", { paid: formatVnd(ledgerPaid(liveLedger)) })}
+                </p>
+              )}
             </Field>
+            {editing ? (
+              // Sửa: tiền đã thu nằm trong sổ thanh toán — chỉ xem + mở dialog.
+              <Field label={t("colPaid")}>
+                <div className="flex items-center gap-2">
+                  <p className="flex min-h-8 flex-1 items-center rounded-lg border border-input bg-muted/30 px-2.5 text-sm tabular-nums">
+                    {formatVnd(paidTotal(editing))}
+                  </p>
+                  {onOpenPayments && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onOpenPayments(editing.id)}
+                    >
+                      <Wallet className="size-4" />
+                      {t("payments")}
+                    </Button>
+                  )}
+                </div>
+              </Field>
+            ) : (
+              <Field label={t("deposit")}>
+                <Controller
+                  control={control}
+                  name="deposit_amount"
+                  render={({ field }) => (
+                    <CurrencyInput
+                      locale={locale as Locale}
+                      value={field.value ?? ""}
+                      onValueChange={field.onChange}
+                      placeholder={t("currencyPlaceholder")}
+                      aria-label={t("deposit")}
+                    />
+                  )}
+                />
+              </Field>
+            )}
           </div>
+
+          <Field label={t("paymentMethod")}>
+            <Controller
+              control={control}
+              name="payment_method"
+              render={({ field }) => (
+                <ClearableSelect
+                  value={field.value ?? ""}
+                  onValueChange={field.onChange}
+                  options={methodOptions}
+                  placeholder={t("noneOption")}
+                  clearLabel={t("clear")}
+                  ariaLabel={t("paymentMethod")}
+                />
+              )}
+            />
+          </Field>
 
           <Field label={t("bookingNote")}>
             <textarea className={fieldCls} rows={2} {...register("booking_note")} />

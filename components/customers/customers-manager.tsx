@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import {
   CalendarDays,
   CalendarPlus,
+  ExternalLink,
   Info,
   Pencil,
   Plus,
@@ -17,6 +18,7 @@ import {
   Search,
   Trash2,
   UserPlus,
+  Wallet,
 } from "lucide-react";
 
 import {
@@ -31,11 +33,18 @@ import {
   patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
+import { formatVnd } from "@/lib/currency";
 import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
-import { outstanding } from "@/lib/appointments";
+import {
+  customerPayments,
+  customerTotalPaid,
+  outstanding,
+  paidTotal,
+} from "@/lib/appointments";
 import { cn } from "@/lib/utils";
 import { AppointmentDialog } from "@/components/appointments/appointment-dialog";
 import { AppointmentStatusTag } from "@/components/appointments/status-tag";
+import { PaymentLine } from "@/components/appointments/payments-dialog";
 import {
   ClearableSelect,
   type SelectOption,
@@ -105,6 +114,21 @@ type Staff = StaffRef;
 const fieldCls =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
+const TAG_COLORS = [
+  "#2563eb",
+  "#0891b2",
+  "#059669",
+  "#65a30d",
+  "#ca8a04",
+  "#ea580c",
+  "#dc2626",
+  "#db2777",
+  "#9333ea",
+  "#7c3aed",
+] as const;
+
+const colorForTag = (index: number) => TAG_COLORS[index % TAG_COLORS.length];
+
 export function CustomersManager({
   customers,
   appointments,
@@ -136,9 +160,13 @@ export function CustomersManager({
   const [deleting, setDeleting] = useState<Customer | null>(null);
   const [bookingFor, setBookingFor] = useState<Customer | null>(null);
   const [apptsFor, setApptsFor] = useState<Customer | null>(null);
+  const [paymentsFor, setPaymentsFor] = useState<Customer | null>(null);
 
   const apptsOf = (customerId: string) =>
     appointments.filter((a) => a.customer_id === customerId);
+  // Toàn bộ dòng tiền của khách (dedupe sổ chung) — cho dialog lịch sử thanh toán.
+  const paymentsOf = (customerId: string) =>
+    customerPayments(apptsOf(customerId));
 
   // Tag (theo locale) cho một value bất kỳ — dùng cả option inactive để hiện dữ
   // liệu cũ; value mất option hiển thị thô trong badge trung tính.
@@ -251,6 +279,32 @@ export function CustomersManager({
       .filter((s) => s.is_active || current.includes(s.id))
       .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
 
+  const tagBadges = (tags: Customer["tags"]) => {
+    if (!tags?.length) return <span className="text-muted-foreground">—</span>;
+    return (
+      <div className="flex max-w-[220px] flex-wrap gap-1">
+        {tags.map((tag, index) => {
+          const key = tag.id ?? `${tag.name}-${index}`;
+          const color = colorForTag(index);
+          return (
+            <Badge
+              key={key}
+              variant="outline"
+              className="border"
+              style={{
+                borderColor: `${color}40`,
+                backgroundColor: `${color}1a`,
+                color,
+              }}
+            >
+              {tag.name}
+            </Badge>
+          );
+        })}
+      </div>
+    );
+  };
+
   const editing = target && target !== "new" ? target : null;
 
   return (
@@ -335,6 +389,7 @@ export function CustomersManager({
             <TableRow>
               <TableHead>{t("colName")}</TableHead>
               <TableHead>{t("colPhone")}</TableHead>
+              <TableHead>{t("colTags")}</TableHead>
               <TableHead>{t("colStage")}</TableHead>
               <TableHead>{t("colSource")}</TableHead>
               <TableHead>{t("colServices")}</TableHead>
@@ -349,7 +404,7 @@ export function CustomersManager({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={11}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {t("empty")}
@@ -358,8 +413,26 @@ export function CustomersManager({
             ) : (
               filtered.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.full_name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <UserAvatar src={c.picture} />
+                      <span className="min-w-0 truncate">{c.full_name}</span>
+                      {c.thread?.link ? (
+                        <a
+                          href={c.thread.link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex text-muted-foreground transition-colors hover:text-foreground"
+                          title={t("openThread")}
+                          aria-label={t("openThread")}
+                        >
+                          <ExternalLink className="size-4" />
+                        </a>
+                      ) : null}
+                    </div>
+                  </TableCell>
                   <TableCell>{c.phone}</TableCell>
+                  <TableCell>{tagBadges(c.tags)}</TableCell>
                   <TableCell>
                     <InlineSelect
                       value={c.stage}
@@ -457,6 +530,24 @@ export function CustomersManager({
                       )}
                     </Button>
                     <Button
+                      className="relative"
+                      size="sm"
+                      variant="ghost"
+                      title={tAppt("paymentsTitle", { name: c.full_name })}
+                      aria-label={tAppt("paymentsTitle", { name: c.full_name })}
+                      disabled={paymentsOf(c.id).length === 0}
+                      onClick={() => setPaymentsFor(c)}
+                    >
+                      <Wallet className="size-4" />
+                      {paymentsOf(c.id).length > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                          {paymentsOf(c.id).length > 9
+                            ? "9+"
+                            : paymentsOf(c.id).length}
+                        </span>
+                      )}
+                    </Button>
+                    <Button
                       size="sm"
                       variant="ghost"
                       title={t("edit")}
@@ -503,6 +594,8 @@ export function CustomersManager({
         staff={staff}
         options={options}
         services={services}
+        appointments={appointments}
+        returningIds={new Set(appointments.map((a) => a.customer_id))}
         onClose={() => setBookingFor(null)}
         onDone={() => router.refresh()}
       />
@@ -542,23 +635,79 @@ export function CustomersManager({
                   {serviceBadges(a.service_ids)}
                 </div>
                 <p className="text-xs text-muted-foreground tabular-nums">
-                  {tAppt("colDeposit")}: {a.deposit_amount.toLocaleString(locale)}
-                  {" · "}
-                  {tAppt("colFinal")}:{" "}
-                  {a.final_amount != null
-                    ? a.final_amount.toLocaleString(locale)
+                  {tAppt("colTotal")}:{" "}
+                  {a.ledger?.total_amount != null
+                    ? formatVnd(a.ledger.total_amount)
                     : "—"}
+                  {" · "}
+                  {tAppt("colPaid")}: {formatVnd(paidTotal(a))}
                   {outstanding(a) > 0 && (
                     <span className="text-destructive">
                       {" · "}
                       {tAppt("colOutstanding")}:{" "}
-                      {outstanding(a).toLocaleString(locale)}
+                      {formatVnd(outstanding(a))}
                     </span>
                   )}
                 </p>
               </li>
             ))}
           </ul>
+          {/* Tổng đã trả của khách = Σ theo SỔ (dedupe — nhiều lịch chung sổ
+              không cộng trùng) + dòng mồ côi của lịch không sổ */}
+          {apptsFor && apptsOf(apptsFor.id).length > 0 && (
+            <p className="border-t pt-2 text-right text-sm tabular-nums">
+              {tAppt("totalPaid")}:{" "}
+              <span className="font-medium">
+                {formatVnd(customerTotalPaid(apptsOf(apptsFor.id)))}
+              </span>
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Lịch sử thanh toán của 1 khách — mọi dòng tiền qua các sổ (dedupe sổ
+          chung) + dòng của lịch không sổ, mới nhất trước. Chỉ xem — thu/hoàn
+          thao tác ở /appointments (dialog Thanh toán theo sổ). */}
+      <Dialog
+        open={paymentsFor !== null}
+        onOpenChange={(o) => !o && setPaymentsFor(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {tAppt("paymentsTitle", { name: paymentsFor?.full_name ?? "" })}
+            </DialogTitle>
+          </DialogHeader>
+          <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
+            {paymentsFor && paymentsOf(paymentsFor.id).length === 0 && (
+              <li className="text-sm text-muted-foreground">
+                {tAppt("paymentsEmpty")}
+              </li>
+            )}
+            {(paymentsFor ? paymentsOf(paymentsFor.id) : []).map(
+              ({ payment, service_id }) => {
+                const s = service_id
+                  ? services.find((x) => x.id === service_id)
+                  : undefined;
+                return (
+                  <PaymentLine
+                    key={payment.id}
+                    payment={payment}
+                    staff={staff}
+                    serviceLabel={s ? serviceName(s, locale) : null}
+                  />
+                );
+              },
+            )}
+          </ul>
+          {paymentsFor && paymentsOf(paymentsFor.id).length > 0 && (
+            <p className="border-t pt-2 text-right text-sm tabular-nums">
+              {tAppt("totalPaid")}:{" "}
+              <span className="font-medium">
+                {formatVnd(customerTotalPaid(apptsOf(paymentsFor.id)))}
+              </span>
+            </p>
+          )}
         </DialogContent>
       </Dialog>
 

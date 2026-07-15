@@ -19,7 +19,9 @@ import {
   RotateCcw,
   Search,
   Trash2,
+  Undo2,
   UserX,
+  Wallet,
 } from "lucide-react";
 import { addDays, addMonths, startOfWeek } from "date-fns";
 
@@ -29,11 +31,14 @@ import {
   setAppointmentStatus,
 } from "@/app/(app)/appointments/actions";
 import {
-  dayTotal,
+  collectSuggestion,
   localTime,
   matchesAppointmentFilters,
+  outstanding,
+  paidTotal,
   sortForDayView,
 } from "@/lib/appointments";
+import { formatVnd } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
 import { formatISODate, parseISODate } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -43,8 +48,11 @@ import {
 } from "@/components/appointments/appointment-dialog";
 import { AppointmentsCalendar } from "@/components/appointments/appointments-calendar";
 import { AppointmentStatusTag } from "@/components/appointments/status-tag";
+import { PaymentsDialog } from "@/components/appointments/payments-dialog";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { CurrencyInput } from "@/components/common/currency-input";
 import { DatePicker } from "@/components/common/date-picker";
+import { ImageUpload } from "@/components/common/image-upload";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import {
   AlertDialog,
@@ -79,6 +87,7 @@ import {
   type AppointmentStatus,
   type PaymentMethod,
 } from "@/types/appointment";
+import type { Locale } from "@/i18n/config";
 import type { EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
 
@@ -110,6 +119,25 @@ export function AppointmentsManager({
   const [serviceId, setServiceId] = useState("");
   const [target, setTarget] = useState<Appointment | "new" | null>(null);
   const [deleting, setDeleting] = useState<Appointment | null>(null);
+  // Lưu id (không giữ object) để dialog Thanh toán tự nhận dữ liệu mới sau refresh.
+  const [payFor, setPayFor] = useState<string | null>(null);
+  const payAppt = appointments.find((a) => a.id === payFor) ?? null;
+
+  // "Khách cũ": lịch tạo TRƯỚC lịch hiện tại (badge trên bảng) / đã có lịch
+  // bất kỳ (badge trong drawer tạo). Suy từ data đã nạp, không thêm cột DB.
+  const { returningIds, firstApptAt } = useMemo(() => {
+    const first = new Map<string, string>();
+    for (const a of appointments) {
+      const cur = first.get(a.customer_id);
+      if (!cur || a.created_at < cur) first.set(a.customer_id, a.created_at);
+    }
+    return {
+      returningIds: new Set(appointments.map((a) => a.customer_id)),
+      firstApptAt: first,
+    };
+  }, [appointments]);
+  const isReturningRow = (a: Appointment) =>
+    (firstApptAt.get(a.customer_id) ?? a.created_at) < a.created_at;
 
   const filtered = useMemo(
     () =>
@@ -155,7 +183,7 @@ export function AppointmentsManager({
     });
   })();
 
-  const fmt = (n: number) => n.toLocaleString(locale);
+  const fmt = (n: number) => formatVnd(n);
   const statusTag = (s: AppointmentStatus) => (
     <AppointmentStatusTag status={s} />
   );
@@ -192,7 +220,11 @@ export function AppointmentsManager({
   const changeStatus = (
     a: Appointment,
     next: AppointmentStatus,
-    extra?: { final_amount?: number | null; payment_method?: PaymentMethod | null },
+    extra?: {
+      total_amount?: number | null;
+      payment_method?: PaymentMethod | null;
+      collect?: { amount: number; image_url?: string | null };
+    },
   ) =>
     start(async () => {
       const res = await setAppointmentStatus(a.id, next, extra);
@@ -267,6 +299,21 @@ export function AppointmentsManager({
             disabled={pending}
             onComplete={(extra) => changeStatus(a, "completed", extra)}
           />,
+          // Bấm nhầm "đã đến" → quay lại booked (xóa checked_in_at ở server).
+          iconBtn(t("undoCheckIn"), () => changeStatus(a, "booked"), (
+            <Undo2 className="size-4" />
+          )),
+          // Khách đến nhưng không làm dịch vụ → hủy (giữ checked_in_at để thống kê).
+          iconBtn(t("cancelAppt"), () => changeStatus(a, "cancelled"), (
+            <Ban className="size-4" />
+          )),
+        ];
+      case "completed":
+        return [
+          // Bấm nhầm "hoàn tất" → quay lại checked_in (xóa completed_at).
+          iconBtn(t("undoComplete"), () => changeStatus(a, "checked_in"), (
+            <Undo2 className="size-4" />
+          )),
         ];
       case "no_show":
       case "cancelled":
@@ -279,8 +326,6 @@ export function AppointmentsManager({
         return [];
     }
   };
-
-  const completedCount = filtered.filter((a) => a.status === "completed").length;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
@@ -468,9 +513,8 @@ export function AppointmentsManager({
               <TableHead>{t("colServices")}</TableHead>
               <TableHead>{t("colStaff")}</TableHead>
               <TableHead>{t("colStatus")}</TableHead>
-              <TableHead className="text-right">{t("colExpected")}</TableHead>
-              <TableHead className="text-right">{t("colDeposit")}</TableHead>
-              <TableHead className="text-right">{t("colFinal")}</TableHead>
+              <TableHead className="text-right">{t("colTotal")}</TableHead>
+              <TableHead className="text-right">{t("colPaid")}</TableHead>
               <TableHead className="text-right">{t("colOutstanding")}</TableHead>
               <TableHead>{t("colNote")}</TableHead>
               <TableHead className="text-right">{t("colActions")}</TableHead>
@@ -480,7 +524,7 @@ export function AppointmentsManager({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={11}
+                  colSpan={10}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {t("empty")}
@@ -488,16 +532,15 @@ export function AppointmentsManager({
               </TableRow>
             ) : (
               filtered.map((a, i) => {
-                const outstandingAmt = Math.max(
-                  (a.final_amount ?? a.expected_amount ?? 0) - a.deposit_amount,
-                  0,
-                );
+                const paidAmt = paidTotal(a);
+                const outstandingAmt = outstanding(a);
+                const paymentCount = a.ledger?.payments.length ?? a.payments.length;
                 return (
                   <Fragment key={a.id}>
                     {/* Row nhóm theo trạng thái — như cách sheet gom Sudah Datang / Booking */}
                     {(i === 0 || filtered[i - 1].status !== a.status) && (
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableCell colSpan={11} className="py-1.5">
+                        <TableCell colSpan={10} className="py-1.5">
                           <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                             {statusTag(a.status)}
                             {filtered.filter((x) => x.status === a.status).length}
@@ -519,8 +562,13 @@ export function AppointmentsManager({
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">
+                        <div className="flex items-center gap-1.5 font-medium">
                           {a.customer?.full_name ?? "—"}
+                          {isReturningRow(a) && (
+                            <Badge className="border-transparent bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                              {t("returningCustomer")}
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {a.customer?.phone}
@@ -530,13 +578,12 @@ export function AppointmentsManager({
                       <TableCell>{staffDisplay(a.staff_id)}</TableCell>
                       <TableCell>{statusTag(a.status)}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">
-                        {a.expected_amount != null ? fmt(a.expected_amount) : "—"}
+                        {a.ledger?.total_amount != null
+                          ? fmt(a.ledger.total_amount)
+                          : "—"}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {a.deposit_amount ? fmt(a.deposit_amount) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {a.final_amount != null ? fmt(a.final_amount) : "—"}
+                        {paidAmt ? fmt(paidAmt) : "—"}
                       </TableCell>
                       <TableCell
                         className={cn(
@@ -564,6 +611,22 @@ export function AppointmentsManager({
                       </TableCell>
                       <TableCell className="space-x-0.5 text-right whitespace-nowrap">
                         {quickActions(a)}
+                        <Button
+                          className="relative"
+                          size="sm"
+                          variant="ghost"
+                          title={t("payments")}
+                          aria-label={t("payments")}
+                          disabled={pending}
+                          onClick={() => setPayFor(a.id)}
+                        >
+                          <Wallet className="size-4" />
+                          {paymentCount > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                              {paymentCount > 9 ? "9+" : paymentCount}
+                            </span>
+                          )}
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -595,15 +658,7 @@ export function AppointmentsManager({
       </div>
       )}
 
-      {/* Tổng doanh thu ngày — thay sheet REPORT thủ công */}
-      {view === "table" && tab === "day" && (
-        <p className="text-right text-sm text-muted-foreground">
-          {t("dayTotal", {
-            total: fmt(dayTotal(filtered)),
-            count: completedCount,
-          })}
-        </p>
-      )}
+      {/* Tổng doanh thu ngày đã bỏ — báo cáo doanh thu làm ở menu thống kê riêng */}
 
       <AppointmentDialog
         open={target !== null}
@@ -612,7 +667,18 @@ export function AppointmentsManager({
         staff={staff}
         options={options}
         services={services}
+        appointments={appointments}
+        returningIds={returningIds}
         onClose={() => setTarget(null)}
+        onDone={() => router.refresh()}
+        onOpenPayments={(id) => setPayFor(id)}
+      />
+
+      <PaymentsDialog
+        appointment={payAppt}
+        staff={staff}
+        services={services}
+        onClose={() => setPayFor(null)}
         onDone={() => router.refresh()}
       />
 
@@ -712,7 +778,8 @@ function ReschedulePopover({
   );
 }
 
-/** Popover hoàn tất: nhập số chốt (Paid) + phương thức rồi chuyển completed. */
+/** Popover hoàn tất: tổng giá liệu trình (→ SỔ chung) + tiền thu lần này
+ *  (→ dòng sổ, kèm ảnh) + phương thức, rồi chuyển completed. */
 function CompletePopover({
   appointment,
   disabled,
@@ -721,14 +788,18 @@ function CompletePopover({
   appointment: Appointment;
   disabled?: boolean;
   onComplete: (extra: {
-    final_amount: number | null;
+    total_amount: number | null;
     payment_method: PaymentMethod | null;
+    collect?: { amount: number; image_url?: string | null };
   }) => void;
 }) {
   const t = useTranslations("appointments");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [collect, setCollect] = useState("");
   const [method, setMethod] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   return (
     <Popover
@@ -736,11 +807,13 @@ function CompletePopover({
       onOpenChange={(o) => {
         setOpen(o);
         if (o) {
-          setAmount(
-            (appointment.final_amount ?? appointment.expected_amount)?.toString() ??
-              "",
-          );
+          setAmount(appointment.ledger?.total_amount?.toString() ?? "");
+          // Thu lần này: chỉ gợi ý khi sổ chưa có tiền của lịch khác —
+          // khách cũ nối sổ thì để trống, nhân viên nhập số thực thu.
+          const suggest = collectSuggestion(appointment);
+          setCollect(suggest != null ? String(suggest) : "");
           setMethod(appointment.payment_method ?? "");
+          setImageUrl(null);
         }
       }}
     >
@@ -755,13 +828,20 @@ function CompletePopover({
           <CheckCheck className="size-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 space-y-2">
-        <Input
-          type="number"
-          min={0}
-          placeholder={t("final")}
+      <PopoverContent align="end" className="w-72 space-y-2">
+        <CurrencyInput
+          locale={locale as Locale}
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onValueChange={setAmount}
+          placeholder={t("totalAmount")}
+          aria-label={t("totalAmount")}
+        />
+        <CurrencyInput
+          locale={locale as Locale}
+          value={collect}
+          onValueChange={setCollect}
+          placeholder={t("collectNow")}
+          aria-label={t("collectNow")}
         />
         <ClearableSelect
           value={method}
@@ -775,14 +855,25 @@ function CompletePopover({
           ariaLabel={t("paymentMethod")}
           className="w-full"
         />
+        <ImageUpload
+          value={imageUrl}
+          onChange={setImageUrl}
+          label={t("receiptImage")}
+          className="w-24"
+        />
         <div className="flex justify-end">
           <Button
             size="sm"
             onClick={() => {
               setOpen(false);
+              const collectNum = collect === "" ? 0 : Number(collect);
               onComplete({
-                final_amount: amount === "" ? null : Number(amount),
+                total_amount: amount === "" ? null : Number(amount),
                 payment_method: (method || null) as PaymentMethod | null,
+                collect:
+                  collectNum > 0
+                    ? { amount: collectNum, image_url: imageUrl }
+                    : undefined,
               });
             }}
           >

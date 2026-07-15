@@ -6,16 +6,31 @@ import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { normalizeError } from "@/lib/errors";
-import { IMAGES_BUCKET, removeImage, uploadImage } from "@/lib/supabase/storage";
+import { removeImage } from "@/lib/supabase/storage";
+
+/** Upload qua /api/upload (proxy cfig.ibytecdn.org phía server), trả public URL. */
+async function uploadImage(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("server", "server_1"); // ponytail: server CDN cố định, thêm chọn lựa khi upstream có nhiều server
+  const res = await fetch("/api/upload", { method: "POST", body: form });
+  const data = (await res.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: { url?: string };
+    error?: { message?: string };
+  };
+  const url = data.data?.url;
+  if (!res.ok || data.success !== true || !url) {
+    throw new Error(data.error?.message || "Upload ảnh thất bại.");
+  }
+  return url;
+}
 
 export interface ImageUploadProps {
   /** URL ảnh hiện tại (public URL). */
   value?: string | null;
   /** Gọi khi upload xong (url) hoặc xóa (null). */
   onChange: (url: string | null) => void;
-  bucket?: string;
-  /** Thư mục con dưới `{user_id}/`, vd "avatars". */
-  folder?: string;
   maxSizeMb?: number;
   disabled?: boolean;
   className?: string;
@@ -26,9 +41,7 @@ export interface ImageUploadProps {
 export function ImageUpload({
   value,
   onChange,
-  bucket = IMAGES_BUCKET,
-  folder,
-  maxSizeMb = 5,
+  maxSizeMb = 10,
   disabled,
   className,
   label = "Tải ảnh lên",
@@ -47,7 +60,7 @@ export function ImageUpload({
     }
     setBusy(true);
     try {
-      onChange(await uploadImage({ file, bucket, folder }));
+      onChange(await uploadImage(file));
     } catch (err) {
       toast.error(normalizeError(err).message);
     } finally {
@@ -60,7 +73,7 @@ export function ImageUpload({
     e.preventDefault(); // chặn label mở lại file picker
     e.stopPropagation();
     if (!value || busy) return;
-    void removeImage(value, bucket); // best-effort dọn file cũ
+    void removeImage(value); // best-effort dọn ảnh Supabase cũ (URL ngoài bucket tự bỏ qua)
     onChange(null);
   };
 

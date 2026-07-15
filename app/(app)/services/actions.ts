@@ -68,6 +68,16 @@ export async function deleteService(id: string): Promise<Result> {
         error: `Đang có ${apptCount} lịch hẹn gắn dịch vụ này — hãy tắt "Kích hoạt" thay vì xóa.`,
       };
     }
+    const { count: ledgerCount, error: lErr } = await supabase
+      .from("service_ledgers")
+      .select("id", { count: "exact", head: true })
+      .eq("service_id", id);
+    if (lErr) throw lErr;
+    if ((ledgerCount ?? 0) > 0) {
+      return {
+        error: `Đang có ${ledgerCount} sổ tiền gắn dịch vụ này — hãy tắt "Kích hoạt" thay vì xóa.`,
+      };
+    }
 
     const { error } = await supabase.from("services").delete().eq("id", id);
     if (error) throw error;

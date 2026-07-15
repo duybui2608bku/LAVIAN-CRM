@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  normalizeAppointmentRow,
+  type AppointmentRow,
+} from "@/lib/appointments";
 import { CustomersManager } from "@/components/customers/customers-manager";
-import type { Appointment } from "@/types/appointment";
 import type { Customer, EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
 
@@ -34,7 +37,7 @@ export default async function CustomersPage() {
     supabase
       .from("appointments")
       .select(
-        "*, appointment_services(service_id), customer:customers(full_name, phone)",
+        "*, appointment_services(service_id), appointment_payments(*), ledger:service_ledgers(*, appointment_payments(*)), customer:customers(full_name, phone)",
       )
       .is("deleted_at", null)
       .order("scheduled_at", { ascending: false }),
@@ -48,15 +51,9 @@ export default async function CustomersPage() {
     }),
   ) as Customer[]);
 
-  type ApptRow = Appointment & {
-    appointment_services: { service_id: string }[] | null;
-  };
-  const appointments = (((apptsRes.data as ApptRow[]) ?? []).map(
-    ({ appointment_services, ...a }) => ({
-      ...a,
-      service_ids: (appointment_services ?? []).map((r) => r.service_id),
-    }),
-  ) as Appointment[]);
+  const appointments = (
+    (apptsRes.data as unknown as AppointmentRow[]) ?? []
+  ).map(normalizeAppointmentRow);
 
   return (
     <CustomersManager

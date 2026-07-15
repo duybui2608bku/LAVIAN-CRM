@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  normalizeAppointmentRow,
+  type AppointmentRow,
+} from "@/lib/appointments";
 import { AppointmentsManager } from "@/components/appointments/appointments-manager";
 import type { CustomerRef } from "@/components/appointments/appointment-dialog";
 import type { StaffRef } from "@/components/common/user-avatar";
-import type { Appointment } from "@/types/appointment";
 import type { EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
 
@@ -15,9 +18,10 @@ export default async function AppointmentsPage() {
     await Promise.all([
       supabase
         .from("appointments")
-        // Nested select 1 query: dịch vụ (bảng nối) + tên/phone khách.
+        // Nested select 1 query: dịch vụ (bảng nối) + SỔ tiền (kèm dòng mọi buổi)
+        // + dòng tiền theo lịch (fallback lịch cũ không sổ) + tên/phone khách.
         .select(
-          "*, appointment_services(service_id), customer:customers(full_name, phone)",
+          "*, appointment_services(service_id), appointment_payments(*), ledger:service_ledgers(*, appointment_payments(*)), customer:customers(full_name, phone)",
         )
         .is("deleted_at", null)
         .order("scheduled_at", { ascending: true }),
@@ -42,15 +46,9 @@ export default async function AppointmentsPage() {
       supabase.from("services").select("*").order("sort_order", { ascending: true }),
     ]);
 
-  type Row = Appointment & {
-    appointment_services: { service_id: string }[] | null;
-  };
-  const appointments = (((apptsRes.data as Row[]) ?? []).map(
-    ({ appointment_services, ...a }) => ({
-      ...a,
-      service_ids: (appointment_services ?? []).map((r) => r.service_id),
-    }),
-  ) as Appointment[]);
+  const appointments = (
+    (apptsRes.data as unknown as AppointmentRow[]) ?? []
+  ).map(normalizeAppointmentRow);
 
   type CustomerRow = CustomerRef & {
     customer_services: { service_id: string }[] | null;

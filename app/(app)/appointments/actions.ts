@@ -2,12 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 
+import { sumPayments } from "@/lib/appointments";
+import { formatVnd } from "@/lib/currency";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeError } from "@/lib/errors";
 import {
-  APPOINTMENT_STATUSES,
+  PAYMENT_KINDS,
   type AppointmentInput,
   type AppointmentStatus,
+  type PaymentInput,
+  type PaymentKind,
   type PaymentMethod,
 } from "@/types/appointment";
 
@@ -17,6 +21,7 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 const nz = (v?: string | null) => (v && v.trim() !== "" ? v.trim() : null);
 
 // "" -> null; status KHÔNG nằm đây — do server điều khiển (create/transition).
+// Tiền không nằm đây — tổng giá ghi vào SỔ (service_ledgers), không phải lịch.
 function clean(input: AppointmentInput) {
   return {
     staff_id: nz(input.staff_id),
@@ -24,12 +29,89 @@ function clean(input: AppointmentInput) {
     duration_minutes: input.duration_minutes ?? 60,
     source: nz(input.source),
     payment_method: input.payment_method ?? null,
-    deposit_amount: input.deposit_amount ?? 0,
-    expected_amount: input.expected_amount ?? null,
-    final_amount: input.final_amount ?? null,
     booking_note: nz(input.booking_note),
     internal_note: nz(input.internal_note),
   };
+}
+
+// Dịch vụ bắt buộc đúng 1 mỗi lịch hẹn (trust boundary — không tin client).
+function singleService(serviceIds: string[] | undefined): string | null {
+  return serviceIds?.length === 1 ? serviceIds[0] : null;
+}
+
+/** Sổ MỞ của (khách, dịch vụ) — chưa có thì tạo. Mọi lịch hẹn cùng cặp dùng
+ *  chung sổ này (tổng giá + dòng tiền). Race 2 người cùng tạo: unique partial
+ *  index nổ 23505 → đọc lại sổ người kia vừa tạo. */
+async function resolveLedger(
+  supabase: Supabase,
+  customerId: string,
+  serviceId: string,
+  userId: string | null,
+): Promise<string> {
+  const findOpen = () =>
+    supabase
+      .from("service_ledgers")
+      .select("id")
+      .eq("customer_id", customerId)
+      .eq("service_id", serviceId)
+      .is("closed_at", null)
+      .maybeSingle();
+  const { data: found, error } = await findOpen();
+  if (error) throw error;
+  if (found) return found.id;
+  const { data: created, error: insErr } = await supabase
+    .from("service_ledgers")
+    .insert({ customer_id: customerId, service_id: serviceId, created_by: userId })
+    .select("id")
+    .single();
+  if (!insErr) return created.id;
+  if (insErr.code !== "23505") throw insErr;
+  const { data: again, error: e2 } = await findOpen();
+  if (e2) throw e2;
+  if (!again) throw insErr;
+  return again.id;
+}
+
+// Ghi tổng giá liệu trình lên sổ — chỉ khi client GỬI field (undefined = không đụng).
+async function setLedgerTotal(
+  supabase: Supabase,
+  ledgerId: string,
+  total: number | null | undefined,
+) {
+  if (total === undefined) return;
+  const { error } = await supabase
+    .from("service_ledgers")
+    .update({ total_amount: total })
+    .eq("id", ledgerId);
+  if (error) throw error;
+}
+
+/** Chặn thu/cọc vượt tổng giá sổ (trust boundary — cap client chỉ là UX).
+ *  Trả message lỗi hoặc null nếu hợp lệ. Sổ chưa báo giá (total null) và
+ *  refund không chặn. Gọi TRƯỚC mọi mutation của caller.
+ *  ponytail: check app-level — 2 người thu đồng thời vẫn có thể lọt,
+ *  nâng lên trigger DB khi thành vấn đề. */
+async function overTotalError(
+  supabase: Supabase,
+  ledgerId: string | null,
+  amount: number,
+): Promise<string | null> {
+  if (!ledgerId || amount <= 0) return null;
+  const { data, error } = await supabase
+    .from("service_ledgers")
+    .select("total_amount, appointment_payments(kind, amount)")
+    .eq("id", ledgerId)
+    .single();
+  if (error) throw error;
+  const l = data as unknown as {
+    total_amount: number | null;
+    appointment_payments: { kind: PaymentKind; amount: number }[] | null;
+  };
+  if (l.total_amount == null) return null;
+  const left = l.total_amount - sumPayments(l.appointment_payments);
+  return amount > left
+    ? `Thu vượt tổng giá liệu trình — còn phải thu tối đa ${formatVnd(Math.max(left, 0))}.`
+    : null;
 }
 
 async function currentUserId(supabase: Supabase) {
@@ -62,6 +144,18 @@ async function syncServices(
   );
   if (insErr) throw insErr;
 }
+
+// Máy trạng thái: transition ngoài whitelist bị từ chối (Decision 1).
+// checked_in → booked và completed → checked_in là HOÀN TÁC (bấm nhầm);
+// checked_in → cancelled = khách đến nhưng không làm dịch vụ (giữ checked_in_at).
+const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
+  pending_confirmation: ["booked", "cancelled"],
+  booked: ["checked_in", "no_show", "cancelled"],
+  checked_in: ["completed", "booked", "cancelled"],
+  completed: ["checked_in"],
+  no_show: ["booked"],
+  cancelled: ["booked"],
+};
 
 // Stage khách hàng tương ứng với trạng thái lịch hẹn (null = không đụng).
 function stageTargetFor(status: AppointmentStatus, deposit: number) {
@@ -101,32 +195,83 @@ function refresh() {
   revalidatePath("/customers"); // /customers cũng hiện lịch hẹn của khách
 }
 
+// Ghi 1 dòng tiền vào SỔ (amount đã validate > 0 ở caller);
+// appointment_id là dấu vết buổi thu.
+async function insertPayment(
+  supabase: Supabase,
+  ledgerId: string | null,
+  appointmentId: string,
+  input: PaymentInput,
+  userId: string | null,
+) {
+  const { error } = await supabase.from("appointment_payments").insert({
+    ledger_id: ledgerId,
+    appointment_id: appointmentId,
+    kind: input.kind,
+    amount: input.amount,
+    payment_method: input.payment_method ?? null,
+    image_url: nz(input.image_url),
+    note: nz(input.note),
+    created_by: userId,
+  });
+  if (error) throw error;
+}
+
 export async function createAppointment(
   input: AppointmentInput,
 ): Promise<Result> {
   try {
+    const serviceId = singleService(input.service_ids);
+    if (!serviceId) return { error: "Chọn đúng một dịch vụ." };
     const supabase = await createClient();
     const data = clean(input);
     // Có ngày giờ = đã đặt lịch; chưa có = cọc/chờ xếp lịch (Decision 12).
     const status: AppointmentStatus = data.scheduled_at
       ? "booked"
       : "pending_confirmation";
+    const userId = await currentUserId(supabase);
+    // Sổ tiền dùng chung của (khách, dịch vụ) — khách cũ cùng dịch vụ nối sổ cũ.
+    const ledgerId = await resolveLedger(
+      supabase,
+      input.customer_id,
+      serviceId,
+      userId,
+    );
+    await setLedgerTotal(supabase, ledgerId, input.total_amount);
+    // Cọc ban đầu = dòng deposit trong sổ — check vượt tổng TRƯỚC khi tạo lịch.
+    const deposit = input.deposit?.amount ?? 0;
+    const over = await overTotalError(supabase, ledgerId, deposit);
+    if (over) return { error: over };
     const { data: row, error } = await supabase
       .from("appointments")
       .insert({
         ...data,
         customer_id: input.customer_id,
+        ledger_id: ledgerId,
         status,
-        created_by: await currentUserId(supabase),
+        created_by: userId,
       })
       .select("id")
       .single();
     if (error) throw error;
     await syncServices(supabase, row.id, input.service_ids);
+    if (deposit > 0)
+      await insertPayment(
+        supabase,
+        ledgerId,
+        row.id,
+        {
+          kind: "deposit",
+          amount: deposit,
+          payment_method: input.deposit?.payment_method ?? data.payment_method,
+          image_url: input.deposit?.image_url,
+        },
+        userId,
+      );
     await advanceCustomerStage(
       supabase,
       input.customer_id,
-      stageTargetFor(status, data.deposit_amount),
+      stageTargetFor(status, deposit),
     );
     refresh();
     return {};
@@ -140,17 +285,28 @@ export async function updateAppointment(
   input: AppointmentInput,
 ): Promise<Result> {
   try {
+    const serviceId = singleService(input.service_ids);
+    if (!serviceId) return { error: "Chọn đúng một dịch vụ." };
     const supabase = await createClient();
     const { data: cur, error: curErr } = await supabase
       .from("appointments")
-      .select("customer_id, status")
+      .select("customer_id, status, ledger_id")
       .eq("id", id)
       .single();
     if (curErr) throw curErr;
+    const userId = await currentUserId(supabase);
+    // Đổi dịch vụ (hoặc lịch cũ chưa có sổ) → resolve lại sổ của cặp mới.
+    const ledgerId = await resolveLedger(
+      supabase,
+      cur.customer_id,
+      serviceId,
+      userId,
+    );
     const data = clean(input);
     const patch: Record<string, unknown> = {
       ...data,
-      updated_by: await currentUserId(supabase),
+      ledger_id: ledgerId,
+      updated_by: userId,
     };
     // Chờ xếp lịch mà đã chốt ngày -> chuyển booked (flow 2b), trigger tự ghi history.
     if (cur.status === "pending_confirmation" && data.scheduled_at) {
@@ -162,6 +318,16 @@ export async function updateAppointment(
       .update(patch)
       .eq("id", id);
     if (error) throw error;
+    // Sổ đổi → kéo dòng tiền của LỊCH NÀY theo (sửa nhầm dịch vụ là tiền đi cùng),
+    // đồng thời adopt dòng mồ côi (lịch cũ chưa có sổ).
+    if (ledgerId !== cur.ledger_id) {
+      const { error: moveErr } = await supabase
+        .from("appointment_payments")
+        .update({ ledger_id: ledgerId })
+        .eq("appointment_id", id);
+      if (moveErr) throw moveErr;
+    }
+    await setLedgerTotal(supabase, ledgerId, input.total_amount);
     await syncServices(supabase, id, input.service_ids);
     if (patch.status === "booked")
       await advanceCustomerStage(supabase, cur.customer_id, "booked");
@@ -172,22 +338,29 @@ export async function updateAppointment(
   }
 }
 
-/** Chuyển trạng thái nhanh từ bảng (check-in / hoàn tất / no-show / hủy...). */
+/** Chuyển trạng thái nhanh từ bảng (check-in / hoàn tất / hoàn tác / hủy...).
+ *  Chỉ chấp nhận transition trong ALLOWED_TRANSITIONS; hoàn tác xóa timestamp
+ *  mốc của trạng thái vừa rời. `collect` = tiền thu lúc hoàn tất → dòng sổ;
+ *  `total_amount` = tổng giá liệu trình → update SỔ (không còn cột trên lịch). */
 export async function setAppointmentStatus(
   id: string,
   status: AppointmentStatus,
-  extra?: { final_amount?: number | null; payment_method?: PaymentMethod | null },
+  extra?: {
+    total_amount?: number | null;
+    payment_method?: PaymentMethod | null;
+    collect?: { amount: number; image_url?: string | null };
+  },
 ): Promise<Result> {
   try {
-    if (!APPOINTMENT_STATUSES.includes(status))
-      return { error: "Trạng thái không hợp lệ." };
     const supabase = await createClient();
     const { data: cur, error: curErr } = await supabase
       .from("appointments")
-      .select("customer_id")
+      .select("customer_id, status, ledger_id")
       .eq("id", id)
       .single();
     if (curErr) throw curErr;
+    if (!ALLOWED_TRANSITIONS[cur.status as AppointmentStatus]?.includes(status))
+      return { error: "Chuyển trạng thái không hợp lệ." };
     const now = new Date().toISOString();
     const stampField: Partial<Record<AppointmentStatus, string>> = {
       booked: "confirmed_at",
@@ -195,23 +368,51 @@ export async function setAppointmentStatus(
       completed: "completed_at",
       cancelled: "cancelled_at",
     };
-    const patch: Record<string, unknown> = {
-      status,
-      updated_by: await currentUserId(supabase),
-    };
+    const userId = await currentUserId(supabase);
+    const patch: Record<string, unknown> = { status, updated_by: userId };
     const field = stampField[status];
     if (field) patch[field] = now;
-    if (status === "completed" && extra) {
-      if (extra.final_amount !== undefined)
-        patch.final_amount = extra.final_amount;
-      if (extra.payment_method !== undefined)
-        patch.payment_method = extra.payment_method;
+    // Hoàn tác / đặt lại: xóa mốc của trạng thái vừa rời.
+    if (status === "booked" && cur.status === "checked_in")
+      patch.checked_in_at = null;
+    if (status === "checked_in" && cur.status === "completed")
+      patch.completed_at = null;
+    if (status === "booked" && cur.status === "cancelled")
+      patch.cancelled_at = null;
+    if (status === "completed" && extra?.payment_method !== undefined)
+      patch.payment_method = extra.payment_method;
+    // Tổng giá liệu trình ghi lên SỔ + check thu vượt TRƯỚC khi đổi trạng thái
+    // (tiền sai thì không complete nửa chừng; lịch cũ không sổ → bỏ qua).
+    if (status === "completed" && cur.ledger_id) {
+      await setLedgerTotal(supabase, cur.ledger_id, extra?.total_amount);
+      if (extra?.collect) {
+        const over = await overTotalError(
+          supabase,
+          cur.ledger_id,
+          extra.collect.amount,
+        );
+        if (over) return { error: over };
+      }
     }
     const { error } = await supabase
       .from("appointments")
       .update(patch)
       .eq("id", id);
     if (error) throw error;
+    // Thu tiền lúc hoàn tất = 1 dòng sổ (sau khi status đã đổi thành công).
+    if (status === "completed" && extra?.collect && extra.collect.amount > 0)
+      await insertPayment(
+        supabase,
+        cur.ledger_id,
+        id,
+        {
+          kind: "payment",
+          amount: extra.collect.amount,
+          payment_method: extra.payment_method ?? null,
+          image_url: extra.collect.image_url,
+        },
+        userId,
+      );
     await advanceCustomerStage(
       supabase,
       cur.customer_id,
@@ -219,6 +420,91 @@ export async function setAppointmentStatus(
     );
     refresh();
     return {};
+  } catch (e) {
+    return { error: normalizeError(e).message };
+  }
+}
+
+/** Thêm 1 dòng tiền vào SỔ của lịch hẹn (thu thêm / hoàn tiền) từ dialog
+ *  Thanh toán. Sổ đã tất toán hoặc lịch chưa có sổ → từ chối. */
+export async function addPayment(
+  appointmentId: string,
+  input: PaymentInput,
+): Promise<Result> {
+  try {
+    if (!PAYMENT_KINDS.includes(input.kind))
+      return { error: "Loại thanh toán không hợp lệ." };
+    if (!Number.isFinite(input.amount) || input.amount <= 0)
+      return { error: "Số tiền phải lớn hơn 0." };
+    const supabase = await createClient();
+    const { data: appt, error: aErr } = await supabase
+      .from("appointments")
+      .select("ledger_id, ledger:service_ledgers(closed_at)")
+      .eq("id", appointmentId)
+      .single();
+    if (aErr) throw aErr;
+    if (!appt.ledger_id)
+      return { error: "Lịch hẹn chưa có sổ — chọn dịch vụ cho lịch trước." };
+    // PostgREST trả object cho FK to-one; type gen chưa có nên ép tay.
+    const ledger = appt.ledger as unknown as { closed_at: string | null } | null;
+    if (ledger?.closed_at) return { error: "Sổ đã tất toán." };
+    if (input.kind !== "refund") {
+      const over = await overTotalError(supabase, appt.ledger_id, input.amount);
+      if (over) return { error: over };
+    }
+    await insertPayment(
+      supabase,
+      appt.ledger_id,
+      appointmentId,
+      input,
+      await currentUserId(supabase),
+    );
+    refresh();
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e).message };
+  }
+}
+
+/** Tất toán / mở lại sổ tiền của liệu trình. Sau khi đóng, lịch mới cùng
+ *  (khách, dịch vụ) sẽ mở sổ MỚI; mở lại bị chặn nếu đã có sổ mở khác. */
+export async function setLedgerClosed(
+  id: string,
+  closed: boolean,
+): Promise<Result> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("service_ledgers")
+      .update({ closed_at: closed ? new Date().toISOString() : null })
+      .eq("id", id);
+    if (error) {
+      if (error.code === "23505")
+        return { error: "Khách đang có sổ mở khác cho dịch vụ này." };
+      throw error;
+    }
+    refresh();
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e).message };
+  }
+}
+
+/** Xóa 1 dòng sổ (ghi nhầm). Trả image_url để client dọn ảnh best-effort. */
+export async function deletePayment(
+  id: string,
+): Promise<Result & { image_url?: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("appointment_payments")
+      .delete()
+      .eq("id", id)
+      .select("image_url")
+      .single();
+    if (error) throw error;
+    refresh();
+    return { image_url: data?.image_url ?? null };
   } catch (e) {
     return { error: normalizeError(e).message };
   }

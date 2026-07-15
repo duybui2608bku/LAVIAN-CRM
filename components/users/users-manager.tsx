@@ -263,7 +263,6 @@ function CreateUserDialog({
             <ImageUpload
               value={watch("avatar_url") || null}
               onChange={(url) => setValue("avatar_url", url ?? "")}
-              folder="avatars"
               className="mx-auto rounded-full"
             />
           </Field>

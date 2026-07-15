@@ -1,5 +1,10 @@
 // Import type tương đối (không alias @/) để chạy được `node --test` trực tiếp.
-import type { Appointment, AppointmentStatus } from "../types/appointment";
+import type {
+  Appointment,
+  AppointmentPayment,
+  AppointmentStatus,
+  ServiceLedger,
+} from "../types/appointment";
 
 /** Thứ tự nhóm trạng thái trong ngày — khớp cách nhân viên đọc sheet:
  *  Đã đến → Hoàn tất → Đã đặt lịch → Chờ xác nhận → No-show → Hủy. */
@@ -29,17 +34,110 @@ export function localTime(iso: string): string {
   return `${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/** Sisa — còn nợ: (Paid nếu đã chốt, chưa thì Price) trừ DP, không âm. */
-export function outstanding(a: Appointment): number {
-  const base = a.final_amount ?? a.expected_amount ?? 0;
-  return Math.max(base - a.deposit_amount, 0);
+/** Đã thu ròng từ một danh sách dòng tiền: Σ(deposit + payment) − Σ(refund). */
+export function sumPayments(
+  payments: Pick<AppointmentPayment, "kind" | "amount">[] | null | undefined,
+): number {
+  return (payments ?? []).reduce(
+    (sum, p) => sum + (p.kind === "refund" ? -p.amount : p.amount),
+    0,
+  );
 }
 
-/** Tổng doanh thu ngày = tổng final_amount các lịch đã hoàn tất. */
-export function dayTotal(list: Appointment[]): number {
-  return list
-    .filter((a) => a.status === "completed")
-    .reduce((sum, a) => sum + (a.final_amount ?? 0), 0);
+/** Đã thu của SỔ (mọi buổi hẹn của liệu trình). */
+export function ledgerPaid(l: ServiceLedger): number {
+  return sumPayments(l.payments);
+}
+
+/** Đã thu hiển thị cho một lịch hẹn: theo SỔ nó thuộc về; lịch không sổ
+ *  (dữ liệu cũ không dịch vụ) fallback Σ dòng tiền gắn trực tiếp lịch. */
+export function paidTotal(a: Appointment): number {
+  return a.ledger ? ledgerPaid(a.ledger) : sumPayments(a.payments);
+}
+
+/** Còn nợ của liệu trình: tổng giá sổ − Đã thu, không âm. Không sổ = 0. */
+export function outstanding(a: Appointment): number {
+  if (!a.ledger) return 0;
+  return Math.max((a.ledger.total_amount ?? 0) - ledgerPaid(a.ledger), 0);
+}
+
+/** Gợi ý "Thu lần này" khi hoàn tất lịch: phần còn thiếu của sổ — CHỈ khi mọi
+ *  dòng tiền hiện có là của CHÍNH lịch này (vd. cọc buổi đầu). Khách cũ nối sổ
+ *  đã có tiền buổi trước → null (không tự điền, tránh ghi nhầm thành thu mới). */
+export function collectSuggestion(a: Appointment): number | null {
+  const total = a.ledger?.total_amount;
+  if (total == null) return null;
+  if (a.ledger!.payments.some((p) => p.appointment_id !== a.id)) return null;
+  return Math.max(total - ledgerPaid(a.ledger!), 0);
+}
+
+/** Row PostgREST nested của appointments (dùng chung 2 page query). */
+export interface AppointmentRow
+  extends Omit<Appointment, "service_ids" | "payments" | "ledger"> {
+  appointment_services: { service_id: string }[] | null;
+  appointment_payments: AppointmentPayment[] | null;
+  ledger:
+    | (Omit<ServiceLedger, "payments"> & {
+        appointment_payments: AppointmentPayment[] | null;
+      })
+    | null;
+}
+
+const byPaidAtDesc = (x: AppointmentPayment, y: AppointmentPayment) =>
+  y.paid_at.localeCompare(x.paid_at);
+
+/** Chuẩn hóa row nested → Appointment (dòng tiền mới nhất trước). */
+export function normalizeAppointmentRow(row: AppointmentRow): Appointment {
+  const { appointment_services, appointment_payments, ledger, ...a } = row;
+  let mapped: Appointment["ledger"] = null;
+  if (ledger) {
+    const { appointment_payments: lp, ...l } = ledger;
+    mapped = { ...l, payments: [...(lp ?? [])].sort(byPaidAtDesc) };
+  }
+  return {
+    ...a,
+    service_ids: (appointment_services ?? []).map((r) => r.service_id),
+    payments: [...(appointment_payments ?? [])].sort(byPaidAtDesc),
+    ledger: mapped,
+  };
+}
+
+/** Tổng đã trả của một khách qua danh sách lịch hẹn: Σ Đã thu của các SỔ khác
+ *  nhau (nhiều lịch chung sổ KHÔNG cộng trùng) + dòng mồ côi của lịch không sổ. */
+export function customerTotalPaid(list: Appointment[]): number {
+  const seen = new Set<string>();
+  let sum = 0;
+  for (const a of list) {
+    if (a.ledger) {
+      if (seen.has(a.ledger.id)) continue;
+      seen.add(a.ledger.id);
+      sum += ledgerPaid(a.ledger);
+    } else {
+      sum += sumPayments(a.payments);
+    }
+  }
+  return sum;
+}
+
+/** Mọi dòng tiền của một khách qua danh sách lịch hẹn: gom theo các SỔ khác
+ *  nhau (nhiều lịch chung sổ KHÔNG lặp dòng) + dòng gắn lịch không sổ; kèm
+ *  service_id của sổ để gắn nhãn dịch vụ. Mới nhất trước. */
+export function customerPayments(
+  list: Appointment[],
+): { payment: AppointmentPayment; service_id: string | null }[] {
+  const seen = new Set<string>();
+  const rows: { payment: AppointmentPayment; service_id: string | null }[] = [];
+  for (const a of list) {
+    if (a.ledger) {
+      if (seen.has(a.ledger.id)) continue;
+      seen.add(a.ledger.id);
+      for (const p of a.ledger.payments)
+        rows.push({ payment: p, service_id: a.ledger.service_id });
+    } else {
+      for (const p of a.payments) rows.push({ payment: p, service_id: null });
+    }
+  }
+  return rows.sort((x, y) => byPaidAtDesc(x.payment, y.payment));
 }
 
 export interface AppointmentFilters {
