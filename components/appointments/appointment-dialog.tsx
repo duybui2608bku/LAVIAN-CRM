@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { RefreshCw } from "lucide-react";
 
 import {
   createAppointment,
@@ -376,7 +377,8 @@ export function AppointmentDialog({
             {t("cancel")}
           </Button>
           <Button type="submit" form="appointment-form" disabled={pending}>
-            {pending ? t("saving") : editing ? t("save") : t("createSubmit")}
+            {pending && <RefreshCw className="animate-spin" />}
+            {editing ? t("save") : t("createSubmit")}
           </Button>
         </SheetFooter>
       </SheetContent>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { signOut } from "@/lib/actions/auth";
@@ -55,6 +55,7 @@ export function SignOutButton() {
               });
             }}
           >
+            {pending && <RefreshCw className="animate-spin" />}
             {t("signOut")}
           </AlertDialogAction>
         </AlertDialogFooter>

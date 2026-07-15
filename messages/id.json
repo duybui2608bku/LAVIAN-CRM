@@ -41,7 +41,6 @@
     "hidePassword": "Sembunyikan kata sandi",
     "rememberMe": "Ingat login",
     "signIn": "Masuk",
-    "signingIn": "Sedang masuk…",
     "signOut": "Keluar",
     "cancel": "Batal",
     "signOutConfirmTitle": "Keluar?",
@@ -84,8 +83,7 @@
     "resetTitle": "Atur ulang kata sandi",
     "resetSubmit": "Perbarui",
     "resetOk": "Kata sandi diatur ulang",
-    "cancel": "Batal",
-    "saving": "Menyimpan…"
+    "cancel": "Batal"
   },
   "enums": {
     "title": "Kategori (Enum)",
@@ -113,7 +111,6 @@
     "optional": "Opsional",
     "activeLabel": "Aktif (tampil di dropdown)",
     "cancel": "Batal",
-    "saving": "Menyimpan…",
     "save": "Simpan",
     "updateOk": "Diperbarui",
     "createOk": "Ditambahkan",
@@ -150,7 +147,6 @@
     "optional": "Opsional",
     "activeLabel": "Aktif (tampil di dropdown)",
     "cancel": "Batal",
-    "saving": "Menyimpan…",
     "save": "Simpan",
     "updateOk": "Diperbarui",
     "createOk": "Ditambahkan"
@@ -198,7 +194,6 @@
     "addNote": "Tambah catatan",
     "addNotePlaceholder": "Tulis catatan baru…",
     "cancel": "Batal",
-    "saving": "Menyimpan…",
     "save": "Simpan",
     "createSubmit": "Buat",
     "updateOk": "Diperbarui",
@@ -216,11 +211,11 @@
     "noteOptional": "Tidak wajib",
     "noteTooLong": "Catatan maksimal 1000 karakter",
     "submit": "Kirim",
-    "submitting": "Mengirim...",
     "successTitle": "Terima kasih!",
     "successBody": "Info Anda sudah kami terima, kami akan segera menghubungi.",
     "again": "Kirim lagi",
-    "close": "Tutup"
+    "close": "Tutup",
+    "log": "Log event"
   },
   "appointments": {
     "title": "Janji temu",
@@ -287,7 +282,6 @@
     "bookingNote": "Catatan booking",
     "internalNote": "Catatan internal",
     "cancel": "Batal",
-    "saving": "Menyimpan…",
     "save": "Simpan",
     "createSubmit": "Booking",
     "createOk": "Janji temu dibuat",

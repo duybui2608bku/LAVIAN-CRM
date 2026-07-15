@@ -41,7 +41,6 @@
     "hidePassword": "Hide password",
     "rememberMe": "Remember me",
     "signIn": "Sign in",
-    "signingIn": "Signing in…",
     "signOut": "Sign out",
     "cancel": "Cancel",
     "signOutConfirmTitle": "Sign out?",
@@ -84,8 +83,7 @@
     "resetTitle": "Reset password",
     "resetSubmit": "Update",
     "resetOk": "Password reset",
-    "cancel": "Cancel",
-    "saving": "Saving…"
+    "cancel": "Cancel"
   },
   "enums": {
     "title": "Categories (Enum)",
@@ -113,7 +111,6 @@
     "optional": "Optional",
     "activeLabel": "Active (shown in dropdowns)",
     "cancel": "Cancel",
-    "saving": "Saving…",
     "save": "Save",
     "updateOk": "Updated",
     "createOk": "Added",
@@ -150,7 +147,6 @@
     "optional": "Optional",
     "activeLabel": "Active (shown in dropdowns)",
     "cancel": "Cancel",
-    "saving": "Saving…",
     "save": "Save",
     "updateOk": "Updated",
     "createOk": "Added"
@@ -198,7 +194,6 @@
     "addNote": "Add note",
     "addNotePlaceholder": "Type a new note…",
     "cancel": "Cancel",
-    "saving": "Saving…",
     "save": "Save",
     "createSubmit": "Create",
     "updateOk": "Updated",
@@ -216,11 +211,11 @@
     "noteOptional": "Optional",
     "noteTooLong": "Note must be at most 1000 characters",
     "submit": "Submit",
-    "submitting": "Submitting...",
     "successTitle": "Thank you!",
     "successBody": "We've received your info and will contact you soon.",
     "again": "Submit another",
-    "close": "Close"
+    "close": "Close",
+    "log": "Event log"
   },
   "appointments": {
     "title": "Appointments",
@@ -287,7 +282,6 @@
     "bookingNote": "Booking note",
     "internalNote": "Internal note",
     "cancel": "Cancel",
-    "saving": "Saving…",
     "save": "Save",
     "createSubmit": "Book",
     "createOk": "Appointment booked",

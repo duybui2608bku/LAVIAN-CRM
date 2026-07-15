@@ -703,7 +703,8 @@ function ReschedulePopover({
         />
         <div className="flex justify-end">
           <Button size="sm" disabled={pending || !date} onClick={save}>
-            {pending ? t("saving") : t("save")}
+            {pending && <RefreshCw className="animate-spin" />}
+            {t("save")}
           </Button>
         </div>
       </PopoverContent>

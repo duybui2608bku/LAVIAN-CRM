@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
 
 import { signIn } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -114,7 +114,8 @@ export function LoginForm() {
       </label>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? t("signingIn") : t("signIn")}
+        {pending && <RefreshCw className="animate-spin" />}
+        {t("signIn")}
       </Button>
     </form>
   );

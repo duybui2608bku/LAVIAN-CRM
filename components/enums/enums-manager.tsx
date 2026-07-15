@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Check, Pencil, Pipette, Plus, Trash2, X } from "lucide-react";
+import { Check, Pencil, Pipette, Plus, RefreshCw, Trash2, X } from "lucide-react";
 
 import { createOption, deleteOption, updateOption } from "@/app/(app)/enums/actions";
 import { cn } from "@/lib/utils";
@@ -374,7 +374,8 @@ function OptionDialog({
               {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? t("saving") : t("save")}
+              {pending && <RefreshCw className="animate-spin" />}
+              {t("save")}
             </Button>
           </DialogFooter>
         </form>

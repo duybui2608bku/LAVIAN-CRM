@@ -666,7 +666,8 @@ function QuickNote({ customerId }: { customerId: string }) {
         />
         <div className="flex justify-end">
           <Button size="sm" disabled={pending || !text.trim()} onClick={save}>
-            {pending ? t("saving") : t("save")}
+            {pending && <RefreshCw className="animate-spin" />}
+            {t("save")}
           </Button>
         </div>
       </PopoverContent>
@@ -1019,7 +1020,8 @@ function CustomerDialog({
             {t("cancel")}
           </Button>
           <Button type="submit" form="customer-form" disabled={pending}>
-            {pending ? t("saving") : editing ? t("save") : t("createSubmit")}
+            {pending && <RefreshCw className="animate-spin" />}
+            {editing ? t("save") : t("createSubmit")}
           </Button>
         </SheetFooter>
       </SheetContent>

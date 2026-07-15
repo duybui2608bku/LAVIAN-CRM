@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import {
   createService,
@@ -273,7 +273,8 @@ function ServiceDialog({
               {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? t("saving") : t("save")}
+              {pending && <RefreshCw className="animate-spin" />}
+              {t("save")}
             </Button>
           </DialogFooter>
         </form>

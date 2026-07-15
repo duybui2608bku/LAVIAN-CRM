@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { CircleCheck } from "lucide-react";
+import { CircleCheck, RefreshCw } from "lucide-react";
 
 import { submitLead } from "@/app/lead-form/actions";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,8 @@ export function LeadForm({
   const source = params.get("source") ?? "";
   const [pending, start] = useTransition();
   const [done, setDone] = useState(false);
+  // Log debug: event postMessage gần nhất từ SMAX (kiểm tra payload thật khi nhúng).
+  const [eventLog, setEventLog] = useState("");
   // Nhúng iframe hay mở trực tiếp — cố định suốt vòng đời trang (SSR luôn false,
   // chỉ ảnh hưởng màn hình cảm ơn nên không lệch hydration).
   const [embedded] = useState(
@@ -81,7 +83,10 @@ export function LeadForm({
     if (!embedded) return;
     const onMessage = (event: MessageEvent) => {
       const msg = event.data;
-      if (typeof msg !== "object" || msg?.name !== "__SM_FORM_CUSTOMER") return;
+      if (typeof msg !== "object" || !msg?.name) return;
+      // ponytail: chỉ giữ event cuối — cần lịch sử thì chuyển sang mảng.
+      setEventLog(JSON.stringify(msg, null, 2));
+      if (msg.name !== "__SM_FORM_CUSTOMER") return;
       const c = msg.data?.customer ?? {};
       const id = c.id ? String(c.id) : "";
       const prev = smaxIdRef.current;
@@ -202,6 +207,19 @@ export function LeadForm({
         )}
       </div>
 
+      {embedded && (
+        <div className="space-y-1.5">
+          <Label htmlFor="event_log">{t("log")}</Label>
+          <textarea
+            id="event_log"
+            rows={4}
+            readOnly
+            value={eventLog}
+            className={fieldCls}
+          />
+        </div>
+      )}
+
       {/* honeypot — người thật không thấy, bot điền là server bỏ qua */}
       <input
         type="text"
@@ -213,7 +231,8 @@ export function LeadForm({
       />
 
       <Button type="submit" disabled={pending}>
-        {pending ? t("submitting") : t("submit")}
+        {pending && <RefreshCw className="animate-spin" />}
+        {t("submit")}
       </Button>
     </form>
   );

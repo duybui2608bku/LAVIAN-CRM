@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Ban, KeyRound, Search, ShieldCheck, UserPlus } from "lucide-react";
+import { Ban, KeyRound, RefreshCw, Search, ShieldCheck, UserPlus } from "lucide-react";
 
 import { createUser, resetPassword, setUserStatus } from "@/app/(app)/users/actions";
 import { Badge } from "@/components/ui/badge";
@@ -276,7 +276,8 @@ function CreateUserDialog({
               {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? t("saving") : t("createSubmit")}
+              {pending && <RefreshCw className="animate-spin" />}
+              {t("createSubmit")}
             </Button>
           </DialogFooter>
         </form>
@@ -336,7 +337,8 @@ function ResetPasswordDialog({
               {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? t("saving") : t("resetSubmit")}
+              {pending && <RefreshCw className="animate-spin" />}
+              {t("resetSubmit")}
             </Button>
           </DialogFooter>
         </form>

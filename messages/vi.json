@@ -41,7 +41,6 @@
     "hidePassword": "Ẩn mật khẩu",
     "rememberMe": "Ghi nhớ đăng nhập",
     "signIn": "Đăng nhập",
-    "signingIn": "Đang đăng nhập…",
     "signOut": "Đăng xuất",
     "cancel": "Huỷ",
     "signOutConfirmTitle": "Đăng xuất?",
@@ -84,8 +83,7 @@
     "resetTitle": "Đặt lại mật khẩu",
     "resetSubmit": "Cập nhật",
     "resetOk": "Đã đặt lại mật khẩu",
-    "cancel": "Huỷ",
-    "saving": "Đang lưu…"
+    "cancel": "Huỷ"
   },
   "enums": {
     "title": "Danh mục (Enum)",
@@ -113,7 +111,6 @@
     "optional": "Không bắt buộc",
     "activeLabel": "Kích hoạt (hiện trong lựa chọn)",
     "cancel": "Huỷ",
-    "saving": "Đang lưu…",
     "save": "Lưu",
     "updateOk": "Đã cập nhật",
     "createOk": "Đã thêm",
@@ -150,7 +147,6 @@
     "optional": "Không bắt buộc",
     "activeLabel": "Kích hoạt (hiện trong lựa chọn)",
     "cancel": "Huỷ",
-    "saving": "Đang lưu…",
     "save": "Lưu",
     "updateOk": "Đã cập nhật",
     "createOk": "Đã thêm"
@@ -198,7 +194,6 @@
     "addNote": "Thêm ghi chú",
     "addNotePlaceholder": "Nhập ghi chú mới…",
     "cancel": "Huỷ",
-    "saving": "Đang lưu…",
     "save": "Lưu",
     "createSubmit": "Thêm",
     "updateOk": "Đã cập nhật",
@@ -216,11 +211,11 @@
     "noteOptional": "Không bắt buộc",
     "noteTooLong": "Ghi chú tối đa 1000 ký tự",
     "submit": "Gửi thông tin",
-    "submitting": "Đang gửi...",
     "successTitle": "Đã nhận thông tin!",
     "successBody": "Cảm ơn bạn, chúng tôi sẽ liên hệ lại sớm nhất.",
     "again": "Gửi thông tin khác",
-    "close": "Đóng"
+    "close": "Đóng",
+    "log": "Log sự kiện"
   },
   "appointments": {
     "title": "Lịch hẹn",
@@ -287,7 +282,6 @@
     "bookingNote": "Ghi chú đặt lịch",
     "internalNote": "Ghi chú nội bộ",
     "cancel": "Huỷ",
-    "saving": "Đang lưu…",
     "save": "Lưu",
     "createSubmit": "Đặt lịch",
     "createOk": "Đã đặt lịch hẹn",
