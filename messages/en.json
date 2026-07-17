@@ -42,7 +42,14 @@
     "deposited": "Deposited",
     "notDeposited": "Not deposited",
     "tagSection": "Tags",
-    "noTags": "No tags in this date range"
+    "noTags": "No tags in this date range",
+    "staffSection": "Staff performance",
+    "staffName": "Name",
+    "staffCustomers": "Customers",
+    "staffPhoneLeads": "Customers leaving phone numbers",
+    "staffPhoneRate": "Rate",
+    "noStaffStats": "No staff data",
+    "loading": "Loading..."
   },
   "theme": {
     "toggle": "Toggle theme"

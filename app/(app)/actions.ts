@@ -4,8 +4,10 @@ import {
   fetchSmaxStats,
   fetchSmaxTags,
   fetchFbSpend,
+  fetchSmaxStaffStats,
   supaRange,
   type SmaxTagStat,
+  type SmaxStaffStat,
 } from "@/lib/marketing";
 import { normalizeError } from "@/lib/errors";
 import { requireAdmin } from "@/lib/auth";
@@ -28,12 +30,13 @@ export interface DashboardStats {
   visited: number | null;
   revenue: number | null;
   tags: SmaxTagStat[] | null;
+  staffStats: SmaxStaffStat[] | null;
   appointmentSummary: {
     total: AppointmentBreakdown;
     today: AppointmentBreakdown;
     tomorrow: AppointmentBreakdown;
   };
-  errors: { fb?: string; smax?: string; tags?: string; db?: string };
+  errors: { fb?: string; smax?: string; tags?: string; staff?: string; db?: string };
   error?: string;
 }
 
@@ -51,6 +54,7 @@ const EMPTY: DashboardStats = {
   visited: null,
   revenue: null,
   tags: null,
+  staffStats: null,
   appointmentSummary: {
     total: { ...EMPTY_BREAKDOWN },
     today: { ...EMPTY_BREAKDOWN },
@@ -118,9 +122,10 @@ export async function getMarketingStats(
       .gte("scheduled_at", start)
       .lt("scheduled_at", end);
 
-  const [spend, smax, tags, selectedAppointments, todayAppointments, tomorrowAppointments, visited, payments] =
+  const [spend, staff, smax, tags, selectedAppointments, todayAppointments, tomorrowAppointments, visited, payments] =
     await Promise.allSettled([
       includeSpend ? fetchFbSpend(from, to) : Promise.resolve(null),
+      fetchSmaxStaffStats(from, to),
       fetchSmaxStats(from, to),
       fetchSmaxTags(from, to),
       appointmentQuery(selectedRange.start, selectedRange.end),
@@ -152,6 +157,9 @@ export async function getMarketingStats(
 
   if (spend.status === "fulfilled") stats.spend = spend.value;
   else stats.errors.fb = normalizeError(spend.reason).message;
+
+  if (staff.status === "fulfilled") stats.staffStats = staff.value;
+  else stats.errors.staff = normalizeError(staff.reason).message;
 
   if (smax.status === "fulfilled") {
     stats.messages = smax.value.messages;

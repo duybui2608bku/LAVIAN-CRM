@@ -19,6 +19,14 @@ import { cn } from "@/lib/utils";
 import { formatVnd } from "@/lib/currency";
 import { formatISODate } from "@/lib/date";
 import { DateRangePicker } from "@/components/common/date-picker";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type CustomerCardKey =
   | "spend"
@@ -139,6 +147,43 @@ export function MarketingStats({ showSpend = false }: { showSpend?: boolean }) {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="space-y-3">
+          <h2 className="text-lg font-semibold tracking-tight">{t("staffSection")}</h2>
+          <div className="overflow-hidden rounded-xl border bg-background shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("staffName")}</TableHead>
+                  <TableHead className="text-right">{t("staffCustomers")}</TableHead>
+                  <TableHead className="text-right">{t("staffPhoneLeads")}</TableHead>
+                  <TableHead className="text-right">{t("staffPhoneRate")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats?.staffStats?.map((row) => (
+                  <TableRow key={row.userId}>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="text-right">{row.customers.toLocaleString(locale)}</TableCell>
+                    <TableCell className="text-right">{row.phoneLeads.toLocaleString(locale)}</TableCell>
+                    <TableCell className="text-right">{row.phoneRate.toLocaleString(locale, { maximumFractionDigits: 2 })}%</TableCell>
+                  </TableRow>
+                ))}
+                {!stats?.errors.staff && stats?.staffStats?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">{t("noStaffStats")}</TableCell>
+                  </TableRow>
+                )}
+                {!stats && pending && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">{t("loading")}</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {stats?.errors.staff && <p className="text-sm text-destructive">{stats.errors.staff}</p>}
       </section>
 
     </div>

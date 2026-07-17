@@ -42,7 +42,14 @@
     "deposited": "Có đặt cọc",
     "notDeposited": "Chưa đặt cọc",
     "tagSection": "Tag",
-    "noTags": "Không có tag trong khoảng ngày này"
+    "noTags": "Không có tag trong khoảng ngày này",
+    "staffSection": "Hiệu quả nhân viên",
+    "staffName": "Name",
+    "staffCustomers": "Khách hàng",
+    "staffPhoneLeads": "Khách hàng để lại SĐT",
+    "staffPhoneRate": "Tỉ lệ",
+    "noStaffStats": "Không có dữ liệu nhân viên",
+    "loading": "Đang tải..."
   },
   "theme": {
     "toggle": "Chuyển giao diện sáng/tối"

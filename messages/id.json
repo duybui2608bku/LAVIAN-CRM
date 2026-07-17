@@ -42,7 +42,14 @@
     "deposited": "Sudah deposit",
     "notDeposited": "Belum deposit",
     "tagSection": "Tag",
-    "noTags": "Tidak ada tag dalam rentang tanggal ini"
+    "noTags": "Tidak ada tag dalam rentang tanggal ini",
+    "staffSection": "Kinerja staf",
+    "staffName": "Nama",
+    "staffCustomers": "Pelanggan",
+    "staffPhoneLeads": "Pelanggan meninggalkan nomor",
+    "staffPhoneRate": "Rasio",
+    "noStaffStats": "Tidak ada data staf",
+    "loading": "Memuat..."
   },
   "theme": {
     "toggle": "Alihkan tema"
