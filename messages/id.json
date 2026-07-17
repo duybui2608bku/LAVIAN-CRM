@@ -47,6 +47,7 @@
     "staffName": "Nama",
     "staffCustomers": "Pelanggan",
     "staffPhoneLeads": "Pelanggan meninggalkan nomor",
+    "staffWhatsappLeads": "Nomor WhatsApp",
     "staffPhoneRate": "Rasio",
     "noStaffStats": "Tidak ada data staf",
     "loading": "Memuat..."

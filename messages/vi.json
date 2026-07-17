@@ -47,6 +47,7 @@
     "staffName": "Name",
     "staffCustomers": "Khách hàng",
     "staffPhoneLeads": "Khách hàng để lại SĐT",
+    "staffWhatsappLeads": "SĐT WhatsApp",
     "staffPhoneRate": "Tỉ lệ",
     "noStaffStats": "Không có dữ liệu nhân viên",
     "loading": "Đang tải..."

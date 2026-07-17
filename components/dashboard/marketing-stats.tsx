@@ -158,6 +158,7 @@ export function MarketingStats({ showSpend = false }: { showSpend?: boolean }) {
                   <TableHead>{t("staffName")}</TableHead>
                   <TableHead className="text-right">{t("staffCustomers")}</TableHead>
                   <TableHead className="text-right">{t("staffPhoneLeads")}</TableHead>
+                  <TableHead className="text-right">{t("staffWhatsappLeads")}</TableHead>
                   <TableHead className="text-right">{t("staffPhoneRate")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -167,17 +168,18 @@ export function MarketingStats({ showSpend = false }: { showSpend?: boolean }) {
                     <TableCell className="font-medium">{row.name}</TableCell>
                     <TableCell className="text-right">{row.customers.toLocaleString(locale)}</TableCell>
                     <TableCell className="text-right">{row.phoneLeads.toLocaleString(locale)}</TableCell>
+                    <TableCell className="text-right">{row.whatsappLeads.toLocaleString(locale)}</TableCell>
                     <TableCell className="text-right">{row.phoneRate.toLocaleString(locale, { maximumFractionDigits: 2 })}%</TableCell>
                   </TableRow>
                 ))}
                 {!stats?.errors.staff && stats?.staffStats?.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">{t("noStaffStats")}</TableCell>
+                    <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">{t("noStaffStats")}</TableCell>
                   </TableRow>
                 )}
                 {!stats && pending && (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">{t("loading")}</TableCell>
+                    <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">{t("loading")}</TableCell>
                   </TableRow>
                 )}
               </TableBody>

@@ -98,6 +98,7 @@ export interface SmaxStaffStat {
   name: string;
   customers: number;
   phoneLeads: number;
+  whatsappLeads: number;
   phoneRate: number;
 }
 
@@ -299,6 +300,7 @@ export async function fetchSmaxStaffStats(
       name: item.name?.trim() || "—",
       customers: Number(item.customer_count ?? 0),
       phoneLeads: 0,
+      whatsappLeads: 0,
       phoneRate: 0,
     });
   }
@@ -309,13 +311,14 @@ export async function fetchSmaxStaffStats(
       name: item.name?.trim() || "—",
       customers: 0,
       phoneLeads: 0,
+      whatsappLeads: 0,
       phoneRate: 0,
     };
     current.name = item.name?.trim() || current.name;
     current.phoneLeads = Number(item.value ?? 0);
     rows.set(item.user_id, current);
   }
-  // Mỗi khách từ 2 page WhatsApp được xem là đã cung cấp SĐT.
+  // Giữ riêng số khách từ 2 page WhatsApp, không cộng vào phone_rank/rate_phone_rank.
   for (const item of whatsappReport.data?.charts?.care_chart ?? []) {
     if (!item.user_id) continue;
     const current = rows.get(item.user_id) ?? {
@@ -323,10 +326,11 @@ export async function fetchSmaxStaffStats(
       name: item.name?.trim() || "—",
       customers: 0,
       phoneLeads: 0,
+      whatsappLeads: 0,
       phoneRate: 0,
     };
     current.name = item.name?.trim() || current.name;
-    current.phoneLeads += Number(item.customer_count ?? 0);
+    current.whatsappLeads = Number(item.customer_count ?? 0);
     rows.set(item.user_id, current);
   }
   for (const item of ranking.data?.rate_phone_rank ?? []) {
@@ -336,6 +340,7 @@ export async function fetchSmaxStaffStats(
       name: item.name?.trim() || "—",
       customers: 0,
       phoneLeads: 0,
+      whatsappLeads: 0,
       phoneRate: 0,
     };
     current.name = item.name?.trim() || current.name;
@@ -344,6 +349,9 @@ export async function fetchSmaxStaffStats(
   }
 
   return [...rows.values()].sort(
-    (a, b) => b.phoneLeads - a.phoneLeads || b.customers - a.customers,
+    (a, b) =>
+      b.phoneLeads - a.phoneLeads ||
+      b.whatsappLeads - a.whatsappLeads ||
+      b.customers - a.customers,
   );
 }

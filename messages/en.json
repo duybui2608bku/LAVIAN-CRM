@@ -47,6 +47,7 @@
     "staffName": "Name",
     "staffCustomers": "Customers",
     "staffPhoneLeads": "Customers leaving phone numbers",
+    "staffWhatsappLeads": "WhatsApp phone numbers",
     "staffPhoneRate": "Rate",
     "noStaffStats": "No staff data",
     "loading": "Loading..."
