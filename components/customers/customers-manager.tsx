@@ -415,7 +415,6 @@ export function CustomersManager({
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      <UserAvatar src={c.picture} />
                       <span className="min-w-0 truncate">{c.full_name}</span>
                       {c.thread?.link ? (
                         <a

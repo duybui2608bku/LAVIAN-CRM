@@ -9,7 +9,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Bug, CircleCheck, RefreshCw } from "lucide-react";
 
-import { submitLead, type LeadInput } from "@/app/lead-form/actions";
+import {
+  checkLeadCustomer,
+  submitLead,
+  type LeadInput,
+  type LeadMode,
+} from "@/app/lead-form/actions";
 import { Button } from "@/components/ui/button";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { Input } from "@/components/ui/input";
@@ -46,6 +51,8 @@ const schema = z.object({
   stage: z.string(),
   note: z.string().trim().max(1000),
   website: z.string(),
+  deposit_amount: z.string(),
+  deposit_currency: z.string(),
 });
 
 type Values = z.infer<typeof schema>;
@@ -66,6 +73,9 @@ export function LeadForm({
   const [done, setDone] = useState(false);
   const [eventLog, setEventLog] = useState("");
   const [showLog, setShowLog] = useState(false);
+  const [customerId, setCustomerId] = useState("");
+  const [existing, setExisting] = useState(false);
+  const [checkingCustomer, setCheckingCustomer] = useState(false);
   const [embedded] = useState(
     () => typeof window !== "undefined" && window.parent !== window,
   );
@@ -87,6 +97,8 @@ export function LeadForm({
       stage: "new_lead",
       note: "",
       website: "",
+      deposit_amount: "",
+      deposit_currency: "VND",
     },
   });
 
@@ -120,6 +132,25 @@ export function LeadForm({
       const phone = c.phone ?? (Array.isArray(c.phones) ? c.phones[0] : "");
       const prev = smaxIdRef.current;
       smaxIdRef.current = id;
+      setCustomerId(id);
+
+      if (id === prev) {
+        // Poll cùng một khách: không query DB lại và không đụng dữ liệu đang nhập.
+      } else if (!id) {
+        setExisting(false);
+      } else {
+        setCheckingCustomer(true);
+        void checkLeadCustomer(id)
+          .then((found) => {
+            if (smaxIdRef.current === id) setExisting(found);
+          })
+          .catch(() => {
+            if (smaxIdRef.current === id) setExisting(false);
+          })
+          .finally(() => {
+            if (smaxIdRef.current === id) setCheckingCustomer(false);
+          });
+      }
 
       if (prev === null) {
         if (c.name && !getValues("full_name")) {
@@ -144,9 +175,22 @@ export function LeadForm({
     };
   }, [embedded, getValues, setValue, integrationId]);
 
-  const onSubmit = (values: Values) =>
+  const onSubmit = (mode: LeadMode) => (values: Values) =>
     start(async () => {
-      const res = await submitLead({ ...values, source, ...smaxMeta });
+      const amount = values.deposit_amount === ""
+        ? null
+        : Number(values.deposit_amount);
+      const res = await submitLead(
+        {
+          ...values,
+          customer_id: customerId,
+          deposit_amount: amount,
+          deposit_currency: amount === null ? null : values.deposit_currency,
+          source,
+          ...smaxMeta,
+        },
+        mode,
+      );
       if (res?.error) {
         toast.error(res.error);
         return;
@@ -179,7 +223,12 @@ export function LeadForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-3">
+    <form onSubmit={(e) => e.preventDefault()} className="grid gap-3">
+      {existing && (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+          {t("existingCustomer")}
+        </p>
+      )}
       <div className="space-y-1.5">
         <Label htmlFor="full_name">{t("name")}</Label>
         <Input id="full_name" autoFocus {...register("full_name")} />
@@ -243,6 +292,30 @@ export function LeadForm({
       )}
 
       <div className="space-y-1.5">
+        <Label htmlFor="deposit_amount">{t("deposit")}</Label>
+        <div className="flex gap-2">
+          <Input
+            id="deposit_amount"
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            className="flex-1"
+            {...register("deposit_amount")}
+          />
+          <select
+            aria-label={t("currency")}
+            className={`${fieldCls} w-24`}
+            {...register("deposit_currency")}
+          >
+            <option value="VND">VND</option>
+            <option value="IDR">IDR</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="note">{t("note")}</Label>
         <textarea
           id="note"
@@ -290,10 +363,26 @@ export function LeadForm({
             <Bug />
           </Button>
         )}
-        <Button type="submit" className="flex-1" disabled={pending}>
+        <Button
+          type="button"
+          className="flex-1"
+          disabled={pending || checkingCustomer || existing}
+          onClick={handleSubmit(onSubmit("create"))}
+        >
           {pending && <RefreshCw className="animate-spin" />}
           {t("submit")}
         </Button>
+        {existing && (
+          <Button
+            type="button"
+            className="flex-1"
+            disabled={pending || checkingCustomer}
+            onClick={handleSubmit(onSubmit("update"))}
+          >
+            {pending && <RefreshCw className="animate-spin" />}
+            {t("update")}
+          </Button>
+        )}
       </div>
     </form>
   );

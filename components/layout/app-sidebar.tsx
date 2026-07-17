@@ -7,6 +7,7 @@ import {
   Briefcase,
   CalendarDays,
   LayoutDashboard,
+  Megaphone,
   SlidersHorizontal,
   UserCog,
   Users,
@@ -45,6 +46,7 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const navItems = isAdmin
     ? [
         ...items,
+        { key: "marketing", href: "/marketing", icon: Megaphone } as const,
         { key: "users", href: "/users", icon: UserCog } as const,
         { key: "services", href: "/services", icon: Briefcase } as const,
       ]

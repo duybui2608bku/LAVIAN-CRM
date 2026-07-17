@@ -8,7 +8,8 @@
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
   },
   "nav": {
-    "dashboard": "Tổng quan",
+    "dashboard": "Báo cáo",
+    "marketing": "Marketing",
     "customers": "Khách hàng",
     "contacts": "Khách hàng",
     "deals": "Cơ hội",
@@ -20,6 +21,28 @@
     "services": "Dịch vụ",
     "appointments": "Lịch hẹn",
     "toggleSidebar": "Đóng/mở thanh bên"
+  },
+  "dashboard": {
+    "title": "Báo cáo",
+    "description": "Báo cáo khách hàng, doanh thu và lịch hẹn theo khoảng ngày (giờ Việt Nam).",
+    "range": "Khoảng ngày",
+    "clear": "Về hôm nay",
+    "spend": "Chi tiêu",
+    "costPerMessage": "Chi tiêu / Khách nhắn tin",
+    "messages": "Khách nhắn tin",
+    "leads": "Khách hàng để lại SĐT",
+    "appointments": "Lịch hẹn",
+    "visited": "Đã đến",
+    "revenue": "Doanh thu",
+    "customerSection": "Khách hàng",
+    "appointmentSection": "Lịch hẹn",
+    "totalAppointments": "Tổng lịch hẹn",
+    "todayAppointments": "Lịch hẹn hôm nay",
+    "tomorrowAppointments": "Lịch hẹn ngày mai",
+    "deposited": "Có đặt cọc",
+    "notDeposited": "Chưa đặt cọc",
+    "tagSection": "Tag",
+    "noTags": "Không có tag trong khoảng ngày này"
   },
   "theme": {
     "toggle": "Chuyển giao diện sáng/tối"
@@ -217,7 +240,11 @@
     "successBody": "Cảm ơn bạn, chúng tôi sẽ liên hệ lại sớm nhất.",
     "again": "Gửi thông tin khác",
     "close": "Đóng",
-    "log": "Log sự kiện"
+    "log": "Log sự kiện",
+    "deposit": "Tiền cọc",
+    "currency": "Loại tiền",
+    "existingCustomer": "Khách hàng đã tồn tại. Không thể thêm mới; bạn chỉ có thể cập nhật thông tin.",
+    "update": "Cập nhật"
   },
   "appointments": {
     "title": "Lịch hẹn",

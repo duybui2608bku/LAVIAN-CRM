@@ -56,6 +56,7 @@ export interface CustomerInput {
 /** Khách hàng — ánh xạ bảng `public.customers`. */
 export interface Customer {
   id: string;
+  smax_customer_id: string | null;
   full_name: string;
   phone: string;
   social_name: string | null; // tên hiển thị MXH (SMAX name_original)
@@ -68,6 +69,8 @@ export interface Customer {
   staff_id: string | null;
   first_contact: string | null;
   notes: CustomerNote[];
+  deposit_amount: number | null;
+  deposit_currency: string | null;
   service_ids: string[]; // map từ bảng nối customer_services (page query nested)
   created_at: string;
   updated_at: string;

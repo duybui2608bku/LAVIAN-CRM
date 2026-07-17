@@ -8,7 +8,8 @@
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
   },
   "nav": {
-    "dashboard": "Dashboard",
+    "dashboard": "Reports",
+    "marketing": "Marketing",
     "customers": "Customers",
     "contacts": "Contacts",
     "deals": "Deals",
@@ -20,6 +21,28 @@
     "services": "Services",
     "appointments": "Appointments",
     "toggleSidebar": "Toggle sidebar"
+  },
+  "dashboard": {
+    "title": "Reports",
+    "description": "Customer, revenue, and appointment reports by date range (Vietnam time).",
+    "range": "Date range",
+    "clear": "Back to today",
+    "spend": "Ad spend",
+    "costPerMessage": "Spend / Messaging customer",
+    "messages": "Messaging customers",
+    "leads": "Phone leads",
+    "appointments": "Appointments",
+    "visited": "Visited",
+    "revenue": "Revenue",
+    "customerSection": "Customers",
+    "appointmentSection": "Appointments",
+    "totalAppointments": "Total appointments",
+    "todayAppointments": "Today's appointments",
+    "tomorrowAppointments": "Tomorrow's appointments",
+    "deposited": "Deposited",
+    "notDeposited": "Not deposited",
+    "tagSection": "Tags",
+    "noTags": "No tags in this date range"
   },
   "theme": {
     "toggle": "Toggle theme"
@@ -217,7 +240,11 @@
     "successBody": "We've received your info and will contact you soon.",
     "again": "Submit another",
     "close": "Close",
-    "log": "Event log"
+    "log": "Event log",
+    "deposit": "Deposit",
+    "currency": "Currency",
+    "existingCustomer": "This customer already exists. You can update the record but cannot add it again.",
+    "update": "Update"
   },
   "appointments": {
     "title": "Appointments",
