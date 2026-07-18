@@ -50,6 +50,11 @@
     "staffWhatsappLeads": "SĐT WhatsApp",
     "staffPhoneRate": "Tỉ lệ",
     "noStaffStats": "Không có dữ liệu nhân viên",
+    "replyTimeSection": "Thời gian phản hồi của nhân viên",
+    "replyTimeMin": "Nhanh nhất",
+    "replyTimeMax": "Chậm nhất",
+    "replyTimeAverage": "Trung bình",
+    "noReplyTimeStats": "Không có dữ liệu thời gian phản hồi",
     "loading": "Đang tải..."
   },
   "theme": {

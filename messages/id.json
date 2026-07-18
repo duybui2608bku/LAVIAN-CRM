@@ -50,6 +50,11 @@
     "staffWhatsappLeads": "Nomor WhatsApp",
     "staffPhoneRate": "Rasio",
     "noStaffStats": "Tidak ada data staf",
+    "replyTimeSection": "Waktu respons staf",
+    "replyTimeMin": "Tercepat",
+    "replyTimeMax": "Terlambat",
+    "replyTimeAverage": "Rata-rata",
+    "noReplyTimeStats": "Tidak ada data waktu respons",
     "loading": "Memuat..."
   },
   "theme": {

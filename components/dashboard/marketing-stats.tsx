@@ -101,6 +101,22 @@ export function MarketingStats({ showSpend = false }: { showSpend?: boolean }) {
       (displayValue ?? "—")
     );
 
+  const replyTime = (seconds: number | null) => {
+    if (seconds == null) return "—";
+    const total = Math.round(seconds);
+    const days = Math.floor(total / 86_400);
+    const hours = Math.floor((total % 86_400) / 3_600);
+    const minutes = Math.floor((total % 3_600) / 60);
+    const remainingSeconds = total % 60;
+    const parts = [
+      days ? `${days}d` : "",
+      hours ? `${hours}h` : "",
+      minutes ? `${minutes}m` : "",
+      remainingSeconds || total === 0 ? `${remainingSeconds}s` : "",
+    ].filter(Boolean);
+    return parts.slice(0, 2).join(" ");
+  };
+
   return (
     <div className="space-y-6">
       <DateRangePicker
@@ -186,6 +202,43 @@ export function MarketingStats({ showSpend = false }: { showSpend?: boolean }) {
             </Table>
           </div>
           {stats?.errors.staff && <p className="text-sm text-destructive">{stats.errors.staff}</p>}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight">{t("replyTimeSection")}</h2>
+        <div className="overflow-hidden rounded-xl border bg-background shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("staffName")}</TableHead>
+                <TableHead className="text-right">{t("replyTimeMin")}</TableHead>
+                <TableHead className="text-right">{t("replyTimeMax")}</TableHead>
+                <TableHead className="text-right">{t("replyTimeAverage")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stats?.staffReplyTimes?.map((row) => (
+                <TableRow key={row.userId}>
+                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{replyTime(row.minimum)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{replyTime(row.maximum)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{replyTime(row.average)}</TableCell>
+                </TableRow>
+              ))}
+              {!stats?.errors.replyTime && stats?.staffReplyTimes?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">{t("noReplyTimeStats")}</TableCell>
+                </TableRow>
+              )}
+              {!stats && pending && (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">{t("loading")}</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {stats?.errors.replyTime && <p className="text-sm text-destructive">{stats.errors.replyTime}</p>}
       </section>
 
     </div>

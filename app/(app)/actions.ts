@@ -5,9 +5,11 @@ import {
   fetchSmaxTags,
   fetchFbSpend,
   fetchSmaxStaffStats,
+  fetchSmaxStaffReplyTimes,
   supaRange,
   type SmaxTagStat,
   type SmaxStaffStat,
+  type SmaxStaffReplyTime,
 } from "@/lib/marketing";
 import { normalizeError } from "@/lib/errors";
 import { requireAdmin } from "@/lib/auth";
@@ -31,12 +33,13 @@ export interface DashboardStats {
   revenue: number | null;
   tags: SmaxTagStat[] | null;
   staffStats: SmaxStaffStat[] | null;
+  staffReplyTimes: SmaxStaffReplyTime[] | null;
   appointmentSummary: {
     total: AppointmentBreakdown;
     today: AppointmentBreakdown;
     tomorrow: AppointmentBreakdown;
   };
-  errors: { fb?: string; smax?: string; tags?: string; staff?: string; db?: string };
+  errors: { fb?: string; smax?: string; tags?: string; staff?: string; replyTime?: string; db?: string };
   error?: string;
 }
 
@@ -55,6 +58,7 @@ const EMPTY: DashboardStats = {
   revenue: null,
   tags: null,
   staffStats: null,
+  staffReplyTimes: null,
   appointmentSummary: {
     total: { ...EMPTY_BREAKDOWN },
     today: { ...EMPTY_BREAKDOWN },
@@ -122,10 +126,11 @@ export async function getMarketingStats(
       .gte("scheduled_at", start)
       .lt("scheduled_at", end);
 
-  const [spend, staff, smax, tags, selectedAppointments, todayAppointments, tomorrowAppointments, visited, payments] =
+  const [spend, staff, replyTime, smax, tags, selectedAppointments, todayAppointments, tomorrowAppointments, visited, payments] =
     await Promise.allSettled([
       includeSpend ? fetchFbSpend(from, to) : Promise.resolve(null),
       fetchSmaxStaffStats(from, to),
+      fetchSmaxStaffReplyTimes(from, to),
       fetchSmaxStats(from, to),
       fetchSmaxTags(from, to),
       appointmentQuery(selectedRange.start, selectedRange.end),
@@ -160,6 +165,9 @@ export async function getMarketingStats(
 
   if (staff.status === "fulfilled") stats.staffStats = staff.value;
   else stats.errors.staff = normalizeError(staff.reason).message;
+
+  if (replyTime.status === "fulfilled") stats.staffReplyTimes = replyTime.value;
+  else stats.errors.replyTime = normalizeError(replyTime.reason).message;
 
   if (smax.status === "fulfilled") {
     stats.messages = smax.value.messages;

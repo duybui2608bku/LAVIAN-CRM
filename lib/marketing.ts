@@ -17,12 +17,21 @@ const SMAX_STAFF_RANKING_API =
   "https://api.smax.ai/bizs/lavianbeautycenter/statistics-v2/supporter-staff-ranking";
 const SMAX_STAFF_REPORT_API =
   "https://api.smax.ai/bizs/lavianbeautycenter/statistics-v2/supporter-staff-report";
+const SMAX_SUPPORTERS_API =
+  "https://api.smax.ai/bizs/lavianbeautycenter/statistics/supporters";
 const SMAX_PAGE_PIDS = [
   "ttw7356194253834421253",
   "fb604861366051343",
   "ig17841474444790127",
 ];
 const SMAX_WHATSAPP_PAGE_PIDS = ["waw6281111858631", "waw6281111858630"];
+export const SMAX_STAFF_USERS = [
+  { user_id: "6a16a474ed08922940fa8a94", name: "Tiara Kania" },
+  { user_id: "6a1523bcbb82917694939743", name: "sriharyani shiwe" },
+  { user_id: "6a16bee954ca17ad45ff4f15", name: "Egidia Amaliap" },
+  { user_id: "6a4c6d7d60b05c667a420fe6", name: "sbillah syah" },
+  { user_id: "6a0216a63696795ae625da45", name: "Mr Tony" },
+] as const;
 
 /** Cộng/trừ n ngày trên chuỗi `YYYY-MM-DD` — số học Date.UTC, không dính timezone máy. */
 export function addDays(ymd: string, n: number): string {
@@ -102,6 +111,14 @@ export interface SmaxStaffStat {
   phoneRate: number;
 }
 
+export interface SmaxStaffReplyTime {
+  userId: string;
+  name: string;
+  minimum: number | null;
+  maximum: number | null;
+  average: number | null;
+}
+
 type SmaxRankItem = {
   user_id?: string;
   name?: string;
@@ -129,6 +146,19 @@ type SmaxStaffReportRes = {
         customer_count?: number;
       }[];
     };
+  };
+};
+
+type SmaxSupportersRes = {
+  status?: number;
+  message?: string;
+  data?: {
+    reply_time?: {
+      user_id?: string;
+      reply_time_min?: number | null;
+      reply_time_max?: number | null;
+      reply_time_average?: number | null;
+    }[];
   };
 };
 
@@ -354,4 +384,51 @@ export async function fetchSmaxStaffStats(
       b.whatsappLeads - a.whatsappLeads ||
       b.customers - a.customers,
   );
+}
+
+/** Thời gian phản hồi của nhân viên SMAX, đơn vị API trả về là giây. */
+export async function fetchSmaxStaffReplyTimes(
+  from: string,
+  to: string,
+): Promise<SmaxStaffReplyTime[]> {
+  const token = process.env.SMAX_TOKEN;
+  if (!token) throw new Error("Thiếu SMAX_TOKEN.");
+  const range = smaxRange(from, to);
+  const res = await fetch(SMAX_SUPPORTERS_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+    body: JSON.stringify({
+      page_pids: [],
+      apply_all: true,
+      from: range.from,
+      to: range.to,
+      target: "customer_and_page",
+      type: "time_reply",
+      key_time: "30_days",
+      tag_aliases: [],
+      top: 10,
+    }),
+  });
+  const json = (await res.json().catch(() => null)) as SmaxSupportersRes | null;
+  if (!res.ok || !json || json.status !== 200)
+    throw new Error(json?.message ?? `SMAX supporters API ${res.status}`);
+
+  const names = new Map<string, string>(
+    SMAX_STAFF_USERS.map((staff) => [staff.user_id, staff.name]),
+  );
+  return (json.data?.reply_time ?? [])
+    .filter((item): item is typeof item & { user_id: string } =>
+      Boolean(item.user_id),
+    )
+    .map((item) => ({
+      userId: item.user_id,
+      name: names.get(item.user_id) ?? "—",
+      minimum: item.reply_time_min ?? null,
+      maximum: item.reply_time_max ?? null,
+      average: item.reply_time_average ?? null,
+    }));
 }

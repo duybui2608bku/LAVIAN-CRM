@@ -50,6 +50,11 @@
     "staffWhatsappLeads": "WhatsApp phone numbers",
     "staffPhoneRate": "Rate",
     "noStaffStats": "No staff data",
+    "replyTimeSection": "Staff response time",
+    "replyTimeMin": "Fastest",
+    "replyTimeMax": "Slowest",
+    "replyTimeAverage": "Average",
+    "noReplyTimeStats": "No response-time data",
     "loading": "Loading..."
   },
   "theme": {
