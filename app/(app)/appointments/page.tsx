@@ -14,6 +14,9 @@ import type { Service } from "@/types/service";
 //           giới hạn theo khoảng ngày phía server khi dữ liệu lớn.
 export default async function AppointmentsPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const [apptsRes, customersRes, staffRes, optionsRes, servicesRes] =
     await Promise.all([
       supabase
@@ -27,15 +30,15 @@ export default async function AppointmentsPage() {
         .order("scheduled_at", { ascending: true }),
       supabase
         .from("customers")
-        // source/staff_id/dịch vụ để prefill form khi tạo lịch mới.
+        // source/technician_id/dịch vụ để prefill form khi tạo lịch mới.
         .select(
-          "id, full_name, phone, source, staff_id, customer_services(service_id)",
+          "id, full_name, phone, source, technician_id, customer_services(service_id)",
         )
         .is("deleted_at", null)
         .order("full_name", { ascending: true }),
       supabase
         .from("profiles")
-        .select("id, user_name, avatar_url")
+        .select("id, user_name, avatar_url, department, status")
         .order("user_name", { ascending: true }),
       supabase
         .from("enum_options")
@@ -65,6 +68,7 @@ export default async function AppointmentsPage() {
       appointments={appointments}
       customers={customers}
       staff={(staffRes.data as StaffRef[]) ?? []}
+      currentUserId={user?.id ?? ""}
       options={(optionsRes.data as EnumOption[]) ?? []}
       services={(servicesRes.data as Service[]) ?? []}
     />

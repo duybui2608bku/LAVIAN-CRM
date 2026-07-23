@@ -27,6 +27,8 @@ function clean(input: CustomerInput) {
     stage: input.stage,
     lost_reason: input.stage === "lost" ? nz(input.lost_reason) : null,
     staff_id: nz(input.staff_id),
+    sales_id: nz(input.sales_id),
+    technician_id: nz(input.technician_id),
     first_contact: nz(input.first_contact),
   };
 }
@@ -88,13 +90,15 @@ export async function updateCustomer(
   }
 }
 
-/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/source/staff_id/service_ids. */
+/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/source/staff_id/sales_id/technician_id/service_ids. */
 export async function patchCustomer(
   id: string,
   patch: {
     stage?: string;
     source?: string | null;
     staff_id?: string | null;
+    sales_id?: string | null;
+    technician_id?: string | null;
     service_ids?: string[];
   },
 ): Promise<Result> {
@@ -107,6 +111,9 @@ export async function patchCustomer(
     }
     if (patch.source !== undefined) data.source = patch.source || null;
     if (patch.staff_id !== undefined) data.staff_id = patch.staff_id || null;
+    if (patch.sales_id !== undefined) data.sales_id = patch.sales_id || null;
+    if (patch.technician_id !== undefined)
+      data.technician_id = patch.technician_id || null;
     if (Object.keys(data).length === 0 && patch.service_ids === undefined)
       return {};
     const supabase = await createClient();

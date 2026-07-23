@@ -11,7 +11,7 @@ import {
   setLedgerClosed,
 } from "@/app/(app)/appointments/actions";
 import { outstanding, paidTotal } from "@/lib/appointments";
-import { formatVnd } from "@/lib/currency";
+import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
 import { removeImage } from "@/lib/supabase/storage";
 import { ClearableSelect } from "@/components/common/clearable-select";
@@ -45,7 +45,6 @@ import {
   type PaymentKind,
   type PaymentMethod,
 } from "@/types/appointment";
-import type { Locale } from "@/i18n/config";
 import type { Service } from "@/types/service";
 
 // Màu tag loại dòng sổ — hardcode như STATUS_META (không vào enum_options).
@@ -71,8 +70,9 @@ export function PaymentLine({
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
-  const creator = p.created_by
-    ? staff.find((x) => x.id === p.created_by)
+  const receiverId = p.received_by ?? p.created_by;
+  const receiver = receiverId
+    ? staff.find((x) => x.id === receiverId)
     : undefined;
   return (
     <li className="flex items-center gap-2 rounded-md border px-2.5 py-2">
@@ -97,7 +97,7 @@ export function PaymentLine({
             }
           >
             {p.kind === "refund" ? "−" : ""}
-            {formatVnd(p.amount)}
+            {formatRupiah(p.amount)}
           </span>
           {p.payment_method && (
             <span className="text-xs text-muted-foreground">
@@ -110,7 +110,7 @@ export function PaymentLine({
           <span className="tabular-nums">
             {new Date(p.paid_at).toLocaleString(locale)}
           </span>
-          {creator ? staffLabel(creator) : null}
+          {receiver ? staffLabel(receiver) : null}
           {p.note && <span className="truncate">{p.note}</span>}
         </div>
       </div>
@@ -128,12 +128,14 @@ export function PaymentLine({
 export function PaymentsDialog({
   appointment,
   staff,
+  currentUserId,
   services,
   onClose,
   onDone,
 }: {
   appointment: Appointment | null; // null = đóng
   staff: StaffRef[];
+  currentUserId: string;
   services: Service[];
   onClose: () => void;
   onDone: () => void;
@@ -144,6 +146,7 @@ export function PaymentsDialog({
 
   const [kind, setKind] = useState<PaymentKind>("payment");
   const [amount, setAmount] = useState("");
+  const [createdBy, setCreatedBy] = useState(currentUserId);
   const [method, setMethod] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -152,6 +155,7 @@ export function PaymentsDialog({
   const resetForm = () => {
     setKind("payment");
     setAmount("");
+    setCreatedBy(currentUserId);
     setMethod("");
     setImageUrl(null);
     setNote("");
@@ -163,6 +167,7 @@ export function PaymentsDialog({
       const res = await addPayment(appointment.id, {
         kind,
         amount: Number(amount),
+        received_by: createdBy,
         payment_method: (method || null) as PaymentMethod | null,
         image_url: imageUrl,
         note: note || null,
@@ -226,7 +231,15 @@ export function PaymentsDialog({
 
   return (
     <>
-      <Dialog open={appointment !== null} onOpenChange={(o) => !o && onClose()}>
+      <Dialog
+        open={appointment !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            resetForm();
+            onClose();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
@@ -296,17 +309,17 @@ export function PaymentsDialog({
                 <>
                   {t("totalAmount")}:{" "}
                   <span className="font-medium">
-                    {formatVnd(ledger.total_amount)}
+                    {formatRupiah(ledger.total_amount)}
                   </span>
                   {" · "}
                 </>
               )}
               {t("colPaid")}:{" "}
-              <span className="font-medium">{formatVnd(paid)}</span>
+              <span className="font-medium">{formatRupiah(paid)}</span>
               {owed > 0 && (
                 <span className="text-destructive">
                   {" · "}
-                  {t("colOutstanding")}: {formatVnd(owed)}
+                  {t("colOutstanding")}: {formatRupiah(owed)}
                 </span>
               )}
             </p>
@@ -333,11 +346,24 @@ export function PaymentsDialog({
               className="w-full"
             />
             <CurrencyInput
-              locale={locale as Locale}
               value={amount}
               onValueChange={(v) => setAmount(cap(v, kind))}
               placeholder={t("currencyPlaceholder")}
               aria-label={t("amount")}
+            />
+            <ClearableSelect
+              value={createdBy}
+              onValueChange={setCreatedBy}
+              clearable={false}
+              options={staff
+                .filter((user) => user.status !== "banned")
+                .map((user) => ({
+                  value: user.id,
+                  label: staffLabel(user),
+                }))}
+              placeholder={t("paymentUser")}
+              ariaLabel={t("paymentUser")}
+              className="w-full"
             />
             <ClearableSelect
               value={method}
@@ -365,7 +391,7 @@ export function PaymentsDialog({
               />
               <Button
                 size="sm"
-                disabled={pending || !amount || Number(amount) <= 0}
+                disabled={pending || !createdBy || !amount || Number(amount) <= 0}
                 onClick={submit}
               >
                 {pending ? (
@@ -390,7 +416,7 @@ export function PaymentsDialog({
             <AlertDialogTitle>{t("deletePaymentConfirm")}</AlertDialogTitle>
             <AlertDialogDescription>
               {deleting &&
-                `${t(`kind_${deleting.kind}`)} · ${formatVnd(deleting.amount)}`}
+                `${t(`kind_${deleting.kind}`)} · ${formatRupiah(deleting.amount)}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

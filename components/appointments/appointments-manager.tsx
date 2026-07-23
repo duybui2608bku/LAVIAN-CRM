@@ -38,7 +38,7 @@ import {
   paidTotal,
   sortForDayView,
 } from "@/lib/appointments";
-import { formatVnd } from "@/lib/currency";
+import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
 import { formatISODate, parseISODate } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -87,7 +87,6 @@ import {
   type AppointmentStatus,
   type PaymentMethod,
 } from "@/types/appointment";
-import type { Locale } from "@/i18n/config";
 import type { EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
 
@@ -95,12 +94,14 @@ export function AppointmentsManager({
   appointments,
   customers,
   staff,
+  currentUserId,
   options,
   services,
 }: {
   appointments: Appointment[];
   customers: CustomerRef[];
   staff: StaffRef[];
+  currentUserId: string;
   options: EnumOption[];
   services: Service[];
 }) {
@@ -115,7 +116,7 @@ export function AppointmentsManager({
   const [day, setDay] = useState(() => formatISODate(new Date()));
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [staffId, setStaffId] = useState("");
+  const [technicianId, setTechnicianId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [target, setTarget] = useState<Appointment | "new" | null>(null);
   const [deleting, setDeleting] = useState<Appointment | null>(null);
@@ -148,21 +149,21 @@ export function AppointmentsManager({
             day: tab === "day" ? day : undefined,
             search,
             status,
-            staffId,
+            technicianId,
             serviceId,
           }),
         ),
       ),
-    [appointments, tab, day, search, status, staffId, serviceId],
+    [appointments, tab, day, search, status, technicianId, serviceId],
   );
 
-  // Calendar: lọc search/staff/service, KHÔNG lọc ngày (lưới tự gom theo ngày).
+  // Calendar: lọc search/kỹ thuật viên/service, KHÔNG lọc ngày.
   const calendarList = useMemo(
     () =>
       appointments.filter((a) =>
-        matchesAppointmentFilters(a, { search, staffId, serviceId }),
+        matchesAppointmentFilters(a, { search, technicianId, serviceId }),
       ),
-    [appointments, search, staffId, serviceId],
+    [appointments, search, technicianId, serviceId],
   );
 
   const anchorDate = parseISODate(day) ?? new Date();
@@ -183,11 +184,11 @@ export function AppointmentsManager({
     });
   })();
 
-  const fmt = (n: number) => formatVnd(n);
+  const fmt = (n: number) => formatRupiah(n);
   const statusTag = (s: AppointmentStatus) => (
     <AppointmentStatusTag status={s} />
   );
-  const staffDisplay = (id: string | null) => {
+  const technicianDisplay = (id: string | null) => {
     const s = id ? staff.find((x) => x.id === id) : undefined;
     if (!s) return <span className="text-muted-foreground">—</span>;
     return staffLabel(s);
@@ -212,7 +213,16 @@ export function AppointmentsManager({
     value: s,
     label: t(`status_${s}`),
   }));
-  const staffOptions = staff.map((s) => ({ value: s.id, label: staffLabel(s) }));
+  const assignedTechnicianIds = new Set(
+    appointments.flatMap((a) => (a.technician_id ? [a.technician_id] : [])),
+  );
+  const technicianOptions = staff
+    .filter(
+      (s) =>
+        (s.department === "technician" && s.status === "active") ||
+        assignedTechnicianIds.has(s.id),
+    )
+    .map((s) => ({ value: s.id, label: staffLabel(s) }));
   const serviceOptions = services
     .filter((s) => s.is_active)
     .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
@@ -328,9 +338,9 @@ export function AppointmentsManager({
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold">{t("title")}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
         <div className="flex items-center gap-2">
           {/* Toggle bảng ↔ calendar */}
           <div className="flex rounded-lg border p-0.5">
@@ -474,12 +484,12 @@ export function AppointmentsManager({
           />
         )}
         <ClearableSelect
-          value={staffId}
-          onValueChange={setStaffId}
-          options={staffOptions}
-          placeholder={t("allStaff")}
+          value={technicianId}
+          onValueChange={setTechnicianId}
+          options={technicianOptions}
+          placeholder={t("allTechnicians")}
           clearLabel={t("clear")}
-          ariaLabel={t("colStaff")}
+          ariaLabel={t("colTechnician")}
         />
         <ClearableSelect
           value={serviceId}
@@ -504,14 +514,14 @@ export function AppointmentsManager({
           }}
         />
       ) : (
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>{t("colTime")}</TableHead>
               <TableHead>{t("colCustomer")}</TableHead>
               <TableHead>{t("colServices")}</TableHead>
-              <TableHead>{t("colStaff")}</TableHead>
+              <TableHead>{t("colTechnician")}</TableHead>
               <TableHead>{t("colStatus")}</TableHead>
               <TableHead className="text-right">{t("colTotal")}</TableHead>
               <TableHead className="text-right">{t("colPaid")}</TableHead>
@@ -575,7 +585,9 @@ export function AppointmentsManager({
                         </div>
                       </TableCell>
                       <TableCell>{serviceBadges(a.service_ids)}</TableCell>
-                      <TableCell>{staffDisplay(a.staff_id)}</TableCell>
+                      <TableCell>
+                        {technicianDisplay(a.technician_id)}
+                      </TableCell>
                       <TableCell>{statusTag(a.status)}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">
                         {a.ledger?.total_amount != null
@@ -677,6 +689,7 @@ export function AppointmentsManager({
       <PaymentsDialog
         appointment={payAppt}
         staff={staff}
+        currentUserId={currentUserId}
         services={services}
         onClose={() => setPayFor(null)}
         onDone={() => router.refresh()}
@@ -794,7 +807,6 @@ function CompletePopover({
   }) => void;
 }) {
   const t = useTranslations("appointments");
-  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [collect, setCollect] = useState("");
@@ -830,14 +842,12 @@ function CompletePopover({
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 space-y-2">
         <CurrencyInput
-          locale={locale as Locale}
           value={amount}
           onValueChange={setAmount}
           placeholder={t("totalAmount")}
           aria-label={t("totalAmount")}
         />
         <CurrencyInput
-          locale={locale as Locale}
           value={collect}
           onValueChange={setCollect}
           placeholder={t("collectNow")}

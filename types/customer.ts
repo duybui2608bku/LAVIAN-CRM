@@ -49,6 +49,8 @@ export interface CustomerInput {
   stage: string;
   lost_reason?: string | null;
   staff_id?: string | null;
+  sales_id?: string | null;
+  technician_id?: string | null;
   first_contact?: string | null; // "YYYY-MM-DD"
   service_ids?: string[]; // đồng bộ bảng nối customer_services; không gửi = giữ nguyên
 }
@@ -67,6 +69,8 @@ export interface Customer {
   stage: string;
   lost_reason: string | null;
   staff_id: string | null;
+  sales_id: string | null; // nhân viên Sales phụ trách (profiles)
+  technician_id: string | null; // kỹ thuật viên làm dịch vụ (profiles)
   first_contact: string | null;
   notes: CustomerNote[];
   deposit_amount: number | null;

@@ -88,9 +88,9 @@ export function EnumsManager({
     });
 
   return (
-    <div className="flex flex-1 flex-col gap-3 p-4">
+    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold">{t(`kind_${kind}`)}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t(`kind_${kind}`)}</h1>
         <Button
           size="sm"
           variant="outline"
@@ -101,7 +101,7 @@ export function EnumsManager({
         </Button>
       </div>
 
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table className="table-fixed">
           <TableHeader>
             <TableRow>

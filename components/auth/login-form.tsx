@@ -60,8 +60,8 @@ export function LoginForm() {
     });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-1.5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <div className="space-y-2">
         <Label htmlFor="email">{t("email")}</Label>
         <Input
           id="email"
@@ -75,7 +75,7 @@ export function LoginForm() {
         )}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="password">{t("password")}</Label>
         <div className="relative">
           <Input
@@ -104,7 +104,7 @@ export function LoginForm() {
         )}
       </div>
 
-      <label className="flex w-fit items-center gap-2 text-sm">
+      <label className="flex w-fit items-center gap-2.5 text-sm font-medium">
         <input
           type="checkbox"
           className="size-4 accent-primary"
@@ -113,7 +113,7 @@ export function LoginForm() {
         {t("rememberMe")}
       </label>
 
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending && <RefreshCw className="animate-spin" />}
         {t("signIn")}
       </Button>

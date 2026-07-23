@@ -17,6 +17,7 @@ import {
 } from "@/app/lead-form/actions";
 import { Button } from "@/components/ui/button";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { CurrencyInput } from "@/components/common/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { optionLabel } from "@/lib/customers";
@@ -52,7 +53,6 @@ const schema = z.object({
   note: z.string().trim().max(1000),
   website: z.string(),
   deposit_amount: z.string(),
-  deposit_currency: z.string(),
 });
 
 type Values = z.infer<typeof schema>;
@@ -98,7 +98,6 @@ export function LeadForm({
       note: "",
       website: "",
       deposit_amount: "",
-      deposit_currency: "VND",
     },
   });
 
@@ -185,7 +184,6 @@ export function LeadForm({
           ...values,
           customer_id: customerId,
           deposit_amount: amount,
-          deposit_currency: amount === null ? null : values.deposit_currency,
           source,
           ...smaxMeta,
         },
@@ -293,26 +291,19 @@ export function LeadForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="deposit_amount">{t("deposit")}</Label>
-        <div className="flex gap-2">
-          <Input
-            id="deposit_amount"
-            type="number"
-            min="0"
-            step="0.01"
-            inputMode="decimal"
-            className="flex-1"
-            {...register("deposit_amount")}
-          />
-          <select
-            aria-label={t("currency")}
-            className={`${fieldCls} w-24`}
-            {...register("deposit_currency")}
-          >
-            <option value="VND">VND</option>
-            <option value="IDR">IDR</option>
-            <option value="USD">USD</option>
-          </select>
-        </div>
+        <Controller
+          control={control}
+          name="deposit_amount"
+          render={({ field }) => (
+            <CurrencyInput
+              id="deposit_amount"
+              value={field.value}
+              onValueChange={field.onChange}
+              placeholder={t("currencyPlaceholder")}
+              aria-label={t("deposit")}
+            />
+          )}
+        />
       </div>
 
       <div className="space-y-1.5">

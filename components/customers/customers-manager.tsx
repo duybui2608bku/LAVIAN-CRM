@@ -33,7 +33,7 @@ import {
   patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
-import { formatVnd } from "@/lib/currency";
+import { formatRupiah } from "@/lib/currency";
 import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
 import {
   customerPayments,
@@ -108,7 +108,19 @@ import type {
 } from "@/types/customer";
 import type { Service } from "@/types/service";
 
-type Staff = StaffRef;
+type Staff = StaffRef & { department?: string | null };
+
+// Option kỹ thuật viên: chỉ user bộ phận Kỹ Thuật Viên + giá trị đang gán
+// (user đổi bộ phận sau khi gán vẫn hiện — cùng triết lý option inactive).
+const technicianOptions = (staff: Staff[], current?: string | null) =>
+  staff
+    .filter((s) => s.department === "technician" || s.id === current)
+    .map((s) => ({ value: s.id, label: staffLabel(s) }));
+
+const salesOptions = (staff: Staff[], current?: string | null) =>
+  staff
+    .filter((s) => s.department === "sales" || s.id === current)
+    .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
 // Class cho <textarea> ghi chú — khớp trông với <Input>.
 const fieldCls =
@@ -152,6 +164,8 @@ export function CustomersManager({
   const [stage, setStage] = useState("");
   const [source, setSource] = useState("");
   const [staffId, setStaffId] = useState("");
+  const [salesId, setSalesId] = useState("");
+  const [technicianId, setTechnicianId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -199,12 +213,25 @@ export function CustomersManager({
           stage,
           source,
           staffId,
+          salesId,
+          technicianId,
           serviceId,
           from,
           to,
         }),
       ),
-    [customers, search, stage, source, staffId, serviceId, from, to],
+    [
+      customers,
+      search,
+      stage,
+      source,
+      staffId,
+      salesId,
+      technicianId,
+      serviceId,
+      from,
+      to,
+    ],
   );
 
   // Badge tên dịch vụ đã gắn (theo locale, fallback vi); trống → "—".
@@ -246,6 +273,8 @@ export function CustomersManager({
       stage?: string;
       source?: string | null;
       staff_id?: string | null;
+      sales_id?: string | null;
+      technician_id?: string | null;
       service_ids?: string[];
     },
   ) =>
@@ -308,9 +337,9 @@ export function CustomersManager({
   const editing = target && target !== "new" ? target : null;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold">{t("title")}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -363,6 +392,22 @@ export function CustomersManager({
           ariaLabel={t("colStaff")}
         />
         <ClearableSelect
+          value={salesId}
+          onValueChange={setSalesId}
+          options={salesOptions(staff)}
+          placeholder={t("allSales")}
+          clearLabel={t("clear")}
+          ariaLabel={t("colSales")}
+        />
+        <ClearableSelect
+          value={technicianId}
+          onValueChange={setTechnicianId}
+          options={technicianOptions(staff)}
+          placeholder={t("allTechnician")}
+          clearLabel={t("clear")}
+          ariaLabel={t("colTechnician")}
+        />
+        <ClearableSelect
           value={serviceId}
           onValueChange={setServiceId}
           options={serviceOptions}
@@ -383,7 +428,7 @@ export function CustomersManager({
         />
       </div>
 
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow>
@@ -394,6 +439,8 @@ export function CustomersManager({
               <TableHead>{t("colSource")}</TableHead>
               <TableHead>{t("colServices")}</TableHead>
               <TableHead>{t("colStaff")}</TableHead>
+              <TableHead>{t("colSales")}</TableHead>
+              <TableHead>{t("colTechnician")}</TableHead>
               <TableHead>{t("colFirstContact")}</TableHead>
               <TableHead>{t("colCreated")}</TableHead>
               <TableHead>{t("colNotes")}</TableHead>
@@ -404,7 +451,7 @@ export function CustomersManager({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={11}
+                  colSpan={13}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {t("empty")}
@@ -472,6 +519,30 @@ export function CustomersManager({
                       ariaLabel={t("colStaff")}
                       disabled={pending}
                       onSave={(v) => patchField(c.id, { staff_id: v || null })}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <InlineSelect
+                      value={c.sales_id ?? ""}
+                      display={staffDisplay(c.sales_id)}
+                      options={salesOptions(staff, c.sales_id)}
+                      noneLabel={t("noneOption")}
+                      ariaLabel={t("colSales")}
+                      disabled={pending}
+                      onSave={(v) => patchField(c.id, { sales_id: v || null })}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <InlineSelect
+                      value={c.technician_id ?? ""}
+                      display={staffDisplay(c.technician_id)}
+                      options={technicianOptions(staff, c.technician_id)}
+                      noneLabel={t("noneOption")}
+                      ariaLabel={t("colTechnician")}
+                      disabled={pending}
+                      onSave={(v) =>
+                        patchField(c.id, { technician_id: v || null })
+                      }
                     />
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -636,15 +707,15 @@ export function CustomersManager({
                 <p className="text-xs text-muted-foreground tabular-nums">
                   {tAppt("colTotal")}:{" "}
                   {a.ledger?.total_amount != null
-                    ? formatVnd(a.ledger.total_amount)
+                    ? formatRupiah(a.ledger.total_amount)
                     : "—"}
                   {" · "}
-                  {tAppt("colPaid")}: {formatVnd(paidTotal(a))}
+                  {tAppt("colPaid")}: {formatRupiah(paidTotal(a))}
                   {outstanding(a) > 0 && (
                     <span className="text-destructive">
                       {" · "}
                       {tAppt("colOutstanding")}:{" "}
-                      {formatVnd(outstanding(a))}
+                      {formatRupiah(outstanding(a))}
                     </span>
                   )}
                 </p>
@@ -657,7 +728,7 @@ export function CustomersManager({
             <p className="border-t pt-2 text-right text-sm tabular-nums">
               {tAppt("totalPaid")}:{" "}
               <span className="font-medium">
-                {formatVnd(customerTotalPaid(apptsOf(apptsFor.id)))}
+                {formatRupiah(customerTotalPaid(apptsOf(apptsFor.id)))}
               </span>
             </p>
           )}
@@ -703,7 +774,7 @@ export function CustomersManager({
             <p className="border-t pt-2 text-right text-sm tabular-nums">
               {tAppt("totalPaid")}:{" "}
               <span className="font-medium">
-                {formatVnd(customerTotalPaid(apptsOf(paymentsFor.id)))}
+                {formatRupiah(customerTotalPaid(apptsOf(paymentsFor.id)))}
               </span>
             </p>
           )}
@@ -927,6 +998,8 @@ const schema = z.object({
   stage: z.string().min(1),
   source: z.string().optional(),
   staff_id: z.string().optional(),
+  sales_id: z.string().optional(),
+  technician_id: z.string().optional(),
   lost_reason: z.string().optional(),
   first_contact: z.string().optional(),
   service_ids: z.array(z.string()).optional(),
@@ -971,6 +1044,8 @@ function CustomerDialog({
       stage: editing?.stage ?? "new_lead",
       source: editing?.source ?? "",
       staff_id: editing?.staff_id ?? "",
+      sales_id: editing?.sales_id ?? "",
+      technician_id: editing?.technician_id ?? "",
       lost_reason: editing?.lost_reason ?? "",
       first_contact: editing?.first_contact
         ? editing.first_contact.slice(0, 10)
@@ -1004,6 +1079,8 @@ function CustomerDialog({
         stage: v.stage,
         lost_reason: v.lost_reason || null,
         staff_id: v.staff_id || null,
+        sales_id: v.sales_id || null,
+        technician_id: v.technician_id || null,
         first_contact: v.first_contact || null,
         service_ids: v.service_ids ?? [],
       };
@@ -1122,6 +1199,38 @@ function CustomerDialog({
                     placeholder={t("noneOption")}
                     clearLabel={t("clear")}
                     ariaLabel={t("colStaff")}
+                  />
+                )}
+              />
+            </Field>
+            <Field label={t("colSales")}>
+              <Controller
+                control={control}
+                name="sales_id"
+                render={({ field }) => (
+                  <ClearableSelect
+                    value={field.value ?? ""}
+                    onValueChange={field.onChange}
+                    options={salesOptions(staff, editing?.sales_id)}
+                    placeholder={t("noneOption")}
+                    clearLabel={t("clear")}
+                    ariaLabel={t("colSales")}
+                  />
+                )}
+              />
+            </Field>
+            <Field label={t("colTechnician")}>
+              <Controller
+                control={control}
+                name="technician_id"
+                render={({ field }) => (
+                  <ClearableSelect
+                    value={field.value ?? ""}
+                    onValueChange={field.onChange}
+                    options={technicianOptions(staff, editing?.technician_id)}
+                    placeholder={t("noneOption")}
+                    clearLabel={t("clear")}
+                    ariaLabel={t("colTechnician")}
                   />
                 )}
               />

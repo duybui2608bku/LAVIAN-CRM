@@ -30,6 +30,7 @@ export interface AppointmentPayment {
   image_url: string | null; // ảnh chứng từ (public URL)
   note: string | null;
   paid_at: string;
+  received_by: string | null;
   created_by: string | null;
   created_at: string;
 }
@@ -52,7 +53,7 @@ export interface ServiceLedger {
 export interface Appointment {
   id: string;
   customer_id: string;
-  staff_id: string | null;
+  technician_id: string | null;
   scheduled_at: string | null; // null = đã cọc, chưa chốt ngày (chờ xếp lịch)
   duration_minutes: number;
   status: AppointmentStatus;
@@ -79,7 +80,7 @@ export interface Appointment {
 /** Dữ liệu tạo/sửa lịch hẹn gửi lên Server Action (status do server điều khiển). */
 export interface AppointmentInput {
   customer_id: string;
-  staff_id?: string | null;
+  technician_id?: string | null;
   scheduled_at?: string | null; // ISO; null/không gửi = chờ xếp lịch
   duration_minutes?: number;
   source?: string | null;
@@ -101,6 +102,7 @@ export interface AppointmentInput {
 export interface PaymentInput {
   kind: PaymentKind;
   amount: number;
+  received_by?: string | null;
   payment_method?: PaymentMethod | null;
   image_url?: string | null;
   note?: string | null;

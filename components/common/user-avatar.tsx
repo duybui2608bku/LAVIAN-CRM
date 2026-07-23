@@ -4,6 +4,8 @@ export type StaffRef = {
   id: string;
   user_name: string;
   avatar_url: string | null;
+  department?: string | null;
+  status?: "active" | "banned";
 };
 
 /** Avatar tròn nhỏ, fallback ảnh mặc định — pattern như header. */

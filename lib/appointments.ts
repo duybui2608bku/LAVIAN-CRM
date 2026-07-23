@@ -145,7 +145,7 @@ export interface AppointmentFilters {
   day?: string; // YYYY-MM-DD — ngày local của scheduled_at
   search?: string; // tên/phone khách
   status?: string;
-  staffId?: string;
+  technicianId?: string;
   serviceId?: string;
 }
 
@@ -166,7 +166,7 @@ export function matchesAppointmentFilters(
     if (!hay.includes(q)) return false;
   }
   if (f.status && a.status !== f.status) return false;
-  if (f.staffId && a.staff_id !== f.staffId) return false;
+  if (f.technicianId && a.technician_id !== f.technicianId) return false;
   if (f.serviceId && !a.service_ids?.includes(f.serviceId)) return false;
   return true;
 }

@@ -20,12 +20,12 @@ export default async function AppLayout({
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar isAdmin={profile?.role === "admin"} />
-      <SidebarInset>
+      <SidebarInset className="min-w-0 overflow-hidden">
         <AppHeader
           userName={profile?.user_name || profile?.email}
           avatarUrl={profile?.avatar_url}
         />
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div className="app-workspace flex flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

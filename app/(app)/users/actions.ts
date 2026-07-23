@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeError } from "@/lib/errors";
-import type { UserRole, UserStatus } from "@/types/user";
+import type { UserDepartment, UserRole, UserStatus } from "@/types/user";
 
 type Result = { error?: string };
 
@@ -16,6 +16,7 @@ export async function createUser(input: {
   user_name: string;
   avatar_url?: string;
   role: UserRole;
+  department?: UserDepartment | null;
 }): Promise<Result> {
   try {
     await requireAdmin();
@@ -32,11 +33,14 @@ export async function createUser(input: {
     });
     if (error) throw error;
 
-    // Trigger đã tạo profiles với role=user; nâng admin nếu được chọn.
-    if (input.role === "admin" && data.user) {
+    // Trigger đã tạo profiles (role=user, chưa bộ phận); cập nhật nếu được chọn.
+    const patch: { role?: UserRole; department?: UserDepartment } = {};
+    if (input.role === "admin") patch.role = "admin";
+    if (input.department) patch.department = input.department;
+    if (Object.keys(patch).length > 0 && data.user) {
       const { error: upErr } = await admin
         .from("profiles")
-        .update({ role: "admin" })
+        .update(patch)
         .eq("id", data.user.id);
       if (upErr) throw upErr;
     }
@@ -62,6 +66,27 @@ export async function setUserStatus(
     const { error } = await admin
       .from("profiles")
       .update({ status })
+      .eq("id", id);
+    if (error) throw error;
+
+    revalidatePath("/users");
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e).message };
+  }
+}
+
+/** Admin gán / gỡ bộ phận cho user (null = bỏ gán). */
+export async function setUserDepartment(
+  id: string,
+  department: UserDepartment | null,
+): Promise<Result> {
+  try {
+    await requireAdmin();
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("profiles")
+      .update({ department })
       .eq("id", id);
     if (error) throw error;
 

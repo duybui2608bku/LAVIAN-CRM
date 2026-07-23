@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { sumPayments } from "@/lib/appointments";
-import { formatVnd } from "@/lib/currency";
+import { formatRupiah } from "@/lib/currency";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeError } from "@/lib/errors";
 import {
@@ -24,7 +24,7 @@ const nz = (v?: string | null) => (v && v.trim() !== "" ? v.trim() : null);
 // Tiền không nằm đây — tổng giá ghi vào SỔ (service_ledgers), không phải lịch.
 function clean(input: AppointmentInput) {
   return {
-    staff_id: nz(input.staff_id),
+    technician_id: nz(input.technician_id),
     scheduled_at: input.scheduled_at ?? null,
     duration_minutes: input.duration_minutes ?? 60,
     source: nz(input.source),
@@ -32,6 +32,23 @@ function clean(input: AppointmentInput) {
     booking_note: nz(input.booking_note),
     internal_note: nz(input.internal_note),
   };
+}
+
+async function validateTechnician(
+  supabase: Supabase,
+  technicianId: string | null | undefined,
+) {
+  const id = nz(technicianId);
+  if (!id) return;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", id)
+    .eq("department", "technician")
+    .eq("status", "active")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Kỹ thuật viên không tồn tại hoặc không hoạt động.");
 }
 
 // Dịch vụ bắt buộc đúng 1 mỗi lịch hẹn (trust boundary — không tin client).
@@ -110,7 +127,7 @@ async function overTotalError(
   if (l.total_amount == null) return null;
   const left = l.total_amount - sumPayments(l.appointment_payments);
   return amount > left
-    ? `Thu vượt tổng giá liệu trình — còn phải thu tối đa ${formatVnd(Math.max(left, 0))}.`
+    ? `Thu vượt tổng giá liệu trình — còn phải thu tối đa ${formatRupiah(Math.max(left, 0))}.`
     : null;
 }
 
@@ -212,6 +229,7 @@ async function insertPayment(
     payment_method: input.payment_method ?? null,
     image_url: nz(input.image_url),
     note: nz(input.note),
+    received_by: input.received_by ?? userId,
     created_by: userId,
   });
   if (error) throw error;
@@ -224,6 +242,7 @@ export async function createAppointment(
     const serviceId = singleService(input.service_ids);
     if (!serviceId) return { error: "Chọn đúng một dịch vụ." };
     const supabase = await createClient();
+    await validateTechnician(supabase, input.technician_id);
     const data = clean(input);
     // Có ngày giờ = đã đặt lịch; chưa có = cọc/chờ xếp lịch (Decision 12).
     const status: AppointmentStatus = data.scheduled_at
@@ -288,6 +307,7 @@ export async function updateAppointment(
     const serviceId = singleService(input.service_ids);
     if (!serviceId) return { error: "Chọn đúng một dịch vụ." };
     const supabase = await createClient();
+    await validateTechnician(supabase, input.technician_id);
     const { data: cur, error: curErr } = await supabase
       .from("appointments")
       .select("customer_id, status, ledger_id")
@@ -437,6 +457,17 @@ export async function addPayment(
     if (!Number.isFinite(input.amount) || input.amount <= 0)
       return { error: "Số tiền phải lớn hơn 0." };
     const supabase = await createClient();
+    const currentId = await currentUserId(supabase);
+    if (!currentId) return { error: "Phiên đăng nhập không hợp lệ." };
+    const receivedBy = input.received_by ?? currentId;
+    const { data: receiver, error: receiverError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", receivedBy)
+      .eq("status", "active")
+      .maybeSingle();
+    if (receiverError) throw receiverError;
+    if (!receiver) return { error: "User được chọn không tồn tại hoặc đã bị cấm." };
     const { data: appt, error: aErr } = await supabase
       .from("appointments")
       .select("ledger_id, ledger:service_ledgers(closed_at)")
@@ -457,7 +488,7 @@ export async function addPayment(
       appt.ledger_id,
       appointmentId,
       input,
-      await currentUserId(supabase),
+      currentId,
     );
     refresh();
     return {};

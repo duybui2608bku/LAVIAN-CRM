@@ -20,6 +20,8 @@ export interface CustomerFilters {
   stage?: string;
   source?: string;
   staffId?: string;
+  salesId?: string;
+  technicianId?: string;
   serviceId?: string; // khách có gắn dịch vụ này
   from?: string; // YYYY-MM-DD — created_at >= from
   to?: string; // YYYY-MM-DD — created_at <= to (theo ngày)
@@ -42,6 +44,8 @@ export function matchesCustomerFilters(
   if (f.stage && c.stage !== f.stage) return false;
   if (f.source && c.source !== f.source) return false;
   if (f.staffId && c.staff_id !== f.staffId) return false;
+  if (f.salesId && c.sales_id !== f.salesId) return false;
+  if (f.technicianId && c.technician_id !== f.technicianId) return false;
   if (f.serviceId && !c.service_ids?.includes(f.serviceId)) return false;
 
   const day = c.created_at.slice(0, 10);

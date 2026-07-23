@@ -62,7 +62,7 @@ type FbInsightsRes = {
   error?: { message?: string };
 };
 
-/** Tổng spend 2 tài khoản ads trong range (VND theo currency tài khoản).
+/** Tổng spend 2 tài khoản ads trong range (RP theo currency tài khoản).
  *  1 tài khoản lỗi → ném lỗi cả hàm (tổng thiếu 1 account là số sai). */
 export async function fetchFbSpend(from: string, to: string): Promise<number> {
   const token = process.env.FB_TOKEN;

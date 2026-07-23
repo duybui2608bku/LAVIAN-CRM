@@ -1,10 +1,13 @@
-export const VND_CURRENCY = "VND";
+export const IDR_CURRENCY = "IDR";
+export const RUPIAH_LABEL = "RP";
 
-export function formatVnd(value: number | null | undefined) {
+export function formatRupiah(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return "";
-  return `${new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: IDR_CURRENCY,
     maximumFractionDigits: 0,
-  }).format(value)} đ`;
+  }).format(value);
 }
 
 export function sanitizeCurrencyInput(value: string) {

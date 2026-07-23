@@ -17,6 +17,8 @@ const base: Customer = {
   stage: "new_lead",
   lost_reason: null,
   staff_id: "staff-1",
+  sales_id: "sales-1",
+  technician_id: "tech-1",
   first_contact: null,
   notes: [],
   service_ids: [],
@@ -40,6 +42,24 @@ test("lọc stage / source / staff", () => {
   assert.equal(matchesCustomerFilters(base, { stage: "lost" }), false);
   assert.equal(matchesCustomerFilters(base, { source: "whatsapp" }), false);
   assert.equal(matchesCustomerFilters(base, { staffId: "staff-2" }), false);
+});
+
+test("lọc theo kỹ thuật viên", () => {
+  assert.equal(matchesCustomerFilters(base, { technicianId: "tech-1" }), true);
+  assert.equal(matchesCustomerFilters(base, { technicianId: "tech-2" }), false);
+  assert.equal(
+    matchesCustomerFilters({ ...base, technician_id: null }, { technicianId: "tech-1" }),
+    false,
+  );
+});
+
+test("lọc theo Sales", () => {
+  assert.equal(matchesCustomerFilters(base, { salesId: "sales-1" }), true);
+  assert.equal(matchesCustomerFilters(base, { salesId: "sales-2" }), false);
+  assert.equal(
+    matchesCustomerFilters({ ...base, sales_id: null }, { salesId: "sales-1" }),
+    false,
+  );
 });
 
 test("lọc theo dịch vụ đã gắn", () => {

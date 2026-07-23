@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
+import { IDR_CURRENCY } from "@/lib/currency";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CustomerNote } from "@/types/customer";
 
@@ -16,7 +17,6 @@ const schema = z.object({
   website: z.string(),
   source: z.string(),
   deposit_amount: z.number().finite().min(0).nullable(),
-  deposit_currency: z.string().regex(/^[A-Z]{3}$/).nullable(),
   platform: z.string().max(50).catch(""),
   social_name: z.string().trim().max(200).catch(""),
   picture: z.string().trim().max(2000).catch(""),
@@ -69,10 +69,6 @@ export async function submitLead(
   if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
   const d = parsed.data;
   if (d.website) return {};
-  if ((d.deposit_amount === null) !== (d.deposit_currency === null)) {
-    return { error: "Tiền cọc và loại tiền phải được nhập cùng nhau" };
-  }
-
   const notes: CustomerNote[] = d.note
     ? [{ text: d.note, at: new Date().toISOString(), by: "Form SMAX" }]
     : [];
@@ -104,7 +100,7 @@ export async function submitLead(
         timeZone: "Asia/Ho_Chi_Minh",
       }),
       deposit_amount: d.deposit_amount,
-      deposit_currency: d.deposit_currency,
+      deposit_currency: d.deposit_amount === null ? null : IDR_CURRENCY,
     };
 
     if (mode === "create") {

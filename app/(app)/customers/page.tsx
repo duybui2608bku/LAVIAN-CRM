@@ -19,7 +19,7 @@ export default async function CustomersPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("profiles")
-      .select("id, user_name, avatar_url")
+      .select("id, user_name, avatar_url, department")
       .order("user_name", { ascending: true }),
     // Nạp tất cả option (kể cả inactive) để hiện nhãn đúng cho dữ liệu cũ;
     // dropdown sẽ tự lọc is_active phía client.
@@ -64,6 +64,7 @@ export default async function CustomersPage() {
           id: string;
           user_name: string;
           avatar_url: string | null;
+          department: string | null;
         }[]) ?? []
       }
       options={(optionsRes.data as EnumOption[]) ?? []}

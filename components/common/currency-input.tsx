@@ -1,32 +1,29 @@
 "use client";
 
 import { LocaleFlag } from "@/components/common/locale-flag";
-import type { Locale } from "@/i18n/config";
-import { formatVnd, sanitizeCurrencyInput, VND_CURRENCY } from "@/lib/currency";
+import { formatRupiah, RUPIAH_LABEL, sanitizeCurrencyInput } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
 export function CurrencyInput({
   value,
-  locale,
   className,
   onValueChange,
   ...props
 }: Omit<React.ComponentProps<"input">, "type" | "value" | "onChange"> & {
   value: string;
-  locale: Locale;
   onValueChange: (value: string) => void;
 }) {
   const digits = sanitizeCurrencyInput(value);
-  const display = digits ? formatVnd(Number(digits)) : "";
+  const display = digits ? formatRupiah(Number(digits)) : "";
 
   return (
     <div className="relative">
       <LocaleFlag
-        locale={locale}
+        locale="id"
         className="absolute top-1/2 left-2.5 h-4 w-6 -translate-y-1/2"
       />
       <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-        {VND_CURRENCY}
+        {RUPIAH_LABEL}
       </span>
       <input
         {...props}

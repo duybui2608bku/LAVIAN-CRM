@@ -54,17 +54,19 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <div className="flex h-12 items-center gap-2.5 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <Logo className="size-8 shrink-0" />
-          <span className="truncate text-[15px] font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex h-16 items-center gap-3 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+            <Logo className="size-8" />
+          </div>
+          <span className="truncate text-[15px] font-bold tracking-[0.08em] group-data-[collapsible=icon]:hidden">
             LAVIAN <span className="text-primary">CRM</span>
           </span>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup className="px-3 group-data-[collapsible=icon]:px-2">
+        <SidebarGroup className="px-3 py-5 group-data-[collapsible=icon]:px-2">
           <SidebarGroupContent>
             <SidebarMenu className="gap-1.5 group-data-[collapsible=icon]:items-center">
               {navItems.map(({ key, href, icon: Icon }) => {
@@ -76,10 +78,10 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                       asChild
                       isActive={active}
                       tooltip={t(key)}
-                      className="h-10 gap-2.5 rounded-lg px-3"
+                      className="h-10 gap-3 rounded-lg px-3 font-medium data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm"
                     >
                       <Link href={href}>
-                        <Icon />
+                        <Icon className="size-[18px]" />
                         <span>{t(key)}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -95,10 +97,10 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                     asChild
                     isActive={pathname.startsWith("/enums")}
                     tooltip={t("enums")}
-                    className="h-10 gap-2.5 rounded-lg px-3"
+                    className="h-10 gap-3 rounded-lg px-3 font-medium data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm"
                   >
                     <Link href="/enums/stage">
-                      <SlidersHorizontal />
+                      <SlidersHorizontal className="size-[18px]" />
                       <span>{t("enums")}</span>
                     </Link>
                   </SidebarMenuButton>

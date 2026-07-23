@@ -106,8 +106,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Run on all routes except static assets and image files.
+  // API tự trả JSON + tự xác thực trong Route Handler; không redirect sang HTML login.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

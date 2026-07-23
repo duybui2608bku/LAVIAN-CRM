@@ -9,7 +9,13 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Ban, KeyRound, RefreshCw, Search, ShieldCheck, UserPlus } from "lucide-react";
 
-import { createUser, resetPassword, setUserStatus } from "@/app/(app)/users/actions";
+import {
+  createUser,
+  resetPassword,
+  setUserDepartment,
+  setUserStatus,
+} from "@/app/(app)/users/actions";
+import { ClearableSelect } from "@/components/common/clearable-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +37,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Profile } from "@/types/user";
+import type { Profile, UserDepartment } from "@/types/user";
+
+const DEPARTMENTS: UserDepartment[] = ["customer_care", "technician", "sales"];
 
 export function UsersManager({
   profiles,
@@ -57,6 +65,25 @@ export function UsersManager({
     );
   }, [profiles, query]);
 
+  const departmentOptions = DEPARTMENTS.map((d) => ({
+    value: d,
+    label: t(`dept_${d}`),
+  }));
+
+  const changeDepartment = (p: Profile, value: string) =>
+    start(async () => {
+      const res = await setUserDepartment(
+        p.id,
+        (value || null) as UserDepartment | null,
+      );
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(t("departmentOk"));
+      router.refresh();
+    });
+
   const toggleBan = (p: Profile) => {
     const next = p.status === "banned" ? "active" : "banned";
     start(async () => {
@@ -71,9 +98,9 @@ export function UsersManager({
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold">{t("title")}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
         <Button onClick={() => setCreateOpen(true)}>
           <UserPlus className="size-4" />
           {t("create")}
@@ -90,13 +117,14 @@ export function UsersManager({
         />
       </div>
 
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>{t("colName")}</TableHead>
               <TableHead>{t("colEmail")}</TableHead>
               <TableHead>{t("colRole")}</TableHead>
+              <TableHead>{t("colDepartment")}</TableHead>
               <TableHead>{t("colStatus")}</TableHead>
               <TableHead>{t("colCreated")}</TableHead>
               <TableHead className="text-right">{t("colActions")}</TableHead>
@@ -106,7 +134,7 @@ export function UsersManager({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {t("empty")}
@@ -123,6 +151,17 @@ export function UsersManager({
                     <Badge variant={p.role === "admin" ? "default" : "outline"}>
                       {t(`role_${p.role}`)}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <ClearableSelect
+                      value={p.department ?? ""}
+                      onValueChange={(v) => changeDepartment(p, v)}
+                      options={departmentOptions}
+                      placeholder="—"
+                      clearLabel={t("clearDepartment")}
+                      ariaLabel={t("colDepartment")}
+                      className="w-[240px]"
+                    />
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -187,6 +226,7 @@ const createSchema = z.object({
   password: z.string().min(6),
   user_name: z.string().min(1),
   avatar_url: z.string().url().optional().or(z.literal("")),
+  department: z.string().optional(),
   isAdmin: z.boolean().optional(),
 });
 type CreateValues = z.infer<typeof createSchema>;
@@ -211,7 +251,7 @@ function CreateUserDialog({
     formState: { errors },
   } = useForm<CreateValues>({
     resolver: zodResolver(createSchema),
-    defaultValues: { isAdmin: false, avatar_url: "" },
+    defaultValues: { isAdmin: false, avatar_url: "", department: "" },
   });
 
   const onSubmit = (v: CreateValues) =>
@@ -222,6 +262,7 @@ function CreateUserDialog({
         user_name: v.user_name,
         avatar_url: v.avatar_url || undefined,
         role: v.isAdmin ? "admin" : "user",
+        department: (v.department || null) as UserDepartment | null,
       });
       if (res.error) {
         toast.error(res.error);
@@ -258,6 +299,19 @@ function CreateUserDialog({
             error={errors.user_name && t("nameRequired")}
           >
             <Input {...register("user_name")} />
+          </Field>
+          <Field label={t("colDepartment")}>
+            <ClearableSelect
+              value={watch("department") ?? ""}
+              onValueChange={(v) => setValue("department", v)}
+              options={DEPARTMENTS.map((d) => ({
+                value: d,
+                label: t(`dept_${d}`),
+              }))}
+              placeholder="—"
+              clearLabel={t("clearDepartment")}
+              ariaLabel={t("colDepartment")}
+            />
           </Field>
           <Field label={t("avatarUrl")}>
             <ImageUpload

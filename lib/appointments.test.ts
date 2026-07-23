@@ -55,7 +55,7 @@ const ledger = (
 const base: Appointment = {
   id: "1",
   customer_id: "c1",
-  staff_id: "staff-1",
+  technician_id: "technician-1",
   scheduled_at: "2026-07-10T02:00:00.000Z", // 09:00 UTC+7
   duration_minutes: 60,
   status: "booked",
@@ -215,13 +215,16 @@ test("tab chờ xếp lịch: scheduled_at null và chưa hủy", () => {
   assert.equal(matchesAppointmentFilters(base, { waiting: true }), false);
 });
 
-test("lọc search theo tên/phone khách + status/staff/service", () => {
+test("lọc search theo tên/phone khách + status/kỹ thuật viên/service", () => {
   assert.equal(matchesAppointmentFilters(base, { search: "văn a" }), true);
   assert.equal(matchesAppointmentFilters(base, { search: "0900" }), true);
   assert.equal(matchesAppointmentFilters(base, { search: "xyz" }), false);
   assert.equal(matchesAppointmentFilters(base, { status: "booked" }), true);
   assert.equal(matchesAppointmentFilters(base, { status: "cancelled" }), false);
-  assert.equal(matchesAppointmentFilters(base, { staffId: "staff-2" }), false);
+  assert.equal(
+    matchesAppointmentFilters(base, { technicianId: "technician-2" }),
+    false,
+  );
   assert.equal(matchesAppointmentFilters(base, { serviceId: "s1" }), true);
   assert.equal(matchesAppointmentFilters(base, { serviceId: "s2" }), false);
 });

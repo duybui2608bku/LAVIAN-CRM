@@ -22,7 +22,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { getMarketingStats, type DashboardStats } from "@/app/(app)/actions";
 import { cn } from "@/lib/utils";
-import { formatVnd } from "@/lib/currency";
+import { formatRupiah } from "@/lib/currency";
 import { formatISODate, parseISODate } from "@/lib/date";
 import { DateRangePicker } from "@/components/common/date-picker";
 import {
@@ -129,7 +129,7 @@ export function MarketingStats({ showSpend = false }: { showSpend?: boolean }) {
           {
             key: "spend" as const,
             icon: CircleDollarSign,
-            value: stats?.spend != null ? formatVnd(stats.spend) : null,
+            value: stats?.spend != null ? formatRupiah(stats.spend) : null,
             current: stats?.spend ?? null,
             previous: previousStats?.spend ?? null,
             error: stats?.errors.fb,
@@ -137,7 +137,7 @@ export function MarketingStats({ showSpend = false }: { showSpend?: boolean }) {
           {
             key: "costPerMessage" as const,
             icon: Calculator,
-            value: costPerMessage != null ? formatVnd(costPerMessage) : null,
+            value: costPerMessage != null ? formatRupiah(costPerMessage) : null,
             current: costPerMessage,
             previous: previousCostPerMessage,
             error: stats?.errors.fb ?? stats?.errors.smax,
@@ -148,7 +148,7 @@ export function MarketingStats({ showSpend = false }: { showSpend?: boolean }) {
     { key: "leads", icon: Phone, value: stats ? num(stats.leads) : null, current: stats?.leads ?? null, previous: previousStats?.leads ?? null, error: stats?.errors.smax },
     { key: "appointments", icon: CalendarCheck, value: stats ? num(stats.appointments) : null, current: stats?.appointments ?? null, previous: previousStats?.appointments ?? null, error: stats?.errors.db },
     { key: "visited", icon: MapPinCheck, value: stats ? num(stats.visited) : null, current: stats?.visited ?? null, previous: previousStats?.visited ?? null, error: stats?.errors.db },
-    { key: "revenue", icon: CircleDollarSign, value: stats?.revenue != null ? formatVnd(stats.revenue) : null, current: stats?.revenue ?? null, previous: previousStats?.revenue ?? null, error: stats?.errors.db },
+    { key: "revenue", icon: CircleDollarSign, value: stats?.revenue != null ? formatRupiah(stats.revenue) : null, current: stats?.revenue ?? null, previous: previousStats?.revenue ?? null, error: stats?.errors.db },
   ];
 
   const appointmentCards = [
