@@ -701,17 +701,33 @@ export function MarketingStats({
         </section>
 
         <section className="space-y-4">
-          <SectionTitle icon={BarChart3} tint="var(--chart-2)">{t("trendSection")}</SectionTitle>
+          <SectionTitle icon={PieChart} tint="var(--chart-5)">{t("sourceSection")}</SectionTitle>
           <div className={cn("rounded-xl border bg-card p-4 shadow-xs transition-opacity duration-200", pending && "opacity-60")}>
-            {trend ? (
-              <TrendChart rows={trend.data} series={trendSeries} locale={locale} />
-            ) : (
-              <p className="flex h-44 items-center justify-center text-sm text-muted-foreground">
-                {trendError ? "—" : t("loading")}
+            {sourceSlices.length === 0 ? (
+              <p className="flex h-20 items-center justify-center text-sm text-muted-foreground">
+                {sources || sourcesError ? t("noSourceStats") : t("loading")}
               </p>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2">
+                <Donut
+                  title={t("sourceDataChart")}
+                  slices={[...sourceSlices].sort((a, b) => b.data - a.data)}
+                  pick={(slice) => slice.data}
+                  format={(value) => value.toLocaleString(locale)}
+                  locale={locale}
+                />
+                <Donut
+                  title={t("sourceRevenueChart")}
+                  slices={[...sourceSlices].sort((a, b) => b.revenue - a.revenue)}
+                  pick={(slice) => slice.revenue}
+                  format={formatRupiah}
+                  formatCenter={formatRupiahCompact}
+                  locale={locale}
+                />
+              </div>
             )}
           </div>
-          {trendError && <p className="text-sm text-destructive">{trendError}</p>}
+          {sourcesError && <p className="text-sm text-destructive">{sourcesError}</p>}
         </section>
       </div>
 
@@ -785,6 +801,20 @@ export function MarketingStats({
           </div>
           {stats?.errors.staff && <p className="text-sm text-destructive">{stats.errors.staff}</p>}
           {stats?.errors.replyTime && <p className="text-sm text-destructive">{stats.errors.replyTime}</p>}
+        </section>
+
+        <section className="space-y-4">
+          <SectionTitle icon={BarChart3} tint="var(--chart-2)">{t("trendSection")}</SectionTitle>
+          <div className={cn("rounded-xl border bg-card p-4 shadow-xs transition-opacity duration-200", pending && "opacity-60")}>
+            {trend ? (
+              <TrendChart rows={trend.data} series={trendSeries} locale={locale} />
+            ) : (
+              <p className="flex h-44 items-center justify-center text-sm text-muted-foreground">
+                {trendError ? "—" : t("loading")}
+              </p>
+            )}
+          </div>
+          {trendError && <p className="text-sm text-destructive">{trendError}</p>}
         </section>
 
         <section className="space-y-4">
@@ -929,36 +959,6 @@ export function MarketingStats({
             </Table>
           </div>
           {servicesError && <p className="text-sm text-destructive">{servicesError}</p>}
-        </section>
-
-        <section className="space-y-4">
-          <SectionTitle icon={PieChart} tint="var(--chart-5)">{t("sourceSection")}</SectionTitle>
-          <div className={cn("rounded-xl border bg-card p-4 shadow-xs transition-opacity duration-200", pending && "opacity-60")}>
-            {sourceSlices.length === 0 ? (
-              <p className="flex h-20 items-center justify-center text-sm text-muted-foreground">
-                {sources || sourcesError ? t("noSourceStats") : t("loading")}
-              </p>
-            ) : (
-              <div className="grid gap-6 sm:grid-cols-2">
-                <Donut
-                  title={t("sourceDataChart")}
-                  slices={[...sourceSlices].sort((a, b) => b.data - a.data)}
-                  pick={(slice) => slice.data}
-                  format={(value) => value.toLocaleString(locale)}
-                  locale={locale}
-                />
-                <Donut
-                  title={t("sourceRevenueChart")}
-                  slices={[...sourceSlices].sort((a, b) => b.revenue - a.revenue)}
-                  pick={(slice) => slice.revenue}
-                  format={formatRupiah}
-                  formatCenter={formatRupiahCompact}
-                  locale={locale}
-                />
-              </div>
-            )}
-          </div>
-          {sourcesError && <p className="text-sm text-destructive">{sourcesError}</p>}
         </section>
       </div>
 
