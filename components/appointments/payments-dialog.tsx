@@ -10,7 +10,7 @@ import {
   deletePayment,
   setLedgerClosed,
 } from "@/app/(app)/appointments/actions";
-import { outstanding, paidTotal } from "@/lib/appointments";
+import { outstanding, paidTotal, payableTotal } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
 import { removeImage } from "@/lib/supabase/storage";
@@ -210,10 +210,11 @@ export function PaymentsDialog({
     .join(" · ");
 
   const paid = appointment ? paidTotal(appointment) : 0;
+  const total = appointment ? payableTotal(appointment) : null;
   const owed = appointment ? outstanding(appointment) : 0;
   // Thu thêm không được vượt số còn phải thu (tổng giá sổ − đã thu):
   // nhập quá → ép về đúng số còn nợ. Sổ chưa có tổng giá thì không chặn.
-  const hasBase = ledger?.total_amount != null;
+  const hasBase = total != null;
   const cap = (v: string, k: PaymentKind) =>
     k === "payment" && hasBase && Number(v) > owed ? String(owed) : v;
 
@@ -305,11 +306,11 @@ export function PaymentsDialog({
               </span>
             )}
             <p className="text-right text-sm tabular-nums">
-              {ledger?.total_amount != null && (
+              {total != null && (
                 <>
-                  {t("totalAmount")}:{" "}
+                  {t("colTotal")}:{" "}
                   <span className="font-medium">
-                    {formatRupiah(ledger.total_amount)}
+                    {formatRupiah(total)}
                   </span>
                   {" · "}
                 </>

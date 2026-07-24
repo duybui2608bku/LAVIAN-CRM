@@ -17,6 +17,16 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export const PAYMENT_KINDS = ["deposit", "payment", "refund"] as const;
 export type PaymentKind = (typeof PAYMENT_KINDS)[number];
 
+/** Một khoản doanh số upsale do kỹ thuật viên ghi nhận trên lịch hẹn. */
+export interface AppointmentUpsale {
+  id: string;
+  appointment_id: string;
+  service_id: string;
+  amount: number;
+  created_by: string;
+  created_at: string;
+}
+
 /** Một lần tiền vào/ra của một SỔ (liệu trình) — bảng `public.appointment_payments`.
  *  `appointment_id` chỉ là dấu vết buổi thu (nullable). Dòng sổ bất biến:
  *  sửa sai = xóa + thêm lại, hoàn tiền thật = dòng refund. */
@@ -41,12 +51,13 @@ export interface ServiceLedger {
   id: string;
   customer_id: string;
   service_id: string;
-  total_amount: number | null; // tổng giá liệu trình (null = chưa báo giá)
+  total_amount: number | null; // giá liệu trình gốc (null = chưa báo giá)
   closed_at: string | null; // null = đang mở; set khi Tất toán
   created_by: string | null;
   created_at: string;
   updated_at: string;
   payments: AppointmentPayment[]; // dòng tiền mọi buổi (nested), mới nhất trước
+  upsales: AppointmentUpsale[]; // upsale của mọi lịch cùng sổ
 }
 
 /** Lịch hẹn — ánh xạ bảng `public.appointments`. */
@@ -72,6 +83,7 @@ export interface Appointment {
   updated_at: string;
   deleted_at: string | null;
   service_ids: string[]; // map từ bảng nối appointment_services (page query nested)
+  upsales: AppointmentUpsale[]; // record tiền upsale con, mới nhất trước
   ledger: ServiceLedger | null; // sổ tiền (nested qua ledger_id)
   payments: AppointmentPayment[]; // dòng tiền THEO LỊCH — chỉ fallback khi không sổ
   customer: { full_name: string; phone: string } | null; // join hiển thị

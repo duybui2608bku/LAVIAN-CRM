@@ -3,6 +3,7 @@ import type {
   Appointment,
   AppointmentPayment,
   AppointmentStatus,
+  AppointmentUpsale,
   ServiceLedger,
 } from "../types/appointment";
 
@@ -44,6 +45,21 @@ export function sumPayments(
   );
 }
 
+/** Tổng doanh số upsale được ghi trực tiếp dưới một lịch hẹn. */
+export function upsaleTotal(
+  upsales: Pick<AppointmentUpsale, "amount">[] | null | undefined,
+): number {
+  return (upsales ?? []).reduce((sum, row) => sum + row.amount, 0);
+}
+
+/** Tổng giá phải thanh toán của sổ = giá liệu trình gốc + mọi upsale thuộc sổ. */
+export function payableTotal(a: Appointment): number | null {
+  if (!a.ledger) return null;
+  const upsales = upsaleTotal(a.ledger.upsales);
+  if (a.ledger.total_amount == null && upsales === 0) return null;
+  return (a.ledger.total_amount ?? 0) + upsales;
+}
+
 /** Đã thu của SỔ (mọi buổi hẹn của liệu trình). */
 export function ledgerPaid(l: ServiceLedger): number {
   return sumPayments(l.payments);
@@ -55,17 +71,18 @@ export function paidTotal(a: Appointment): number {
   return a.ledger ? ledgerPaid(a.ledger) : sumPayments(a.payments);
 }
 
-/** Còn nợ của liệu trình: tổng giá sổ − Đã thu, không âm. Không sổ = 0. */
+/** Còn nợ: (giá liệu trình + upsale) − Đã thu, không âm. Không sổ = 0. */
 export function outstanding(a: Appointment): number {
-  if (!a.ledger) return 0;
-  return Math.max((a.ledger.total_amount ?? 0) - ledgerPaid(a.ledger), 0);
+  const total = payableTotal(a);
+  if (total == null) return 0;
+  return Math.max(total - ledgerPaid(a.ledger!), 0);
 }
 
 /** Gợi ý "Thu lần này" khi hoàn tất lịch: phần còn thiếu của sổ — CHỈ khi mọi
  *  dòng tiền hiện có là của CHÍNH lịch này (vd. cọc buổi đầu). Khách cũ nối sổ
  *  đã có tiền buổi trước → null (không tự điền, tránh ghi nhầm thành thu mới). */
 export function collectSuggestion(a: Appointment): number | null {
-  const total = a.ledger?.total_amount;
+  const total = payableTotal(a);
   if (total == null) return null;
   if (a.ledger!.payments.some((p) => p.appointment_id !== a.id)) return null;
   return Math.max(total - ledgerPaid(a.ledger!), 0);
@@ -73,11 +90,12 @@ export function collectSuggestion(a: Appointment): number | null {
 
 /** Row PostgREST nested của appointments (dùng chung 2 page query). */
 export interface AppointmentRow
-  extends Omit<Appointment, "service_ids" | "payments" | "ledger"> {
+  extends Omit<Appointment, "service_ids" | "upsales" | "payments" | "ledger"> {
   appointment_services: { service_id: string }[] | null;
+  appointment_upsales: AppointmentUpsale[] | null;
   appointment_payments: AppointmentPayment[] | null;
   ledger:
-    | (Omit<ServiceLedger, "payments"> & {
+    | (Omit<ServiceLedger, "payments" | "upsales"> & {
         appointment_payments: AppointmentPayment[] | null;
       })
     | null;
@@ -88,18 +106,52 @@ const byPaidAtDesc = (x: AppointmentPayment, y: AppointmentPayment) =>
 
 /** Chuẩn hóa row nested → Appointment (dòng tiền mới nhất trước). */
 export function normalizeAppointmentRow(row: AppointmentRow): Appointment {
-  const { appointment_services, appointment_payments, ledger, ...a } = row;
+  const {
+    appointment_services,
+    appointment_upsales,
+    appointment_payments,
+    ledger,
+    ...a
+  } = row;
   let mapped: Appointment["ledger"] = null;
   if (ledger) {
     const { appointment_payments: lp, ...l } = ledger;
-    mapped = { ...l, payments: [...(lp ?? [])].sort(byPaidAtDesc) };
+    mapped = {
+      ...l,
+      payments: [...(lp ?? [])].sort(byPaidAtDesc),
+      upsales: [],
+    };
   }
   return {
     ...a,
     service_ids: (appointment_services ?? []).map((r) => r.service_id),
+    upsales: [...(appointment_upsales ?? [])].sort((x, y) =>
+      y.created_at.localeCompare(x.created_at),
+    ),
     payments: [...(appointment_payments ?? [])].sort(byPaidAtDesc),
     ledger: mapped,
   };
+}
+
+/** Gắn tổng upsale vào từng sổ từ các lịch đã nạp, không yêu cầu FK trực tiếp
+ *  `appointment_upsales.ledger_id` nên tương thích schema hiện tại. */
+export function hydrateLedgerUpsales(list: Appointment[]): Appointment[] {
+  const byLedger = new Map<string, AppointmentUpsale[]>();
+  for (const appointment of list) {
+    if (!appointment.ledger_id) continue;
+    const rows = byLedger.get(appointment.ledger_id) ?? [];
+    rows.push(...appointment.upsales);
+    byLedger.set(appointment.ledger_id, rows);
+  }
+  return list.map((appointment) => ({
+    ...appointment,
+    ledger: appointment.ledger
+      ? {
+          ...appointment.ledger,
+          upsales: byLedger.get(appointment.ledger.id) ?? [],
+        }
+      : null,
+  }));
 }
 
 /** Tổng đã trả của một khách qua danh sách lịch hẹn: Σ Đã thu của các SỔ khác

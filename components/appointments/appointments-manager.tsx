@@ -22,6 +22,7 @@ import {
   Undo2,
   UserX,
   Wallet,
+  TrendingUp,
 } from "lucide-react";
 import { addDays, addMonths, startOfWeek } from "date-fns";
 
@@ -29,6 +30,7 @@ import {
   deleteAppointment,
   rescheduleAppointment,
   setAppointmentStatus,
+  setAppointmentTechnician,
 } from "@/app/(app)/appointments/actions";
 import {
   collectSuggestion,
@@ -36,7 +38,9 @@ import {
   matchesAppointmentFilters,
   outstanding,
   paidTotal,
+  payableTotal,
   sortForDayView,
+  upsaleTotal,
 } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
@@ -49,6 +53,7 @@ import {
 import { AppointmentsCalendar } from "@/components/appointments/appointments-calendar";
 import { AppointmentStatusTag } from "@/components/appointments/status-tag";
 import { PaymentsDialog } from "@/components/appointments/payments-dialog";
+import { UpsalesDialog } from "@/components/appointments/upsales-dialog";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { CurrencyInput } from "@/components/common/currency-input";
 import { DatePicker } from "@/components/common/date-picker";
@@ -81,6 +86,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   APPOINTMENT_STATUSES,
   PAYMENT_METHODS,
   type Appointment,
@@ -95,6 +107,7 @@ export function AppointmentsManager({
   customers,
   staff,
   currentUserId,
+  currentUserIsAdmin,
   options,
   services,
 }: {
@@ -102,6 +115,7 @@ export function AppointmentsManager({
   customers: CustomerRef[];
   staff: StaffRef[];
   currentUserId: string;
+  currentUserIsAdmin: boolean;
   options: EnumOption[];
   services: Service[];
 }) {
@@ -123,6 +137,8 @@ export function AppointmentsManager({
   // Lưu id (không giữ object) để dialog Thanh toán tự nhận dữ liệu mới sau refresh.
   const [payFor, setPayFor] = useState<string | null>(null);
   const payAppt = appointments.find((a) => a.id === payFor) ?? null;
+  const [upsaleFor, setUpsaleFor] = useState<string | null>(null);
+  const upsaleAppt = appointments.find((a) => a.id === upsaleFor) ?? null;
 
   // "Khách cũ": lịch tạo TRƯỚC lịch hiện tại (badge trên bảng) / đã có lịch
   // bất kỳ (badge trong drawer tạo). Suy từ data đã nạp, không thêm cột DB.
@@ -243,6 +259,23 @@ export function AppointmentsManager({
         return;
       }
       toast.success(t("statusOk"));
+      router.refresh();
+    });
+
+  const changeTechnician = (
+    appointment: Appointment,
+    technicianId: string | null,
+  ) =>
+    start(async () => {
+      const res = await setAppointmentTechnician(
+        appointment.id,
+        technicianId,
+      );
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(t("technicianUpdated"));
       router.refresh();
     });
 
@@ -524,6 +557,7 @@ export function AppointmentsManager({
               <TableHead>{t("colTechnician")}</TableHead>
               <TableHead>{t("colStatus")}</TableHead>
               <TableHead className="text-right">{t("colTotal")}</TableHead>
+              <TableHead className="text-right">{t("colUpsale")}</TableHead>
               <TableHead className="text-right">{t("colPaid")}</TableHead>
               <TableHead className="text-right">{t("colOutstanding")}</TableHead>
               <TableHead>{t("colNote")}</TableHead>
@@ -534,7 +568,7 @@ export function AppointmentsManager({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={11}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {t("empty")}
@@ -544,13 +578,14 @@ export function AppointmentsManager({
               filtered.map((a, i) => {
                 const paidAmt = paidTotal(a);
                 const outstandingAmt = outstanding(a);
+                const upsaleAmt = upsaleTotal(a.upsales);
                 const paymentCount = a.ledger?.payments.length ?? a.payments.length;
                 return (
                   <Fragment key={a.id}>
                     {/* Row nhóm theo trạng thái — như cách sheet gom Sudah Datang / Booking */}
                     {(i === 0 || filtered[i - 1].status !== a.status) && (
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableCell colSpan={10} className="py-1.5">
+                        <TableCell colSpan={11} className="py-1.5">
                           <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                             {statusTag(a.status)}
                             {filtered.filter((x) => x.status === a.status).length}
@@ -586,13 +621,26 @@ export function AppointmentsManager({
                       </TableCell>
                       <TableCell>{serviceBadges(a.service_ids)}</TableCell>
                       <TableCell>
-                        {technicianDisplay(a.technician_id)}
+                        <InlineTechnicianSelect
+                          value={a.technician_id ?? ""}
+                          display={technicianDisplay(a.technician_id)}
+                          options={technicianOptions}
+                          noneLabel={t("noneOption")}
+                          ariaLabel={t("colTechnician")}
+                          disabled={pending}
+                          onSave={(value) =>
+                            changeTechnician(a, value || null)
+                          }
+                        />
                       </TableCell>
                       <TableCell>{statusTag(a.status)}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">
-                        {a.ledger?.total_amount != null
-                          ? fmt(a.ledger.total_amount)
+                        {payableTotal(a) != null
+                          ? fmt(payableTotal(a)!)
                           : "—"}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {upsaleAmt > 0 ? fmt(upsaleAmt) : "—"}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {paidAmt ? fmt(paidAmt) : "—"}
@@ -623,6 +671,22 @@ export function AppointmentsManager({
                       </TableCell>
                       <TableCell className="space-x-0.5 text-right whitespace-nowrap">
                         {quickActions(a)}
+                        <Button
+                          className="relative"
+                          size="sm"
+                          variant="ghost"
+                          title={t("upsales")}
+                          aria-label={t("upsales")}
+                          disabled={pending}
+                          onClick={() => setUpsaleFor(a.id)}
+                        >
+                          <TrendingUp className="size-4" />
+                          {a.upsales.length > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-medium text-white">
+                              {a.upsales.length > 9 ? "9+" : a.upsales.length}
+                            </span>
+                          )}
+                        </Button>
                         <Button
                           className="relative"
                           size="sm"
@@ -695,6 +759,16 @@ export function AppointmentsManager({
         onDone={() => router.refresh()}
       />
 
+      <UpsalesDialog
+        appointment={upsaleAppt}
+        staff={staff}
+        services={services}
+        currentUserId={currentUserId}
+        currentUserIsAdmin={currentUserIsAdmin}
+        onClose={() => setUpsaleFor(null)}
+        onDone={() => router.refresh()}
+      />
+
       <AlertDialog
         open={deleting !== null}
         onOpenChange={(o) => !o && setDeleting(null)}
@@ -717,6 +791,55 @@ export function AppointmentsManager({
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+const NO_TECHNICIAN = "__none";
+
+/** Select inline trong cột Kỹ thuật viên của bảng lịch hẹn. */
+function InlineTechnicianSelect({
+  value,
+  display,
+  options,
+  noneLabel,
+  ariaLabel,
+  disabled,
+  onSave,
+}: {
+  value: string;
+  display: React.ReactNode;
+  options: { value: string; label: React.ReactNode }[];
+  noneLabel: string;
+  ariaLabel: string;
+  disabled?: boolean;
+  onSave: (value: string) => void;
+}) {
+  return (
+    <Select
+      value={value || NO_TECHNICIAN}
+      onValueChange={(selected) => {
+        const next = selected === NO_TECHNICIAN ? "" : selected;
+        if (next !== value) onSave(next);
+      }}
+      disabled={disabled}
+    >
+      <SelectTrigger
+        aria-label={ariaLabel}
+        className="-m-1 rounded-md border-none bg-transparent p-1 hover:bg-accent/50 data-[size=default]:h-auto dark:bg-transparent dark:hover:bg-accent/50 [&>svg]:size-3"
+      >
+        <SelectValue>{display}</SelectValue>
+      </SelectTrigger>
+      <SelectContent position="popper">
+        <SelectItem value={NO_TECHNICIAN} className="text-muted-foreground">
+          {noneLabel}
+        </SelectItem>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

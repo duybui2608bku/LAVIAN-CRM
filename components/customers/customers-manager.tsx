@@ -110,16 +110,12 @@ import type { Service } from "@/types/service";
 
 type Staff = StaffRef & { department?: string | null };
 
-// Option kỹ thuật viên: chỉ user bộ phận Kỹ Thuật Viên + giá trị đang gán
-// (user đổi bộ phận sau khi gán vẫn hiện — cùng triết lý option inactive).
-const technicianOptions = (staff: Staff[], current?: string | null) =>
+// Option theo bộ phận (Nhân viên = customer_care, Sales, Kỹ thuật viên):
+// chỉ user đúng bộ phận + giá trị đang gán (user đổi bộ phận sau khi gán
+// vẫn hiện — cùng triết lý option inactive).
+const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
   staff
-    .filter((s) => s.department === "technician" || s.id === current)
-    .map((s) => ({ value: s.id, label: staffLabel(s) }));
-
-const salesOptions = (staff: Staff[], current?: string | null) =>
-  staff
-    .filter((s) => s.department === "sales" || s.id === current)
+    .filter((s) => s.department === dept || s.id === current)
     .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
 // Class cho <textarea> ghi chú — khớp trông với <Input>.
@@ -294,10 +290,6 @@ export function CustomersManager({
       .filter((o) => o.kind === kind && (o.is_active || o.value === current))
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
-  const staffOptions = staff.map((s) => ({
-    value: s.id,
-    label: staffLabel(s),
-  }));
   // Bộ lọc dịch vụ: chỉ dịch vụ active (đồng nhất kindOptions không current).
   const serviceOptions = services
     .filter((s) => s.is_active)
@@ -386,7 +378,7 @@ export function CustomersManager({
         <ClearableSelect
           value={staffId}
           onValueChange={setStaffId}
-          options={staffOptions}
+          options={deptOptions(staff, "customer_care")}
           placeholder={t("allStaff")}
           clearLabel={t("clear")}
           ariaLabel={t("colStaff")}
@@ -394,7 +386,7 @@ export function CustomersManager({
         <ClearableSelect
           value={salesId}
           onValueChange={setSalesId}
-          options={salesOptions(staff)}
+          options={deptOptions(staff, "sales")}
           placeholder={t("allSales")}
           clearLabel={t("clear")}
           ariaLabel={t("colSales")}
@@ -402,7 +394,7 @@ export function CustomersManager({
         <ClearableSelect
           value={technicianId}
           onValueChange={setTechnicianId}
-          options={technicianOptions(staff)}
+          options={deptOptions(staff, "technician")}
           placeholder={t("allTechnician")}
           clearLabel={t("clear")}
           ariaLabel={t("colTechnician")}
@@ -514,7 +506,7 @@ export function CustomersManager({
                     <InlineSelect
                       value={c.staff_id ?? ""}
                       display={staffDisplay(c.staff_id)}
-                      options={staffOptions}
+                      options={deptOptions(staff, "customer_care", c.staff_id)}
                       noneLabel={t("noneOption")}
                       ariaLabel={t("colStaff")}
                       disabled={pending}
@@ -525,7 +517,7 @@ export function CustomersManager({
                     <InlineSelect
                       value={c.sales_id ?? ""}
                       display={staffDisplay(c.sales_id)}
-                      options={salesOptions(staff, c.sales_id)}
+                      options={deptOptions(staff, "sales", c.sales_id)}
                       noneLabel={t("noneOption")}
                       ariaLabel={t("colSales")}
                       disabled={pending}
@@ -536,7 +528,7 @@ export function CustomersManager({
                     <InlineSelect
                       value={c.technician_id ?? ""}
                       display={staffDisplay(c.technician_id)}
-                      options={technicianOptions(staff, c.technician_id)}
+                      options={deptOptions(staff, "technician", c.technician_id)}
                       noneLabel={t("noneOption")}
                       ariaLabel={t("colTechnician")}
                       disabled={pending}
@@ -1192,10 +1184,11 @@ function CustomerDialog({
                   <ClearableSelect
                     value={field.value ?? ""}
                     onValueChange={field.onChange}
-                    options={staff.map((s) => ({
-                      value: s.id,
-                      label: staffLabel(s),
-                    }))}
+                    options={deptOptions(
+                      staff,
+                      "customer_care",
+                      editing?.staff_id,
+                    )}
                     placeholder={t("noneOption")}
                     clearLabel={t("clear")}
                     ariaLabel={t("colStaff")}
@@ -1211,7 +1204,7 @@ function CustomerDialog({
                   <ClearableSelect
                     value={field.value ?? ""}
                     onValueChange={field.onChange}
-                    options={salesOptions(staff, editing?.sales_id)}
+                    options={deptOptions(staff, "sales", editing?.sales_id)}
                     placeholder={t("noneOption")}
                     clearLabel={t("clear")}
                     ariaLabel={t("colSales")}
@@ -1227,7 +1220,11 @@ function CustomerDialog({
                   <ClearableSelect
                     value={field.value ?? ""}
                     onValueChange={field.onChange}
-                    options={technicianOptions(staff, editing?.technician_id)}
+                    options={deptOptions(
+                      staff,
+                      "technician",
+                      editing?.technician_id,
+                    )}
                     placeholder={t("noneOption")}
                     clearLabel={t("clear")}
                     ariaLabel={t("colTechnician")}

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import {
+  hydrateLedgerUpsales,
   normalizeAppointmentRow,
   type AppointmentRow,
 } from "@/lib/appointments";
@@ -17,14 +18,21 @@ export default async function AppointmentsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [apptsRes, customersRes, staffRes, optionsRes, servicesRes] =
+  const [
+    apptsRes,
+    customersRes,
+    staffRes,
+    optionsRes,
+    servicesRes,
+    currentProfileRes,
+  ] =
     await Promise.all([
       supabase
         .from("appointments")
         // Nested select 1 query: dịch vụ (bảng nối) + SỔ tiền (kèm dòng mọi buổi)
-        // + dòng tiền theo lịch (fallback lịch cũ không sổ) + tên/phone khách.
+        // + upsale + dòng tiền theo lịch (fallback lịch cũ không sổ) + khách.
         .select(
-          "*, appointment_services(service_id), appointment_payments(*), ledger:service_ledgers(*, appointment_payments(*)), customer:customers(full_name, phone)",
+          "*, appointment_services(service_id), appointment_upsales(*), appointment_payments(*), ledger:service_ledgers(*, appointment_payments(*)), customer:customers(full_name, phone)",
         )
         .is("deleted_at", null)
         .order("scheduled_at", { ascending: true }),
@@ -47,11 +55,19 @@ export default async function AppointmentsPage() {
         .order("sort_order", { ascending: true }),
       // Cả inactive để hiện tên dịch vụ cũ còn gắn trên lịch.
       supabase.from("services").select("*").order("sort_order", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user?.id ?? "")
+        .maybeSingle(),
     ]);
 
-  const appointments = (
-    (apptsRes.data as unknown as AppointmentRow[]) ?? []
-  ).map(normalizeAppointmentRow);
+  if (apptsRes.error) throw apptsRes.error;
+  const appointments = hydrateLedgerUpsales(
+    ((apptsRes.data as unknown as AppointmentRow[]) ?? []).map(
+      normalizeAppointmentRow,
+    ),
+  );
 
   type CustomerRow = CustomerRef & {
     customer_services: { service_id: string }[] | null;
@@ -69,6 +85,7 @@ export default async function AppointmentsPage() {
       customers={customers}
       staff={(staffRes.data as StaffRef[]) ?? []}
       currentUserId={user?.id ?? ""}
+      currentUserIsAdmin={currentProfileRes.data?.role === "admin"}
       options={(optionsRes.data as EnumOption[]) ?? []}
       services={(servicesRes.data as Service[]) ?? []}
     />

@@ -30,6 +30,7 @@ export default async function LeadFormPage() {
       .from("profiles")
       .select("id, user_name")
       .eq("status", "active")
+      .eq("department", "customer_care")
       .neq("user_name", "")
       .order("user_name"),
     admin

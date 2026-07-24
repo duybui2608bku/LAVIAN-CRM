@@ -7,11 +7,10 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
-      </div>
-      <MarketingStats />
+      <MarketingStats
+        showFinancials
+        header={{ title: t("title"), description: t("description") }}
+      />
     </div>
   );
 }

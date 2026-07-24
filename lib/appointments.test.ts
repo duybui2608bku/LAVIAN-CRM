@@ -7,12 +7,15 @@ import {
   customerPayments,
   customerTotalPaid,
   groupByDay,
+  hydrateLedgerUpsales,
   ledgerPaid,
   localDay,
   matchesAppointmentFilters,
   outstanding,
   paidTotal,
+  payableTotal,
   sortForDayView,
+  upsaleTotal,
 } from "./appointments.ts";
 import type {
   Appointment,
@@ -50,6 +53,7 @@ const ledger = (
   created_at: "2026-07-09T10:00:00.000Z",
   updated_at: "2026-07-09T10:00:00.000Z",
   payments,
+  upsales: [],
 });
 
 const base: Appointment = {
@@ -74,10 +78,87 @@ const base: Appointment = {
   updated_at: "2026-07-09T10:00:00.000Z",
   deleted_at: null,
   service_ids: ["s1"],
+  upsales: [],
   ledger: ledger([pay("deposit", 500)]),
   payments: [pay("deposit", 500)],
   customer: { full_name: "Nguyễn Văn A", phone: "0900123456" },
 };
+
+test("upsaleTotal: cộng các record con và trả 0 khi không có", () => {
+  assert.equal(upsaleTotal([]), 0);
+  assert.equal(
+    upsaleTotal([
+      {
+        id: "u1",
+        appointment_id: "1",
+        service_id: "s2",
+        amount: 200_000,
+        created_by: "technician-1",
+        created_at: "2026-07-10T03:00:00.000Z",
+      },
+      {
+        id: "u2",
+        appointment_id: "1",
+        service_id: "s3",
+        amount: 300_000,
+        created_by: "technician-1",
+        created_at: "2026-07-10T04:00:00.000Z",
+      },
+    ]),
+    500_000,
+  );
+});
+
+test("payableTotal/outstanding: Tổng giá gồm giá liệu trình và mọi upsale của sổ", () => {
+  const withUpsales = {
+    ...base,
+    ledger: {
+      ...ledger([pay("deposit", 500)]),
+      upsales: [
+        {
+          id: "u1",
+          appointment_id: "1",
+          service_id: "s2",
+          amount: 1200,
+          created_by: "technician-1",
+          created_at: "2026-07-10T03:00:00.000Z",
+        },
+      ],
+    },
+  };
+  assert.equal(payableTotal(withUpsales), 6200);
+  assert.equal(outstanding(withUpsales), 5700);
+  assert.equal(
+    payableTotal({
+      ...withUpsales,
+      ledger: { ...withUpsales.ledger, total_amount: null },
+    }),
+    1200,
+  );
+});
+
+test("hydrateLedgerUpsales: cộng upsale của mọi lịch dùng chung sổ", () => {
+  const second = {
+    ...base,
+    id: "2",
+    upsales: [
+      {
+        id: "u2",
+        appointment_id: "2",
+        service_id: "s3",
+        amount: 700,
+        created_by: "technician-1",
+        created_at: "2026-07-10T04:00:00.000Z",
+      },
+    ],
+  };
+  const [firstHydrated, secondHydrated] = hydrateLedgerUpsales([
+    base,
+    second,
+  ]);
+  assert.equal(upsaleTotal(firstHydrated.ledger?.upsales), 700);
+  assert.equal(upsaleTotal(secondHydrated.ledger?.upsales), 700);
+});
 
 test("paidTotal: cộng deposit/payment, trừ refund — theo sổ", () => {
   assert.equal(paidTotal(base), 500);

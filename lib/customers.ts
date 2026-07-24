@@ -2,14 +2,20 @@ import type { Customer, EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
 
 /** Nhãn của một option theo locale hiện tại (fallback tiếng Việt). */
-export function optionLabel(opt: EnumOption, locale: string): string {
+export function optionLabel(
+  opt: Pick<EnumOption, "label_vi" | "label_en" | "label_id">,
+  locale: string,
+): string {
   if (locale === "en") return opt.label_en || opt.label_vi;
   if (locale === "id") return opt.label_id || opt.label_vi;
   return opt.label_vi;
 }
 
 /** Tên dịch vụ theo locale hiện tại (fallback tiếng Việt — cùng quy tắc optionLabel). */
-export function serviceName(s: Service, locale: string): string {
+export function serviceName(
+  s: Pick<Service, "name_vi" | "name_en" | "name_id">,
+  locale: string,
+): string {
   if (locale === "en") return s.name_en || s.name_vi;
   if (locale === "id") return s.name_id || s.name_vi;
   return s.name_vi;

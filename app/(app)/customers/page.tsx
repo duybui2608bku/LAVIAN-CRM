@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import {
+  hydrateLedgerUpsales,
   normalizeAppointmentRow,
   type AppointmentRow,
 } from "@/lib/appointments";
@@ -37,7 +38,7 @@ export default async function CustomersPage() {
     supabase
       .from("appointments")
       .select(
-        "*, appointment_services(service_id), appointment_payments(*), ledger:service_ledgers(*, appointment_payments(*)), customer:customers(full_name, phone)",
+        "*, appointment_services(service_id), appointment_upsales(*), appointment_payments(*), ledger:service_ledgers(*, appointment_payments(*)), customer:customers(full_name, phone)",
       )
       .is("deleted_at", null)
       .order("scheduled_at", { ascending: false }),
@@ -51,9 +52,12 @@ export default async function CustomersPage() {
     }),
   ) as Customer[]);
 
-  const appointments = (
-    (apptsRes.data as unknown as AppointmentRow[]) ?? []
-  ).map(normalizeAppointmentRow);
+  if (apptsRes.error) throw apptsRes.error;
+  const appointments = hydrateLedgerUpsales(
+    ((apptsRes.data as unknown as AppointmentRow[]) ?? []).map(
+      normalizeAppointmentRow,
+    ),
+  );
 
   return (
     <CustomersManager
