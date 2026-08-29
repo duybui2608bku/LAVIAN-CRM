@@ -56,10 +56,10 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex h-16 items-center gap-3 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white">
             <Logo className="size-8" />
           </div>
-          <span className="truncate text-[15px] font-bold tracking-[0.08em] group-data-[collapsible=icon]:hidden">
+          <span className="truncate text-sm font-semibold tracking-[0.08em] group-data-[collapsible=icon]:hidden">
             LAVIAN <span className="text-primary">CRM</span>
           </span>
         </div>
@@ -78,7 +78,7 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                       asChild
                       isActive={active}
                       tooltip={t(key)}
-                      className="h-10 gap-3 rounded-lg px-3 font-medium data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm"
+                      className="h-10 gap-3 rounded-lg px-3 font-medium data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground"
                     >
                       <Link href={href}>
                         <Icon className="size-[18px]" />
@@ -97,7 +97,7 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                     asChild
                     isActive={pathname.startsWith("/enums")}
                     tooltip={t("enums")}
-                    className="h-10 gap-3 rounded-lg px-3 font-medium data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm"
+                    className="h-10 gap-3 rounded-lg px-3 font-medium data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground"
                   >
                     <Link href="/enums/stage">
                       <SlidersHorizontal className="size-[18px]" />

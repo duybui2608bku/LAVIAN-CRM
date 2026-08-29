@@ -1,6 +1,12 @@
 "use client";
 
-import { Fragment, useMemo, useState, useTransition } from "react";
+import {
+  Fragment,
+  useMemo,
+  useOptimistic,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -58,7 +64,9 @@ import { ClearableSelect } from "@/components/common/clearable-select";
 import { CurrencyInput } from "@/components/common/currency-input";
 import { DatePicker } from "@/components/common/date-picker";
 import { ImageUpload } from "@/components/common/image-upload";
+import { RowActions } from "@/components/common/row-actions";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,6 +110,9 @@ import {
 import type { EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
 
+// ponytail: phân trang client (data đã tải sẵn) — giống /customers.
+const PAGE_SIZE = 20;
+
 export function AppointmentsManager({
   appointments,
   customers,
@@ -139,6 +150,15 @@ export function AppointmentsManager({
   const payAppt = appointments.find((a) => a.id === payFor) ?? null;
   const [upsaleFor, setUpsaleFor] = useState<string | null>(null);
   const upsaleAppt = appointments.find((a) => a.id === upsaleFor) ?? null;
+  const [page, setPage] = useState(1);
+
+  // Đổi trạng thái / kỹ thuật viên hiện ngay, không chờ server. React tự trả về
+  // dữ liệu server khi transition kết thúc — action lỗi thì dòng quay lại như cũ.
+  const [rowsData, patchOptimistic] = useOptimistic(
+    appointments,
+    (state: Appointment[], patch: Partial<Appointment> & { id: string }) =>
+      state.map((a) => (a.id === patch.id ? { ...a, ...patch } : a)),
+  );
 
   // "Khách cũ": lịch tạo TRƯỚC lịch hiện tại (badge trên bảng) / đã có lịch
   // bất kỳ (badge trong drawer tạo). Suy từ data đã nạp, không thêm cột DB.
@@ -159,7 +179,7 @@ export function AppointmentsManager({
   const filtered = useMemo(
     () =>
       sortForDayView(
-        appointments.filter((a) =>
+        rowsData.filter((a) =>
           matchesAppointmentFilters(a, {
             waiting: tab === "waiting",
             day: tab === "day" ? day : undefined,
@@ -170,17 +190,31 @@ export function AppointmentsManager({
           }),
         ),
       ),
-    [appointments, tab, day, search, status, technicianId, serviceId],
+    [rowsData, tab, day, search, status, technicianId, serviceId],
   );
 
   // Calendar: lọc search/kỹ thuật viên/service, KHÔNG lọc ngày.
   const calendarList = useMemo(
     () =>
-      appointments.filter((a) =>
+      rowsData.filter((a) =>
         matchesAppointmentFilters(a, { search, technicianId, serviceId }),
       ),
-    [appointments, search, technicianId, serviceId],
+    [rowsData, search, technicianId, serviceId],
   );
+
+  // Lọc đổi → về trang 1. Điều chỉnh ngay trong render (không effect) nên
+  // không tốn thêm một lượt vẽ; `current` vẫn kẹp page trong [1, totalPages].
+  const filterKey = [tab, day, search, status, technicianId, serviceId].join("|");
+  const [seenFilterKey, setSeenFilterKey] = useState(filterKey);
+  if (seenFilterKey !== filterKey) {
+    setSeenFilterKey(filterKey);
+    setPage(1);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const current = Math.min(page, totalPages);
+  const offset = (current - 1) * PAGE_SIZE;
+  const rows = filtered.slice(offset, offset + PAGE_SIZE);
 
   const anchorDate = parseISODate(day) ?? new Date();
   const shiftCalendar = (dir: 1 | -1) =>
@@ -253,13 +287,13 @@ export function AppointmentsManager({
     },
   ) =>
     start(async () => {
+      patchOptimistic({ id: a.id, status: next });
       const res = await setAppointmentStatus(a.id, next, extra);
       if (res.error) {
         toast.error(res.error);
         return;
       }
       toast.success(t("statusOk"));
-      router.refresh();
     });
 
   const changeTechnician = (
@@ -267,6 +301,7 @@ export function AppointmentsManager({
     technicianId: string | null,
   ) =>
     start(async () => {
+      patchOptimistic({ id: appointment.id, technician_id: technicianId });
       const res = await setAppointmentTechnician(
         appointment.id,
         technicianId,
@@ -276,7 +311,6 @@ export function AppointmentsManager({
         return;
       }
       toast.success(t("technicianUpdated"));
-      router.refresh();
     });
 
   const confirmDelete = () => {
@@ -290,7 +324,6 @@ export function AppointmentsManager({
         return;
       }
       toast.success(t("deleteOk"));
-      router.refresh();
     });
   };
 
@@ -371,51 +404,53 @@ export function AppointmentsManager({
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-        <div className="flex items-center gap-2">
-          {/* Toggle bảng ↔ calendar */}
-          <div className="flex rounded-lg border p-0.5">
+    <Page>
+      <PageHeader
+        title={t("title")}
+        actions={
+          <>
+            {/* Toggle bảng ↔ calendar */}
+            <div className="flex rounded-lg border p-0.5">
+              <Button
+                size="sm"
+                variant={view === "table" ? "secondary" : "ghost"}
+                className="h-7"
+                title={t("viewTable")}
+                aria-label={t("viewTable")}
+                onClick={() => setView("table")}
+              >
+                <List className="size-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant={view !== "table" ? "secondary" : "ghost"}
+                className="h-7"
+                title={t("viewCalendar")}
+                aria-label={t("viewCalendar")}
+                onClick={() => setView("week")}
+              >
+                <CalendarDays className="size-4" />
+              </Button>
+            </div>
             <Button
-              size="sm"
-              variant={view === "table" ? "secondary" : "ghost"}
-              className="h-7"
-              title={t("viewTable")}
-              aria-label={t("viewTable")}
-              onClick={() => setView("table")}
+              variant="outline"
+              onClick={() => start(() => router.refresh())}
+              disabled={pending}
             >
-              <List className="size-4" />
+              <RefreshCw className={cn("size-4", pending && "animate-spin")} />
+              {t("reload")}
             </Button>
-            <Button
-              size="sm"
-              variant={view !== "table" ? "secondary" : "ghost"}
-              className="h-7"
-              title={t("viewCalendar")}
-              aria-label={t("viewCalendar")}
-              onClick={() => setView("week")}
-            >
-              <CalendarDays className="size-4" />
+            <Button onClick={() => setTarget("new")}>
+              <CalendarPlus className="size-4" />
+              {t("create")}
             </Button>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => start(() => router.refresh())}
-            disabled={pending}
-          >
-            <RefreshCw className={cn("size-4", pending && "animate-spin")} />
-            {t("reload")}
-          </Button>
-          <Button onClick={() => setTarget("new")}>
-            <CalendarPlus className="size-4" />
-            {t("create")}
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Tab: Trong ngày / Chờ xếp lịch (thay sheet DP CUS) — chỉ ở view bảng;
           view calendar thay bằng segmented Tuần/Tháng + điều hướng. */}
-      <div className="flex flex-wrap items-end gap-2">
+      <PageToolbar>
         {view === "table" ? (
           <>
             <div className="mr-2 flex rounded-lg border p-0.5">
@@ -494,13 +529,13 @@ export function AppointmentsManager({
                 <ChevronRight className="size-4" />
               </Button>
             </div>
-            <span className="pb-1 text-sm font-medium">{calendarLabel}</span>
+            <span className="text-sm font-medium">{calendarLabel}</span>
           </>
         )}
         <div className="relative w-full sm:max-w-[200px]">
           <Search className="absolute top-2 left-2.5 size-4 text-muted-foreground" />
           <Input
-            className="h-8 pl-8"
+            className="pl-8"
             placeholder={t("searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -532,7 +567,7 @@ export function AppointmentsManager({
           clearLabel={t("clear")}
           ariaLabel={t("colServices")}
         />
-      </div>
+      </PageToolbar>
 
       {view !== "table" ? (
         <AppointmentsCalendar
@@ -547,7 +582,7 @@ export function AppointmentsManager({
           }}
         />
       ) : (
-      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="surface overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -575,7 +610,7 @@ export function AppointmentsManager({
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((a, i) => {
+              rows.map((a, i) => {
                 const paidAmt = paidTotal(a);
                 const outstandingAmt = outstanding(a);
                 const upsaleAmt = upsaleTotal(a.upsales);
@@ -583,7 +618,7 @@ export function AppointmentsManager({
                 return (
                   <Fragment key={a.id}>
                     {/* Row nhóm theo trạng thái — như cách sheet gom Sudah Datang / Booking */}
-                    {(i === 0 || filtered[i - 1].status !== a.status) && (
+                    {(i === 0 || rows[i - 1].status !== a.status) && (
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
                         <TableCell colSpan={11} className="py-1.5">
                           <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -610,9 +645,7 @@ export function AppointmentsManager({
                         <div className="flex items-center gap-1.5 font-medium">
                           {a.customer?.full_name ?? "—"}
                           {isReturningRow(a) && (
-                            <Badge className="border-transparent bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-                              {t("returningCustomer")}
-                            </Badge>
+                            <Badge variant="info">{t("returningCustomer")}</Badge>
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -627,7 +660,6 @@ export function AppointmentsManager({
                           options={technicianOptions}
                           noneLabel={t("noneOption")}
                           ariaLabel={t("colTechnician")}
-                          disabled={pending}
                           onSave={(value) =>
                             changeTechnician(a, value || null)
                           }
@@ -671,58 +703,34 @@ export function AppointmentsManager({
                       </TableCell>
                       <TableCell className="space-x-0.5 text-right whitespace-nowrap">
                         {quickActions(a)}
-                        <Button
-                          className="relative"
-                          size="sm"
-                          variant="ghost"
-                          title={t("upsales")}
-                          aria-label={t("upsales")}
-                          disabled={pending}
-                          onClick={() => setUpsaleFor(a.id)}
-                        >
-                          <TrendingUp className="size-4" />
-                          {a.upsales.length > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-medium text-white">
-                              {a.upsales.length > 9 ? "9+" : a.upsales.length}
-                            </span>
-                          )}
-                        </Button>
-                        <Button
-                          className="relative"
-                          size="sm"
-                          variant="ghost"
-                          title={t("payments")}
-                          aria-label={t("payments")}
-                          disabled={pending}
-                          onClick={() => setPayFor(a.id)}
-                        >
-                          <Wallet className="size-4" />
-                          {paymentCount > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
-                              {paymentCount > 9 ? "9+" : paymentCount}
-                            </span>
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          title={t("edit")}
-                          aria-label={t("edit")}
-                          disabled={pending}
-                          onClick={() => setTarget(a)}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          title={t("delete")}
-                          aria-label={t("delete")}
-                          disabled={pending}
-                          onClick={() => setDeleting(a)}
-                        >
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
+                        <RowActions
+                          label={t("colActions")}
+                          items={[
+                            {
+                              icon: <TrendingUp className="size-4" />,
+                              label: t("upsales"),
+                              count: a.upsales.length,
+                              onSelect: () => setUpsaleFor(a.id),
+                            },
+                            {
+                              icon: <Wallet className="size-4" />,
+                              label: t("payments"),
+                              count: paymentCount,
+                              onSelect: () => setPayFor(a.id),
+                            },
+                            {
+                              icon: <Pencil className="size-4" />,
+                              label: t("edit"),
+                              onSelect: () => setTarget(a),
+                            },
+                            {
+                              icon: <Trash2 className="size-4" />,
+                              label: t("delete"),
+                              danger: true,
+                              onSelect: () => setDeleting(a),
+                            },
+                          ]}
+                        />
                       </TableCell>
                     </TableRow>
                   </Fragment>
@@ -731,6 +739,42 @@ export function AppointmentsManager({
             )}
           </TableBody>
         </Table>
+        {filtered.length > 0 ? (
+          <div className="flex items-center justify-between gap-2 border-t px-4 py-2 text-sm text-muted-foreground">
+            <span>
+              {t("pageInfo", {
+                from: offset + 1,
+                to: offset + rows.length,
+                total: filtered.length,
+              })}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                title={t("prevPage")}
+                aria-label={t("prevPage")}
+                disabled={current <= 1}
+                onClick={() => setPage(current - 1)}
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="px-1 tabular-nums">
+                {current} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                title={t("nextPage")}
+                aria-label={t("nextPage")}
+                disabled={current >= totalPages}
+                onClick={() => setPage(current + 1)}
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
       )}
 
@@ -746,7 +790,6 @@ export function AppointmentsManager({
         appointments={appointments}
         returningIds={returningIds}
         onClose={() => setTarget(null)}
-        onDone={() => router.refresh()}
         onOpenPayments={(id) => setPayFor(id)}
       />
 
@@ -756,7 +799,6 @@ export function AppointmentsManager({
         currentUserId={currentUserId}
         services={services}
         onClose={() => setPayFor(null)}
-        onDone={() => router.refresh()}
       />
 
       <UpsalesDialog
@@ -766,7 +808,6 @@ export function AppointmentsManager({
         currentUserId={currentUserId}
         currentUserIsAdmin={currentUserIsAdmin}
         onClose={() => setUpsaleFor(null)}
-        onDone={() => router.refresh()}
       />
 
       <AlertDialog
@@ -790,7 +831,7 @@ export function AppointmentsManager({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Page>
   );
 }
 
@@ -852,7 +893,6 @@ function ReschedulePopover({
   disabled?: boolean;
 }) {
   const t = useTranslations("appointments");
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("09:00");
@@ -868,7 +908,6 @@ function ReschedulePopover({
       }
       toast.success(t("statusOk"));
       setOpen(false);
-      router.refresh();
     });
 
   return (

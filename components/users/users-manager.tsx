@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,6 +15,7 @@ import {
   setUserStatus,
 } from "@/app/(app)/users/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,7 +49,6 @@ export function UsersManager({
   currentUserId: string;
 }) {
   const t = useTranslations("users");
-  const router = useRouter();
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<Profile | null>(null);
@@ -81,7 +80,6 @@ export function UsersManager({
         return;
       }
       toast.success(t("departmentOk"));
-      router.refresh();
     });
 
   const toggleBan = (p: Profile) => {
@@ -93,31 +91,34 @@ export function UsersManager({
         return;
       }
       toast.success(next === "banned" ? t("bannedOk") : t("unbannedOk"));
-      router.refresh();
     });
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-        <Button onClick={() => setCreateOpen(true)}>
-          <UserPlus className="size-4" />
-          {t("create")}
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title={t("title")}
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <UserPlus className="size-4" />
+            {t("create")}
+          </Button>
+        }
+      />
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-        <Input
-          className="pl-8"
-          placeholder={t("searchPlaceholder")}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
+      <PageToolbar>
+        <div className="relative w-full sm:max-w-[220px]">
+          <Search className="absolute top-2 left-2.5 size-4 text-muted-foreground" />
+          <Input
+            className="pl-8"
+            placeholder={t("searchPlaceholder")}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      </PageToolbar>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="surface overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -160,7 +161,7 @@ export function UsersManager({
                       placeholder="—"
                       clearLabel={t("clearDepartment")}
                       ariaLabel={t("colDepartment")}
-                      className="w-[240px]"
+                      className="w-full min-w-[160px]"
                     />
                   </TableCell>
                   <TableCell>
@@ -208,16 +209,12 @@ export function UsersManager({
         </Table>
       </div>
 
-      <CreateUserDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onDone={() => router.refresh()}
-      />
+      <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} />
       <ResetPasswordDialog
         target={resetTarget}
         onClose={() => setResetTarget(null)}
       />
-    </div>
+    </Page>
   );
 }
 
@@ -234,11 +231,9 @@ type CreateValues = z.infer<typeof createSchema>;
 function CreateUserDialog({
   open,
   onOpenChange,
-  onDone,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDone: () => void;
 }) {
   const t = useTranslations("users");
   const [pending, start] = useTransition();
@@ -271,7 +266,6 @@ function CreateUserDialog({
       toast.success(t("createOk"));
       reset();
       onOpenChange(false);
-      onDone();
     });
 
   return (

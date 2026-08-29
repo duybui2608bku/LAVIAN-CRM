@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { MarketingStats } from "@/components/dashboard/marketing-stats";
+import { Page } from "@/components/layout/page";
 import { getCurrentProfile } from "@/lib/auth";
 
 export default async function MarketingPage() {
@@ -13,12 +14,11 @@ export default async function MarketingPage() {
   if (profile?.role !== "admin") redirect("/");
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
-      </div>
-      <MarketingStats showSpend />
-    </div>
+    <Page>
+      <MarketingStats
+        showSpend
+        header={{ title: t("title"), description: t("description") }}
+      />
+    </Page>
   );
 }

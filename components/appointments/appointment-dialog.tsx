@@ -19,6 +19,7 @@ import { formatISODate } from "@/lib/date";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { CurrencyInput } from "@/components/common/currency-input";
+import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/common/date-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,10 +75,6 @@ const localTime = (iso: string) => {
   return `${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 
-// Class cho <textarea> ghi chú — khớp trông với <Input> (pattern customers).
-const fieldCls =
-  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
 /**
  * Dialog tạo/sửa lịch hẹn — dùng ở /appointments và /customers (nút Đặt lịch).
  * `customerLock`: mở từ /customers thì khóa cứng khách, không hiện select.
@@ -93,7 +90,6 @@ export function AppointmentDialog({
   appointments = [],
   returningIds,
   onClose,
-  onDone,
   onOpenPayments,
 }: {
   open: boolean;
@@ -108,7 +104,6 @@ export function AppointmentDialog({
   /** id các khách đã có lịch hẹn từ trước — hiện badge "Khách cũ". */
   returningIds?: Set<string>;
   onClose: () => void;
-  onDone: () => void;
   /** Mở dialog Thanh toán của lịch đang sửa (chỉ /appointments truyền). */
   onOpenPayments?: (id: string) => void;
 }) {
@@ -255,7 +250,6 @@ export function AppointmentDialog({
       toast.success(editing ? t("updateOk") : t("createOk"));
       reset();
       onClose();
-      onDone();
     });
 
   return (
@@ -313,7 +307,7 @@ export function AppointmentDialog({
                 />
               )}
               {isReturning(wCustomerId) && (
-                <Badge className="border-transparent bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">{t("returningCustomer")}</Badge>
+                <Badge variant="info">{t("returningCustomer")}</Badge>
               )}
             </div>
           </Field>
@@ -477,14 +471,10 @@ export function AppointmentDialog({
           </Field>
 
           <Field label={t("bookingNote")}>
-            <textarea className={fieldCls} rows={2} {...register("booking_note")} />
+            <Textarea rows={2} {...register("booking_note")} />
           </Field>
           <Field label={t("internalNote")}>
-            <textarea
-              className={fieldCls}
-              rows={2}
-              {...register("internal_note")}
-            />
+            <Textarea rows={2} {...register("internal_note")} />
           </Field>
 
         </form>

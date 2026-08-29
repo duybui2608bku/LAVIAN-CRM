@@ -53,7 +53,7 @@ export function MultiSelect({
           aria-label={ariaLabel}
           disabled={disabled}
           className={cn(
-            "flex min-h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-1 pr-2 pl-2.5 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 dark:hover:bg-input/50 [&_svg:not([class*='size-'])]:size-4",
+            "flex min-h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-card py-1 pr-2 pl-2.5 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/25 dark:hover:bg-input/40 [&_svg:not([class*='size-'])]:size-4",
             className,
           )}
         >

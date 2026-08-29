@@ -25,7 +25,7 @@ export default async function AppLayout({
           userName={profile?.user_name || profile?.email}
           avatarUrl={profile?.avatar_url}
         />
-        <div className="app-workspace flex flex-1 flex-col">{children}</div>
+        <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

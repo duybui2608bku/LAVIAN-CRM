@@ -18,13 +18,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { CurrencyInput } from "@/components/common/currency-input";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { optionLabel } from "@/lib/customers";
 import type { EnumOption } from "@/types/customer";
-
-const fieldCls =
-  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const requestCustomer = (integrationId: string) =>
   window.parent.postMessage(
@@ -199,7 +197,7 @@ export function LeadForm({
   if (done) {
     return (
       <div className="flex flex-col items-center gap-4 py-4 text-center">
-        <div className="rounded-full bg-emerald-500/12 p-4 text-emerald-600">
+        <div className="rounded-full bg-success/10 p-4 text-success">
           <CircleCheck className="size-16" strokeWidth={1.75} />
         </div>
         <div className="space-y-1">
@@ -223,7 +221,7 @@ export function LeadForm({
   return (
     <form onSubmit={(e) => e.preventDefault()} className="grid gap-3">
       {existing && (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+        <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
           {t("existingCustomer")}
         </p>
       )}
@@ -308,11 +306,10 @@ export function LeadForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="note">{t("note")}</Label>
-        <textarea
+        <Textarea
           id="note"
           rows={3}
           placeholder={t("noteOptional")}
-          className={fieldCls}
           {...register("note")}
         />
         {errors.note && (
@@ -323,12 +320,11 @@ export function LeadForm({
       {embedded && showLog && (
         <div className="space-y-1.5">
           <Label htmlFor="event_log">{t("log")}</Label>
-          <textarea
+          <Textarea
             id="event_log"
             rows={4}
             readOnly
             value={eventLog}
-            className={fieldCls}
           />
         </div>
       )}

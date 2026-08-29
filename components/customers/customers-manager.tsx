@@ -1,6 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import {
+  useMemo,
+  useOptimistic,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +15,8 @@ import { toast } from "sonner";
 import {
   CalendarDays,
   CalendarPlus,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   Info,
   Pencil,
@@ -50,8 +57,10 @@ import {
   type SelectOption,
 } from "@/components/common/clearable-select";
 import { MultiSelect } from "@/components/common/multi-select";
+import { RowActions } from "@/components/common/row-actions";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
 import { EnumTag } from "@/components/common/enum-tag";
+import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -86,6 +95,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
@@ -118,10 +128,6 @@ const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
     .filter((s) => s.department === dept || s.id === current)
     .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
-// Class cho <textarea> ghi chú — khớp trông với <Input>.
-const fieldCls =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
 const TAG_COLORS = [
   "#2563eb",
   "#0891b2",
@@ -136,6 +142,10 @@ const TAG_COLORS = [
 ] as const;
 
 const colorForTag = (index: number) => TAG_COLORS[index % TAG_COLORS.length];
+
+// ponytail: phân trang client (data đã tải sẵn); đổi sang server-side
+// nếu danh sách vượt vài nghìn dòng.
+const PAGE_SIZE = 20;
 
 export function CustomersManager({
   customers,
@@ -171,6 +181,15 @@ export function CustomersManager({
   const [bookingFor, setBookingFor] = useState<Customer | null>(null);
   const [apptsFor, setApptsFor] = useState<Customer | null>(null);
   const [paymentsFor, setPaymentsFor] = useState<Customer | null>(null);
+  const [page, setPage] = useState(1);
+
+  // Sửa inline hiện ngay, không chờ server. React tự trả về dữ liệu server khi
+  // transition kết thúc — action lỗi thì ô tự quay lại giá trị cũ.
+  const [rowsData, patchOptimistic] = useOptimistic(
+    customers,
+    (state: Customer[], patch: Partial<Customer> & { id: string }) =>
+      state.map((c) => (c.id === patch.id ? { ...c, ...patch } : c)),
+  );
 
   const apptsOf = (customerId: string) =>
     appointments.filter((a) => a.customer_id === customerId);
@@ -203,7 +222,7 @@ export function CustomersManager({
 
   const filtered = useMemo(
     () =>
-      customers.filter((c) =>
+      rowsData.filter((c) =>
         matchesCustomerFilters(c, {
           search,
           stage,
@@ -217,7 +236,7 @@ export function CustomersManager({
         }),
       ),
     [
-      customers,
+      rowsData,
       search,
       stage,
       source,
@@ -229,6 +248,20 @@ export function CustomersManager({
       to,
     ],
   );
+
+  // Lọc đổi → về trang 1. Điều chỉnh ngay trong render (không effect) nên
+  // không tốn thêm một lượt vẽ; `current` vẫn kẹp page trong [1, totalPages].
+  const filterKey = [search, stage, source, staffId, salesId, technicianId, serviceId, from, to].join("|");
+  const [seenFilterKey, setSeenFilterKey] = useState(filterKey);
+  if (seenFilterKey !== filterKey) {
+    setSeenFilterKey(filterKey);
+    setPage(1);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const current = Math.min(page, totalPages);
+  const offset = (current - 1) * PAGE_SIZE;
+  const rows = filtered.slice(offset, offset + PAGE_SIZE);
 
   // Badge tên dịch vụ đã gắn (theo locale, fallback vi); trống → "—".
   const serviceBadges = (ids: string[]) => {
@@ -258,7 +291,6 @@ export function CustomersManager({
         return;
       }
       toast.success(t("deleteOk"));
-      router.refresh();
     });
   };
 
@@ -275,13 +307,13 @@ export function CustomersManager({
     },
   ) =>
     start(async () => {
+      patchOptimistic({ id, ...patch });
       const res = await patchCustomer(id, patch);
       if (res.error) {
         toast.error(res.error);
         return;
       }
       toast.success(t("updateOk"));
-      router.refresh();
     });
 
   // Option cho Select: active + giá trị hiện tại (kể cả inactive), theo sort_order.
@@ -329,27 +361,29 @@ export function CustomersManager({
   const editing = target && target !== "new" ? target : null;
 
   return (
-    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => start(() => router.refresh())}
-            disabled={pending}
-          >
-            <RefreshCw className={cn("size-4", pending && "animate-spin")} />
-            {t("reload")}
-          </Button>
-          <Button onClick={() => setTarget("new")}>
-            <UserPlus className="size-4" />
-            {t("create")}
-          </Button>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title={t("title")}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => start(() => router.refresh())}
+              disabled={pending}
+            >
+              <RefreshCw className={cn("size-4", pending && "animate-spin")} />
+              {t("reload")}
+            </Button>
+            <Button onClick={() => setTarget("new")}>
+              <UserPlus className="size-4" />
+              {t("create")}
+            </Button>
+          </>
+        }
+      />
 
       {/* Thanh lọc */}
-      <div className="flex flex-wrap items-end gap-2">
+      <PageToolbar>
         <div className="relative w-full sm:max-w-[220px]">
           <Search className="absolute top-2 left-2.5 size-4 text-muted-foreground" />
           <Input
@@ -418,22 +452,22 @@ export function CustomersManager({
           clearLabel={t("clearDate")}
           className="w-[240px]"
         />
-      </div>
+      </PageToolbar>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="surface overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>{t("colName")}</TableHead>
               <TableHead>{t("colPhone")}</TableHead>
-              <TableHead>{t("colTags")}</TableHead>
+              {/* ponytail: cột Tag ẩn tạm, bỏ comment để hiện lại */}
               <TableHead>{t("colStage")}</TableHead>
               <TableHead>{t("colSource")}</TableHead>
               <TableHead>{t("colServices")}</TableHead>
               <TableHead>{t("colStaff")}</TableHead>
               <TableHead>{t("colSales")}</TableHead>
               <TableHead>{t("colTechnician")}</TableHead>
-              <TableHead>{t("colFirstContact")}</TableHead>
+              {/* ponytail: cột Liên hệ đầu ẩn tạm, bỏ comment để hiện lại */}
               <TableHead>{t("colCreated")}</TableHead>
               <TableHead>{t("colNotes")}</TableHead>
               <TableHead className="text-right">{t("colActions")}</TableHead>
@@ -443,14 +477,14 @@ export function CustomersManager({
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={13}
+                  colSpan={11}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {t("empty")}
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((c) => (
+              rows.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -470,14 +504,12 @@ export function CustomersManager({
                     </div>
                   </TableCell>
                   <TableCell>{c.phone}</TableCell>
-                  <TableCell>{tagBadges(c.tags)}</TableCell>
                   <TableCell>
                     <InlineSelect
                       value={c.stage}
                       display={tagFor("stage", c.stage)}
                       options={kindOptions("stage", c.stage)}
                       ariaLabel={t("colStage")}
-                      disabled={pending}
                       onSave={(v) => patchField(c.id, { stage: v })}
                     />
                   </TableCell>
@@ -488,7 +520,6 @@ export function CustomersManager({
                       options={kindOptions("source", c.source)}
                       noneLabel={t("noneOption")}
                       ariaLabel={t("colSource")}
-                      disabled={pending}
                       onSave={(v) => patchField(c.id, { source: v || null })}
                     />
                   </TableCell>
@@ -498,7 +529,6 @@ export function CustomersManager({
                       options={serviceSelectOptions(c.service_ids)}
                       display={serviceBadges(c.service_ids)}
                       ariaLabel={t("colServices")}
-                      disabled={pending}
                       onSave={(v) => patchField(c.id, { service_ids: v })}
                     />
                   </TableCell>
@@ -509,7 +539,6 @@ export function CustomersManager({
                       options={deptOptions(staff, "customer_care", c.staff_id)}
                       noneLabel={t("noneOption")}
                       ariaLabel={t("colStaff")}
-                      disabled={pending}
                       onSave={(v) => patchField(c.id, { staff_id: v || null })}
                     />
                   </TableCell>
@@ -520,7 +549,6 @@ export function CustomersManager({
                       options={deptOptions(staff, "sales", c.sales_id)}
                       noneLabel={t("noneOption")}
                       ariaLabel={t("colSales")}
-                      disabled={pending}
                       onSave={(v) => patchField(c.id, { sales_id: v || null })}
                     />
                   </TableCell>
@@ -531,16 +559,10 @@ export function CustomersManager({
                       options={deptOptions(staff, "technician", c.technician_id)}
                       noneLabel={t("noneOption")}
                       ariaLabel={t("colTechnician")}
-                      disabled={pending}
                       onSave={(v) =>
                         patchField(c.id, { technician_id: v || null })
                       }
                     />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {c.first_contact
-                      ? new Date(c.first_contact).toLocaleDateString()
-                      : "—"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {new Date(c.created_at).toLocaleDateString()}
@@ -558,83 +580,90 @@ export function CustomersManager({
                     >
                       <Info className="size-4" />
                       {c.notes?.length ? (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
+                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs font-medium text-primary-foreground">
                           {c.notes.length > 9 ? "9+" : c.notes.length}
                         </span>
                       ) : null}
                     </Button>
                   </TableCell>
-                  <TableCell className="space-x-1 text-right whitespace-nowrap">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title={tAppt("book")}
-                      aria-label={tAppt("book")}
-                      disabled={pending}
-                      onClick={() => setBookingFor(c)}
-                    >
-                      <CalendarPlus className="size-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="relative"
-                      title={tAppt("historyTitle", { name: c.full_name })}
-                      aria-label={tAppt("historyTitle", { name: c.full_name })}
-                      disabled={apptsOf(c.id).length === 0}
-                      onClick={() => setApptsFor(c)}
-                    >
-                      <CalendarDays className="size-4" />
-                      {apptsOf(c.id).length > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
-                          {apptsOf(c.id).length > 9 ? "9+" : apptsOf(c.id).length}
-                        </span>
-                      )}
-                    </Button>
-                    <Button
-                      className="relative"
-                      size="sm"
-                      variant="ghost"
-                      title={tAppt("paymentsTitle", { name: c.full_name })}
-                      aria-label={tAppt("paymentsTitle", { name: c.full_name })}
-                      disabled={paymentsOf(c.id).length === 0}
-                      onClick={() => setPaymentsFor(c)}
-                    >
-                      <Wallet className="size-4" />
-                      {paymentsOf(c.id).length > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
-                          {paymentsOf(c.id).length > 9
-                            ? "9+"
-                            : paymentsOf(c.id).length}
-                        </span>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title={t("edit")}
-                      aria-label={t("edit")}
-                      disabled={pending}
-                      onClick={() => setTarget(c)}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title={t("delete")}
-                      aria-label={t("delete")}
-                      disabled={pending}
-                      onClick={() => setDeleting(c)}
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
+                  <TableCell className="text-right">
+                    <RowActions
+                      label={t("colActions")}
+                      items={[
+                        {
+                          icon: <CalendarPlus className="size-4" />,
+                          label: tAppt("book"),
+                          onSelect: () => setBookingFor(c),
+                        },
+                        {
+                          icon: <CalendarDays className="size-4" />,
+                          label: tAppt("title"),
+                          count: apptsOf(c.id).length,
+                          disabled: apptsOf(c.id).length === 0,
+                          onSelect: () => setApptsFor(c),
+                        },
+                        {
+                          icon: <Wallet className="size-4" />,
+                          label: tAppt("payments"),
+                          count: paymentsOf(c.id).length,
+                          disabled: paymentsOf(c.id).length === 0,
+                          onSelect: () => setPaymentsFor(c),
+                        },
+                        {
+                          icon: <Pencil className="size-4" />,
+                          label: t("edit"),
+                          onSelect: () => setTarget(c),
+                        },
+                        {
+                          icon: <Trash2 className="size-4" />,
+                          label: t("delete"),
+                          danger: true,
+                          onSelect: () => setDeleting(c),
+                        },
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
+        {filtered.length > 0 ? (
+          <div className="flex items-center justify-between gap-2 border-t px-4 py-2 text-sm text-muted-foreground">
+            <span>
+              {t("pageInfo", {
+                from: offset + 1,
+                to: offset + rows.length,
+                total: filtered.length,
+              })}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                title={t("prevPage")}
+                aria-label={t("prevPage")}
+                disabled={current <= 1}
+                onClick={() => setPage(current - 1)}
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="px-1 tabular-nums">
+                {current} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                title={t("nextPage")}
+                aria-label={t("nextPage")}
+                disabled={current >= totalPages}
+                onClick={() => setPage(current + 1)}
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <CustomerDialog
@@ -644,7 +673,6 @@ export function CustomersManager({
         options={options}
         services={services}
         onClose={() => setTarget(null)}
-        onDone={() => router.refresh()}
       />
 
       {/* Đặt lịch hẹn cho 1 khách (khách bị khóa cứng trong dialog) */}
@@ -659,7 +687,6 @@ export function CustomersManager({
         appointments={appointments}
         returningIds={new Set(appointments.map((a) => a.customer_id))}
         onClose={() => setBookingFor(null)}
-        onDone={() => router.refresh()}
       />
 
       {/* Lịch sử lịch hẹn của 1 khách — mới nhất trước (page đã order desc) */}
@@ -829,14 +856,13 @@ export function CustomersManager({
           </ul>
         </DialogContent>
       </Dialog>
-    </div>
+    </Page>
   );
 }
 
 /** Nút Plus + Popover thêm ghi chú nhanh cho 1 khách. */
 function QuickNote({ customerId }: { customerId: string }) {
   const t = useTranslations("customers");
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
@@ -851,7 +877,6 @@ function QuickNote({ customerId }: { customerId: string }) {
       toast.success(t("noteOk"));
       setText("");
       setOpen(false);
-      router.refresh();
     });
 
   return (
@@ -867,8 +892,8 @@ function QuickNote({ customerId }: { customerId: string }) {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 space-y-2">
-        <textarea
-          className={fieldCls + " h-auto min-h-16 resize-y py-1.5"}
+        <Textarea
+          className="resize-y"
           rows={3}
           autoFocus
           placeholder={t("addNotePlaceholder")}
@@ -1005,7 +1030,6 @@ function CustomerDialog({
   options,
   services,
   onClose,
-  onDone,
 }: {
   open: boolean;
   editing: Customer | null;
@@ -1013,7 +1037,6 @@ function CustomerDialog({
   options: EnumOption[];
   services: Service[];
   onClose: () => void;
-  onDone: () => void;
 }) {
   const t = useTranslations("customers");
   const locale = useLocale();
@@ -1086,7 +1109,6 @@ function CustomerDialog({
       toast.success(editing ? t("updateOk") : t("createOk"));
       reset();
       onClose();
-      onDone();
     });
 
   return (

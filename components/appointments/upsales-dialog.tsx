@@ -42,7 +42,6 @@ export function UpsalesDialog({
   currentUserId,
   currentUserIsAdmin,
   onClose,
-  onDone,
 }: {
   appointment: Appointment | null;
   staff: StaffRef[];
@@ -50,7 +49,6 @@ export function UpsalesDialog({
   currentUserId: string;
   currentUserIsAdmin: boolean;
   onClose: () => void;
-  onDone: () => void;
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
@@ -90,7 +88,6 @@ export function UpsalesDialog({
       toast.success(t("upsaleAdded"));
       setServiceId("");
       setAmount("");
-      onDone();
     });
 
   const confirmDelete = () => {
@@ -104,7 +101,6 @@ export function UpsalesDialog({
         return;
       }
       toast.success(t("upsaleDeleted"));
-      onDone();
     });
   };
 

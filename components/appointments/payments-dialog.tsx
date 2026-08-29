@@ -131,14 +131,12 @@ export function PaymentsDialog({
   currentUserId,
   services,
   onClose,
-  onDone,
 }: {
   appointment: Appointment | null; // null = đóng
   staff: StaffRef[];
   currentUserId: string;
   services: Service[];
   onClose: () => void;
-  onDone: () => void;
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
@@ -178,7 +176,6 @@ export function PaymentsDialog({
       }
       toast.success(t("paymentAdded"));
       resetForm();
-      onDone();
     });
 
   const confirmDelete = () => {
@@ -193,7 +190,6 @@ export function PaymentsDialog({
       }
       if (res.image_url) void removeImage(res.image_url); // dọn ảnh best-effort
       toast.success(t("deleteOk"));
-      onDone();
     });
   };
 
@@ -227,7 +223,6 @@ export function PaymentsDialog({
         return;
       }
       toast.success(t("statusOk"));
-      onDone();
     });
 
   return (

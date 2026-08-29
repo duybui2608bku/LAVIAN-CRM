@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { formatRupiah, formatRupiahCompact } from "@/lib/currency";
 import { formatISODate, parseISODate } from "@/lib/date";
 import { DateRangePicker } from "@/components/common/date-picker";
+import { PageHeader } from "@/components/layout/page";
 import {
   Table,
   TableBody,
@@ -139,24 +140,6 @@ interface FinancialApiResponse {
     message?: string;
   };
 }
-
-/* Màu nhấn per metric — lấy từ design token nên tự đổi theo dark mode. */
-const TINT: Record<CustomerCardKey, string> = {
-  spend: "var(--destructive)",
-  costPerMessage: "var(--warning)",
-  messages: "var(--info)",
-  leads: "var(--chart-5)",
-  appointments: "var(--primary)",
-  visited: "var(--success)",
-};
-
-const FINANCIAL_TINT: Record<FinancialMetricKey, string> = {
-  financialRevenue: "var(--warning)",
-  financialCollected: "var(--chart-4)",
-  financialOutstanding: "var(--destructive)",
-  financialAov: "var(--chart-5)",
-  financialUpsales: "var(--success)",
-};
 
 const AVATAR_COLORS = [
   "var(--chart-1)",
@@ -535,40 +518,27 @@ export function MarketingStats({
 
   return (
     <div className="space-y-8">
-      <div
-        className={cn(
-          "flex gap-4",
-          header
-            ? "flex-col sm:flex-row sm:items-start sm:justify-between"
-            : "items-center",
-        )}
-      >
-        {header && (
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {header.title}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {header.description}
-            </p>
-          </div>
-        )}
-        <div className="flex w-full items-center gap-3 sm:w-auto">
-          <DateRangePicker
-            from={range.from}
-            to={range.to}
-            onChange={(next) =>
-              setRange(next.from ? next : { from: today, to: today })
-            }
-            placeholder={t("range")}
-            clearLabel={t("clear")}
-            className="w-full sm:w-64"
-          />
-          {(stats || financialStats) && pending && (
-            <RefreshCw className="size-4 shrink-0 animate-spin text-muted-foreground" />
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title={header?.title ?? t("range")}
+        description={header?.description}
+        actions={
+          <>
+            <DateRangePicker
+              from={range.from}
+              to={range.to}
+              onChange={(next) =>
+                setRange(next.from ? next : { from: today, to: today })
+              }
+              placeholder={t("range")}
+              clearLabel={t("clear")}
+              className="w-full sm:w-64"
+            />
+            {(stats || financialStats) && pending && (
+              <RefreshCw className="size-4 shrink-0 animate-spin text-muted-foreground" />
+            )}
+          </>
+        }
+      />
 
       {stats?.error && <p className="text-sm text-destructive">{stats.error}</p>}
 
@@ -581,18 +551,21 @@ export function MarketingStats({
             )}
           >
             {financialCards.map((card) => (
-              <FinancialMetricCard
+              <StatCard
                 key={card.key}
                 label={t(card.key)}
-                icon={card.icon}
-                tint={FINANCIAL_TINT[card.key]}
                 value={
-                  card.value == null ? null : formatRupiah(card.value)
+                  !financialStats && pending ? (
+                    <span className="inline-block h-6 w-24 animate-pulse rounded-md bg-muted" />
+                  ) : card.value == null ? (
+                    "—"
+                  ) : (
+                    formatRupiah(card.value)
+                  )
                 }
                 growth={card.growth ?? null}
                 comparisonLabel={comparisonLabel}
                 locale={locale}
-                loading={!financialStats && pending}
               />
             ))}
           </div>
@@ -603,15 +576,13 @@ export function MarketingStats({
       )}
 
       <section className="space-y-4">
-        <SectionTitle icon={Users} tint="var(--primary)">{t("funnelSection")}</SectionTitle>
+        <SectionTitle icon={Users}>{t("funnelSection")}</SectionTitle>
         {showSpend && (
           <div className={cn("grid gap-4 transition-opacity duration-200 sm:grid-cols-2", pending && "opacity-60")}>
             {spendCards.map((card) => (
-              <MetricCard
+              <StatCard
                 key={card.key}
                 label={t(card.key)}
-                icon={card.icon}
-                tint={TINT[card.key]}
                 value={value(card.value)}
                 error={card.error}
                 growth={getGrowthRate(card.current, card.previous)}
@@ -628,10 +599,8 @@ export function MarketingStats({
                 <ChevronRight className="hidden size-5 shrink-0 self-center text-muted-foreground/50 xl:block" />
               )}
               <div className="min-w-0 flex-1">
-                <MetricCard
+                <StatCard
                   label={t(card.key)}
-                  icon={card.icon}
-                  tint={TINT[card.key]}
                   value={value(card.metric ? num(card.metric.count) : null, !!funnel)}
                   share={card.metric ? funnelShare(card.metric.count) : null}
                   error={card.error}
@@ -656,44 +625,44 @@ export function MarketingStats({
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="space-y-4">
-          <SectionTitle icon={CalendarCheck} tint="var(--info)">{t("appointmentSection")}</SectionTitle>
+          <SectionTitle icon={CalendarCheck}>{t("appointmentSection")}</SectionTitle>
           <div className={cn("grid gap-3 transition-opacity duration-200 sm:grid-cols-3", pending && "opacity-60")}>
             {appointmentCards.map((card) => {
               const total = card.metric?.count ?? null;
               const deposited = card.metric?.deposited ?? null;
               const pct = total && deposited != null ? Math.min(100, (deposited / total) * 100) : 0;
               return (
-                // Card nén cho nửa hàng: hint chuyển sang title, deposit gộp 1 dòng.
-                <div key={card.key} title={card.hint} className="rounded-xl border bg-card p-3 shadow-xs transition-shadow duration-200 hover:shadow-md">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="truncate text-xs font-medium text-muted-foreground">{card.label}</p>
-                    <IconChip icon={card.icon} tint={card.tint} className="size-7 rounded-md" iconClassName="size-3.5" />
-                  </div>
-                  <div className="mt-1 text-xl font-bold tracking-tight tabular-nums">{value(num(total), !!summary)}</div>
-                  {card.metric && (
-                    <div className="mt-1.5">
-                      <GrowthBadge growth={card.metric.growthPercent} label={card.vsLabel} locale={locale} />
-                    </div>
-                  )}
-                  <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-success transition-[width] duration-300"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                    <span className="flex min-w-0 items-center gap-1">
-                      <span className="size-1.5 shrink-0 rounded-full bg-success" />
-                      <span className="truncate">{t("deposited")}</span>
-                      <span className="font-semibold tabular-nums text-foreground">{num(deposited) ?? "—"}</span>
-                    </span>
-                    <span className="flex min-w-0 items-center gap-1">
-                      <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
-                      <span className="truncate">{t("notDeposited")}</span>
-                      <span className="font-semibold tabular-nums text-foreground">{num(card.metric?.notDeposited ?? null) ?? "—"}</span>
-                    </span>
-                  </div>
-                </div>
+                <StatCard
+                  key={card.key}
+                  title={card.hint}
+                  label={card.label}
+                  value={value(num(total), !!summary)}
+                  growth={card.metric?.growthPercent ?? null}
+                  comparisonLabel={card.vsLabel}
+                  locale={locale}
+                  footer={
+                    <>
+                      <div className="h-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-success"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                        <span className="flex min-w-0 items-center gap-1">
+                          <span className="size-1.5 shrink-0 rounded-full bg-success" />
+                          <span className="truncate">{t("deposited")}</span>
+                          <span className="font-semibold tabular-nums text-foreground">{num(deposited) ?? "—"}</span>
+                        </span>
+                        <span className="flex min-w-0 items-center gap-1">
+                          <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                          <span className="truncate">{t("notDeposited")}</span>
+                          <span className="font-semibold tabular-nums text-foreground">{num(card.metric?.notDeposited ?? null) ?? "—"}</span>
+                        </span>
+                      </div>
+                    </>
+                  }
+                />
               );
             })}
           </div>
@@ -701,8 +670,8 @@ export function MarketingStats({
         </section>
 
         <section className="space-y-4">
-          <SectionTitle icon={BarChart3} tint="var(--chart-2)">{t("trendSection")}</SectionTitle>
-          <div className={cn("rounded-xl border bg-card p-4 shadow-xs transition-opacity duration-200", pending && "opacity-60")}>
+          <SectionTitle icon={BarChart3}>{t("trendSection")}</SectionTitle>
+          <div className={cn("surface p-4 transition-opacity duration-200", pending && "opacity-60")}>
             {trend ? (
               <TrendChart rows={trend.data} series={trendSeries} locale={locale} />
             ) : (
@@ -717,8 +686,8 @@ export function MarketingStats({
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="space-y-4">
-          <SectionTitle icon={UsersRound} tint="var(--success)">{t("staffSection")}</SectionTitle>
-          <div className={cn("overflow-hidden rounded-xl border bg-card shadow-xs transition-opacity duration-200", pending && "opacity-60")}>
+          <SectionTitle icon={UsersRound}>{t("staffSection")}</SectionTitle>
+          <div className={cn("surface overflow-hidden transition-opacity duration-200", pending && "opacity-60")}>
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
@@ -788,8 +757,8 @@ export function MarketingStats({
         </section>
 
         <section className="space-y-4">
-          <SectionTitle icon={HandCoins} tint="var(--chart-4)">{t("salesSection")}</SectionTitle>
-          <div className={cn("overflow-hidden rounded-xl border bg-card shadow-xs transition-opacity duration-200", pending && "opacity-60")}>
+          <SectionTitle icon={HandCoins}>{t("salesSection")}</SectionTitle>
+          <div className={cn("surface overflow-hidden transition-opacity duration-200", pending && "opacity-60")}>
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
@@ -867,8 +836,8 @@ export function MarketingStats({
         </section>
 
         <section className="space-y-4">
-          <SectionTitle icon={Sparkles} tint="var(--chart-2)">{t("servicesSection")}</SectionTitle>
-          <div className={cn("overflow-hidden rounded-xl border bg-card shadow-xs transition-opacity duration-200", pending && "opacity-60")}>
+          <SectionTitle icon={Sparkles}>{t("servicesSection")}</SectionTitle>
+          <div className={cn("surface overflow-hidden transition-opacity duration-200", pending && "opacity-60")}>
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
@@ -932,8 +901,8 @@ export function MarketingStats({
         </section>
 
         <section className="space-y-4">
-          <SectionTitle icon={PieChart} tint="var(--chart-5)">{t("sourceSection")}</SectionTitle>
-          <div className={cn("rounded-xl border bg-card p-4 shadow-xs transition-opacity duration-200", pending && "opacity-60")}>
+          <SectionTitle icon={PieChart}>{t("sourceSection")}</SectionTitle>
+          <div className={cn("surface p-4 transition-opacity duration-200", pending && "opacity-60")}>
             {sourceSlices.length === 0 ? (
               <p className="flex h-20 items-center justify-center text-sm text-muted-foreground">
                 {sources || sourcesError ? t("noSourceStats") : t("loading")}
@@ -966,35 +935,16 @@ export function MarketingStats({
   );
 }
 
-/** Ô icon tô màu nhấn — nhận màu qua CSS var nên theme sáng/tối tự khớp. */
-function IconChip({
+function SectionTitle({
   icon: Icon,
-  tint,
-  className,
-  iconClassName,
+  children,
 }: {
   icon: LucideIcon;
-  tint: string;
-  className?: string;
-  iconClassName?: string;
+  children: React.ReactNode;
 }) {
   return (
-    <span
-      className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-lg bg-(--tint)/12 text-(--tint) dark:bg-(--tint)/20",
-        className,
-      )}
-      style={{ "--tint": tint } as React.CSSProperties}
-    >
-      <Icon className={cn("size-4.5", iconClassName)} />
-    </span>
-  );
-}
-
-function SectionTitle({ icon, tint, children }: { icon: LucideIcon; tint: string; children: React.ReactNode }) {
-  return (
-    <h2 className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
-      <IconChip icon={icon} tint={tint} className="size-7 rounded-md" iconClassName="size-4" />
+    <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+      <Icon className="size-4 shrink-0 text-muted-foreground" />
       {children}
     </h2>
   );
@@ -1147,7 +1097,7 @@ function TrendChart({
         {rows.map((row) => (
           <span
             key={row.date}
-            className="min-w-0 flex-1 truncate text-center text-[11px] text-muted-foreground tabular-nums"
+            className="min-w-0 flex-1 truncate text-center text-xs text-muted-foreground tabular-nums"
           >
             {dayLabel(row.date)}
           </span>
@@ -1162,7 +1112,7 @@ function InitialAvatar({ name, index }: { name: string; index: number }) {
   const initial = (name.trim().split(/\s+/).pop() ?? "").charAt(0).toUpperCase() || "?";
   return (
     <span
-      className="flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
+      className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
       style={{ background: AVATAR_COLORS[index % AVATAR_COLORS.length] }}
     >
       {initial}
@@ -1183,10 +1133,10 @@ function GrowthBadge({
     <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
       <span
         className={cn(
-          "flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold tabular-nums",
-          growth > 0 && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-          growth < 0 && "bg-red-500/10 text-red-600 dark:text-red-400",
-          growth === 0 && "bg-muted text-muted-foreground",
+          "flex items-center gap-1 font-semibold tabular-nums",
+          growth > 0 && "text-success",
+          growth < 0 && "text-destructive",
+          growth === 0 && "text-muted-foreground",
         )}
       >
         {growth > 0 && <TrendingUp className="size-3" />}
@@ -1199,108 +1149,58 @@ function GrowthBadge({
   );
 }
 
-function MetricCard({
+/**
+ * Card số liệu DUY NHẤT của dashboard: nhãn → giá trị → biến động (→ footer).
+ * Không icon trang trí, không đổ bóng, không hover nhấc — màu chỉ nằm ở phần
+ * biến động vì đó là chỗ màu mang nghĩa.
+ */
+function StatCard({
   label,
-  icon,
-  tint,
+  title,
   value,
   share,
   error,
   growth,
   comparisonLabel,
   locale,
+  footer,
 }: {
   label: string;
-  icon: LucideIcon;
-  tint: string;
+  title?: string;
   value: React.ReactNode;
   share?: number | null;
   error?: string;
   growth: number | null;
   comparisonLabel: string;
   locale: string;
+  footer?: React.ReactNode;
 }) {
   return (
-    <div className="h-full rounded-xl border bg-card p-4 shadow-xs transition-shadow duration-200 hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-[13px] font-medium text-muted-foreground">{label}</p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight tabular-nums">{value}</span>
-            {share != null && (
-              <span className="text-xs font-semibold tabular-nums text-muted-foreground">
-                {share.toLocaleString(locale, { maximumFractionDigits: 1 })}%
-              </span>
-            )}
-          </div>
-        </div>
-        <IconChip icon={icon} tint={tint} />
+    <div className="surface flex h-full flex-col p-3" title={title}>
+      <p className="truncate text-xs font-medium text-muted-foreground">
+        {label}
+      </p>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-xl font-semibold tracking-tight tabular-nums">
+          {value}
+        </span>
+        {share != null && (
+          <span className="text-xs font-medium tabular-nums text-muted-foreground">
+            {share.toLocaleString(locale, { maximumFractionDigits: 1 })}%
+          </span>
+        )}
       </div>
       {growth != null && (
-        <div className="mt-3">
-          <GrowthBadge growth={growth} label={comparisonLabel} locale={locale} />
+        <div className="mt-1.5">
+          <GrowthBadge
+            growth={growth}
+            label={comparisonLabel}
+            locale={locale}
+          />
         </div>
       )}
+      {footer && <div className="mt-2.5">{footer}</div>}
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
   );
 }
-
-function FinancialMetricCard({
-  label,
-  icon,
-  tint,
-  value,
-  growth,
-  comparisonLabel,
-  locale,
-  loading,
-}: {
-  label: string;
-  icon: LucideIcon;
-  tint: string;
-  value: string | null;
-  growth: number | null;
-  comparisonLabel: string;
-  locale: string;
-  loading: boolean;
-}) {
-  return (
-    <div className="rounded-xl border bg-card p-4 shadow-xs transition-shadow duration-200 hover:shadow-md">
-      <div className="flex items-start gap-3">
-        <IconChip icon={icon} tint={tint} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold">{label}</p>
-          <div className="mt-1.5 truncate text-xl font-bold tracking-tight tabular-nums">
-            {loading ? (
-              <span className="inline-block h-7 w-28 animate-pulse rounded-md bg-muted" />
-            ) : (
-              (value ?? "—")
-            )}
-          </div>
-          {growth != null && (
-            <div className="mt-2 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-              <span
-                className={cn(
-                  "flex shrink-0 items-center gap-0.5 font-semibold tabular-nums",
-                  growth > 0 && "text-emerald-600 dark:text-emerald-400",
-                  growth < 0 && "text-red-600 dark:text-red-400",
-                )}
-              >
-                {growth > 0 && <TrendingUp className="size-3" />}
-                {growth < 0 && <TrendingDown className="size-3" />}
-                {growth > 0 ? "+" : ""}
-                {growth.toLocaleString(locale, {
-                  maximumFractionDigits: 1,
-                })}
-                %
-              </span>
-              <span className="truncate">{comparisonLabel}</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-

@@ -17,13 +17,13 @@ export async function AppHeader({
   const t = await getTranslations();
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b bg-card/90 px-4 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur-xl sm:px-6">
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 border-b bg-card/90 px-4 backdrop-blur-xl sm:px-6">
       <SidebarTrigger
-        className="-ml-1 size-9 rounded-lg border bg-background shadow-xs"
+        className="-ml-1 size-8 rounded-lg border bg-background"
         aria-label={t("nav.toggleSidebar")}
       />
       <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-6" />
-      <span className="hidden text-[15px] font-semibold tracking-tight sm:inline">
+      <span className="hidden text-sm font-semibold tracking-tight sm:inline">
         {t("common.appName")}
       </span>
       <div className="ml-auto flex items-center gap-1 sm:gap-2">

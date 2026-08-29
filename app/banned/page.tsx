@@ -12,7 +12,7 @@ export default async function BannedPage() {
       <div className="w-full max-w-sm space-y-6 text-center">
         <ShieldAlert className="mx-auto size-12 text-destructive" />
         <div className="space-y-1">
-          <h1 className="text-xl font-semibold">{t("bannedTitle")}</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{t("bannedTitle")}</h1>
           <p className="text-sm text-muted-foreground">{t("bannedBody")}</p>
         </div>
         <form action={signOut}>

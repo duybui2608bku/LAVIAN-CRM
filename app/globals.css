@@ -182,16 +182,8 @@
   }
 }
 
-@layer components {
-  .app-workspace {
-    background:
-      radial-gradient(circle at 85% -10%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 28rem),
-      var(--background);
-  }
-
-  .dark .app-workspace {
-    background:
-      radial-gradient(circle at 85% -10%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 30rem),
-      var(--background);
-  }
+@utility surface {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background-color: var(--card);
 }

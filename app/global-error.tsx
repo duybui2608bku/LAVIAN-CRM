@@ -11,15 +11,15 @@ export default function GlobalError({
   return (
     <html lang="vi">
       <body className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center font-sans antialiased">
-        <h2 className="text-2xl font-semibold tracking-tight">
+        <h2 className="text-xl font-semibold tracking-tight">
           Đã có lỗi xảy ra
         </h2>
-        <p className="max-w-md text-neutral-500">
+        <p className="max-w-md text-muted-foreground">
           Đã xảy ra lỗi không mong muốn. / An unexpected error occurred.
         </p>
         <button
           onClick={() => unstable_retry()}
-          className="h-8 rounded-lg border px-3 text-sm hover:bg-neutral-100"
+          className="h-8 rounded-lg border px-3 text-sm hover:bg-muted"
         >
           Thử lại / Try again
         </button>

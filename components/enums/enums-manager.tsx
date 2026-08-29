@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,6 +12,17 @@ import { createOption, deleteOption, updateOption } from "@/app/(app)/enums/acti
 import { cn } from "@/lib/utils";
 import { EnumTag } from "@/components/common/enum-tag";
 import { IconPicker } from "@/components/common/icon-picker";
+import { Page, PageHeader } from "@/components/layout/page";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,12 +61,14 @@ export function EnumsManager({
   options: EnumOption[];
 }) {
   const t = useTranslations("enums");
-  const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
+  const [deleting, setDeleting] = useState<EnumOption | null>(null);
   const [pending, start] = useTransition();
 
-  const onDelete = (o: EnumOption) => {
-    if (!window.confirm(t("deleteConfirm"))) return;
+  const confirmDelete = () => {
+    const o = deleting;
+    if (!o) return;
+    setDeleting(null);
     start(async () => {
       const res = await deleteOption(o.id, o.kind, o.value);
       if (res.error) {
@@ -64,7 +76,6 @@ export function EnumsManager({
         return;
       }
       toast.success(t("deleteOk"));
-      router.refresh();
     });
   };
 
@@ -82,26 +93,22 @@ export function EnumsManager({
       });
       if (res.error) {
         toast.error(res.error);
-        return;
       }
-      router.refresh();
     });
 
   return (
-    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t(`kind_${kind}`)}</h1>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setDialog({ kind, option: null })}
-        >
-          <Plus className="size-4" />
-          {t("add")}
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title={t(`kind_${kind}`)}
+        actions={
+          <Button onClick={() => setDialog({ kind, option: null })}>
+            <Plus className="size-4" />
+            {t("add")}
+          </Button>
+        }
+      />
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="surface overflow-hidden">
         <Table className="table-fixed">
           <TableHeader>
             <TableRow>
@@ -178,7 +185,7 @@ export function EnumsManager({
                       title={t("delete")}
                       aria-label={t("delete")}
                       disabled={pending}
-                      onClick={() => onDelete(o)}
+                      onClick={() => setDeleting(o)}
                     >
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
@@ -190,12 +197,28 @@ export function EnumsManager({
         </Table>
       </div>
 
-      <OptionDialog
-        state={dialog}
-        onClose={() => setDialog(null)}
-        onDone={() => router.refresh()}
-      />
-    </div>
+      <OptionDialog state={dialog} onClose={() => setDialog(null)} />
+
+      <AlertDialog
+        open={deleting !== null}
+        onOpenChange={(o) => !o && setDeleting(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("deleteConfirmBody", { name: deleting?.label_vi ?? "" })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Page>
   );
 }
 
@@ -214,11 +237,9 @@ type Values = z.infer<typeof schema>;
 function OptionDialog({
   state,
   onClose,
-  onDone,
 }: {
   state: DialogState;
   onClose: () => void;
-  onDone: () => void;
 }) {
   const t = useTranslations("enums");
   const locale = useLocale();
@@ -286,7 +307,6 @@ function OptionDialog({
       toast.success(editing ? t("updateOk") : t("createOk"));
       reset();
       onClose();
-      onDone();
     });
 
   return (

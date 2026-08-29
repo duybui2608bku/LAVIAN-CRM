@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +13,17 @@ import {
   deleteService,
   updateService,
 } from "@/app/(app)/services/actions";
+import { Page, PageHeader } from "@/components/layout/page";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,12 +49,14 @@ type DialogState = { service: Service | null } | null;
 
 export function ServicesManager({ services }: { services: Service[] }) {
   const t = useTranslations("services");
-  const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
+  const [deleting, setDeleting] = useState<Service | null>(null);
   const [pending, start] = useTransition();
 
-  const onDelete = (s: Service) => {
-    if (!window.confirm(t("deleteConfirm"))) return;
+  const confirmDelete = () => {
+    const s = deleting;
+    if (!s) return;
+    setDeleting(null);
     start(async () => {
       const res = await deleteService(s.id);
       if (res.error) {
@@ -52,7 +64,6 @@ export function ServicesManager({ services }: { services: Service[] }) {
         return;
       }
       toast.success(t("deleteOk"));
-      router.refresh();
     });
   };
 
@@ -68,26 +79,22 @@ export function ServicesManager({ services }: { services: Service[] }) {
       });
       if (res.error) {
         toast.error(res.error);
-        return;
       }
-      router.refresh();
     });
 
   return (
-    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setDialog({ service: null })}
-        >
-          <Plus className="size-4" />
-          {t("add")}
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title={t("title")}
+        actions={
+          <Button onClick={() => setDialog({ service: null })}>
+            <Plus className="size-4" />
+            {t("add")}
+          </Button>
+        }
+      />
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="surface overflow-hidden">
         <Table className="table-fixed">
           <TableHeader>
             <TableRow>
@@ -154,7 +161,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
                       title={t("delete")}
                       aria-label={t("delete")}
                       disabled={pending}
-                      onClick={() => onDelete(s)}
+                      onClick={() => setDeleting(s)}
                     >
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
@@ -166,12 +173,28 @@ export function ServicesManager({ services }: { services: Service[] }) {
         </Table>
       </div>
 
-      <ServiceDialog
-        state={dialog}
-        onClose={() => setDialog(null)}
-        onDone={() => router.refresh()}
-      />
-    </div>
+      <ServiceDialog state={dialog} onClose={() => setDialog(null)} />
+
+      <AlertDialog
+        open={deleting !== null}
+        onOpenChange={(o) => !o && setDeleting(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("deleteConfirmBody", { name: deleting?.name_vi ?? "" })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Page>
   );
 }
 
@@ -187,11 +210,9 @@ type Values = z.infer<typeof schema>;
 function ServiceDialog({
   state,
   onClose,
-  onDone,
 }: {
   state: DialogState;
   onClose: () => void;
-  onDone: () => void;
 }) {
   const t = useTranslations("services");
   const [pending, start] = useTransition();
@@ -234,7 +255,6 @@ function ServiceDialog({
       toast.success(editing ? t("updateOk") : t("createOk"));
       reset();
       onClose();
-      onDone();
     });
 
   return (

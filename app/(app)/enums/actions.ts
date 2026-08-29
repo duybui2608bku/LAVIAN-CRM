@@ -32,7 +32,7 @@ export async function createOption(input: {
     const supabase = await createClient();
     const { error } = await supabase.from("enum_options").insert(input);
     if (error) throw error;
-    revalidatePath("/enums");
+    revalidatePath("/enums/[kind]", "page");
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };
@@ -59,7 +59,7 @@ export async function updateOption(
       .update(input)
       .eq("id", id);
     if (error) throw error;
-    revalidatePath("/enums");
+    revalidatePath("/enums/[kind]", "page");
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };
@@ -90,7 +90,7 @@ export async function deleteOption(
 
     const { error } = await supabase.from("enum_options").delete().eq("id", id);
     if (error) throw error;
-    revalidatePath("/enums");
+    revalidatePath("/enums/[kind]", "page");
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };

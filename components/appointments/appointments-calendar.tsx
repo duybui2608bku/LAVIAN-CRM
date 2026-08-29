@@ -47,7 +47,7 @@ export function AppointmentsCalendar({
       onClick={() => onPick(a)}
       title={cardTitle(a)}
       className={cn(
-        "block overflow-hidden rounded-sm px-1 py-0.5 text-left text-[11px] leading-tight",
+        "block overflow-hidden rounded-sm px-1 py-0.5 text-left text-xs leading-tight",
         tagClass,
         className,
       )}
@@ -116,7 +116,7 @@ export function AppointmentsCalendar({
             <div>
               {hours.map((h) => (
                 <div key={h} className="relative" style={{ height: HOUR_PX }}>
-                  <span className="absolute -top-2 right-1.5 text-[11px] text-muted-foreground tabular-nums">
+                  <span className="absolute -top-2 right-1.5 text-xs text-muted-foreground tabular-nums">
                     {String(h).padStart(2, "0")}:00
                   </span>
                 </div>
@@ -215,7 +215,7 @@ export function AppointmentsCalendar({
                   <button
                     type="button"
                     onClick={() => onPickDay(key)}
-                    className="block px-1 text-[11px] text-muted-foreground hover:underline"
+                    className="block px-1 text-xs text-muted-foreground hover:underline"
                   >
                     {t("more", { count: extra })}
                   </button>
