@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-08-30 — Đổi font mặc định Geist → Inter, cỡ chữ gốc 14px
+- **Thay đổi:** `layout.tsx` thay `Geist` bằng `Inter` (`next/font/google`, subsets `latin` + `vietnamese`, biến `--font-inter`); `globals.css` map `--font-sans: var(--font-inter)`, `--font-heading: var(--font-sans)`, bỏ 2 dòng `font-family` hard-code trên `html`/`body`, đặt `html { font-size: 14px }` (mọi rem nhỏ lại ~12% → mật độ hợp CRM) và `body { font-weight: 350 }` cho nét chữ mảnh hơn.
+- **File ảnh hưởng:** `app/layout.tsx`, `app/globals.css`
+- **Còn dở / ghi chú:** Chưa chạy `next build` xác minh vì `node_modules` chưa cài trên máy hiện tại. Mono vẫn là `Geist_Mono`.
+
 ### 2026-08-29 — Đồng nhất 1 pattern design toàn app + gỡ độ trễ thao tác
 
 - **Thay đổi:** OpenSpec change `ui-consistency-perf` (proposal + 2 spec + tasks) — chưa archive.
