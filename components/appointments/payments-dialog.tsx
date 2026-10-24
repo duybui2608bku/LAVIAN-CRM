@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button, Input, Modal, Tag } from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 import {
   addPayment,
@@ -14,30 +14,13 @@ import { outstanding, paidTotal, payableTotal } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
 import { removeImage } from "@/lib/supabase/storage";
+import { toast } from "@/lib/toast";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { ConfirmAction } from "@/components/common/confirm-action";
 import { CurrencyInput } from "@/components/common/currency-input";
 import { EnumTag } from "@/components/common/enum-tag";
 import { ImageUpload } from "@/components/common/image-upload";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   PAYMENT_METHODS,
   type Appointment,
@@ -75,14 +58,14 @@ export function PaymentLine({
     ? staff.find((x) => x.id === receiverId)
     : undefined;
   return (
-    <li className="flex items-center gap-2 rounded-md border px-2.5 py-2">
+    <li className="surface flex items-center gap-2 px-2.5 py-2">
       {p.image_url && (
         <a href={p.image_url} target="_blank" rel="noreferrer">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={p.image_url}
             alt=""
-            className="size-10 rounded-md border object-cover"
+            className="size-10 rounded border border-border object-cover"
           />
         </a>
       )}
@@ -104,7 +87,7 @@ export function PaymentLine({
               {t(`method_${p.payment_method}`)}
             </span>
           )}
-          {serviceLabel && <Badge variant="secondary">{serviceLabel}</Badge>}
+          {serviceLabel && <Tag className="me-0">{serviceLabel}</Tag>}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="tabular-nums">
@@ -148,7 +131,6 @@ export function PaymentsDialog({
   const [method, setMethod] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [deleting, setDeleting] = useState<AppointmentPayment | null>(null);
 
   const resetForm = () => {
     setKind("payment");
@@ -178,19 +160,14 @@ export function PaymentsDialog({
       resetForm();
     });
 
-  const confirmDelete = () => {
-    const p = deleting;
-    if (!p) return;
-    setDeleting(null);
-    start(async () => {
-      const res = await deletePayment(p.id);
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-      if (res.image_url) void removeImage(res.image_url); // dọn ảnh best-effort
-      toast.success(t("deleteOk"));
-    });
+  const remove = async (p: AppointmentPayment) => {
+    const res = await deletePayment(p.id);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    if (res.image_url) void removeImage(res.image_url); // dọn ảnh best-effort
+    toast.success(t("deleteOk"));
   };
 
   const ledger = appointment?.ledger ?? null;
@@ -225,109 +202,92 @@ export function PaymentsDialog({
       toast.success(t("statusOk"));
     });
 
-  return (
-    <>
-      <Dialog
-        open={appointment !== null}
-        onOpenChange={(o) => {
-          if (!o) {
-            resetForm();
-            onClose();
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {t("paymentsTitle", { name: titleName })}
-            </DialogTitle>
-          </DialogHeader>
+  const close = () => {
+    resetForm();
+    onClose();
+  };
 
-          <ul className="max-h-[40vh] space-y-2 overflow-y-auto">
-            {rows.length === 0 && (
-              <li className="text-sm text-muted-foreground">
-                {t("paymentsEmpty")}
-              </li>
-            )}
-            {rows.map((p) => (
-              <PaymentLine
-                key={p.id}
-                payment={p}
-                staff={staff}
-                action={
+  return (
+    <Modal
+      open={appointment !== null}
+      onCancel={close}
+      footer={null}
+      title={t("paymentsTitle", { name: titleName })}
+    >
+      <div className="space-y-3">
+        <ul className="max-h-[40vh] space-y-2 overflow-y-auto">
+          {rows.length === 0 && (
+            <li className="text-sm text-muted-foreground">{t("paymentsEmpty")}</li>
+          )}
+          {rows.map((p) => (
+            <PaymentLine
+              key={p.id}
+              payment={p}
+              staff={staff}
+              action={
+                <ConfirmAction
+                  title={t("deletePaymentConfirm")}
+                  description={`${t(`kind_${p.kind}`)} · ${formatRupiah(p.amount)}`}
+                  okText={t("delete")}
+                  cancelText={t("cancel")}
+                  onConfirm={() => remove(p)}
+                >
                   <Button
-                    size="sm"
-                    variant="ghost"
+                    type="text"
+                    size="small"
+                    danger
                     title={t("delete")}
                     aria-label={t("delete")}
-                    disabled={pending}
-                    onClick={() => setDeleting(p)}
-                  >
-                    <Trash2 className="size-4 text-destructive" />
-                  </Button>
-                }
-              />
-            ))}
-          </ul>
+                    icon={<Trash2 className="size-4" />}
+                  />
+                </ConfirmAction>
+              }
+            />
+          ))}
+        </ul>
 
-          <div className="flex items-center justify-between gap-2">
-            {/* Tất toán / mở lại sổ — sổ đóng thì lịch mới cùng dịch vụ mở sổ mới */}
-            {ledger ? (
-              closed ? (
-                <span className="flex items-center gap-2">
-                  <EnumTag label={t("ledgerClosed")} color="#64748b" />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={pending}
-                    onClick={() => toggleClosed(false)}
-                  >
-                    {t("reopenLedger")}
-                  </Button>
-                </span>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => toggleClosed(true)}
-                >
-                  {t("closeLedger")}
+        <div className="flex items-center justify-between gap-2">
+          {/* Tất toán / mở lại sổ — sổ đóng thì lịch mới cùng dịch vụ mở sổ mới */}
+          {ledger ? (
+            closed ? (
+              <span className="flex items-center gap-2">
+                <EnumTag label={t("ledgerClosed")} color="#64748b" />
+                <Button size="small" loading={pending} onClick={() => toggleClosed(false)}>
+                  {t("reopenLedger")}
                 </Button>
-              )
+              </span>
             ) : (
-              <span className="text-xs text-muted-foreground">
-                {t("noLedgerHint")}
+              <Button size="small" loading={pending} onClick={() => toggleClosed(true)}>
+                {t("closeLedger")}
+              </Button>
+            )
+          ) : (
+            <span className="text-xs text-muted-foreground">{t("noLedgerHint")}</span>
+          )}
+          <p className="text-right text-sm tabular-nums">
+            {total != null && (
+              <>
+                {t("colTotal")}: <span className="font-medium">{formatRupiah(total)}</span>
+                {" · "}
+              </>
+            )}
+            {t("colPaid")}: <span className="font-medium">{formatRupiah(paid)}</span>
+            {owed > 0 && (
+              <span className="text-destructive">
+                {" · "}
+                {t("colOutstanding")}: {formatRupiah(owed)}
               </span>
             )}
-            <p className="text-right text-sm tabular-nums">
-              {total != null && (
-                <>
-                  {t("colTotal")}:{" "}
-                  <span className="font-medium">
-                    {formatRupiah(total)}
-                  </span>
-                  {" · "}
-                </>
-              )}
-              {t("colPaid")}:{" "}
-              <span className="font-medium">{formatRupiah(paid)}</span>
-              {owed > 0 && (
-                <span className="text-destructive">
-                  {" · "}
-                  {t("colOutstanding")}: {formatRupiah(owed)}
-                </span>
-              )}
-            </p>
-          </div>
+          </p>
+        </div>
 
-          {/* Form thêm dòng: thu thêm / hoàn tiền (cọc chỉ ghi lúc tạo lịch);
-              ẩn khi không có sổ hoặc sổ đã tất toán. */}
-          {ledger && !closed && (
-          <div className="space-y-2 rounded-md border p-2.5">
+        {/* Form thêm dòng: thu thêm / hoàn tiền (cọc chỉ ghi lúc tạo lịch);
+            ẩn khi không có sổ hoặc sổ đã tất toán. */}
+        {ledger && !closed && (
+          <div className="surface flex flex-col gap-2 p-2.5">
             <ClearableSelect
               value={kind}
-              onValueChange={(v) => {
+              onChange={(v) => {
                 const k = v as PaymentKind;
                 setKind(k);
                 setAmount((a) => cap(a, k));
@@ -337,41 +297,32 @@ export function PaymentsDialog({
                 value: k,
                 label: t(`kind_${k}`),
               }))}
-              placeholder={t("kind_payment")}
               ariaLabel={t("paymentKind")}
-              className="w-full"
             />
             <CurrencyInput
               value={amount}
-              onValueChange={(v) => setAmount(cap(v, kind))}
+              onChange={(v) => setAmount(cap(v, kind))}
               placeholder={t("currencyPlaceholder")}
-              aria-label={t("amount")}
             />
             <ClearableSelect
               value={createdBy}
-              onValueChange={setCreatedBy}
+              onChange={setCreatedBy}
               clearable={false}
               options={staff
                 .filter((user) => user.status !== "banned")
-                .map((user) => ({
-                  value: user.id,
-                  label: staffLabel(user),
-                }))}
+                .map((user) => ({ value: user.id, label: staffLabel(user) }))}
               placeholder={t("paymentUser")}
               ariaLabel={t("paymentUser")}
-              className="w-full"
             />
             <ClearableSelect
               value={method}
-              onValueChange={setMethod}
+              onChange={setMethod}
               options={PAYMENT_METHODS.map((m) => ({
                 value: m,
                 label: t(`method_${m}`),
               }))}
               placeholder={t("paymentMethod")}
-              clearLabel={t("clear")}
               ariaLabel={t("paymentMethod")}
-              className="w-full"
             />
             <Input
               value={note}
@@ -386,43 +337,18 @@ export function PaymentsDialog({
                 className="w-24"
               />
               <Button
-                size="sm"
-                disabled={pending || !createdBy || !amount || Number(amount) <= 0}
+                type="primary"
+                icon={<Plus className="size-4" />}
+                loading={pending}
+                disabled={!createdBy || !amount || Number(amount) <= 0}
                 onClick={submit}
               >
-                {pending ? (
-                  <RefreshCw className="animate-spin" />
-                ) : (
-                  <Plus className="size-4" />
-                )}
                 {t("addPayment")}
               </Button>
             </div>
           </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={deleting !== null}
-        onOpenChange={(o) => !o && setDeleting(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("deletePaymentConfirm")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleting &&
-                `${t(`kind_${deleting.kind}`)} · ${formatRupiah(deleting.amount)}`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
-              {t("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+        )}
+      </div>
+    </Modal>
   );
 }

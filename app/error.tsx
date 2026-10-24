@@ -1,8 +1,9 @@
 "use client"; // Error boundary phải là Client Component
 
 import { useEffect } from "react";
+import { Button } from "antd";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
+
 import { ErrorState } from "@/components/common/error-state";
 
 // Next 16: prop là `unstable_retry` (không còn `reset`).
@@ -21,12 +22,11 @@ export default function Error({
 
   return (
     <ErrorState
+      status="500"
       title={t("genericTitle")}
       message={error.message || t("genericBody")}
     >
-      <Button variant="outline" onClick={() => unstable_retry()}>
-        {t("retry")}
-      </Button>
+      <Button onClick={() => unstable_retry()}>{t("retry")}</Button>
     </ErrorState>
   );
 }

@@ -2,12 +2,9 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Alert, Button, Form, Input, Result } from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { Bug, CircleCheck, RefreshCw } from "lucide-react";
+import { Bug } from "lucide-react";
 
 import {
   checkLeadCustomer,
@@ -15,13 +12,10 @@ import {
   type LeadInput,
   type LeadMode,
 } from "@/app/lead-form/actions";
-import { Button } from "@/components/ui/button";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { CurrencyInput } from "@/components/common/currency-input";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { optionLabel } from "@/lib/customers";
+import { toast } from "@/lib/toast";
 import type { EnumOption } from "@/types/customer";
 
 const requestCustomer = (integrationId: string) =>
@@ -43,17 +37,27 @@ const EMPTY_META: SmaxMeta = {
   thread: null,
 };
 
-const schema = z.object({
-  full_name: z.string().trim().min(1).max(120),
-  phone: z.string().trim().regex(/^[0-9+ ().-]{8,15}$/),
-  staff_id: z.string(),
-  stage: z.string(),
-  note: z.string().trim().max(1000),
-  website: z.string(),
-  deposit_amount: z.string(),
-});
+type Values = {
+  full_name: string;
+  phone: string;
+  staff_id: string;
+  stage: string;
+  note: string;
+  website: string; // honeypot chống bot — người thật không thấy ô này
+  deposit_amount: string;
+};
 
-type Values = z.infer<typeof schema>;
+const DEFAULTS: Values = {
+  full_name: "",
+  phone: "",
+  staff_id: "",
+  stage: "new_lead",
+  note: "",
+  website: "",
+  deposit_amount: "",
+};
+
+const PHONE_RE = /^[0-9+ ().-]{8,15}$/;
 
 export function LeadForm({
   staff,
@@ -78,26 +82,7 @@ export function LeadForm({
     () => typeof window !== "undefined" && window.parent !== window,
   );
 
-  const {
-    register,
-    handleSubmit,
-    getValues,
-    setValue,
-    control,
-    reset,
-    formState: { errors },
-  } = useForm<Values>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      full_name: "",
-      phone: "",
-      staff_id: "",
-      stage: "new_lead",
-      note: "",
-      website: "",
-      deposit_amount: "",
-    },
-  });
+  const [form] = Form.useForm<Values>();
 
   const smaxIdRef = useRef<string | null>(null);
   const [smaxMeta, setSmaxMeta] = useState<SmaxMeta>(EMPTY_META);
@@ -150,15 +135,17 @@ export function LeadForm({
       }
 
       if (prev === null) {
-        if (c.name && !getValues("full_name")) {
-          setValue("full_name", String(c.name));
+        if (c.name && !form.getFieldValue("full_name")) {
+          form.setFieldValue("full_name", String(c.name));
         }
-        if (phone && !getValues("phone")) {
-          setValue("phone", String(phone));
+        if (phone && !form.getFieldValue("phone")) {
+          form.setFieldValue("phone", String(phone));
         }
       } else if (id !== prev) {
-        setValue("full_name", c.name ? String(c.name) : "");
-        setValue("phone", phone ? String(phone) : "");
+        form.setFieldsValue({
+          full_name: c.name ? String(c.name) : "",
+          phone: phone ? String(phone) : "",
+        });
       }
     };
 
@@ -170,10 +157,11 @@ export function LeadForm({
       clearInterval(timer);
       window.removeEventListener("message", onMessage);
     };
-  }, [embedded, getValues, setValue, integrationId]);
+  }, [embedded, form, integrationId]);
 
-  const onSubmit = (mode: LeadMode) => (values: Values) =>
-    start(async () => {
+  const onSubmit = (mode: LeadMode) => () =>
+    void form.validateFields().then((raw) => start(async () => {
+      const values = { ...raw, full_name: raw.full_name.trim(), phone: raw.phone.trim() };
       const amount = values.deposit_amount === ""
         ? null
         : Number(values.deposit_amount);
@@ -192,185 +180,117 @@ export function LeadForm({
         return;
       }
       setDone(true);
-    });
+    }));
 
   if (done) {
     return (
-      <div className="flex flex-col items-center gap-4 py-4 text-center">
-        <div className="rounded-full bg-success/10 p-4 text-success">
-          <CircleCheck className="size-16" strokeWidth={1.75} />
-        </div>
-        <div className="space-y-1">
-          <p className="text-lg font-semibold">{t("successTitle")}</p>
-          <p className="text-sm text-muted-foreground">{t("successBody")}</p>
-        </div>
-        <Button
-          onClick={() => {
-            reset();
-            setDone(false);
-            smaxIdRef.current = null;
-            if (embedded) requestCustomer(integrationId);
-          }}
-        >
-          {t("again")}
-        </Button>
-      </div>
+      <Result
+        status="success"
+        title={t("successTitle")}
+        subTitle={t("successBody")}
+        extra={
+          <Button
+            type="primary"
+            onClick={() => {
+              form.resetFields();
+              setDone(false);
+              smaxIdRef.current = null;
+              if (embedded) requestCustomer(integrationId);
+            }}
+          >
+            {t("again")}
+          </Button>
+        }
+      />
     );
   }
 
   return (
-    <form onSubmit={(e) => e.preventDefault()} className="grid gap-3">
+    <Form form={form} layout="vertical" requiredMark={false} initialValues={DEFAULTS}>
       {existing && (
-        <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
-          {t("existingCustomer")}
-        </p>
+        <Alert type="warning" showIcon className="mb-4" title={t("existingCustomer")} />
       )}
-      <div className="space-y-1.5">
-        <Label htmlFor="full_name">{t("name")}</Label>
-        <Input id="full_name" autoFocus {...register("full_name")} />
-        {errors.full_name && (
-          <p className="text-xs text-destructive">{t("nameRequired")}</p>
-        )}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="phone">{t("phone")}</Label>
-        <Input
-          id="phone"
-          type="tel"
-          autoComplete="tel"
-          {...register("phone")}
-        />
-        {errors.phone && (
-          <p className="text-xs text-destructive">{t("phoneInvalid")}</p>
-        )}
-      </div>
-
+      <Form.Item
+        name="full_name"
+        label={t("name")}
+        rules={[{ required: true, whitespace: true, max: 120, message: t("nameRequired") }]}
+      >
+        <Input autoFocus />
+      </Form.Item>
+      <Form.Item
+        name="phone"
+        label={t("phone")}
+        rules={[{ required: true, pattern: PHONE_RE, message: t("phoneInvalid") }]}
+        normalize={(v: string) => v.trimStart()}
+      >
+        <Input type="tel" autoComplete="tel" />
+      </Form.Item>
       {staff.length > 0 && (
-        <div className="space-y-1.5">
-          <Label>{t("staff")}</Label>
-          <Controller
-            control={control}
-            name="staff_id"
-            render={({ field }) => (
-              <ClearableSelect
-                value={field.value}
-                onValueChange={field.onChange}
-                options={staff.map((s) => ({ value: s.id, label: s.user_name }))}
-                placeholder={t("noteOptional")}
-                ariaLabel={t("staff")}
-              />
-            )}
+        <Form.Item name="staff_id" label={t("staff")}>
+          <ClearableSelect
+            options={staff.map((s) => ({ value: s.id, label: s.user_name }))}
+            placeholder={t("noteOptional")}
+            ariaLabel={t("staff")}
           />
-        </div>
+        </Form.Item>
       )}
-
       {stages.length > 0 && (
-        <div className="space-y-1.5">
-          <Label>{t("stage")}</Label>
-          <Controller
-            control={control}
-            name="stage"
-            render={({ field }) => (
-              <ClearableSelect
-                value={field.value}
-                onValueChange={field.onChange}
-                clearable={false}
-                options={stages.map((o) => ({
-                  value: o.value,
-                  label: optionLabel(o, locale),
-                }))}
-                ariaLabel={t("stage")}
-              />
-            )}
+        <Form.Item name="stage" label={t("stage")}>
+          <ClearableSelect
+            clearable={false}
+            options={stages.map((o) => ({ value: o.value, label: optionLabel(o, locale) }))}
+            ariaLabel={t("stage")}
           />
-        </div>
+        </Form.Item>
       )}
-
-      <div className="space-y-1.5">
-        <Label htmlFor="deposit_amount">{t("deposit")}</Label>
-        <Controller
-          control={control}
-          name="deposit_amount"
-          render={({ field }) => (
-            <CurrencyInput
-              id="deposit_amount"
-              value={field.value}
-              onValueChange={field.onChange}
-              placeholder={t("currencyPlaceholder")}
-              aria-label={t("deposit")}
-            />
-          )}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="note">{t("note")}</Label>
-        <Textarea
-          id="note"
-          rows={3}
-          placeholder={t("noteOptional")}
-          {...register("note")}
-        />
-        {errors.note && (
-          <p className="text-xs text-destructive">{t("noteTooLong")}</p>
-        )}
-      </div>
-
+      <Form.Item name="deposit_amount" label={t("deposit")}>
+        <CurrencyInput placeholder={t("currencyPlaceholder")} />
+      </Form.Item>
+      <Form.Item
+        name="note"
+        label={t("note")}
+        rules={[{ max: 1000, message: t("noteTooLong") }]}
+      >
+        <Input.TextArea rows={3} placeholder={t("noteOptional")} />
+      </Form.Item>
       {embedded && showLog && (
-        <div className="space-y-1.5">
-          <Label htmlFor="event_log">{t("log")}</Label>
-          <Textarea
-            id="event_log"
-            rows={4}
-            readOnly
-            value={eventLog}
-          />
-        </div>
+        <Form.Item label={t("log")}>
+          <Input.TextArea rows={4} readOnly value={eventLog} />
+        </Form.Item>
       )}
-
-      <input
-        type="text"
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-        className="hidden"
-        {...register("website")}
-      />
+      <Form.Item name="website" hidden>
+        <Input tabIndex={-1} autoComplete="off" aria-hidden="true" />
+      </Form.Item>
 
       <div className="flex gap-2">
         {embedded && (
           <Button
-            type="button"
-            variant="outline"
-            size="icon"
             aria-label={t("log")}
+            icon={<Bug className="size-4" />}
             onClick={() => setShowLog((v) => !v)}
-          >
-            <Bug />
-          </Button>
+          />
         )}
         <Button
-          type="button"
+          type="primary"
           className="flex-1"
-          disabled={pending || checkingCustomer || existing}
-          onClick={handleSubmit(onSubmit("create"))}
+          loading={pending}
+          disabled={checkingCustomer || existing}
+          onClick={onSubmit("create")}
         >
-          {pending && <RefreshCw className="animate-spin" />}
           {t("submit")}
         </Button>
         {existing && (
           <Button
-            type="button"
+            type="primary"
             className="flex-1"
-            disabled={pending || checkingCustomer}
-            onClick={handleSubmit(onSubmit("update"))}
+            loading={pending}
+            disabled={checkingCustomer}
+            onClick={onSubmit("update")}
           >
-            {pending && <RefreshCw className="animate-spin" />}
             {t("update")}
           </Button>
         )}
       </div>
-    </form>
+    </Form>
   );
 }

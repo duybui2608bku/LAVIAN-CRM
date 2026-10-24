@@ -1,24 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useEffect, useTransition } from "react";
+import { Button, Checkbox, Form, Input } from "antd";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { Eye, EyeOff, RefreshCw } from "lucide-react";
 
 import { signIn } from "@/lib/actions/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { toast } from "@/lib/toast";
 
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-  remember: z.boolean(),
-});
-type Values = z.infer<typeof schema>;
+type Values = { email: string; password: string; remember: boolean };
 
 // ponytail: "ghi nhớ đăng nhập" = lưu email+mật khẩu plaintext trong
 // localStorage để prefill — máy dùng chung thì bỏ tick lúc đăng nhập.
@@ -28,25 +17,22 @@ function savedCreds(): { email: string; password: string } | null {
   try {
     return JSON.parse(localStorage.getItem(CREDS_KEY) ?? "null");
   } catch {
-    return null; // SSR (không có localStorage) hoặc JSON hỏng
+    return null; // JSON hỏng
   }
 }
 
 export function LoginForm() {
   const t = useTranslations("auth");
+  const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
-  const [showPassword, setShowPassword] = useState(false);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<Values>({
-    resolver: zodResolver(schema),
-    // RHF đổ defaultValues vào input qua ref sau mount → không lệch hydration.
-    defaultValues: { remember: true, email: "", password: "", ...savedCreds() },
-  });
 
-  const onSubmit = (values: Values) =>
+  // Prefill sau mount (localStorage không có ở SSR) → không lệch hydration.
+  useEffect(() => {
+    const creds = savedCreds();
+    if (creds) form.setFieldsValue(creds);
+  }, [form]);
+
+  const onFinish = (values: Values) =>
     start(async () => {
       // Lưu TRƯỚC khi gọi signIn — thành công sẽ redirect ngay.
       if (values.remember)
@@ -60,63 +46,33 @@ export function LoginForm() {
     });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <div className="space-y-2">
-        <Label htmlFor="email">{t("email")}</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          autoFocus
-          {...register("email")}
-        />
-        {errors.email && (
-          <p className="text-xs text-destructive">{t("emailInvalid")}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">{t("password")}</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
-            className="pr-10"
-            {...register("password")}
-          />
-          <button
-            type="button"
-            tabIndex={-1}
-            onClick={() => setShowPassword((s) => !s)}
-            aria-label={showPassword ? t("hidePassword") : t("showPassword")}
-            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
-          >
-            {showPassword ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )}
-          </button>
-        </div>
-        {errors.password && (
-          <p className="text-xs text-destructive">{t("passwordRequired")}</p>
-        )}
-      </div>
-
-      <label className="flex w-fit items-center gap-2.5 text-sm font-medium">
-        <input
-          type="checkbox"
-          className="size-4 accent-primary"
-          {...register("remember")}
-        />
-        {t("rememberMe")}
-      </label>
-
-      <Button type="submit" size="lg" className="w-full" disabled={pending}>
-        {pending && <RefreshCw className="animate-spin" />}
+    <Form
+      form={form}
+      layout="vertical"
+      requiredMark={false}
+      initialValues={{ remember: true }}
+      onFinish={onFinish}
+    >
+      <Form.Item
+        name="email"
+        label={t("email")}
+        rules={[{ required: true, type: "email", message: t("emailInvalid") }]}
+      >
+        <Input type="email" autoComplete="email" autoFocus size="large" />
+      </Form.Item>
+      <Form.Item
+        name="password"
+        label={t("password")}
+        rules={[{ required: true, message: t("passwordRequired") }]}
+      >
+        <Input.Password autoComplete="current-password" size="large" />
+      </Form.Item>
+      <Form.Item name="remember" valuePropName="checked">
+        <Checkbox>{t("rememberMe")}</Checkbox>
+      </Form.Item>
+      <Button type="primary" htmlType="submit" size="large" block loading={pending}>
         {t("signIn")}
       </Button>
-    </form>
+    </Form>
   );
 }

@@ -1,75 +1,54 @@
 "use client";
 
-import { X } from "lucide-react";
+import { Select } from "antd";
 
-import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-// label là ReactNode để option có thể kèm avatar/icon (ItemText của Radix
-// nhận node và tự phản chiếu lên trigger khi được chọn).
+// label là ReactNode để option có thể kèm avatar/icon.
 export type SelectOption = { value: string; label: React.ReactNode };
 
 /**
- * Select shadcn kèm nút xoá giá trị.
- * value="" = chưa chọn (hiện placeholder). Bấm X gọi onValueChange("").
- * Bề rộng theo ngữ cảnh cha (flex → fit nội dung, grid → giãn hết ô).
+ * Select antd quy ước chuỗi rỗng = chưa chọn (khớp cột nullable lưu "" ở form).
+ * Bấm X (allowClear) gọi onChange(""). Dùng được trực tiếp trong Form.Item.
  */
 export function ClearableSelect({
   value,
-  onValueChange,
+  onChange,
   options,
   placeholder,
   clearable = true,
-  clearLabel,
   ariaLabel,
   className,
+  disabled,
+  size,
+  variant,
+  searchable,
 }: {
-  value: string;
-  onValueChange: (value: string) => void;
+  value?: string | null;
+  onChange?: (value: string) => void;
   options: SelectOption[];
   placeholder?: string;
   clearable?: boolean;
-  clearLabel?: string;
   ariaLabel?: string;
   className?: string;
+  disabled?: boolean;
+  size?: "small" | "middle";
+  variant?: "outlined" | "borderless" | "filled";
+  /** Gõ để lọc — chỉ dùng khi label là chuỗi. */
+  searchable?: boolean;
 }) {
-  const showClear = clearable && !!value;
-
   return (
-    <div className={cn("relative", className)}>
-      <Select value={value} onValueChange={onValueChange}>
-        {/* Ẩn chevron khi có nút X để hai icon không chồng nhau. */}
-        <SelectTrigger
-          aria-label={ariaLabel}
-          className={cn("w-full", showClear && "[&>svg]:opacity-0")}
-        >
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {showClear && (
-        <button
-          type="button"
-          title={clearLabel}
-          aria-label={clearLabel}
-          onClick={() => onValueChange("")}
-          className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
-        >
-          <X className="size-4" />
-        </button>
-      )}
-    </div>
+    <Select
+      value={value || undefined}
+      onChange={(v) => onChange?.(v ?? "")}
+      options={options}
+      placeholder={placeholder}
+      allowClear={clearable}
+      aria-label={ariaLabel}
+      className={className}
+      disabled={disabled}
+      size={size}
+      variant={variant}
+      popupMatchSelectWidth={false}
+      showSearch={searchable ? { optionFilterProp: "label" } : undefined}
+    />
   );
 }

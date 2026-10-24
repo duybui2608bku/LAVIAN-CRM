@@ -1,12 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Button, Drawer, Form, Input, InputNumber, Tag } from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { RefreshCw, Wallet } from "lucide-react";
+import { Wallet } from "lucide-react";
 
 import {
   createAppointment,
@@ -16,22 +13,11 @@ import { ledgerPaid, paidTotal } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { optionLabel, serviceName } from "@/lib/customers";
 import { formatISODate } from "@/lib/date";
+import { toast } from "@/lib/toast";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { CurrencyInput } from "@/components/common/currency-input";
-import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/common/date-picker";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { DatePicker, TimePicker } from "@/components/common/date-picker";
 import type {
   Appointment,
   AppointmentInput,
@@ -53,21 +39,20 @@ export type CustomerRef = {
   service_ids?: string[];
 };
 
-const schema = z.object({
-  customer_id: z.string().min(1),
-  scheduled_date: z.string().optional(), // "" = chờ xếp lịch
-  scheduled_time: z.string().optional(),
-  duration_minutes: z.string().optional(),
-  technician_id: z.string().optional(),
-  source: z.string().optional(),
-  total_amount: z.string().optional(), // tổng giá liệu trình — ghi vào SỔ chung
-  deposit_amount: z.string().optional(), // chỉ dùng khi TẠO — thành dòng sổ deposit
-  payment_method: z.string().optional(),
-  booking_note: z.string().optional(),
-  internal_note: z.string().optional(),
-  service_id: z.string().min(1), // bắt buộc đúng 1 dịch vụ
-});
-type Values = z.infer<typeof schema>;
+type Values = {
+  customer_id: string;
+  scheduled_date?: string; // "" = chờ xếp lịch
+  scheduled_time?: string;
+  duration_minutes?: number | null;
+  technician_id?: string;
+  source?: string;
+  total_amount?: string; // tổng giá liệu trình — ghi vào SỔ chung
+  deposit_amount?: string; // chỉ dùng khi TẠO — thành dòng sổ deposit
+  payment_method?: string;
+  booking_note?: string;
+  internal_note?: string;
+  service_id: string; // bắt buộc đúng 1 dịch vụ
+};
 
 const localTime = (iso: string) => {
   const d = new Date(iso);
@@ -109,6 +94,7 @@ export function AppointmentDialog({
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
+  const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
 
   // Prefill thông tin ban đầu của khách (nguồn/dịch vụ/kỹ thuật viên) CHỈ khi tạo
@@ -135,60 +121,54 @@ export function AppointmentDialog({
     editing?.service_ids?.[0] ?? lock?.service_ids?.[0] ?? "";
   const lockLedger = lock ? openLedger(lock.id, initialServiceId) : null;
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors },
-  } = useForm<Values>({
-    resolver: zodResolver(schema),
-    values: {
-      customer_id: editing?.customer_id ?? customerLock?.id ?? "",
-      scheduled_date: editing?.scheduled_at
-        ? formatISODate(new Date(editing.scheduled_at))
-        : "",
-      scheduled_time: editing?.scheduled_at
-        ? localTime(editing.scheduled_at)
-        : "09:00",
-      duration_minutes: String(editing?.duration_minutes ?? 60),
-      technician_id:
-        editing?.technician_id ?? lock?.technician_id ?? "",
-      source: editing?.source ?? lock?.source ?? "",
-      total_amount:
-        (editing ? editing.ledger?.total_amount : lockLedger?.total_amount)
-          ?.toString() ?? "",
-      deposit_amount: "0",
-      payment_method: editing?.payment_method ?? "",
-      booking_note: editing?.booking_note ?? "",
-      internal_note: editing?.internal_note ?? "",
-      service_id: initialServiceId,
-    },
-  });
+  const initialValues: Values = {
+    customer_id: editing?.customer_id ?? customerLock?.id ?? "",
+    scheduled_date: editing?.scheduled_at
+      ? formatISODate(new Date(editing.scheduled_at))
+      : "",
+    scheduled_time: editing?.scheduled_at ? localTime(editing.scheduled_at) : "09:00",
+    duration_minutes: editing?.duration_minutes ?? 60,
+    technician_id: editing?.technician_id ?? lock?.technician_id ?? "",
+    source: editing?.source ?? lock?.source ?? "",
+    total_amount:
+      (editing ? editing.ledger?.total_amount : lockLedger?.total_amount)?.toString() ?? "",
+    deposit_amount: "0",
+    payment_method: editing?.payment_method ?? "",
+    booking_note: editing?.booking_note ?? "",
+    internal_note: editing?.internal_note ?? "",
+    service_id: initialServiceId,
+  };
 
   // Sổ đang khớp lựa chọn hiện tại (để hiện "Sổ hiện có — đã thu X").
-  const wCustomerId = watch("customer_id");
-  const wServiceId = watch("service_id");
-  const liveLedger = editing
-    ? editing.ledger
-    : openLedger(wCustomerId, wServiceId);
+  const wCustomerId = Form.useWatch("customer_id", form) ?? initialValues.customer_id;
+  const wServiceId = Form.useWatch("service_id", form) ?? initialValues.service_id;
+  const liveLedger = editing ? editing.ledger : openLedger(wCustomerId, wServiceId);
 
   // Đổi khách/dịch vụ khi TẠO MỚI → nạp Tổng giá theo sổ mở của cặp mới
   // (không có sổ → để trống, tránh mang giá của cặp cũ sang).
   const syncTotalFromLedger = (customerId: string, serviceId: string) => {
     if (editing) return;
     const l = openLedger(customerId, serviceId);
-    setValue("total_amount", l?.total_amount?.toString() ?? "");
+    form.setFieldValue("total_amount", l?.total_amount?.toString() ?? "");
+  };
+
+  // Tạo mới: nạp thông tin ban đầu theo khách vừa chọn
+  // (khách chưa có → để trống, không giữ của khách trước).
+  const onCustomerChange = (id: string) => {
+    const c = customers.find((x) => x.id === id);
+    if (editing || !c) return;
+    const svc = (c.service_ids ?? []).find((sid) => serviceOpts.some((o) => o.value === sid));
+    form.setFieldsValue({
+      source: c.source ?? "",
+      technician_id: c.technician_id ?? "",
+      service_id: svc ?? "",
+    });
+    syncTotalFromLedger(id, svc ?? "");
   };
 
   // Option nguồn: active + giá trị hiện tại (kể cả inactive) — pattern customers.
   const sourceOptions = options
-    .filter(
-      (o) =>
-        o.kind === "source" && (o.is_active || o.value === editing?.source),
-    )
+    .filter((o) => o.kind === "source" && (o.is_active || o.value === editing?.source))
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
   // Bao luôn dịch vụ inactive đang gắn (của lịch đang sửa / khách prefill).
@@ -197,8 +177,7 @@ export function AppointmentDialog({
     .filter((s) => s.is_active || presetServiceIds.includes(s.id))
     .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
   const isReturning = (id: string) => !!id && !!returningIds?.has(id);
-  const currentTechnicianId =
-    editing?.technician_id ?? lock?.technician_id ?? null;
+  const currentTechnicianId = editing?.technician_id ?? lock?.technician_id ?? null;
   const technicianOptions = staff
     .filter(
       (s) =>
@@ -215,10 +194,9 @@ export function AppointmentDialog({
     label: t(`method_${m}`),
   }));
 
-  const lockedName =
-    customerLock?.full_name ?? editing?.customer?.full_name ?? null;
+  const lockedName = customerLock?.full_name ?? editing?.customer?.full_name ?? null;
 
-  const onSubmit = (v: Values) =>
+  const onFinish = (v: Values) =>
     start(async () => {
       const num = (s?: string) => (s == null || s === "" ? null : Number(s));
       const input: AppointmentInput = {
@@ -226,11 +204,9 @@ export function AppointmentDialog({
         technician_id: v.technician_id || null,
         // Không chọn ngày = chờ xếp lịch; có ngày thiếu giờ mặc định 09:00.
         scheduled_at: v.scheduled_date
-          ? new Date(
-              `${v.scheduled_date}T${v.scheduled_time || "09:00"}`,
-            ).toISOString()
+          ? new Date(`${v.scheduled_date}T${v.scheduled_time || "09:00"}`).toISOString()
           : null,
-        duration_minutes: num(v.duration_minutes) ?? 60,
+        duration_minutes: v.duration_minutes ?? 60,
         source: v.source || null,
         payment_method: (v.payment_method || null) as PaymentMethod | null,
         total_amount: num(v.total_amount), // ghi vào SỔ (khách, dịch vụ)
@@ -248,264 +224,138 @@ export function AppointmentDialog({
         return;
       }
       toast.success(editing ? t("updateOk") : t("createOk"));
-      reset();
       onClose();
     });
 
+  const required = [{ required: true, message: t("required") }];
+
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full gap-0 sm:max-w-xl">
-        <SheetHeader>
-          <SheetTitle>
-            {editing ? t("editTitle") : t("createTitle")}
-          </SheetTitle>
-        </SheetHeader>
-        {/* Footer nằm ngoài form (nút submit nối qua form id) — thân cuộn, footer dính đáy */}
-        <form
-          id="appointment-form"
-          onSubmit={handleSubmit(onSubmit)}
-          className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-4"
-        >
-          <Field
-            label={t("customer")}
-            error={errors.customer_id && t("required")}
-          >
-            <div className="flex items-center gap-2">
-              {lockedName ? (
-                <p className="flex min-h-8 flex-1 items-center rounded-lg border border-input bg-muted/30 px-2.5 text-sm">
-                  {lockedName}
-                </p>
-              ) : (
-                <Controller
-                  control={control}
-                  name="customer_id"
-                  render={({ field }) => (
-                    <ClearableSelect
-                      value={field.value}
-                      onValueChange={(v) => {
-                        field.onChange(v);
-                        // Tạo mới: nạp thông tin ban đầu theo khách vừa chọn
-                        // (khách chưa có → để trống, không giữ của khách trước).
-                        const c = customers.find((x) => x.id === v);
-                        if (!editing && c) {
-                          setValue("source", c.source ?? "");
-                          setValue("technician_id", c.technician_id ?? "");
-                          const svc = (c.service_ids ?? []).filter((id) =>
-                            serviceOpts.some((o) => o.value === id),
-                          )[0];
-                          setValue("service_id", svc ?? "");
-                          syncTotalFromLedger(v, svc ?? "");
-                        }
-                      }}
-                      clearable={false}
-                      options={customerOptions}
-                      placeholder={t("pickCustomer")}
-                      ariaLabel={t("customer")}
-                      className="flex-1"
-                    />
-                  )}
-                />
-              )}
-              {isReturning(wCustomerId) && (
-                <Badge variant="info">{t("returningCustomer")}</Badge>
-              )}
-            </div>
-          </Field>
-
-          <div className="grid gap-3">
-            <Field label={t("date")}>
-              <Controller
-                control={control}
-                name="scheduled_date"
-                render={({ field }) => (
-                  <DatePicker
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                    placeholder={t("waitingDate")}
-                  />
-                )}
-              />
-            </Field>
-            <Field label={t("time")}>
-              <Input type="time" {...register("scheduled_time")} />
-            </Field>
-          </div>
-
-          <div className="grid gap-3">
-            <Field label={t("duration")}>
-              <Input type="number" min={0} {...register("duration_minutes")} />
-            </Field>
-            <Field label={t("colTechnician")}>
-              <Controller
-                control={control}
-                name="technician_id"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                    options={technicianOptions}
-                    placeholder={t("noneOption")}
-                    clearLabel={t("clear")}
-                    ariaLabel={t("colTechnician")}
-                  />
-                )}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-3">
-            <Field label={t("source")}>
-              <Controller
-                control={control}
-                name="source"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                    options={sourceOptions}
-                    placeholder={t("noneOption")}
-                    clearLabel={t("clear")}
-                    ariaLabel={t("source")}
-                  />
-                )}
-              />
-            </Field>
-            <Field
-              label={t("colServices")}
-              error={errors.service_id && t("required")}
-            >
-              <Controller
-                control={control}
-                name="service_id"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value}
-                    onValueChange={(v) => {
-                      field.onChange(v);
-                      syncTotalFromLedger(wCustomerId, v);
-                    }}
-                    clearable={false}
-                    options={serviceOpts}
-                    placeholder={t("pickServices")}
-                    ariaLabel={t("colServices")}
-                    className="w-full"
-                  />
-                )}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-3">
-            <Field label={t("totalAmount")}>
-              <Controller
-                control={control}
-                name="total_amount"
-                render={({ field }) => (
-                  <CurrencyInput
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                    placeholder={t("currencyPlaceholder")}
-                    aria-label={t("totalAmount")}
-                  />
-                )}
-              />
-              {/* Khách cũ cùng dịch vụ → nối SỔ hiện có (tiền dùng chung) */}
-              {!editing && liveLedger && (
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {t("ledgerHint", { paid: formatRupiah(ledgerPaid(liveLedger)) })}
-                </p>
-              )}
-            </Field>
-            {editing ? (
-              // Sửa: tiền đã thu nằm trong sổ thanh toán — chỉ xem + mở dialog.
-              <Field label={t("colPaid")}>
-                <div className="flex items-center gap-2">
-                  <p className="flex min-h-8 flex-1 items-center rounded-lg border border-input bg-muted/30 px-2.5 text-sm tabular-nums">
-                    {formatRupiah(paidTotal(editing))}
-                  </p>
-                  {onOpenPayments && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => onOpenPayments(editing.id)}
-                    >
-                      <Wallet className="size-4" />
-                      {t("payments")}
-                    </Button>
-                  )}
-                </div>
-              </Field>
-            ) : (
-              <Field label={t("deposit")}>
-                <Controller
-                  control={control}
-                  name="deposit_amount"
-                  render={({ field }) => (
-                    <CurrencyInput
-                      value={field.value ?? ""}
-                      onValueChange={field.onChange}
-                      placeholder={t("currencyPlaceholder")}
-                      aria-label={t("deposit")}
-                    />
-                  )}
-                />
-              </Field>
-            )}
-          </div>
-
-          <Field label={t("paymentMethod")}>
-            <Controller
-              control={control}
-              name="payment_method"
-              render={({ field }) => (
-                <ClearableSelect
-                  value={field.value ?? ""}
-                  onValueChange={field.onChange}
-                  options={methodOptions}
-                  placeholder={t("noneOption")}
-                  clearLabel={t("clear")}
-                  ariaLabel={t("paymentMethod")}
-                />
-              )}
-            />
-          </Field>
-
-          <Field label={t("bookingNote")}>
-            <Textarea rows={2} {...register("booking_note")} />
-          </Field>
-          <Field label={t("internalNote")}>
-            <Textarea rows={2} {...register("internal_note")} />
-          </Field>
-
-        </form>
-        <SheetFooter className="flex-row justify-end border-t">
-          <Button type="button" variant="outline" onClick={onClose}>
-            {t("cancel")}
-          </Button>
-          <Button type="submit" form="appointment-form" disabled={pending}>
-            {pending && <RefreshCw className="animate-spin" />}
+    <Drawer
+      open={open}
+      onClose={onClose}
+      size={560}
+      destroyOnHidden
+      title={editing ? t("editTitle") : t("createTitle")}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button onClick={onClose}>{t("cancel")}</Button>
+          <Button type="primary" loading={pending} onClick={() => form.submit()}>
             {editing ? t("save") : t("createSubmit")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string | false;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+        </div>
+      }
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={initialValues}
+        onFinish={onFinish}
+      >
+        <Form.Item
+          label={
+            <span className="flex items-center gap-2">
+              {t("customer")}
+              {isReturning(wCustomerId) && (
+                <Tag color="blue" className="me-0">
+                  {t("returningCustomer")}
+                </Tag>
+              )}
+            </span>
+          }
+        >
+          {lockedName && <Input value={lockedName} disabled />}
+          {/* Khách bị khóa vẫn giữ field (ẩn) để onFinish có customer_id. */}
+          <Form.Item name="customer_id" rules={required} hidden={!!lockedName} noStyle>
+            <ClearableSelect
+              clearable={false}
+              searchable
+              options={customerOptions}
+              placeholder={t("pickCustomer")}
+              ariaLabel={t("customer")}
+              onChange={onCustomerChange}
+            />
+          </Form.Item>
+        </Form.Item>
+        <Form.Item name="scheduled_date" label={t("date")}>
+          <DatePicker placeholder={t("waitingDate")} />
+        </Form.Item>
+        <Form.Item name="scheduled_time" label={t("time")}>
+          <TimePicker />
+        </Form.Item>
+        <Form.Item name="duration_minutes" label={t("duration")}>
+          <InputNumber min={0} className="w-full" />
+        </Form.Item>
+        <Form.Item name="technician_id" label={t("colTechnician")}>
+          <ClearableSelect
+            options={technicianOptions}
+            placeholder={t("noneOption")}
+            ariaLabel={t("colTechnician")}
+          />
+        </Form.Item>
+        <Form.Item name="source" label={t("source")}>
+          <ClearableSelect
+            options={sourceOptions}
+            placeholder={t("noneOption")}
+            ariaLabel={t("source")}
+          />
+        </Form.Item>
+        <Form.Item name="service_id" label={t("colServices")} rules={required}>
+          <ClearableSelect
+            clearable={false}
+            options={serviceOpts}
+            placeholder={t("pickServices")}
+            ariaLabel={t("colServices")}
+            // Form.Item tự ghi giá trị; đây chỉ chạy thêm hiệu ứng phụ.
+            onChange={(v) => syncTotalFromLedger(wCustomerId, v)}
+          />
+        </Form.Item>
+        <Form.Item
+          name="total_amount"
+          label={t("totalAmount")}
+          // Khách cũ cùng dịch vụ → nối SỔ hiện có (tiền dùng chung)
+          extra={
+            !editing && liveLedger
+              ? t("ledgerHint", { paid: formatRupiah(ledgerPaid(liveLedger)) })
+              : undefined
+          }
+        >
+          <CurrencyInput placeholder={t("currencyPlaceholder")} />
+        </Form.Item>
+        {editing ? (
+          // Sửa: tiền đã thu nằm trong sổ thanh toán — chỉ xem + mở dialog.
+          <Form.Item label={t("colPaid")}>
+            <div className="flex items-center gap-2">
+              <Input value={formatRupiah(paidTotal(editing))} disabled />
+              {onOpenPayments && (
+                <Button
+                  icon={<Wallet className="size-4" />}
+                  onClick={() => onOpenPayments(editing.id)}
+                >
+                  {t("payments")}
+                </Button>
+              )}
+            </div>
+          </Form.Item>
+        ) : (
+          <Form.Item name="deposit_amount" label={t("deposit")}>
+            <CurrencyInput placeholder={t("currencyPlaceholder")} />
+          </Form.Item>
+        )}
+        <Form.Item name="payment_method" label={t("paymentMethod")}>
+          <ClearableSelect
+            options={methodOptions}
+            placeholder={t("noneOption")}
+            ariaLabel={t("paymentMethod")}
+          />
+        </Form.Item>
+        <Form.Item name="booking_note" label={t("bookingNote")}>
+          <Input.TextArea rows={2} />
+        </Form.Item>
+        <Form.Item name="internal_note" label={t("internalNote")} className="mb-0">
+          <Input.TextArea rows={2} />
+        </Form.Item>
+      </Form>
+    </Drawer>
   );
 }

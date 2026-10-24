@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ImagePlus, Loader2, X } from "lucide-react";
-import { toast } from "sonner";
+import { Button, Spin, Upload } from "antd";
+import { ImagePlus, X } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { normalizeError } from "@/lib/errors";
 import { removeImage } from "@/lib/supabase/storage";
+import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 /** Upload qua /api/upload (proxy cfig.ibytecdn.org phía server), trả public URL. */
 async function uploadImage(file: File): Promise<string> {
@@ -30,7 +31,7 @@ export interface ImageUploadProps {
   /** URL ảnh hiện tại (public URL). */
   value?: string | null;
   /** Gọi khi upload xong (url) hoặc xóa (null). */
-  onChange: (url: string | null) => void;
+  onChange?: (url: string | null) => void;
   maxSizeMb?: number;
   disabled?: boolean;
   className?: string;
@@ -38,6 +39,7 @@ export interface ImageUploadProps {
   label?: string;
 }
 
+/** Ô vuông upload 1 ảnh (antd Upload, tự gửi file — không dùng action mặc định). */
 export function ImageUpload({
   value,
   onChange,
@@ -48,8 +50,7 @@ export function ImageUpload({
 }: ImageUploadProps) {
   const [busy, setBusy] = useState(false);
 
-  const onFile = async (file: File | undefined, input: HTMLInputElement) => {
-    if (!file) return;
+  const onFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Vui lòng chọn tệp ảnh.");
       return;
@@ -60,68 +61,63 @@ export function ImageUpload({
     }
     setBusy(true);
     try {
-      onChange(await uploadImage(file));
+      onChange?.(await uploadImage(file));
     } catch (err) {
       toast.error(normalizeError(err).message);
     } finally {
       setBusy(false);
-      input.value = ""; // cho phép chọn lại đúng file vừa rồi
     }
   };
 
   const remove = (e: React.MouseEvent) => {
-    e.preventDefault(); // chặn label mở lại file picker
-    e.stopPropagation();
+    e.stopPropagation(); // chặn mở lại file picker
     if (!value || busy) return;
     void removeImage(value); // best-effort dọn ảnh Supabase cũ (URL ngoài bucket tự bỏ qua)
-    onChange(null);
+    onChange?.(null);
   };
 
   return (
-    <label
-      className={cn(
-        "group relative flex aspect-square w-32 items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/30 text-muted-foreground transition-colors",
-        !disabled &&
-          "cursor-pointer hover:border-primary hover:text-primary focus-within:border-primary focus-within:ring-2 focus-within:ring-ring",
-        disabled && "cursor-not-allowed opacity-60",
-        className,
-      )}
+    <Upload
+      accept="image/*"
+      showUploadList={false}
+      disabled={disabled || busy}
+      beforeUpload={(file) => {
+        void onFile(file);
+        return false; // tự upload, không để antd POST
+      }}
     >
-      {value ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="" className="size-full object-cover" />
-          {!disabled && (
-            <button
-              type="button"
-              onClick={remove}
-              aria-label="Xóa ảnh"
-              className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-background/80 text-foreground opacity-0 shadow transition-opacity hover:bg-background group-hover:opacity-100 focus-visible:opacity-100"
-            >
-              <X className="size-4" />
-            </button>
+      <Spin spinning={busy}>
+        <div
+          className={cn(
+            "group relative flex aspect-square w-32 items-center justify-center overflow-hidden rounded border border-dashed border-border bg-muted/40 text-muted-foreground transition-colors",
+            !disabled && "cursor-pointer hover:border-primary hover:text-primary",
+            disabled && "cursor-not-allowed opacity-60",
+            className,
           )}
-        </>
-      ) : (
-        <div className="flex flex-col items-center gap-1 px-2 text-center">
-          <ImagePlus className="size-6" />
-          <span className="text-xs">{label}</span>
+        >
+          {value ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={value} alt="" className="size-full object-cover" />
+              {!disabled && (
+                <Button
+                  size="small"
+                  shape="circle"
+                  aria-label="Xóa ảnh"
+                  icon={<X className="size-3.5" />}
+                  onClick={remove}
+                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                />
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-1 px-2 text-center">
+              <ImagePlus className="size-6" />
+              <span className="text-xs">{label}</span>
+            </div>
+          )}
         </div>
-      )}
-
-      {busy && (
-        <div className="absolute inset-0 grid place-items-center bg-background/60">
-          <Loader2 className="size-6 animate-spin text-primary" />
-        </div>
-      )}
-
-      <input
-        type="file"
-        accept="image/*"
-        disabled={disabled || busy}
-        className="sr-only"
-        onChange={(e) => onFile(e.target.files?.[0], e.target)}
-      />
-    </label>
+      </Spin>
+    </Upload>
   );
 }
