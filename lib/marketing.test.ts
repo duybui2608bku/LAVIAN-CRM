@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   addDays,
   fetchFbAds,
+  fetchFbCampaigns,
   fetchSmaxStaffReplyTimes,
   smaxRange,
   supaRange,
@@ -120,6 +121,53 @@ test("fetchFbAds cộng spend + tin nhắn của 2 tài khoản ads", async () =
     assert.deepEqual(accounts.sort(), [
       "act_1494701561142295",
       "act_405282048979489",
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.FB_TOKEN = originalToken;
+  }
+});
+
+test("fetchFbCampaigns lọc impressions > 0, gắn trạng thái, sắp theo chi tiêu", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalToken = process.env.FB_TOKEN;
+  process.env.FB_TOKEN = "test-token";
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    if (url.searchParams.has("ids")) {
+      assert.equal(url.searchParams.get("ids"), "c1,c2");
+      return Response.json({
+        c1: { effective_status: "ACTIVE", id: "c1" },
+        c2: { effective_status: "PAUSED", id: "c2" },
+      });
+    }
+    assert.equal(url.searchParams.get("level"), "campaign");
+    const isFirst = url.pathname.includes("1494701561142295");
+    return Response.json({
+      data: isFirst
+        ? [
+            { campaign_id: "c1", campaign_name: "A", spend: "100", impressions: "50", reach: "40" },
+            { campaign_id: "c0", campaign_name: "Zero", spend: "0", impressions: "0", reach: "0" },
+          ]
+        : [
+            {
+              campaign_id: "c2",
+              campaign_name: "B",
+              spend: "300",
+              impressions: "900",
+              reach: "700",
+              actions: [
+                { action_type: "onsite_conversion.messaging_conversation_started_7d", value: "6" },
+              ],
+            },
+          ],
+    });
+  };
+  try {
+    const rows = await fetchFbCampaigns("2026-10-24", "2026-10-24");
+    assert.deepEqual(rows, [
+      { id: "c2", name: "B", status: "PAUSED", spend: 300, messages: 6, impressions: 900, reach: 700 },
+      { id: "c1", name: "A", status: "ACTIVE", spend: 100, messages: 0, impressions: 50, reach: 40 },
     ]);
   } finally {
     globalThis.fetch = originalFetch;

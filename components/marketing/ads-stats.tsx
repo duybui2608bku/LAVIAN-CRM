@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Table, Tag, type TableColumnType } from "antd";
 import { RefreshCw } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -9,11 +10,23 @@ import { DateRangePicker } from "@/components/common/date-picker";
 import { PageHeader } from "@/components/layout/page";
 import { formatRupiah } from "@/lib/currency";
 import { formatISODate } from "@/lib/date";
+import type { FbCampaign } from "@/lib/marketing";
 import { cn } from "@/lib/utils";
 
 /** Chia an toàn: thiếu số hoặc mẫu 0 → null ("—"). */
 const ratio = (a: number | null, b: number | null) =>
   a != null && b ? Math.round(a / b) : null;
+
+// effective_status của Graph API → màu tag; trạng thái lạ hiện nguyên văn, màu mặc định.
+const STATUS_COLOR: Record<string, string> = {
+  ACTIVE: "green",
+  PAUSED: "orange",
+  CAMPAIGN_PAUSED: "orange",
+  IN_PROCESS: "blue",
+  WITH_ISSUES: "red",
+  DELETED: "default",
+  ARCHIVED: "default",
+};
 
 export function AdsStatsView() {
   const t = useTranslations("marketing");
@@ -52,6 +65,73 @@ export function AdsStatsView() {
     },
     { key: "appointments", value: count(s?.appointments ?? null), error: e?.db },
     { key: "visited", value: count(s?.visited ?? null), error: e?.db },
+  ];
+
+  const statusLabel = (status: string) =>
+    t.has(`status_${status}`) ? t(`status_${status}`) : status;
+  const numSorter = (key: keyof FbCampaign) => (a: FbCampaign, b: FbCampaign) =>
+    Number(a[key]) - Number(b[key]);
+  const columns: TableColumnType<FbCampaign>[] = [
+    {
+      key: "status",
+      title: t("colStatus"),
+      dataIndex: "status",
+      width: 150,
+      render: (status: string) => (
+        <Tag color={STATUS_COLOR[status]}>{statusLabel(status)}</Tag>
+      ),
+      sorter: (a, b) => a.status.localeCompare(b.status),
+    },
+    {
+      key: "name",
+      title: t("colName"),
+      dataIndex: "name",
+      width: 320,
+      ellipsis: { showTitle: true },
+    },
+    {
+      key: "spend",
+      title: t("spend"),
+      align: "right",
+      width: 140,
+      render: (_, r) => formatRupiah(r.spend),
+      sorter: numSorter("spend"),
+      defaultSortOrder: "descend",
+    },
+    {
+      key: "messages",
+      title: t("messages"),
+      align: "right",
+      width: 110,
+      render: (_, r) => r.messages.toLocaleString(locale),
+      sorter: numSorter("messages"),
+    },
+    {
+      key: "costPerMessage",
+      title: t("costPerMessage"),
+      align: "right",
+      width: 160,
+      render: (_, r) => money(ratio(r.spend, r.messages)) ?? "—",
+      sorter: (a, b) =>
+        (ratio(a.spend, a.messages) ?? Infinity) -
+        (ratio(b.spend, b.messages) ?? Infinity),
+    },
+    {
+      key: "impressions",
+      title: t("colImpressions"),
+      align: "right",
+      width: 130,
+      render: (_, r) => r.impressions.toLocaleString(locale),
+      sorter: numSorter("impressions"),
+    },
+    {
+      key: "reach",
+      title: t("colReach"),
+      align: "right",
+      width: 130,
+      render: (_, r) => r.reach.toLocaleString(locale),
+      sorter: numSorter("reach"),
+    },
   ];
 
   return (
@@ -102,6 +182,21 @@ export function AdsStatsView() {
           </div>
         ))}
       </div>
+
+      <section className="space-y-2">
+        <h2 className="text-base font-semibold">{t("campaigns")}</h2>
+        <Table
+          className="surface overflow-hidden"
+          rowKey="id"
+          columns={columns}
+          dataSource={stats?.campaigns ?? []}
+          loading={!stats || pending}
+          pagination={{ pageSize: 20, hideOnSinglePage: true, showSizeChanger: false }}
+          scroll={{ x: 1140 }}
+          size="middle"
+          locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
+        />
+      </section>
     </>
   );
 }

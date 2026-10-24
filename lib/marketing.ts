@@ -107,6 +107,103 @@ export async function fetchFbAds(
   );
 }
 
+export interface FbCampaign {
+  id: string;
+  name: string;
+  status: string;
+  spend: number;
+  messages: number;
+  impressions: number;
+  reach: number;
+}
+
+type FbCampaignInsightsRes = {
+  data?: {
+    campaign_id?: string;
+    campaign_name?: string;
+    spend?: string;
+    impressions?: string;
+    reach?: string;
+    actions?: { action_type?: string; value?: string }[];
+  }[];
+  paging?: { next?: string };
+  error?: { message?: string };
+};
+
+async function fbGet<T extends { error?: { message?: string } }>(url: string) {
+  const res = await fetch(url, { cache: "no-store" });
+  const json = (await res.json().catch(() => null)) as T | null;
+  if (!res.ok || !json || json.error)
+    throw new Error(json?.error?.message ?? `Facebook API ${res.status}`);
+  return json;
+}
+
+/** Chiến dịch có lượt hiển thị > 0 trong range (gộp các tài khoản ads), kèm trạng thái hiện tại. */
+export async function fetchFbCampaigns(
+  from: string,
+  to: string,
+): Promise<FbCampaign[]> {
+  const token = process.env.FB_TOKEN;
+  if (!token) throw new Error("Thiếu FB_TOKEN.");
+  const time_range = JSON.stringify({ since: from, until: to });
+
+  const rows = (
+    await Promise.all(
+      FB_AD_ACCOUNTS.map(async (act) => {
+        const qs = new URLSearchParams({
+          level: "campaign",
+          fields: "campaign_id,campaign_name,spend,impressions,reach,actions",
+          time_range,
+          limit: "500",
+          access_token: token,
+        });
+        const out: NonNullable<FbCampaignInsightsRes["data"]> = [];
+        let url: string | undefined = `${FB_API}/${act}/insights?${qs}`;
+        while (url) {
+          const json: FbCampaignInsightsRes = await fbGet(url);
+          out.push(...(json.data ?? []));
+          url = json.paging?.next;
+        }
+        return out;
+      }),
+    )
+  )
+    .flat()
+    .filter((r) => r.campaign_id && Number(r.impressions ?? 0) > 0);
+
+  // Trạng thái lấy theo lô id (Graph API cho tối đa 50 id/lần).
+  const status = new Map<string, string>();
+  const ids = rows.map((r) => r.campaign_id!);
+  for (let i = 0; i < ids.length; i += 50) {
+    const qs = new URLSearchParams({
+      ids: ids.slice(i, i + 50).join(","),
+      fields: "effective_status",
+      access_token: token,
+    });
+    const json = await fbGet<{ error?: { message?: string } }>(
+      `${FB_API}/?${qs}`,
+    );
+    for (const [id, v] of Object.entries(
+      json as Record<string, { effective_status?: string }>,
+    ))
+      if (v?.effective_status) status.set(id, v.effective_status);
+  }
+
+  return rows
+    .map((r) => ({
+      id: r.campaign_id!,
+      name: r.campaign_name ?? "—",
+      status: status.get(r.campaign_id!) ?? "UNKNOWN",
+      spend: Number(r.spend ?? 0),
+      messages: Number(
+        r.actions?.find((a) => a.action_type === FB_MESSAGE_ACTION)?.value ?? 0,
+      ),
+      impressions: Number(r.impressions ?? 0),
+      reach: Number(r.reach ?? 0),
+    }))
+    .sort((a, b) => b.spend - a.spend);
+}
+
 type SmaxRes = {
   status?: number;
   message?: string;

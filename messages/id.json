@@ -427,6 +427,20 @@
     "leads": "Data",
     "costPerLead": "Pengeluaran / No. HP",
     "appointments": "Janji temu",
-    "visited": "Datang"
+    "visited": "Datang",
+    "campaigns": "Kampanye",
+    "noCampaigns": "Tidak ada kampanye dengan tayangan dalam rentang tanggal ini",
+    "colStatus": "Status",
+    "colName": "Nama kampanye",
+    "colImpressions": "Tayangan",
+    "colReach": "Jangkauan",
+    "status_ACTIVE": "Aktif",
+    "status_PAUSED": "Dijeda",
+    "status_CAMPAIGN_PAUSED": "Dijeda",
+    "status_IN_PROCESS": "Diproses",
+    "status_WITH_ISSUES": "Bermasalah",
+    "status_DELETED": "Dihapus",
+    "status_ARCHIVED": "Diarsipkan",
+    "status_UNKNOWN": "Tidak diketahui"
   }
 }

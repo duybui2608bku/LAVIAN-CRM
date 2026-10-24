@@ -2,7 +2,13 @@
 
 import { requireAdmin } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
-import { fetchFbAds, fetchSmaxStats, supaRange } from "@/lib/marketing";
+import {
+  fetchFbAds,
+  fetchFbCampaigns,
+  fetchSmaxStats,
+  supaRange,
+  type FbCampaign,
+} from "@/lib/marketing";
 import { createClient } from "@/lib/supabase/server";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -13,7 +19,8 @@ export interface AdsStats {
   leads: number | null;
   appointments: number | null;
   visited: number | null;
-  errors: { fb?: string; smax?: string; db?: string };
+  campaigns: FbCampaign[] | null;
+  errors: { fb?: string; campaigns?: string; smax?: string; db?: string };
   error?: string;
 }
 
@@ -27,6 +34,7 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
     leads: null,
     appointments: null,
     visited: null,
+    campaigns: null,
     errors: {},
   };
   if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to)
@@ -42,8 +50,9 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
       .gte(column, start)
       .lt(column, end);
 
-  const [fb, smax, appointments, visited] = await Promise.allSettled([
+  const [fb, campaigns, smax, appointments, visited] = await Promise.allSettled([
     fetchFbAds(from, to),
+    fetchFbCampaigns(from, to),
     fetchSmaxStats(from, to),
     countAppointments("scheduled_at"),
     countAppointments("checked_in_at"),
@@ -53,6 +62,9 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
     stats.spend = fb.value.spend;
     stats.messages = fb.value.messages;
   } else stats.errors.fb = normalizeError(fb.reason).message;
+
+  if (campaigns.status === "fulfilled") stats.campaigns = campaigns.value;
+  else stats.errors.campaigns = normalizeError(campaigns.reason).message;
 
   if (smax.status === "fulfilled") stats.leads = smax.value.leads;
   else stats.errors.smax = normalizeError(smax.reason).message;

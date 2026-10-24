@@ -427,6 +427,20 @@
     "leads": "Data",
     "costPerLead": "Chi tiêu / SĐT",
     "appointments": "Lịch hẹn",
-    "visited": "Đã đến"
+    "visited": "Đã đến",
+    "campaigns": "Chiến dịch",
+    "noCampaigns": "Không có chiến dịch nào có lượt hiển thị trong khoảng ngày này",
+    "colStatus": "Trạng thái",
+    "colName": "Tên chiến dịch",
+    "colImpressions": "Lượt hiển thị",
+    "colReach": "Lượt tiếp cận",
+    "status_ACTIVE": "Đang hoạt động",
+    "status_PAUSED": "Tạm dừng",
+    "status_CAMPAIGN_PAUSED": "Tạm dừng",
+    "status_IN_PROCESS": "Đang xử lý",
+    "status_WITH_ISSUES": "Có lỗi",
+    "status_DELETED": "Đã xoá",
+    "status_ARCHIVED": "Đã lưu trữ",
+    "status_UNKNOWN": "Không rõ"
   }
 }

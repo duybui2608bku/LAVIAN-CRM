@@ -427,6 +427,20 @@
     "leads": "Data",
     "costPerLead": "Spend / Phone",
     "appointments": "Appointments",
-    "visited": "Visited"
+    "visited": "Visited",
+    "campaigns": "Campaigns",
+    "noCampaigns": "No campaigns with impressions in this date range",
+    "colStatus": "Status",
+    "colName": "Campaign name",
+    "colImpressions": "Impressions",
+    "colReach": "Reach",
+    "status_ACTIVE": "Active",
+    "status_PAUSED": "Paused",
+    "status_CAMPAIGN_PAUSED": "Paused",
+    "status_IN_PROCESS": "In process",
+    "status_WITH_ISSUES": "With issues",
+    "status_DELETED": "Deleted",
+    "status_ARCHIVED": "Archived",
+    "status_UNKNOWN": "Unknown"
   }
 }

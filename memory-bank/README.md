@@ -51,6 +51,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-10-24 — /marketing: bảng chiến dịch FB (lượt hiển thị > 0)
+- **Thay đổi:** Thêm bảng "Chiến dịch" dưới 7 card: Trạng thái (tag theo `effective_status`, nhãn i18n `marketing.status_*`, trạng thái lạ hiện nguyên văn), Tên, Chi tiêu, Tin nhắn, Chi tiêu/Tin nhắn, Lượt hiển thị, Lượt tiếp cận; mặc định sắp chi tiêu giảm dần, cột số sort được, phân trang 20, `scroll.x` cho mobile. `fetchFbCampaigns` (`lib/marketing.ts`): insights `level=campaign` của 2 tài khoản (theo `paging.next`), lọc `impressions > 0`, trạng thái lấy theo lô 50 id (`GET /?ids=…&fields=effective_status`). Chạy trong `getAdsStats` (lỗi riêng `errors.campaigns`, hiện ở empty state bảng).
+- **File ảnh hưởng:** `lib/marketing{,.test}.ts`, `app/(app)/marketing/actions.ts`, `components/marketing/ads-stats.tsx`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, test 48/48, `next build` PASS. Chưa test với token thật / browser.
+
 ### 2026-10-24 — Mobile: sidebar ẩn hẳn + bỏ subtitle mọi trang
 - **Thay đổi:** `AppShell`: dưới `md` (< 768px) Sider ẩn 100% (`max-md:hidden!`), nút PanelLeft mở **Drawer trái** (232px) chứa cùng logo + menu (hàm `nav(compact)` dùng chung), bấm link tự đóng; ≥ md giữ thu gọn/mở rộng như cũ. Bỏ `breakpoint="md"` của Sider (không còn tự thu gọn + ghi đè cookie khi ở mobile). `PageHeader` bỏ prop `description` (không còn subtitle ở mọi trang), căn giữa dọc title/actions; xoá key i18n `dashboard.description`, `marketing.description`.
 - **File ảnh hưởng:** `components/layout/{app-shell,page}.tsx`, `components/marketing/ads-stats.tsx`, `components/dashboard/marketing-stats.tsx`, `app/(app)/page.tsx`, `messages/{vi,en,id}.json`.
