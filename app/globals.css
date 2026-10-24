@@ -100,17 +100,6 @@
   }
 }
 
-/* Tag màu tuỳ biến (EnumTag/StatusTag): 1 hex qua --tag → chữ/nền/viền. */
-.tag-tint {
-  color: var(--tag);
-  background: color-mix(in oklab, var(--tag) 10%, transparent);
-  border-color: color-mix(in oklab, var(--tag) 25%, transparent);
-}
-.dark .tag-tint {
-  color: color-mix(in oklab, var(--tag) 65%, white);
-  background: color-mix(in oklab, var(--tag) 20%, transparent);
-  border-color: color-mix(in oklab, var(--tag) 40%, transparent);
-}
 /* Tag có icon: canh icon + chữ trên 1 hàng, cho phép truncate. */
 .tag-inline {
   display: inline-flex;

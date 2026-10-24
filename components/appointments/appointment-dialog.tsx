@@ -257,7 +257,7 @@ export function AppointmentDialog({
             <span className="flex items-center gap-2">
               {t("customer")}
               {isReturning(wCustomerId) && (
-                <Tag color="blue" className="me-0">
+                <Tag color="blue" variant="solid" className="me-0">
                   {t("returningCustomer")}
                 </Tag>
               )}

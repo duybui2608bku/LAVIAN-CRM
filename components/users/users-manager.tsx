@@ -82,7 +82,7 @@ export function UsersManager({
       title: t("colRole"),
       dataIndex: "role",
       render: (role: Profile["role"]) => (
-        <Tag color={role === "admin" ? "purple" : undefined}>{t(`role_${role}`)}</Tag>
+        <Tag color={role === "admin" ? "purple" : undefined} variant={role === "admin" ? "solid" : undefined}>{t(`role_${role}`)}</Tag>
       ),
     },
     {
@@ -103,7 +103,7 @@ export function UsersManager({
       title: t("colStatus"),
       dataIndex: "status",
       render: (status: Profile["status"]) => (
-        <Tag color={status === "banned" ? "error" : "default"}>
+        <Tag color={status === "banned" ? "error" : "default"} variant={status === "banned" ? "solid" : undefined}>
           {t(`status_${status}`)}
         </Tag>
       ),

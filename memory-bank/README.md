@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-10-24 — Tag màu dùng kiểu Presets (solid) của antd
+- **Thay đổi:** `EnumTag` có màu → `<Tag color variant="solid">` (nền đặc, chữ trắng), bỏ class `.tag-tint`. Bảng màu preset ở /enums đổi sang 11 màu preset antd (magenta…purple) + xám `#8c8c8c`; màu trạng thái lịch hẹn (`STATUS_META`) và loại thanh toán (`KIND_COLOR`) đổi sang hex preset antd. Tag preset cố định (`blue`, `purple` admin, `error` banned) thêm `variant="solid"`. Tag không màu giữ mặc định (không set solid toàn cục vì solid mặc định là nền đen).
+- **File ảnh hưởng:** `components/common/enum-tag.tsx`, `app/globals.css`, `components/enums/enums-manager.tsx`, `components/appointments/{status-tag,payments-dialog,appointment-dialog,appointments-manager}.tsx`, `components/users/users-manager.tsx`.
+- **Còn dở / ghi chú:** Màu cũ đã lưu trong `enum_options.color` (hex tailwind) vẫn hiện solid bình thường; muốn đồng bộ hẳn thì sửa màu từng option ở /enums.
+
 ### 2026-10-24 — Tinh chỉnh bảng /customers + đồng bộ nguồn lead-form
 - **Thay đổi:** Cột **Ngày tạo** lên đầu bảng; bỏ icon mở SMAX — **tên khách là link** hội thoại (khi có `thread.link`). Ghi chú: bỏ nút "+" ngoài bảng; **hover icon Info → Tooltip ghi chú gần nhất**, bấm → `NotesModal` (ô nhập + nút Thêm, Ctrl/⌘+Enter lưu nhanh, lịch sử bên dưới; modal giữ id khách nên tự nhận note mới sau revalidate). Badge đếm note màu primary. `InlineSelect`: bỏ khung tím khi focus/mở (class `.inline-select` ở globals.css), mũi tên chỉ hiện khi hover dòng; option dropdown Giai đoạn/Nguồn hiển thị dạng tag màu. **Đồng bộ nguồn:** `resolveSource()` (lib/customers.ts, có test) khớp `platform` SMAX / `?source=` với danh mục Nguồn theo value hoặc nhãn vi/en/id (không phân biệt hoa thường, bỏ ký tự đặc biệt) — vd. "instagram" → `instagrams`; không khớp → `smax`. Migration `20261024090000_sync_customer_source_to_enum.sql` sửa dữ liệu cũ (customers + appointments) theo cùng quy tắc. Sửa dịch vi `openThread`.
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/common/inline-select.tsx`, `app/globals.css`, `lib/customers.ts`, `lib/customers.test.ts`, `app/lead-form/actions.ts`, `supabase/migrations/20261024090000_sync_customer_source_to_enum.sql`, `messages/vi.json`.

@@ -24,10 +24,10 @@ import { Page, PageHeader } from "@/components/layout/page";
 import { toast } from "@/lib/toast";
 import type { EnumKind, EnumOption } from "@/types/customer";
 
-// Bảng màu preset cho tag (đọc được cả nền sáng lẫn tối).
+// Bảng màu preset cho tag = màu Presets (solid) của antd (magenta → purple) + xám.
 const TAG_COLORS = [
-  "#7b68ee", "#3b82f6", "#0ea5e9", "#14b8a6", "#22c55e", "#65a30d",
-  "#ca8a04", "#f97316", "#ef4444", "#ec4899", "#a855f7", "#6b7280",
+  "#eb2f96", "#f5222d", "#fa541c", "#fa8c16", "#faad14", "#a0d911",
+  "#52c41a", "#13c2c2", "#1677ff", "#2f54eb", "#722ed1", "#8c8c8c",
 ];
 
 // Trạng thái dialog: đang mở cho kind nào, sửa option nào (null = tạo mới).

@@ -11,12 +11,12 @@ export const STATUS_META: Record<
   AppointmentStatus,
   { icon: string; color: string }
 > = {
-  pending_confirmation: { icon: "clock", color: "#f59e0b" },
-  booked: { icon: "calendar-check", color: "#3b82f6" },
-  checked_in: { icon: "log-in", color: "#8b5cf6" },
-  completed: { icon: "check-check", color: "#22c55e" },
-  no_show: { icon: "user-x", color: "#ef4444" },
-  cancelled: { icon: "ban", color: "#6b7280" },
+  pending_confirmation: { icon: "clock", color: "#fa8c16" },
+  booked: { icon: "calendar-check", color: "#1677ff" },
+  checked_in: { icon: "log-in", color: "#722ed1" },
+  completed: { icon: "check-check", color: "#52c41a" },
+  no_show: { icon: "user-x", color: "#f5222d" },
+  cancelled: { icon: "ban", color: "#8c8c8c" },
 };
 
 export function AppointmentStatusTag({

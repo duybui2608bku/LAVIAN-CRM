@@ -425,7 +425,7 @@ export function AppointmentsManager({
           <div className="flex items-center gap-1.5 font-medium">
             {a.customer?.full_name ?? "—"}
             {isReturningRow(a) && (
-              <Tag color="blue" className="me-0">
+              <Tag color="blue" variant="solid" className="me-0">
                 {t("returningCustomer")}
               </Tag>
             )}

@@ -32,9 +32,9 @@ import type { Service } from "@/types/service";
 
 // Màu tag loại dòng sổ — hardcode như STATUS_META (không vào enum_options).
 const KIND_COLOR: Record<PaymentKind, string> = {
-  deposit: "#0ea5e9",
-  payment: "#22c55e",
-  refund: "#ef4444",
+  deposit: "#13c2c2",
+  payment: "#52c41a",
+  refund: "#f5222d",
 };
 
 /** 1 dòng sổ tiền (ảnh chứng từ, loại, số tiền, phương thức, người tạo) —
@@ -251,7 +251,7 @@ export function PaymentsDialog({
           {ledger ? (
             closed ? (
               <span className="flex items-center gap-2">
-                <EnumTag label={t("ledgerClosed")} color="#64748b" />
+                <EnumTag label={t("ledgerClosed")} color="#8c8c8c" />
                 <Button size="small" loading={pending} onClick={() => toggleClosed(false)}>
                   {t("reopenLedger")}
                 </Button>
