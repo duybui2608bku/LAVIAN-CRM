@@ -83,7 +83,7 @@ export function AppointmentsCalendar({
     );
 
     return (
-      <div className="overflow-x-auto rounded-md border">
+      <div className="surface overflow-x-auto">
         <div className="min-w-[760px]">
           <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b">
             <div />
@@ -175,7 +175,7 @@ export function AppointmentsCalendar({
   for (let d = gridStart; d <= gridEnd; d = addDays(d, 1)) days.push(d);
 
   return (
-    <div className="overflow-hidden rounded-md border">
+    <div className="surface overflow-hidden">
       <div className="grid grid-cols-7 bg-muted/50 text-center text-xs text-muted-foreground">
         {days.slice(0, 7).map((d) => (
           <div key={d.getDay()} className="px-2 py-1.5">

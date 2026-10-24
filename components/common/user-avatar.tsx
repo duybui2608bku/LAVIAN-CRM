@@ -1,3 +1,5 @@
+import { Avatar } from "antd";
+
 import avatarFallback from "@/app/assets/avt.webp";
 
 export type StaffRef = {
@@ -8,14 +10,20 @@ export type StaffRef = {
   status?: "active" | "banned";
 };
 
-/** Avatar tròn nhỏ, fallback ảnh mặc định — pattern như header. */
-export function UserAvatar({ src }: { src?: string | null }) {
+/** Avatar tròn, fallback ảnh mặc định. */
+export function UserAvatar({
+  src,
+  size = 20,
+}: {
+  src?: string | null;
+  size?: number;
+}) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- avatar_url là host tuỳ ý, tránh cấu hình remotePatterns
-    <img
+    <Avatar
       src={src || avatarFallback.src}
+      size={size}
+      className="shrink-0"
       alt=""
-      className="size-5 shrink-0 rounded-full object-cover"
     />
   );
 }

@@ -1,17 +1,11 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState } from "react";
+import { Button, Input, Popover } from "antd";
 import { DynamicIcon, iconNames, type IconName } from "lucide-react/dynamic";
 import { ChevronsUpDown, Search, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 
 // ponytail: chỉ render tối đa 96 kết quả — mount cả ~1600 DynamicIcon (mỗi cái 1
 // lazy chunk) sẽ ì; gõ thêm ký tự để thu hẹp, có bộ đếm x/y báo còn bao nhiêu.
@@ -34,7 +28,7 @@ export function IconPicker({
   className,
 }: {
   value?: string | null;
-  onChange: (icon: string | null) => void;
+  onChange?: (icon: string | null) => void;
   placeholder?: string;
   searchPlaceholder?: string;
   clearLabel?: string;
@@ -57,82 +51,79 @@ export function IconPicker({
   const shown = matches.slice(0, MAX_SHOWN);
 
   const pick = (name: string | null) => {
-    onChange(name);
+    onChange?.(name);
     setOpen(false);
   };
 
+  const panel = (
+    <div className="w-72">
+      <div className="flex items-center gap-1.5">
+        <Input
+          autoFocus
+          allowClear
+          prefix={<Search className="size-4 text-muted-foreground" />}
+          placeholder={searchPlaceholder}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {value ? (
+          <Button
+            type="text"
+            title={clearLabel}
+            aria-label={clearLabel}
+            icon={<X className="size-4" />}
+            onClick={() => pick(null)}
+          />
+        ) : null}
+      </div>
+
+      <div className="mt-2 grid max-h-56 grid-cols-8 gap-1 overflow-y-auto">
+        {shown.map((name) => (
+          <Button
+            key={name}
+            type={value === name ? "primary" : "text"}
+            ghost={value === name}
+            title={name}
+            aria-label={name}
+            icon={<DynamicIcon name={name as IconName} className="size-4" />}
+            onClick={() => pick(name)}
+          />
+        ))}
+        {shown.length === 0 && (
+          <p className="col-span-8 py-6 text-center text-sm text-muted-foreground">
+            {emptyText}
+          </p>
+        )}
+      </div>
+
+      <p className="mt-1.5 text-right text-xs text-muted-foreground">
+        {countText(shown.length, matches.length)}
+      </p>
+    </div>
+  );
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          className={cn(
-            "h-8 w-full justify-start gap-2 px-2.5 font-normal",
-            !value && "text-muted-foreground",
-            className,
-          )}
-        >
-          {value ? (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      trigger="click"
+      placement="bottomLeft"
+      content={panel}
+    >
+      <Button
+        disabled={disabled}
+        className={cn("w-full justify-start", !value && "text-muted-foreground", className)}
+        icon={
+          value ? (
             <DynamicIcon name={value as IconName} className="size-4" />
           ) : (
             <Search className="size-4" />
-          )}
-          <span className="truncate">{value || placeholder}</span>
-          <ChevronsUpDown className="ml-auto size-3.5 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-80 p-2">
-        <div className="flex items-center gap-1.5">
-          <Input
-            autoFocus
-            className="h-8"
-            placeholder={searchPlaceholder}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {value ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              title={clearLabel}
-              aria-label={clearLabel}
-              onClick={() => pick(null)}
-            >
-              <X className="size-4" />
-            </Button>
-          ) : null}
-        </div>
-
-        <div className="mt-2 grid max-h-56 grid-cols-8 gap-1 overflow-y-auto">
-          {shown.map((name) => (
-            <button
-              key={name}
-              type="button"
-              title={name}
-              aria-label={name}
-              onClick={() => pick(name)}
-              className={cn(
-                "flex size-8 cursor-pointer items-center justify-center rounded-md border border-transparent text-foreground/80 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50",
-                value === name && "border-primary bg-primary/10 text-primary",
-              )}
-            >
-              <DynamicIcon name={name as IconName} className="size-4" />
-            </button>
-          ))}
-          {shown.length === 0 && (
-            <p className="col-span-8 py-6 text-center text-sm text-muted-foreground">
-              {emptyText}
-            </p>
-          )}
-        </div>
-
-        <p className="mt-1.5 text-right text-xs text-muted-foreground">
-          {countText(shown.length, matches.length)}
-        </p>
-      </PopoverContent>
+          )
+        }
+      >
+        <span className="flex-1 truncate text-left">{value || placeholder}</span>
+        <ChevronsUpDown className="size-3.5 opacity-50" />
+      </Button>
     </Popover>
   );
 }

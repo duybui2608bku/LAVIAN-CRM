@@ -1,8 +1,6 @@
 import { cookies } from "next/headers";
 
-import { AppHeader } from "@/components/layout/app-header";
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentProfile } from "@/lib/auth";
 
 export default async function AppLayout({
@@ -12,21 +10,19 @@ export default async function AppLayout({
 }) {
   // Giữ trạng thái thu gọn sidebar qua lần tải lại (chống nhấp nháy SSR).
   const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+  const collapsed = cookieStore.get("sidebar_state")?.value === "false";
 
   // Proxy đã đảm bảo đã đăng nhập; lấy hồ sơ để hiện tên + link admin.
   const profile = await getCurrentProfile();
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
-      <AppSidebar isAdmin={profile?.role === "admin"} />
-      <SidebarInset className="min-w-0 overflow-hidden">
-        <AppHeader
-          userName={profile?.user_name || profile?.email}
-          avatarUrl={profile?.avatar_url}
-        />
-        <div className="flex flex-1 flex-col">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+    <AppShell
+      defaultCollapsed={collapsed}
+      isAdmin={profile?.role === "admin"}
+      userName={profile?.user_name || profile?.email}
+      avatarUrl={profile?.avatar_url}
+    >
+      {children}
+    </AppShell>
   );
 }

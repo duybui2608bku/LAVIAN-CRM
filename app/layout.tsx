@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { Geist_Mono, Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
+import type { Locale } from "@/i18n/config";
 import { Providers } from "./providers";
 
 const inter = Inter({
@@ -26,7 +28,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getLocale();
+  const locale = (await getLocale()) as Locale;
 
   return (
     <html
@@ -36,9 +38,12 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <NextTopLoader color="var(--primary)" height={2} showSpinner={false} />
-        <NextIntlClientProvider>
-          <Providers>{children}</Providers>
-        </NextIntlClientProvider>
+        {/* layer: style antd vào `@layer antd` (thứ tự khai ở globals.css) */}
+        <AntdRegistry layer>
+          <NextIntlClientProvider>
+            <Providers locale={locale}>{children}</Providers>
+          </NextIntlClientProvider>
+        </AntdRegistry>
       </body>
     </html>
   );

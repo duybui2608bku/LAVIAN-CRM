@@ -1,73 +1,51 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import {
+  Button,
+  Checkbox,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Switch,
+  Table,
+  type TableProps,
+} from "antd";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import {
   createService,
   deleteService,
   updateService,
 } from "@/app/(app)/services/actions";
+import { ConfirmAction } from "@/components/common/confirm-action";
 import { Page, PageHeader } from "@/components/layout/page";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import type { Service } from "@/types/service";
+import { toast } from "@/lib/toast";
+import type { Service, ServiceInput } from "@/types/service";
 
 // Trạng thái dialog: null = đóng; service null = tạo mới.
 type DialogState = { service: Service | null } | null;
 
+const dash = (v: string | null) =>
+  v || <span className="text-muted-foreground">—</span>;
+
 export function ServicesManager({ services }: { services: Service[] }) {
   const t = useTranslations("services");
   const [dialog, setDialog] = useState<DialogState>(null);
-  const [deleting, setDeleting] = useState<Service | null>(null);
   const [pending, start] = useTransition();
 
-  const confirmDelete = () => {
-    const s = deleting;
-    if (!s) return;
-    setDeleting(null);
-    start(async () => {
-      const res = await deleteService(s.id);
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(t("deleteOk"));
-    });
+  const remove = async (s: Service) => {
+    const res = await deleteService(s.id);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(t("deleteOk"));
   };
 
-  // Bật/tắt trực tiếp từ checkbox trong bảng (giữ nguyên các trường còn lại).
+  // Bật/tắt trực tiếp trên bảng (giữ nguyên các trường còn lại).
   const onToggleActive = (s: Service) =>
     start(async () => {
       const res = await updateService(s.id, {
@@ -77,135 +55,102 @@ export function ServicesManager({ services }: { services: Service[] }) {
         sort_order: s.sort_order,
         is_active: !s.is_active,
       });
-      if (res.error) {
-        toast.error(res.error);
-      }
+      if (res.error) toast.error(res.error);
     });
+
+  const columns: TableProps<Service>["columns"] = [
+    { title: t("colVi"), dataIndex: "name_vi", ellipsis: true },
+    { title: t("colEn"), dataIndex: "name_en", ellipsis: true, render: dash },
+    { title: t("colId"), dataIndex: "name_id", ellipsis: true, render: dash },
+    {
+      title: t("colActive"),
+      dataIndex: "is_active",
+      width: 110,
+      align: "center",
+      render: (_, s) => (
+        <Switch
+          size="small"
+          checked={s.is_active}
+          disabled={pending}
+          aria-label={t("colActive")}
+          title={s.is_active ? t("active") : t("inactive")}
+          onChange={() => onToggleActive(s)}
+        />
+      ),
+    },
+    {
+      title: t("colActions"),
+      key: "actions",
+      width: 110,
+      align: "right",
+      render: (_, s) => (
+        <div className="flex justify-end gap-1">
+          <Button
+            type="text"
+            size="small"
+            title={t("edit")}
+            aria-label={t("edit")}
+            icon={<Pencil className="size-4" />}
+            onClick={() => setDialog({ service: s })}
+          />
+          <ConfirmAction
+            title={t("deleteConfirm")}
+            description={t("deleteConfirmBody", { name: s.name_vi })}
+            okText={t("delete")}
+            cancelText={t("cancel")}
+            onConfirm={() => remove(s)}
+          >
+            <Button
+              type="text"
+              size="small"
+              danger
+              title={t("delete")}
+              aria-label={t("delete")}
+              icon={<Trash2 className="size-4" />}
+            />
+          </ConfirmAction>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <Page>
       <PageHeader
         title={t("title")}
         actions={
-          <Button onClick={() => setDialog({ service: null })}>
-            <Plus className="size-4" />
+          <Button
+            type="primary"
+            icon={<Plus className="size-4" />}
+            onClick={() => setDialog({ service: null })}
+          >
             {t("add")}
           </Button>
         }
       />
 
-      <div className="surface overflow-hidden">
-        <Table className="table-fixed">
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("colVi")}</TableHead>
-              <TableHead>{t("colEn")}</TableHead>
-              <TableHead>{t("colId")}</TableHead>
-              <TableHead className="w-28 text-center">
-                {t("colActive")}
-              </TableHead>
-              <TableHead className="w-28 text-right">
-                {t("colActions")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {services.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="h-16 text-center text-muted-foreground"
-                >
-                  {t("empty")}
-                </TableCell>
-              </TableRow>
-            ) : (
-              services.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="truncate">{s.name_vi}</TableCell>
-                  <TableCell className="truncate">
-                    {s.name_en || (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="truncate">
-                    {s.name_id || (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <input
-                      type="checkbox"
-                      className="size-4 cursor-pointer accent-primary"
-                      checked={s.is_active}
-                      disabled={pending}
-                      aria-label={t("colActive")}
-                      title={s.is_active ? t("active") : t("inactive")}
-                      onChange={() => onToggleActive(s)}
-                    />
-                  </TableCell>
-                  <TableCell className="space-x-1 text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title={t("edit")}
-                      aria-label={t("edit")}
-                      disabled={pending}
-                      onClick={() => setDialog({ service: s })}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title={t("delete")}
-                      aria-label={t("delete")}
-                      disabled={pending}
-                      onClick={() => setDeleting(s)}
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <Table
+        className="surface overflow-hidden"
+        rowKey="id"
+        columns={columns}
+        dataSource={services}
+        pagination={false}
+        tableLayout="fixed"
+        locale={{ emptyText: t("empty") }}
+      />
 
       <ServiceDialog state={dialog} onClose={() => setDialog(null)} />
-
-      <AlertDialog
-        open={deleting !== null}
-        onOpenChange={(o) => !o && setDeleting(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteConfirmBody", { name: deleting?.name_vi ?? "" })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
-              {t("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Page>
   );
 }
 
-const schema = z.object({
-  name_vi: z.string().min(1),
-  name_en: z.string(), // không bắt buộc — "" = chưa dịch, lưu null
-  name_id: z.string(),
-  sort_order: z.string(), // input number trả string; convert khi submit
-  is_active: z.boolean(),
-});
-type Values = z.infer<typeof schema>;
+type Values = {
+  name_vi: string;
+  name_en?: string | null;
+  name_id?: string | null;
+  sort_order?: number | null;
+  is_active: boolean;
+};
 
 function ServiceDialog({
   state,
@@ -215,34 +160,18 @@ function ServiceDialog({
   onClose: () => void;
 }) {
   const t = useTranslations("services");
+  const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
   const editing = state?.service ?? null;
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<Values>({
-    resolver: zodResolver(schema),
-    // Khóa remount theo service để form nạp lại giá trị đúng khi mở.
-    values: {
-      name_vi: editing?.name_vi ?? "",
-      name_en: editing?.name_en ?? "",
-      name_id: editing?.name_id ?? "",
-      sort_order: String(editing?.sort_order ?? 0),
-      is_active: editing?.is_active ?? true,
-    },
-  });
-
-  const onSubmit = (v: Values) =>
+  const onFinish = (v: Values) =>
     start(async () => {
-      if (!state) return;
-      const input = {
-        name_vi: v.name_vi,
-        name_en: v.name_en || null,
-        name_id: v.name_id || null,
-        sort_order: Number(v.sort_order) || 0,
+      const input: ServiceInput = {
+        name_vi: v.name_vi.trim(),
+        // không bắt buộc — "" = chưa dịch, lưu null
+        name_en: v.name_en?.trim() || null,
+        name_id: v.name_id?.trim() || null,
+        sort_order: v.sort_order ?? 0,
         is_active: v.is_active,
       };
       const res = editing
@@ -253,70 +182,56 @@ function ServiceDialog({
         return;
       }
       toast.success(editing ? t("updateOk") : t("createOk"));
-      reset();
       onClose();
     });
 
   return (
-    <Dialog open={!!state} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? t("editTitle") : t("addTitle")}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t("colVi")} error={errors.name_vi && t("required")}>
-              <Input {...register("name_vi")} />
-            </Field>
-            <Field label={t("colEn")}>
-              <Input {...register("name_en")} placeholder={t("optional")} />
-            </Field>
-            <Field label={t("colId")}>
-              <Input {...register("name_id")} placeholder={t("optional")} />
-            </Field>
-            <Field label={t("colSort")}>
-              <Input type="number" {...register("sort_order")} />
-            </Field>
-          </div>
-
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-4 cursor-pointer accent-primary"
-              {...register("is_active")}
-            />
-            {t("activeLabel")}
-          </label>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              {t("cancel")}
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending && <RefreshCw className="animate-spin" />}
-              {t("save")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string | false;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+    <Modal
+      open={!!state}
+      onCancel={onClose}
+      title={editing ? t("editTitle") : t("addTitle")}
+      okText={t("save")}
+      cancelText={t("cancel")}
+      confirmLoading={pending}
+      onOk={() => form.submit()}
+      destroyOnHidden
+      width={560}
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        onFinish={onFinish}
+        initialValues={{
+          name_vi: editing?.name_vi ?? "",
+          name_en: editing?.name_en ?? "",
+          name_id: editing?.name_id ?? "",
+          sort_order: editing?.sort_order ?? 0,
+          is_active: editing?.is_active ?? true,
+        }}
+      >
+        <div className="grid grid-cols-2 gap-x-3">
+          <Form.Item
+            name="name_vi"
+            label={t("colVi")}
+            rules={[{ required: true, whitespace: true, message: t("required") }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item name="name_en" label={t("colEn")}>
+            <Input placeholder={t("optional")} />
+          </Form.Item>
+          <Form.Item name="name_id" label={t("colId")}>
+            <Input placeholder={t("optional")} />
+          </Form.Item>
+          <Form.Item name="sort_order" label={t("colSort")}>
+            <InputNumber className="w-full" />
+          </Form.Item>
+        </div>
+        <Form.Item name="is_active" valuePropName="checked" className="mb-0">
+          <Checkbox>{t("activeLabel")}</Checkbox>
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 }

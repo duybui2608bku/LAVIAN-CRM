@@ -1,15 +1,18 @@
 "use client";
 
-import {
-  Fragment,
-  useMemo,
-  useOptimistic,
-  useState,
-  useTransition,
-} from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Button,
+  Input,
+  Pagination,
+  Popover,
+  Segmented,
+  Table,
+  Tag,
+  type TableColumnType,
+} from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { toast } from "sonner";
 import {
   Ban,
   CalendarClock,
@@ -51,6 +54,7 @@ import {
 import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
 import { formatISODate, parseISODate } from "@/lib/date";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
   AppointmentDialog,
@@ -61,45 +65,14 @@ import { AppointmentStatusTag } from "@/components/appointments/status-tag";
 import { PaymentsDialog } from "@/components/appointments/payments-dialog";
 import { UpsalesDialog } from "@/components/appointments/upsales-dialog";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { useConfirm } from "@/components/common/confirm-action";
 import { CurrencyInput } from "@/components/common/currency-input";
-import { DatePicker } from "@/components/common/date-picker";
+import { DatePicker, TimePicker } from "@/components/common/date-picker";
 import { ImageUpload } from "@/components/common/image-upload";
+import { InlineSelect } from "@/components/common/inline-select";
 import { RowActions } from "@/components/common/row-actions";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   APPOINTMENT_STATUSES,
   PAYMENT_METHODS,
@@ -109,6 +82,13 @@ import {
 } from "@/types/appointment";
 import type { EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
+
+// Dòng nhóm theo trạng thái chen giữa các lịch — như sheet gom Sudah Datang / Booking.
+type GroupRow = { id: string; group: AppointmentStatus; count: number };
+type Row = Appointment | GroupRow;
+const isGroup = (r: Row): r is GroupRow => "group" in r;
+
+const DASH = <span className="text-muted-foreground">—</span>;
 
 // ponytail: phân trang client (data đã tải sẵn) — giống /customers.
 const PAGE_SIZE = 20;
@@ -133,6 +113,7 @@ export function AppointmentsManager({
   const t = useTranslations("appointments");
   const locale = useLocale();
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, start] = useTransition();
 
   const [tab, setTab] = useState<"day" | "waiting">("day");
@@ -144,7 +125,6 @@ export function AppointmentsManager({
   const [technicianId, setTechnicianId] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [target, setTarget] = useState<Appointment | "new" | null>(null);
-  const [deleting, setDeleting] = useState<Appointment | null>(null);
   // Lưu id (không giữ object) để dialog Thanh toán tự nhận dữ liệu mới sau refresh.
   const [payFor, setPayFor] = useState<string | null>(null);
   const payAppt = appointments.find((a) => a.id === payFor) ?? null;
@@ -215,6 +195,19 @@ export function AppointmentsManager({
   const current = Math.min(page, totalPages);
   const offset = (current - 1) * PAGE_SIZE;
   const rows = filtered.slice(offset, offset + PAGE_SIZE);
+  // Chèn dòng nhóm mỗi khi trạng thái đổi (rows đã sort theo trạng thái).
+  const tableRows: Row[] = rows.flatMap((a, i) =>
+    i === 0 || rows[i - 1].status !== a.status
+      ? [
+          {
+            id: `group-${a.status}`,
+            group: a.status,
+            count: filtered.filter((x) => x.status === a.status).length,
+          },
+          a,
+        ]
+      : [a],
+  );
 
   const anchorDate = parseISODate(day) ?? new Date();
   const shiftCalendar = (dir: 1 | -1) =>
@@ -240,19 +233,18 @@ export function AppointmentsManager({
   );
   const technicianDisplay = (id: string | null) => {
     const s = id ? staff.find((x) => x.id === id) : undefined;
-    if (!s) return <span className="text-muted-foreground">—</span>;
-    return staffLabel(s);
+    return s ? staffLabel(s) : DASH;
   };
-  const serviceBadges = (ids: string[]) => {
-    if (!ids?.length) return <span className="text-muted-foreground">—</span>;
+  const serviceTags = (ids: string[]) => {
+    if (!ids?.length) return DASH;
     return (
-      <div className="flex max-w-[220px] flex-wrap gap-1">
+      <div className="flex max-w-56 flex-wrap gap-1">
         {ids.map((id) => {
           const s = services.find((x) => x.id === id);
           return s ? (
-            <Badge key={id} variant="secondary">
+            <Tag key={id} className="me-0">
               {serviceName(s, locale)}
-            </Badge>
+            </Tag>
           ) : null;
         })}
       </div>
@@ -313,19 +305,21 @@ export function AppointmentsManager({
       toast.success(t("technicianUpdated"));
     });
 
-  const confirmDelete = () => {
-    const a = deleting;
-    if (!a) return;
-    setDeleting(null);
-    start(async () => {
-      const res = await deleteAppointment(a.id);
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(t("deleteOk"));
+  const askDelete = (a: Appointment) =>
+    confirm({
+      title: t("deleteConfirm"),
+      content: t("deleteConfirmBody", { name: a.customer?.full_name ?? "" }),
+      okText: t("delete"),
+      cancelText: t("cancel"),
+      onOk: async () => {
+        const res = await deleteAppointment(a.id);
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success(t("deleteOk"));
+      },
     });
-  };
 
   // Action nhanh theo trạng thái (Status Mapping trong design).
   const quickActions = (a: Appointment) => {
@@ -336,15 +330,14 @@ export function AppointmentsManager({
     ) => (
       <Button
         key={title}
-        size="sm"
-        variant="ghost"
+        type="text"
+        size="small"
         title={title}
         aria-label={title}
         disabled={pending}
         onClick={onClick}
-      >
-        {icon}
-      </Button>
+        icon={icon}
+      />
     );
     switch (a.status) {
       case "pending_confirmation":
@@ -403,6 +396,157 @@ export function AppointmentsManager({
     }
   };
 
+  const amountCell = (v: number | null, cls?: string) => (
+    <span className={cn("tabular-nums", cls)}>{v ? fmt(v) : "—"}</span>
+  );
+
+  // Cột khai báo theo lịch hẹn; `cell` render 1 lịch (dòng nhóm xử lý riêng ở dưới).
+  type Col = Pick<TableColumnType<Row>, "title" | "key" | "align" | "fixed"> & {
+    cell: (a: Appointment) => React.ReactNode;
+  };
+  const baseColumns: Col[] = [
+    {
+      title: t("colTime"),
+      key: "time",
+      cell: (a) =>
+        a.scheduled_at ? (
+          <span className="font-medium tabular-nums">{localTime(a.scheduled_at)}</span>
+        ) : (
+          <span className="text-muted-foreground tabular-nums" title={t("noDate")}>
+            {new Date(a.created_at).toLocaleDateString()}
+          </span>
+        ),
+    },
+    {
+      title: t("colCustomer"),
+      key: "customer",
+      cell: (a) => (
+        <>
+          <div className="flex items-center gap-1.5 font-medium">
+            {a.customer?.full_name ?? "—"}
+            {isReturningRow(a) && (
+              <Tag color="blue" className="me-0">
+                {t("returningCustomer")}
+              </Tag>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">{a.customer?.phone}</div>
+        </>
+      ),
+    },
+    { title: t("colServices"), key: "services", cell: (a) => serviceTags(a.service_ids) },
+    {
+      title: t("colTechnician"),
+      key: "technician",
+      cell: (a) => (
+        <InlineSelect
+          value={a.technician_id ?? ""}
+          display={technicianDisplay(a.technician_id)}
+          options={technicianOptions}
+          noneLabel={t("noneOption")}
+          ariaLabel={t("colTechnician")}
+          onSave={(value) => changeTechnician(a, value || null)}
+        />
+      ),
+    },
+    { title: t("colStatus"), key: "status", cell: (a) => statusTag(a.status) },
+    {
+      title: t("colTotal"),
+      key: "total",
+      align: "right",
+      cell: (a) => amountCell(payableTotal(a), "text-muted-foreground"),
+    },
+    {
+      title: t("colUpsale"),
+      key: "upsale",
+      align: "right",
+      cell: (a) => amountCell(upsaleTotal(a.upsales)),
+    },
+    { title: t("colPaid"), key: "paid", align: "right", cell: (a) => amountCell(paidTotal(a)) },
+    {
+      title: t("colOutstanding"),
+      key: "outstanding",
+      align: "right",
+      cell: (a) => {
+        const owed = outstanding(a);
+        return amountCell(owed > 0 ? owed : null, owed > 0 ? "font-medium text-destructive" : "text-muted-foreground");
+      },
+    },
+    {
+      title: t("colNote"),
+      key: "note",
+      cell: (a) =>
+        a.booking_note || a.internal_note ? (
+          <span
+            className="block max-w-48 truncate text-xs text-muted-foreground"
+            title={[a.booking_note, a.internal_note].filter(Boolean).join("\n")}
+          >
+            {a.booking_note ?? a.internal_note}
+          </span>
+        ) : (
+          DASH
+        ),
+    },
+    {
+      title: t("colActions"),
+      key: "actions",
+      align: "right",
+      fixed: "right",
+      cell: (a) => (
+        <div className="flex items-center justify-end gap-0.5 whitespace-nowrap">
+          {quickActions(a)}
+          <RowActions
+            label={t("colActions")}
+            items={[
+              {
+                icon: <TrendingUp className="size-4" />,
+                label: t("upsales"),
+                count: a.upsales.length,
+                onSelect: () => setUpsaleFor(a.id),
+              },
+              {
+                icon: <Wallet className="size-4" />,
+                label: t("payments"),
+                count: a.ledger?.payments.length ?? a.payments.length,
+                onSelect: () => setPayFor(a.id),
+              },
+              {
+                icon: <Pencil className="size-4" />,
+                label: t("edit"),
+                onSelect: () => setTarget(a),
+              },
+              {
+                icon: <Trash2 className="size-4" />,
+                label: t("delete"),
+                danger: true,
+                onSelect: () => askDelete(a),
+              },
+            ]}
+          />
+        </div>
+      ),
+    },
+  ];
+
+  // Dòng nhóm: ô đầu trải hết bề ngang (colSpan), các ô còn lại ẩn.
+  const columns: TableColumnType<Row>[] = baseColumns.map(({ cell, ...col }, i) => ({
+    ...col,
+    onCell: (r) => (isGroup(r) ? { colSpan: i === 0 ? baseColumns.length : 0 } : {}),
+    render: (_, r) =>
+      !isGroup(r) ? (
+        cell(r)
+      ) : i === 0 ? (
+        <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          {statusTag(r.group)}
+          {r.count}
+        </span>
+      ) : null,
+  }));
+
+  const waitingCount = appointments.filter((a) =>
+    matchesAppointmentFilters(a, { waiting: true }),
+  ).length;
+
   return (
     <Page>
       <PageHeader
@@ -410,161 +554,122 @@ export function AppointmentsManager({
         actions={
           <>
             {/* Toggle bảng ↔ calendar */}
-            <div className="flex rounded-lg border p-0.5">
-              <Button
-                size="sm"
-                variant={view === "table" ? "secondary" : "ghost"}
-                className="h-7"
-                title={t("viewTable")}
-                aria-label={t("viewTable")}
-                onClick={() => setView("table")}
-              >
-                <List className="size-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant={view !== "table" ? "secondary" : "ghost"}
-                className="h-7"
-                title={t("viewCalendar")}
-                aria-label={t("viewCalendar")}
-                onClick={() => setView("week")}
-              >
-                <CalendarDays className="size-4" />
-              </Button>
-            </div>
+            <Segmented
+              value={view === "table" ? "table" : "calendar"}
+              onChange={(v) => setView(v === "table" ? "table" : "week")}
+              options={[
+                { value: "table", icon: <List className="size-4" />, title: t("viewTable") },
+                { value: "calendar", icon: <CalendarDays className="size-4" />, title: t("viewCalendar") },
+              ]}
+            />
             <Button
-              variant="outline"
+              icon={<RefreshCw className="size-4" />}
+              loading={pending}
               onClick={() => start(() => router.refresh())}
-              disabled={pending}
             >
-              <RefreshCw className={cn("size-4", pending && "animate-spin")} />
               {t("reload")}
             </Button>
-            <Button onClick={() => setTarget("new")}>
-              <CalendarPlus className="size-4" />
+            <Button
+              type="primary"
+              icon={<CalendarPlus className="size-4" />}
+              onClick={() => setTarget("new")}
+            >
               {t("create")}
             </Button>
           </>
         }
       />
 
-      {/* Tab: Trong ngày / Chờ xếp lịch (thay sheet DP CUS) — chỉ ở view bảng;
+      {/* Tab: Trong ngày / Chờ xếp lịch — chỉ ở view bảng;
           view calendar thay bằng segmented Tuần/Tháng + điều hướng. */}
       <PageToolbar>
         {view === "table" ? (
           <>
-            <div className="mr-2 flex rounded-lg border p-0.5">
-              {(["day", "waiting"] as const).map((k) => (
-                <Button
-                  key={k}
-                  size="sm"
-                  variant={tab === k ? "secondary" : "ghost"}
-                  className="h-7"
-                  onClick={() => setTab(k)}
-                >
-                  {t(k === "day" ? "tabDay" : "tabWaiting")}
-                  {k === "waiting" && (
-                    <span className="text-xs text-muted-foreground">
-                      {
-                        appointments.filter((a) =>
-                          matchesAppointmentFilters(a, { waiting: true }),
-                        ).length
-                      }
+            <Segmented
+              value={tab}
+              onChange={setTab}
+              options={[
+                { value: "day", label: t("tabDay") },
+                {
+                  value: "waiting",
+                  label: (
+                    <span className="flex items-center gap-1.5">
+                      {t("tabWaiting")}
+                      <span className="text-xs text-muted-foreground">{waitingCount}</span>
                     </span>
-                  )}
-                </Button>
-              ))}
-            </div>
+                  ),
+                },
+              ]}
+            />
             {tab === "day" && (
               <DatePicker
                 value={day}
-                onChange={setDay}
+                onChange={(d) => setDay(d || formatISODate(new Date()))}
                 placeholder={t("pickDate")}
-                className="w-[160px]"
+                allowClear={false}
+                className="w-40"
               />
             )}
           </>
         ) : (
           <>
-            <div className="mr-2 flex rounded-lg border p-0.5">
-              {(["week", "month"] as const).map((k) => (
-                <Button
-                  key={k}
-                  size="sm"
-                  variant={view === k ? "secondary" : "ghost"}
-                  className="h-7"
-                  onClick={() => setView(k)}
-                >
-                  {t(k)}
-                </Button>
-              ))}
-            </div>
+            <Segmented
+              value={view}
+              onChange={setView}
+              options={(["week", "month"] as const).map((k) => ({ value: k, label: t(k) }))}
+            />
             <div className="flex items-center gap-1">
               <Button
-                size="sm"
-                variant="ghost"
-                className="h-7"
+                type="text"
                 title={t("prev")}
                 aria-label={t("prev")}
+                icon={<ChevronLeft className="size-4" />}
                 onClick={() => shiftCalendar(-1)}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
+              />
+              <Button onClick={() => setDay(formatISODate(new Date()))}>{t("today")}</Button>
               <Button
-                size="sm"
-                variant="outline"
-                className="h-7"
-                onClick={() => setDay(formatISODate(new Date()))}
-              >
-                {t("today")}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7"
+                type="text"
                 title={t("next")}
                 aria-label={t("next")}
+                icon={<ChevronRight className="size-4" />}
                 onClick={() => shiftCalendar(1)}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
+              />
             </div>
             <span className="text-sm font-medium">{calendarLabel}</span>
           </>
         )}
-        <div className="relative w-full sm:max-w-[200px]">
-          <Search className="absolute top-2 left-2.5 size-4 text-muted-foreground" />
-          <Input
-            className="pl-8"
-            placeholder={t("searchPlaceholder")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        <Input
+          allowClear
+          className="w-full sm:max-w-52"
+          prefix={<Search className="size-4 text-muted-foreground" />}
+          placeholder={t("searchPlaceholder")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         {view === "table" && tab === "day" && (
           <ClearableSelect
+            className="min-w-36"
             value={status}
-            onValueChange={setStatus}
+            onChange={setStatus}
             options={statusOptions}
             placeholder={t("allStatus")}
-            clearLabel={t("clear")}
             ariaLabel={t("colStatus")}
           />
         )}
         <ClearableSelect
+          className="min-w-36"
           value={technicianId}
-          onValueChange={setTechnicianId}
+          onChange={setTechnicianId}
           options={technicianOptions}
           placeholder={t("allTechnicians")}
-          clearLabel={t("clear")}
           ariaLabel={t("colTechnician")}
         />
         <ClearableSelect
+          className="min-w-36"
           value={serviceId}
-          onValueChange={setServiceId}
+          onChange={setServiceId}
           options={serviceOptions}
           placeholder={t("allServices")}
-          clearLabel={t("clear")}
           ariaLabel={t("colServices")}
         />
       </PageToolbar>
@@ -582,203 +687,33 @@ export function AppointmentsManager({
           }}
         />
       ) : (
-      <div className="surface overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("colTime")}</TableHead>
-              <TableHead>{t("colCustomer")}</TableHead>
-              <TableHead>{t("colServices")}</TableHead>
-              <TableHead>{t("colTechnician")}</TableHead>
-              <TableHead>{t("colStatus")}</TableHead>
-              <TableHead className="text-right">{t("colTotal")}</TableHead>
-              <TableHead className="text-right">{t("colUpsale")}</TableHead>
-              <TableHead className="text-right">{t("colPaid")}</TableHead>
-              <TableHead className="text-right">{t("colOutstanding")}</TableHead>
-              <TableHead>{t("colNote")}</TableHead>
-              <TableHead className="text-right">{t("colActions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={11}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  {t("empty")}
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((a, i) => {
-                const paidAmt = paidTotal(a);
-                const outstandingAmt = outstanding(a);
-                const upsaleAmt = upsaleTotal(a.upsales);
-                const paymentCount = a.ledger?.payments.length ?? a.payments.length;
-                return (
-                  <Fragment key={a.id}>
-                    {/* Row nhóm theo trạng thái — như cách sheet gom Sudah Datang / Booking */}
-                    {(i === 0 || rows[i - 1].status !== a.status) && (
-                      <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableCell colSpan={11} className="py-1.5">
-                          <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                            {statusTag(a.status)}
-                            {filtered.filter((x) => x.status === a.status).length}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    <TableRow>
-                      <TableCell className="font-medium tabular-nums">
-                        {a.scheduled_at ? (
-                          localTime(a.scheduled_at)
-                        ) : (
-                          <span
-                            className="text-muted-foreground"
-                            title={t("noDate")}
-                          >
-                            {new Date(a.created_at).toLocaleDateString()}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5 font-medium">
-                          {a.customer?.full_name ?? "—"}
-                          {isReturningRow(a) && (
-                            <Badge variant="info">{t("returningCustomer")}</Badge>
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {a.customer?.phone}
-                        </div>
-                      </TableCell>
-                      <TableCell>{serviceBadges(a.service_ids)}</TableCell>
-                      <TableCell>
-                        <InlineTechnicianSelect
-                          value={a.technician_id ?? ""}
-                          display={technicianDisplay(a.technician_id)}
-                          options={technicianOptions}
-                          noneLabel={t("noneOption")}
-                          ariaLabel={t("colTechnician")}
-                          onSave={(value) =>
-                            changeTechnician(a, value || null)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>{statusTag(a.status)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">
-                        {payableTotal(a) != null
-                          ? fmt(payableTotal(a)!)
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {upsaleAmt > 0 ? fmt(upsaleAmt) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {paidAmt ? fmt(paidAmt) : "—"}
-                      </TableCell>
-                      <TableCell
-                        className={cn(
-                          "text-right tabular-nums",
-                          outstandingAmt > 0
-                            ? "font-medium text-destructive"
-                            : "text-muted-foreground",
-                        )}
-                      >
-                        {outstandingAmt > 0 ? fmt(outstandingAmt) : "—"}
-                      </TableCell>
-                      <TableCell className="max-w-[200px]">
-                        {a.booking_note || a.internal_note ? (
-                          <span
-                            className="block truncate text-xs text-muted-foreground"
-                            title={[a.booking_note, a.internal_note]
-                              .filter(Boolean)
-                              .join("\n")}
-                          >
-                            {a.booking_note ?? a.internal_note}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="space-x-0.5 text-right whitespace-nowrap">
-                        {quickActions(a)}
-                        <RowActions
-                          label={t("colActions")}
-                          items={[
-                            {
-                              icon: <TrendingUp className="size-4" />,
-                              label: t("upsales"),
-                              count: a.upsales.length,
-                              onSelect: () => setUpsaleFor(a.id),
-                            },
-                            {
-                              icon: <Wallet className="size-4" />,
-                              label: t("payments"),
-                              count: paymentCount,
-                              onSelect: () => setPayFor(a.id),
-                            },
-                            {
-                              icon: <Pencil className="size-4" />,
-                              label: t("edit"),
-                              onSelect: () => setTarget(a),
-                            },
-                            {
-                              icon: <Trash2 className="size-4" />,
-                              label: t("delete"),
-                              danger: true,
-                              onSelect: () => setDeleting(a),
-                            },
-                          ]}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  </Fragment>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-        {filtered.length > 0 ? (
-          <div className="flex items-center justify-between gap-2 border-t px-4 py-2 text-sm text-muted-foreground">
-            <span>
-              {t("pageInfo", {
-                from: offset + 1,
-                to: offset + rows.length,
-                total: filtered.length,
-              })}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                title={t("prevPage")}
-                aria-label={t("prevPage")}
-                disabled={current <= 1}
-                onClick={() => setPage(current - 1)}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <span className="px-1 tabular-nums">
-                {current} / {totalPages}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                title={t("nextPage")}
-                aria-label={t("nextPage")}
-                disabled={current >= totalPages}
-                onClick={() => setPage(current + 1)}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
+        <div className="surface overflow-hidden">
+          <Table<Row>
+            rowKey="id"
+            size="middle"
+            columns={columns}
+            dataSource={tableRows}
+            pagination={false}
+            scroll={{ x: "max-content" }}
+            rowClassName={(r) => (isGroup(r) ? "bg-muted/60" : "")}
+            locale={{ emptyText: t("empty") }}
+          />
+          {/* Phân trang tách khỏi Table: dòng nhóm không tính vào 20 dòng/trang. */}
+          {filtered.length > 0 && (
+            <div className="flex justify-end border-t border-border px-4 py-2">
+              <Pagination
+                size="small"
+                current={current}
+                pageSize={PAGE_SIZE}
+                total={filtered.length}
+                onChange={setPage}
+                showSizeChanger={false}
+                showTotal={(total, [from, to]) => t("pageInfo", { from, to, total })}
+              />
             </div>
-          </div>
-        ) : null}
-      </div>
+          )}
+        </div>
       )}
-
-      {/* Tổng doanh thu ngày đã bỏ — báo cáo doanh thu làm ở menu thống kê riêng */}
 
       <AppointmentDialog
         open={target !== null}
@@ -809,78 +744,7 @@ export function AppointmentsManager({
         currentUserIsAdmin={currentUserIsAdmin}
         onClose={() => setUpsaleFor(null)}
       />
-
-      <AlertDialog
-        open={deleting !== null}
-        onOpenChange={(o) => !o && setDeleting(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteConfirmBody", {
-                name: deleting?.customer?.full_name ?? "",
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
-              {t("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Page>
-  );
-}
-
-const NO_TECHNICIAN = "__none";
-
-/** Select inline trong cột Kỹ thuật viên của bảng lịch hẹn. */
-function InlineTechnicianSelect({
-  value,
-  display,
-  options,
-  noneLabel,
-  ariaLabel,
-  disabled,
-  onSave,
-}: {
-  value: string;
-  display: React.ReactNode;
-  options: { value: string; label: React.ReactNode }[];
-  noneLabel: string;
-  ariaLabel: string;
-  disabled?: boolean;
-  onSave: (value: string) => void;
-}) {
-  return (
-    <Select
-      value={value || NO_TECHNICIAN}
-      onValueChange={(selected) => {
-        const next = selected === NO_TECHNICIAN ? "" : selected;
-        if (next !== value) onSave(next);
-      }}
-      disabled={disabled}
-    >
-      <SelectTrigger
-        aria-label={ariaLabel}
-        className="-m-1 rounded-md border-none bg-transparent p-1 hover:bg-accent/50 data-[size=default]:h-auto dark:bg-transparent dark:hover:bg-accent/50 [&>svg]:size-3"
-      >
-        <SelectValue>{display}</SelectValue>
-      </SelectTrigger>
-      <SelectContent position="popper">
-        <SelectItem value={NO_TECHNICIAN} className="text-muted-foreground">
-          {noneLabel}
-        </SelectItem>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   );
 }
 
@@ -913,42 +777,36 @@ function ReschedulePopover({
   return (
     <Popover
       open={open}
+      trigger="click"
+      placement="bottomRight"
       onOpenChange={(o) => {
         setOpen(o);
         if (o) {
-          const cur = appointment.scheduled_at
-            ? new Date(appointment.scheduled_at)
-            : null;
+          const cur = appointment.scheduled_at ? new Date(appointment.scheduled_at) : null;
           setDate(cur ? formatISODate(cur) : "");
           setTime(cur ? localTime(cur.toISOString()) : "09:00");
         }
       }}
-    >
-      <PopoverTrigger asChild>
-        <Button
-          size="sm"
-          variant="ghost"
-          title={t("reschedule")}
-          aria-label={t("reschedule")}
-          disabled={disabled}
-        >
-          <CalendarClock className="size-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 space-y-2">
-        <DatePicker value={date} onChange={setDate} placeholder={t("pickDate")} />
-        <Input
-          type="time"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-        />
-        <div className="flex justify-end">
-          <Button size="sm" disabled={pending || !date} onClick={save}>
-            {pending && <RefreshCw className="animate-spin" />}
-            {t("save")}
-          </Button>
+      content={
+        <div className="flex w-60 flex-col gap-2">
+          <DatePicker value={date} onChange={setDate} placeholder={t("pickDate")} />
+          <TimePicker value={time} onChange={setTime} />
+          <div className="flex justify-end">
+            <Button type="primary" size="small" loading={pending} disabled={!date} onClick={save}>
+              {t("save")}
+            </Button>
+          </div>
         </div>
-      </PopoverContent>
+      }
+    >
+      <Button
+        type="text"
+        size="small"
+        title={t("reschedule")}
+        aria-label={t("reschedule")}
+        disabled={disabled}
+        icon={<CalendarClock className="size-4" />}
+      />
     </Popover>
   );
 }
@@ -975,9 +833,21 @@ function CompletePopover({
   const [method, setMethod] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
+  const submit = () => {
+    setOpen(false);
+    const collectNum = collect === "" ? 0 : Number(collect);
+    onComplete({
+      total_amount: amount === "" ? null : Number(amount),
+      payment_method: (method || null) as PaymentMethod | null,
+      collect: collectNum > 0 ? { amount: collectNum, image_url: imageUrl } : undefined,
+    });
+  };
+
   return (
     <Popover
       open={open}
+      trigger="click"
+      placement="bottomRight"
       onOpenChange={(o) => {
         setOpen(o);
         if (o) {
@@ -990,69 +860,39 @@ function CompletePopover({
           setImageUrl(null);
         }
       }}
-    >
-      <PopoverTrigger asChild>
-        <Button
-          size="sm"
-          variant="ghost"
-          title={t("complete")}
-          aria-label={t("complete")}
-          disabled={disabled}
-        >
-          <CheckCheck className="size-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 space-y-2">
-        <CurrencyInput
-          value={amount}
-          onValueChange={setAmount}
-          placeholder={t("totalAmount")}
-          aria-label={t("totalAmount")}
-        />
-        <CurrencyInput
-          value={collect}
-          onValueChange={setCollect}
-          placeholder={t("collectNow")}
-          aria-label={t("collectNow")}
-        />
-        <ClearableSelect
-          value={method}
-          onValueChange={setMethod}
-          options={PAYMENT_METHODS.map((m) => ({
-            value: m,
-            label: t(`method_${m}`),
-          }))}
-          placeholder={t("paymentMethod")}
-          clearLabel={t("clear")}
-          ariaLabel={t("paymentMethod")}
-          className="w-full"
-        />
-        <ImageUpload
-          value={imageUrl}
-          onChange={setImageUrl}
-          label={t("receiptImage")}
-          className="w-24"
-        />
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            onClick={() => {
-              setOpen(false);
-              const collectNum = collect === "" ? 0 : Number(collect);
-              onComplete({
-                total_amount: amount === "" ? null : Number(amount),
-                payment_method: (method || null) as PaymentMethod | null,
-                collect:
-                  collectNum > 0
-                    ? { amount: collectNum, image_url: imageUrl }
-                    : undefined,
-              });
-            }}
-          >
-            {t("complete")}
-          </Button>
+      content={
+        <div className="flex w-68 flex-col gap-2">
+          <CurrencyInput value={amount} onChange={setAmount} placeholder={t("totalAmount")} />
+          <CurrencyInput value={collect} onChange={setCollect} placeholder={t("collectNow")} />
+          <ClearableSelect
+            value={method}
+            onChange={setMethod}
+            options={PAYMENT_METHODS.map((m) => ({ value: m, label: t(`method_${m}`) }))}
+            placeholder={t("paymentMethod")}
+            ariaLabel={t("paymentMethod")}
+          />
+          <ImageUpload
+            value={imageUrl}
+            onChange={setImageUrl}
+            label={t("receiptImage")}
+            className="w-24"
+          />
+          <div className="flex justify-end">
+            <Button type="primary" size="small" onClick={submit}>
+              {t("complete")}
+            </Button>
+          </div>
         </div>
-      </PopoverContent>
+      }
+    >
+      <Button
+        type="text"
+        size="small"
+        title={t("complete")}
+        aria-label={t("complete")}
+        disabled={disabled}
+        icon={<CheckCheck className="size-4" />}
+      />
     </Popover>
   );
 }

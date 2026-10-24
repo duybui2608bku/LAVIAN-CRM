@@ -1,15 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { Button, Dropdown } from "antd";
 import { MoreHorizontal } from "lucide-react";
-
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 
 export type RowAction = {
   icon: ReactNode;
@@ -32,40 +25,37 @@ export function RowActions({
   label: string;
   items: RowAction[];
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button size="sm" variant="ghost" title={label} aria-label={label}>
-          <MoreHorizontal className="size-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-52 gap-0.5 p-1">
-        {items.map((item) => (
-          <Button
-            key={item.label}
-            size="sm"
-            variant="ghost"
-            className={cn(
-              "h-8 w-full justify-start gap-2 font-normal",
-              item.danger && "text-destructive hover:text-destructive",
-            )}
-            disabled={item.disabled}
-            onClick={() => {
-              setOpen(false);
-              item.onSelect();
-            }}
-          >
-            {item.icon}
-            <span className="flex-1 text-left">{item.label}</span>
-            {item.count ? (
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {item.count}
-              </span>
-            ) : null}
-          </Button>
-        ))}
-      </PopoverContent>
-    </Popover>
+    <Dropdown
+      trigger={["click"]}
+      placement="bottomRight"
+      menu={{
+        items: items.map((item) => ({
+          key: item.label,
+          icon: item.icon,
+          danger: item.danger,
+          disabled: item.disabled,
+          label: (
+            <span className="flex min-w-36 items-center justify-between gap-3">
+              {item.label}
+              {item.count ? (
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {item.count}
+                </span>
+              ) : null}
+            </span>
+          ),
+        })),
+        onClick: ({ key }) => items.find((i) => i.label === key)?.onSelect(),
+      }}
+    >
+      <Button
+        type="text"
+        size="small"
+        title={label}
+        aria-label={label}
+        icon={<MoreHorizontal className="size-4" />}
+      />
+    </Dropdown>
   );
 }

@@ -1,32 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Button } from "antd";
 import { Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 
-import { Button } from "@/components/ui/button";
+import { useMounted } from "@/hooks/use-mounted";
 
 export function ThemeToggle() {
   const t = useTranslations("theme");
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
   // Chờ mount để tránh lệch hydration (server không biết theme của client).
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <Button
-      variant="ghost"
-      size="icon-sm"
+      type="text"
       aria-label={t("toggle")}
       title={t("toggle")}
+      icon={isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
       onClick={() => setTheme(isDark ? "light" : "dark")}
-    >
-      {isDark ? <Sun /> : <Moon />}
-      <span className="sr-only">{t("toggle")}</span>
-    </Button>
+    />
   );
 }

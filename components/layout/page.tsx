@@ -13,16 +13,13 @@ export function Page({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("flex flex-1 flex-col gap-5 p-4 sm:p-6", className)}>
+    <div className={cn("flex flex-1 flex-col gap-4 p-4 sm:p-6", className)}>
       {children}
     </div>
   );
 }
 
-/**
- * Tiêu đề trang + mô tả + nút thao tác. Cỡ chữ tiêu đề chốt ở đây, trang con
- * không tự viết `<h1>` nữa.
- */
+/** Tiêu đề trang + mô tả + nút thao tác. Trang con không tự viết `<h1>`. */
 export function PageHeader({
   title,
   description,
@@ -34,12 +31,12 @@ export function PageHeader({
 }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0 space-y-1">
-        <h1 className="truncate text-xl font-semibold tracking-tight">
-          {title}
-        </h1>
+      <div className="min-w-0">
+        {/* Thẻ thuần (không Typography.Title): file này render cả ở Server
+            Component, nơi không "chấm" vào export client của antd được. */}
+        <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
         {description ? (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {actions ? (
@@ -51,7 +48,7 @@ export function PageHeader({
   );
 }
 
-/** Hàng bộ lọc — mọi control bên trong cao h-8 (xem quy ước ở PageToolbar). */
+/** Hàng bộ lọc — control antd mặc định cao 32px, tự đều nhau. */
 export function PageToolbar({
   className,
   children,

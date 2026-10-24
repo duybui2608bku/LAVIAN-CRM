@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button, Modal } from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
 
 import {
   addAppointmentUpsale,
@@ -12,26 +12,11 @@ import {
 import { upsaleTotal } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
+import { toast } from "@/lib/toast";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { ConfirmAction } from "@/components/common/confirm-action";
 import { CurrencyInput } from "@/components/common/currency-input";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import type { Appointment, AppointmentUpsale } from "@/types/appointment";
 import type { Service } from "@/types/service";
 
@@ -55,7 +40,6 @@ export function UpsalesDialog({
   const [pending, start] = useTransition();
   const [serviceId, setServiceId] = useState("");
   const [amount, setAmount] = useState("");
-  const [deleting, setDeleting] = useState<AppointmentUpsale | null>(null);
 
   const rows = appointment?.upsales ?? [];
   const canAdd =
@@ -90,164 +74,119 @@ export function UpsalesDialog({
       setAmount("");
     });
 
-  const confirmDelete = () => {
-    const row = deleting;
-    if (!row) return;
-    setDeleting(null);
-    start(async () => {
-      const res = await deleteAppointmentUpsale(row.id);
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(t("upsaleDeleted"));
-    });
+  const remove = async (row: AppointmentUpsale) => {
+    const res = await deleteAppointmentUpsale(row.id);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(t("upsaleDeleted"));
+  };
+
+  const close = () => {
+    setServiceId("");
+    setAmount("");
+    onClose();
   };
 
   return (
-    <>
-      <Dialog
-        open={appointment !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setServiceId("");
-            setAmount("");
-            onClose();
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {t("upsalesTitle", {
-                name: appointment?.customer?.full_name ?? "",
-              })}
-            </DialogTitle>
-          </DialogHeader>
+    <Modal
+      open={appointment !== null}
+      onCancel={close}
+      footer={null}
+      width={480}
+      title={t("upsalesTitle", { name: appointment?.customer?.full_name ?? "" })}
+    >
+      <div className="space-y-3">
+        <div className="flex items-center justify-between rounded bg-muted px-3 py-2 text-sm">
+          <span>{t("upsaleTotal")}</span>
+          <span className="font-semibold tabular-nums">
+            {formatRupiah(upsaleTotal(rows))}
+          </span>
+        </div>
 
-          <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-sm">
-            <span>{t("upsaleTotal")}</span>
-            <span className="font-semibold tabular-nums">
-              {formatRupiah(upsaleTotal(rows))}
-            </span>
-          </div>
-
-          <ul className="max-h-[40vh] space-y-2 overflow-y-auto">
-            {rows.length === 0 && (
-              <li className="text-sm text-muted-foreground">
-                {t("upsalesEmpty")}
-              </li>
-            )}
-            {rows.map((row) => {
-              const creator = staff.find((user) => user.id === row.created_by);
-              const canDelete =
-                currentUserIsAdmin || row.created_by === currentUserId;
-              return (
-                <li
-                  key={row.id}
-                  className="flex items-center gap-2 rounded-md border px-3 py-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-medium">
-                        {selectedServiceName(row.service_id)}
-                      </span>
-                      <span className="shrink-0 font-medium tabular-nums">
-                        {formatRupiah(row.amount)}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                      <span>
-                        {new Date(row.created_at).toLocaleString(locale)}
-                      </span>
-                      {creator && (
-                        <>
-                          <span aria-hidden="true">·</span>
-                          {staffLabel(creator)}
-                        </>
-                      )}
-                    </div>
+        <ul className="max-h-[40vh] space-y-2 overflow-y-auto">
+          {rows.length === 0 && (
+            <li className="text-sm text-muted-foreground">{t("upsalesEmpty")}</li>
+          )}
+          {rows.map((row) => {
+            const creator = staff.find((user) => user.id === row.created_by);
+            const canDelete = currentUserIsAdmin || row.created_by === currentUserId;
+            return (
+              <li key={row.id} className="surface flex items-center gap-2 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium">
+                      {selectedServiceName(row.service_id)}
+                    </span>
+                    <span className="shrink-0 font-medium tabular-nums">
+                      {formatRupiah(row.amount)}
+                    </span>
                   </div>
-                  {canDelete && (
+                  <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                    <span>{new Date(row.created_at).toLocaleString(locale)}</span>
+                    {creator && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        {staffLabel(creator)}
+                      </>
+                    )}
+                  </div>
+                </div>
+                {canDelete && (
+                  <ConfirmAction
+                    title={t("deleteUpsaleConfirm")}
+                    description={`${selectedServiceName(row.service_id)} · ${formatRupiah(row.amount)}`}
+                    okText={t("delete")}
+                    cancelText={t("cancel")}
+                    onConfirm={() => remove(row)}
+                  >
                     <Button
-                      size="sm"
-                      variant="ghost"
+                      type="text"
+                      size="small"
+                      danger
                       title={t("delete")}
                       aria-label={t("delete")}
-                      disabled={pending}
-                      onClick={() => setDeleting(row)}
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                      icon={<Trash2 className="size-4" />}
+                    />
+                  </ConfirmAction>
+                )}
+              </li>
+            );
+          })}
+        </ul>
 
-          {canAdd ? (
-            <div className="space-y-2 rounded-md border p-2.5">
-              <ClearableSelect
-                value={serviceId}
-                onValueChange={setServiceId}
-                options={serviceOptions}
-                placeholder={t("pickUpsaleService")}
-                clearLabel={t("clear")}
-                ariaLabel={t("upsaleService")}
-                className="w-full"
+        {canAdd ? (
+          <div className="surface flex flex-col gap-2 p-2.5">
+            <ClearableSelect
+              value={serviceId}
+              onChange={setServiceId}
+              options={serviceOptions}
+              placeholder={t("pickUpsaleService")}
+              ariaLabel={t("upsaleService")}
+            />
+            <div className="flex items-center gap-2">
+              <CurrencyInput
+                value={amount}
+                onChange={setAmount}
+                placeholder={t("upsaleAmount")}
+                className="flex-1"
               />
-              <div className="flex items-end gap-2">
-                <CurrencyInput
-                  value={amount}
-                  onValueChange={setAmount}
-                  placeholder={t("upsaleAmount")}
-                  aria-label={t("upsaleAmount")}
-                />
-                <Button
-                  size="sm"
-                  disabled={
-                    pending || !serviceId || !amount || Number(amount) <= 0
-                  }
-                  onClick={submit}
-                >
-                  {pending ? (
-                    <RefreshCw className="animate-spin" />
-                  ) : (
-                    <Plus className="size-4" />
-                  )}
-                  {t("addUpsale")}
-                </Button>
-              </div>
+              <Button
+                type="primary"
+                icon={<Plus className="size-4" />}
+                loading={pending}
+                disabled={!serviceId || !amount || Number(amount) <= 0}
+                onClick={submit}
+              >
+                {t("addUpsale")}
+              </Button>
             </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              {t("upsalePermissionHint")}
-            </p>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={deleting !== null}
-        onOpenChange={(open) => !open && setDeleting(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteUpsaleConfirm")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleting
-                ? `${selectedServiceName(deleting.service_id)} · ${formatRupiah(deleting.amount)}`
-                : ""}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
-              {t("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">{t("upsalePermissionHint")}</p>
+        )}
+      </div>
+    </Modal>
   );
 }

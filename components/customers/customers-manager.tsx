@@ -1,22 +1,23 @@
 "use client";
 
-import {
-  useMemo,
-  useOptimistic,
-  useState,
-  useTransition,
-} from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import {
+  Badge,
+  Button,
+  Drawer,
+  Form,
+  Input,
+  Modal,
+  Popover,
+  Table,
+  Tag,
+  type TableProps,
+} from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { toast } from "sonner";
 import {
   CalendarDays,
   CalendarPlus,
-  ChevronLeft,
-  ChevronRight,
   ExternalLink,
   Info,
   Pencil,
@@ -29,93 +30,35 @@ import {
 } from "lucide-react";
 
 import {
-  staffLabel,
-  UserAvatar,
-  type StaffRef,
-} from "@/components/common/user-avatar";
-import {
   addCustomerNote,
   createCustomer,
   deleteCustomer,
   patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
-import { formatRupiah } from "@/lib/currency";
-import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
+import { AppointmentDialog } from "@/components/appointments/appointment-dialog";
+import { PaymentLine } from "@/components/appointments/payments-dialog";
+import { AppointmentStatusTag } from "@/components/appointments/status-tag";
+import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
+import { useConfirm } from "@/components/common/confirm-action";
+import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
+import { EnumTag } from "@/components/common/enum-tag";
+import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
+import { MultiSelect } from "@/components/common/multi-select";
+import { RowActions } from "@/components/common/row-actions";
+import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
+import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import {
   customerPayments,
   customerTotalPaid,
   outstanding,
   paidTotal,
 } from "@/lib/appointments";
-import { cn } from "@/lib/utils";
-import { AppointmentDialog } from "@/components/appointments/appointment-dialog";
-import { AppointmentStatusTag } from "@/components/appointments/status-tag";
-import { PaymentLine } from "@/components/appointments/payments-dialog";
-import {
-  ClearableSelect,
-  type SelectOption,
-} from "@/components/common/clearable-select";
-import { MultiSelect } from "@/components/common/multi-select";
-import { RowActions } from "@/components/common/row-actions";
-import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
-import { EnumTag } from "@/components/common/enum-tag";
-import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { formatRupiah } from "@/lib/currency";
+import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
+import { toast } from "@/lib/toast";
 import type { Appointment } from "@/types/appointment";
-import type {
-  Customer,
-  CustomerInput,
-  EnumKind,
-  EnumOption,
-} from "@/types/customer";
+import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
 
 type Staff = StaffRef & { department?: string | null };
@@ -128,24 +71,44 @@ const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
     .filter((s) => s.department === dept || s.id === current)
     .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
-const TAG_COLORS = [
-  "#2563eb",
-  "#0891b2",
-  "#059669",
-  "#65a30d",
-  "#ca8a04",
-  "#ea580c",
-  "#dc2626",
-  "#db2777",
-  "#9333ea",
-  "#7c3aed",
-] as const;
-
-const colorForTag = (index: number) => TAG_COLORS[index % TAG_COLORS.length];
-
 // ponytail: phân trang client (data đã tải sẵn); đổi sang server-side
 // nếu danh sách vượt vài nghìn dòng.
 const PAGE_SIZE = 20;
+
+const DASH = <span className="text-muted-foreground">—</span>;
+
+type Filters = {
+  search: string;
+  stage: string;
+  source: string;
+  staffId: string;
+  salesId: string;
+  technicianId: string;
+  serviceId: string;
+  from: string;
+  to: string;
+};
+
+const EMPTY_FILTERS: Filters = {
+  search: "",
+  stage: "",
+  source: "",
+  staffId: "",
+  salesId: "",
+  technicianId: "",
+  serviceId: "",
+  from: "",
+  to: "",
+};
+
+type Patch = {
+  stage?: string;
+  source?: string | null;
+  staff_id?: string | null;
+  sales_id?: string | null;
+  technician_id?: string | null;
+  service_ids?: string[];
+};
 
 export function CustomersManager({
   customers,
@@ -164,20 +127,14 @@ export function CustomersManager({
   const tAppt = useTranslations("appointments");
   const locale = useLocale();
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, start] = useTransition();
 
-  const [search, setSearch] = useState("");
-  const [stage, setStage] = useState("");
-  const [source, setSource] = useState("");
-  const [staffId, setStaffId] = useState("");
-  const [salesId, setSalesId] = useState("");
-  const [technicianId, setTechnicianId] = useState("");
-  const [serviceId, setServiceId] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
+    setFilters((f) => ({ ...f, [key]: value }));
   const [target, setTarget] = useState<Customer | "new" | null>(null);
   const [historyFor, setHistoryFor] = useState<Customer | null>(null);
-  const [deleting, setDeleting] = useState<Customer | null>(null);
   const [bookingFor, setBookingFor] = useState<Customer | null>(null);
   const [apptsFor, setApptsFor] = useState<Customer | null>(null);
   const [paymentsFor, setPaymentsFor] = useState<Customer | null>(null);
@@ -187,20 +144,19 @@ export function CustomersManager({
   // transition kết thúc — action lỗi thì ô tự quay lại giá trị cũ.
   const [rowsData, patchOptimistic] = useOptimistic(
     customers,
-    (state: Customer[], patch: Partial<Customer> & { id: string }) =>
+    (state: Customer[], patch: Patch & { id: string }) =>
       state.map((c) => (c.id === patch.id ? { ...c, ...patch } : c)),
   );
 
   const apptsOf = (customerId: string) =>
     appointments.filter((a) => a.customer_id === customerId);
   // Toàn bộ dòng tiền của khách (dedupe sổ chung) — cho dialog lịch sử thanh toán.
-  const paymentsOf = (customerId: string) =>
-    customerPayments(apptsOf(customerId));
+  const paymentsOf = (customerId: string) => customerPayments(apptsOf(customerId));
 
   // Tag (theo locale) cho một value bất kỳ — dùng cả option inactive để hiện dữ
-  // liệu cũ; value mất option hiển thị thô trong badge trung tính.
+  // liệu cũ; value mất option hiển thị thô trong tag trung tính.
   const tagFor = (kind: EnumKind, value: string | null) => {
-    if (!value) return <span className="text-muted-foreground">—</span>;
+    if (!value) return DASH;
     const opt = options.find((o) => o.kind === kind && o.value === value);
     return (
       <EnumTag
@@ -213,99 +169,59 @@ export function CustomersManager({
   // Avatar + tên nhân viên cho cell bảng; chưa gán → "—" (không avatar).
   const staffDisplay = (id: string | null) => {
     const s = id ? staff.find((x) => x.id === id) : undefined;
-    if (!s) return <span className="text-muted-foreground">—</span>;
-    return staffLabel(s);
+    return s ? staffLabel(s) : DASH;
   };
   // Avatar người ghi note — note chỉ lưu tên snapshot nên tra theo user_name.
   const staffAvatarByName = (name: string | null | undefined) =>
     name ? staff.find((s) => s.user_name === name)?.avatar_url : undefined;
 
   const filtered = useMemo(
-    () =>
-      rowsData.filter((c) =>
-        matchesCustomerFilters(c, {
-          search,
-          stage,
-          source,
-          staffId,
-          salesId,
-          technicianId,
-          serviceId,
-          from,
-          to,
-        }),
-      ),
-    [
-      rowsData,
-      search,
-      stage,
-      source,
-      staffId,
-      salesId,
-      technicianId,
-      serviceId,
-      from,
-      to,
-    ],
+    () => rowsData.filter((c) => matchesCustomerFilters(c, filters)),
+    [rowsData, filters],
   );
 
-  // Lọc đổi → về trang 1. Điều chỉnh ngay trong render (không effect) nên
-  // không tốn thêm một lượt vẽ; `current` vẫn kẹp page trong [1, totalPages].
-  const filterKey = [search, stage, source, staffId, salesId, technicianId, serviceId, from, to].join("|");
-  const [seenFilterKey, setSeenFilterKey] = useState(filterKey);
-  if (seenFilterKey !== filterKey) {
-    setSeenFilterKey(filterKey);
+  // Lọc đổi → về trang 1. Điều chỉnh ngay trong render (không effect).
+  const [seenFilters, setSeenFilters] = useState(filters);
+  if (seenFilters !== filters) {
+    setSeenFilters(filters);
     setPage(1);
   }
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const current = Math.min(page, totalPages);
-  const offset = (current - 1) * PAGE_SIZE;
-  const rows = filtered.slice(offset, offset + PAGE_SIZE);
-
-  // Badge tên dịch vụ đã gắn (theo locale, fallback vi); trống → "—".
-  const serviceBadges = (ids: string[]) => {
-    if (!ids?.length) return <span className="text-muted-foreground">—</span>;
+  // Tag tên dịch vụ đã gắn (theo locale, fallback vi); trống → "—".
+  const serviceTags = (ids: string[]) => {
+    if (!ids?.length) return DASH;
     return (
-      <div className="flex max-w-[220px] flex-wrap gap-1">
+      <div className="flex max-w-56 flex-wrap gap-1">
         {ids.map((id) => {
           const s = services.find((x) => x.id === id);
           return s ? (
-            <Badge key={id} variant="secondary">
+            <Tag key={id} className="me-0">
               {serviceName(s, locale)}
-            </Badge>
+            </Tag>
           ) : null;
         })}
       </div>
     );
   };
 
-  const confirmDelete = () => {
-    const c = deleting;
-    if (!c) return;
-    setDeleting(null);
-    start(async () => {
-      const res = await deleteCustomer(c.id);
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(t("deleteOk"));
+  const askDelete = (c: Customer) =>
+    confirm({
+      title: t("deleteConfirm"),
+      content: t("deleteConfirmBody", { name: c.full_name }),
+      okText: t("delete"),
+      cancelText: t("cancel"),
+      onOk: async () => {
+        const res = await deleteCustomer(c.id);
+        if (res.error) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success(t("deleteOk"));
+      },
     });
-  };
 
-  // Inline edit 1 trường từ bảng: lưu xong toast + refresh.
-  const patchField = (
-    id: string,
-    patch: {
-      stage?: string;
-      source?: string | null;
-      staff_id?: string | null;
-      sales_id?: string | null;
-      technician_id?: string | null;
-      service_ids?: string[];
-    },
-  ) =>
+  // Inline edit 1 trường từ bảng.
+  const patchField = (id: string, patch: Patch) =>
     start(async () => {
       patchOptimistic({ id, ...patch });
       const res = await patchCustomer(id, patch);
@@ -317,48 +233,176 @@ export function CustomersManager({
     });
 
   // Option cho Select: active + giá trị hiện tại (kể cả inactive), theo sort_order.
-  const kindOptions = (kind: EnumKind, current?: string | null) =>
+  const kindOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
     options
       .filter((o) => o.kind === kind && (o.is_active || o.value === current))
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
-  // Bộ lọc dịch vụ: chỉ dịch vụ active (đồng nhất kindOptions không current).
-  const serviceOptions = services
-    .filter((s) => s.is_active)
-    .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
-  // Option cho select gắn dịch vụ: active + dịch vụ đang gắn (kể cả inactive).
-  const serviceSelectOptions = (current: string[]) =>
+  // Option dịch vụ: active + dịch vụ đang gắn (kể cả inactive, để bỏ được).
+  const serviceOptions = (current: string[] = []): SelectOption[] =>
     services
       .filter((s) => s.is_active || current.includes(s.id))
       .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
 
-  const tagBadges = (tags: Customer["tags"]) => {
-    if (!tags?.length) return <span className="text-muted-foreground">—</span>;
-    return (
-      <div className="flex max-w-[220px] flex-wrap gap-1">
-        {tags.map((tag, index) => {
-          const key = tag.id ?? `${tag.name}-${index}`;
-          const color = colorForTag(index);
-          return (
-            <Badge
-              key={key}
-              variant="outline"
-              className="border"
-              style={{
-                borderColor: `${color}40`,
-                backgroundColor: `${color}1a`,
-                color,
-              }}
+  const columns: TableProps<Customer>["columns"] = [
+    {
+      title: t("colName"),
+      dataIndex: "full_name",
+      fixed: "left",
+      render: (_, c) => (
+        <div className="flex items-center gap-2 font-medium">
+          <span className="min-w-0 truncate">{c.full_name}</span>
+          {c.thread?.link ? (
+            <a
+              href={c.thread.link}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex text-muted-foreground hover:text-foreground"
+              title={t("openThread")}
+              aria-label={t("openThread")}
             >
-              {tag.name}
-            </Badge>
-          );
-        })}
-      </div>
-    );
-  };
+              <ExternalLink className="size-4" />
+            </a>
+          ) : null}
+        </div>
+      ),
+    },
+    { title: t("colPhone"), dataIndex: "phone" },
+    {
+      title: t("colStage"),
+      dataIndex: "stage",
+      render: (_, c) => (
+        <InlineSelect
+          value={c.stage}
+          display={tagFor("stage", c.stage)}
+          options={kindOptions("stage", c.stage)}
+          ariaLabel={t("colStage")}
+          onSave={(v) => patchField(c.id, { stage: v })}
+        />
+      ),
+    },
+    {
+      title: t("colSource"),
+      dataIndex: "source",
+      render: (_, c) => (
+        <InlineSelect
+          value={c.source ?? ""}
+          display={tagFor("source", c.source)}
+          options={kindOptions("source", c.source)}
+          noneLabel={t("noneOption")}
+          ariaLabel={t("colSource")}
+          onSave={(v) => patchField(c.id, { source: v || null })}
+        />
+      ),
+    },
+    {
+      title: t("colServices"),
+      dataIndex: "service_ids",
+      render: (_, c) => (
+        <InlineMultiSelect
+          value={c.service_ids}
+          options={serviceOptions(c.service_ids)}
+          display={serviceTags(c.service_ids)}
+          ariaLabel={t("colServices")}
+          onSave={(v) => patchField(c.id, { service_ids: v })}
+        />
+      ),
+    },
+    ...(
+      [
+        ["staff_id", "colStaff", "customer_care"],
+        ["sales_id", "colSales", "sales"],
+        ["technician_id", "colTechnician", "technician"],
+      ] as const
+    ).map(([field, label, dept]) => ({
+      title: t(label),
+      key: field,
+      render: (_: unknown, c: Customer) => (
+        <InlineSelect
+          value={c[field] ?? ""}
+          display={staffDisplay(c[field])}
+          options={deptOptions(staff, dept, c[field])}
+          noneLabel={t("noneOption")}
+          ariaLabel={t(label)}
+          onSave={(v) => patchField(c.id, { [field]: v || null })}
+        />
+      ),
+    })),
+    {
+      title: t("colCreated"),
+      dataIndex: "created_at",
+      render: (v: string) => (
+        <span className="text-muted-foreground">{new Date(v).toLocaleDateString()}</span>
+      ),
+    },
+    {
+      title: t("colNotes"),
+      key: "notes",
+      render: (_, c) => (
+        <div className="flex items-center gap-1">
+          <QuickNote customerId={c.id} />
+          <Badge count={c.notes?.length ?? 0} size="small" overflowCount={9}>
+            <Button
+              type="text"
+              size="small"
+              title={t("viewNotes")}
+              aria-label={t("viewNotes")}
+              disabled={!c.notes?.length}
+              icon={<Info className="size-4" />}
+              onClick={() => setHistoryFor(c)}
+            />
+          </Badge>
+        </div>
+      ),
+    },
+    {
+      title: t("colActions"),
+      key: "actions",
+      align: "right",
+      fixed: "right",
+      render: (_, c) => (
+        <RowActions
+          label={t("colActions")}
+          items={[
+            {
+              icon: <CalendarPlus className="size-4" />,
+              label: tAppt("book"),
+              onSelect: () => setBookingFor(c),
+            },
+            {
+              icon: <CalendarDays className="size-4" />,
+              label: tAppt("title"),
+              count: apptsOf(c.id).length,
+              disabled: apptsOf(c.id).length === 0,
+              onSelect: () => setApptsFor(c),
+            },
+            {
+              icon: <Wallet className="size-4" />,
+              label: tAppt("payments"),
+              count: paymentsOf(c.id).length,
+              disabled: paymentsOf(c.id).length === 0,
+              onSelect: () => setPaymentsFor(c),
+            },
+            {
+              icon: <Pencil className="size-4" />,
+              label: t("edit"),
+              onSelect: () => setTarget(c),
+            },
+            {
+              icon: <Trash2 className="size-4" />,
+              label: t("delete"),
+              danger: true,
+              onSelect: () => askDelete(c),
+            },
+          ]}
+        />
+      ),
+    },
+  ];
 
   const editing = target && target !== "new" ? target : null;
+  const apptList = apptsFor ? apptsOf(apptsFor.id) : [];
+  const paymentList = paymentsFor ? paymentsOf(paymentsFor.id) : [];
 
   return (
     <Page>
@@ -367,15 +411,17 @@ export function CustomersManager({
         actions={
           <>
             <Button
-              variant="outline"
+              icon={<RefreshCw className="size-4" />}
+              loading={pending}
               onClick={() => start(() => router.refresh())}
-              disabled={pending}
             >
-              <RefreshCw className={cn("size-4", pending && "animate-spin")} />
               {t("reload")}
             </Button>
-            <Button onClick={() => setTarget("new")}>
-              <UserPlus className="size-4" />
+            <Button
+              type="primary"
+              icon={<UserPlus className="size-4" />}
+              onClick={() => setTarget("new")}
+            >
               {t("create")}
             </Button>
           </>
@@ -384,287 +430,86 @@ export function CustomersManager({
 
       {/* Thanh lọc */}
       <PageToolbar>
-        <div className="relative w-full sm:max-w-[220px]">
-          <Search className="absolute top-2 left-2.5 size-4 text-muted-foreground" />
-          <Input
-            className="h-8 pl-8"
-            placeholder={t("searchPlaceholder")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        <Input
+          allowClear
+          className="w-full sm:max-w-56"
+          prefix={<Search className="size-4 text-muted-foreground" />}
+          placeholder={t("searchPlaceholder")}
+          value={filters.search}
+          onChange={(e) => setFilter("search", e.target.value)}
+        />
         <ClearableSelect
-          value={stage}
-          onValueChange={setStage}
+          className="min-w-36"
+          value={filters.stage}
+          onChange={(v) => setFilter("stage", v)}
           options={kindOptions("stage")}
           placeholder={t("allStage")}
-          clearLabel={t("clear")}
           ariaLabel={t("colStage")}
         />
         <ClearableSelect
-          value={source}
-          onValueChange={setSource}
+          className="min-w-36"
+          value={filters.source}
+          onChange={(v) => setFilter("source", v)}
           options={kindOptions("source")}
           placeholder={t("allSource")}
-          clearLabel={t("clear")}
           ariaLabel={t("colSource")}
         />
         <ClearableSelect
-          value={staffId}
-          onValueChange={setStaffId}
+          className="min-w-36"
+          value={filters.staffId}
+          onChange={(v) => setFilter("staffId", v)}
           options={deptOptions(staff, "customer_care")}
           placeholder={t("allStaff")}
-          clearLabel={t("clear")}
           ariaLabel={t("colStaff")}
         />
         <ClearableSelect
-          value={salesId}
-          onValueChange={setSalesId}
+          className="min-w-36"
+          value={filters.salesId}
+          onChange={(v) => setFilter("salesId", v)}
           options={deptOptions(staff, "sales")}
           placeholder={t("allSales")}
-          clearLabel={t("clear")}
           ariaLabel={t("colSales")}
         />
         <ClearableSelect
-          value={technicianId}
-          onValueChange={setTechnicianId}
+          className="min-w-36"
+          value={filters.technicianId}
+          onChange={(v) => setFilter("technicianId", v)}
           options={deptOptions(staff, "technician")}
           placeholder={t("allTechnician")}
-          clearLabel={t("clear")}
           ariaLabel={t("colTechnician")}
         />
         <ClearableSelect
-          value={serviceId}
-          onValueChange={setServiceId}
-          options={serviceOptions}
+          className="min-w-36"
+          value={filters.serviceId}
+          onChange={(v) => setFilter("serviceId", v)}
+          options={serviceOptions()}
           placeholder={t("allServices")}
-          clearLabel={t("clear")}
           ariaLabel={t("colServices")}
         />
         <DateRangePicker
-          from={from}
-          to={to}
-          onChange={(r) => {
-            setFrom(r.from);
-            setTo(r.to);
-          }}
-          placeholder={t("dateRange")}
-          clearLabel={t("clearDate")}
-          className="w-[240px]"
+          from={filters.from}
+          to={filters.to}
+          onChange={(r) => setFilters((f) => ({ ...f, ...r }))}
         />
       </PageToolbar>
 
-      <div className="surface overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("colName")}</TableHead>
-              <TableHead>{t("colPhone")}</TableHead>
-              {/* ponytail: cột Tag ẩn tạm, bỏ comment để hiện lại */}
-              <TableHead>{t("colStage")}</TableHead>
-              <TableHead>{t("colSource")}</TableHead>
-              <TableHead>{t("colServices")}</TableHead>
-              <TableHead>{t("colStaff")}</TableHead>
-              <TableHead>{t("colSales")}</TableHead>
-              <TableHead>{t("colTechnician")}</TableHead>
-              {/* ponytail: cột Liên hệ đầu ẩn tạm, bỏ comment để hiện lại */}
-              <TableHead>{t("colCreated")}</TableHead>
-              <TableHead>{t("colNotes")}</TableHead>
-              <TableHead className="text-right">{t("colActions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={11}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  {t("empty")}
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <span className="min-w-0 truncate">{c.full_name}</span>
-                      {c.thread?.link ? (
-                        <a
-                          href={c.thread.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex text-muted-foreground transition-colors hover:text-foreground"
-                          title={t("openThread")}
-                          aria-label={t("openThread")}
-                        >
-                          <ExternalLink className="size-4" />
-                        </a>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell>{c.phone}</TableCell>
-                  <TableCell>
-                    <InlineSelect
-                      value={c.stage}
-                      display={tagFor("stage", c.stage)}
-                      options={kindOptions("stage", c.stage)}
-                      ariaLabel={t("colStage")}
-                      onSave={(v) => patchField(c.id, { stage: v })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <InlineSelect
-                      value={c.source ?? ""}
-                      display={tagFor("source", c.source)}
-                      options={kindOptions("source", c.source)}
-                      noneLabel={t("noneOption")}
-                      ariaLabel={t("colSource")}
-                      onSave={(v) => patchField(c.id, { source: v || null })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <InlineServices
-                      ids={c.service_ids}
-                      options={serviceSelectOptions(c.service_ids)}
-                      display={serviceBadges(c.service_ids)}
-                      ariaLabel={t("colServices")}
-                      onSave={(v) => patchField(c.id, { service_ids: v })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <InlineSelect
-                      value={c.staff_id ?? ""}
-                      display={staffDisplay(c.staff_id)}
-                      options={deptOptions(staff, "customer_care", c.staff_id)}
-                      noneLabel={t("noneOption")}
-                      ariaLabel={t("colStaff")}
-                      onSave={(v) => patchField(c.id, { staff_id: v || null })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <InlineSelect
-                      value={c.sales_id ?? ""}
-                      display={staffDisplay(c.sales_id)}
-                      options={deptOptions(staff, "sales", c.sales_id)}
-                      noneLabel={t("noneOption")}
-                      ariaLabel={t("colSales")}
-                      onSave={(v) => patchField(c.id, { sales_id: v || null })}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <InlineSelect
-                      value={c.technician_id ?? ""}
-                      display={staffDisplay(c.technician_id)}
-                      options={deptOptions(staff, "technician", c.technician_id)}
-                      noneLabel={t("noneOption")}
-                      ariaLabel={t("colTechnician")}
-                      onSave={(v) =>
-                        patchField(c.id, { technician_id: v || null })
-                      }
-                    />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="space-x-1">
-                    <QuickNote customerId={c.id} />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="relative"
-                      title={t("viewNotes")}
-                      aria-label={t("viewNotes")}
-                      disabled={!c.notes?.length}
-                      onClick={() => setHistoryFor(c)}
-                    >
-                      <Info className="size-4" />
-                      {c.notes?.length ? (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs font-medium text-primary-foreground">
-                          {c.notes.length > 9 ? "9+" : c.notes.length}
-                        </span>
-                      ) : null}
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <RowActions
-                      label={t("colActions")}
-                      items={[
-                        {
-                          icon: <CalendarPlus className="size-4" />,
-                          label: tAppt("book"),
-                          onSelect: () => setBookingFor(c),
-                        },
-                        {
-                          icon: <CalendarDays className="size-4" />,
-                          label: tAppt("title"),
-                          count: apptsOf(c.id).length,
-                          disabled: apptsOf(c.id).length === 0,
-                          onSelect: () => setApptsFor(c),
-                        },
-                        {
-                          icon: <Wallet className="size-4" />,
-                          label: tAppt("payments"),
-                          count: paymentsOf(c.id).length,
-                          disabled: paymentsOf(c.id).length === 0,
-                          onSelect: () => setPaymentsFor(c),
-                        },
-                        {
-                          icon: <Pencil className="size-4" />,
-                          label: t("edit"),
-                          onSelect: () => setTarget(c),
-                        },
-                        {
-                          icon: <Trash2 className="size-4" />,
-                          label: t("delete"),
-                          danger: true,
-                          onSelect: () => setDeleting(c),
-                        },
-                      ]}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        {filtered.length > 0 ? (
-          <div className="flex items-center justify-between gap-2 border-t px-4 py-2 text-sm text-muted-foreground">
-            <span>
-              {t("pageInfo", {
-                from: offset + 1,
-                to: offset + rows.length,
-                total: filtered.length,
-              })}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                title={t("prevPage")}
-                aria-label={t("prevPage")}
-                disabled={current <= 1}
-                onClick={() => setPage(current - 1)}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <span className="px-1 tabular-nums">
-                {current} / {totalPages}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                title={t("nextPage")}
-                aria-label={t("nextPage")}
-                disabled={current >= totalPages}
-                onClick={() => setPage(current + 1)}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </div>
+      <Table
+        className="surface overflow-hidden"
+        rowKey="id"
+        size="middle"
+        columns={columns}
+        dataSource={filtered}
+        scroll={{ x: "max-content" }}
+        locale={{ emptyText: t("empty") }}
+        pagination={{
+          current: page,
+          pageSize: PAGE_SIZE,
+          onChange: setPage,
+          showSizeChanger: false,
+          hideOnSinglePage: false,
+          showTotal: (total, [from, to]) => t("pageInfo", { from, to, total }),
+        }}
+      />
 
       <CustomerDialog
         open={target !== null}
@@ -690,173 +535,124 @@ export function CustomersManager({
       />
 
       {/* Lịch sử lịch hẹn của 1 khách — mới nhất trước (page đã order desc) */}
-      <Dialog
+      <Modal
         open={apptsFor !== null}
-        onOpenChange={(o) => !o && setApptsFor(null)}
+        onCancel={() => setApptsFor(null)}
+        footer={null}
+        title={tAppt("historyTitle", { name: apptsFor?.full_name ?? "" })}
       >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {tAppt("historyTitle", { name: apptsFor?.full_name ?? "" })}
-            </DialogTitle>
-          </DialogHeader>
-          <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
-            {apptsFor && apptsOf(apptsFor.id).length === 0 && (
-              <li className="text-sm text-muted-foreground">
-                {tAppt("historyEmpty")}
-              </li>
-            )}
-            {(apptsFor ? apptsOf(apptsFor.id) : []).map((a) => (
-              <li key={a.id} className="space-y-1 rounded-md border px-2.5 py-2">
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-medium tabular-nums">
-                    {a.scheduled_at ? (
-                      new Date(a.scheduled_at).toLocaleString(locale)
-                    ) : (
-                      <span className="text-muted-foreground">
-                        {tAppt("tabWaiting")}
-                      </span>
-                    )}
-                  </span>
-                  <AppointmentStatusTag status={a.status} />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {serviceBadges(a.service_ids)}
-                </div>
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {tAppt("colTotal")}:{" "}
-                  {a.ledger?.total_amount != null
-                    ? formatRupiah(a.ledger.total_amount)
-                    : "—"}
-                  {" · "}
-                  {tAppt("colPaid")}: {formatRupiah(paidTotal(a))}
-                  {outstanding(a) > 0 && (
-                    <span className="text-destructive">
-                      {" · "}
-                      {tAppt("colOutstanding")}:{" "}
-                      {formatRupiah(outstanding(a))}
-                    </span>
-                  )}
-                </p>
-              </li>
-            ))}
-          </ul>
-          {/* Tổng đã trả của khách = Σ theo SỔ (dedupe — nhiều lịch chung sổ
-              không cộng trùng) + dòng mồ côi của lịch không sổ */}
-          {apptsFor && apptsOf(apptsFor.id).length > 0 && (
-            <p className="border-t pt-2 text-right text-sm tabular-nums">
-              {tAppt("totalPaid")}:{" "}
-              <span className="font-medium">
-                {formatRupiah(customerTotalPaid(apptsOf(apptsFor.id)))}
-              </span>
-            </p>
+        <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
+          {apptList.length === 0 && (
+            <li className="text-sm text-muted-foreground">{tAppt("historyEmpty")}</li>
           )}
-        </DialogContent>
-      </Dialog>
+          {apptList.map((a) => (
+            <li key={a.id} className="surface space-y-1 px-2.5 py-2">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium tabular-nums">
+                  {a.scheduled_at ? (
+                    new Date(a.scheduled_at).toLocaleString(locale)
+                  ) : (
+                    <span className="text-muted-foreground">{tAppt("tabWaiting")}</span>
+                  )}
+                </span>
+                <AppointmentStatusTag status={a.status} />
+              </div>
+              <div>{serviceTags(a.service_ids)}</div>
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {tAppt("colTotal")}:{" "}
+                {a.ledger?.total_amount != null ? formatRupiah(a.ledger.total_amount) : "—"}
+                {" · "}
+                {tAppt("colPaid")}: {formatRupiah(paidTotal(a))}
+                {outstanding(a) > 0 && (
+                  <span className="text-destructive">
+                    {" · "}
+                    {tAppt("colOutstanding")}: {formatRupiah(outstanding(a))}
+                  </span>
+                )}
+              </p>
+            </li>
+          ))}
+        </ul>
+        {/* Tổng đã trả của khách = Σ theo SỔ (dedupe — nhiều lịch chung sổ
+            không cộng trùng) + dòng mồ côi của lịch không sổ */}
+        {apptList.length > 0 && (
+          <TotalPaid label={tAppt("totalPaid")} value={customerTotalPaid(apptList)} />
+        )}
+      </Modal>
 
       {/* Lịch sử thanh toán của 1 khách — mọi dòng tiền qua các sổ (dedupe sổ
           chung) + dòng của lịch không sổ, mới nhất trước. Chỉ xem — thu/hoàn
           thao tác ở /appointments (dialog Thanh toán theo sổ). */}
-      <Dialog
+      <Modal
         open={paymentsFor !== null}
-        onOpenChange={(o) => !o && setPaymentsFor(null)}
+        onCancel={() => setPaymentsFor(null)}
+        footer={null}
+        title={tAppt("paymentsTitle", { name: paymentsFor?.full_name ?? "" })}
       >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {tAppt("paymentsTitle", { name: paymentsFor?.full_name ?? "" })}
-            </DialogTitle>
-          </DialogHeader>
-          <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
-            {paymentsFor && paymentsOf(paymentsFor.id).length === 0 && (
-              <li className="text-sm text-muted-foreground">
-                {tAppt("paymentsEmpty")}
-              </li>
-            )}
-            {(paymentsFor ? paymentsOf(paymentsFor.id) : []).map(
-              ({ payment, service_id }) => {
-                const s = service_id
-                  ? services.find((x) => x.id === service_id)
-                  : undefined;
-                return (
-                  <PaymentLine
-                    key={payment.id}
-                    payment={payment}
-                    staff={staff}
-                    serviceLabel={s ? serviceName(s, locale) : null}
-                  />
-                );
-              },
-            )}
-          </ul>
-          {paymentsFor && paymentsOf(paymentsFor.id).length > 0 && (
-            <p className="border-t pt-2 text-right text-sm tabular-nums">
-              {tAppt("totalPaid")}:{" "}
-              <span className="font-medium">
-                {formatRupiah(customerTotalPaid(apptsOf(paymentsFor.id)))}
-              </span>
-            </p>
+        <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
+          {paymentList.length === 0 && (
+            <li className="text-sm text-muted-foreground">{tAppt("paymentsEmpty")}</li>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Popconfirm xóa (AlertDialog dùng chung cho mọi dòng) */}
-      <AlertDialog
-        open={deleting !== null}
-        onOpenChange={(o) => !o && setDeleting(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteConfirmBody", { name: deleting?.full_name ?? "" })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
-              {t("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          {paymentList.map(({ payment, service_id }) => {
+            const s = service_id ? services.find((x) => x.id === service_id) : undefined;
+            return (
+              <PaymentLine
+                key={payment.id}
+                payment={payment}
+                staff={staff}
+                serviceLabel={s ? serviceName(s, locale) : null}
+              />
+            );
+          })}
+        </ul>
+        {paymentsFor && paymentList.length > 0 && (
+          <TotalPaid
+            label={tAppt("totalPaid")}
+            value={customerTotalPaid(apptsOf(paymentsFor.id))}
+          />
+        )}
+      </Modal>
 
       {/* Lịch sử ghi chú (icon Info) — mới nhất trước */}
-      <Dialog
+      <Modal
         open={historyFor !== null}
-        onOpenChange={(o) => !o && setHistoryFor(null)}
+        onCancel={() => setHistoryFor(null)}
+        footer={null}
+        width={480}
+        title={t("noteHistoryTitle", { name: historyFor?.full_name ?? "" })}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {t("noteHistoryTitle", { name: historyFor?.full_name ?? "" })}
-            </DialogTitle>
-          </DialogHeader>
-          <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
-            {[...(historyFor?.notes ?? [])].reverse().map((n, i) => (
-              <li key={i} className="space-y-1">
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="rounded bg-primary/15 px-1.5 py-0.5 font-medium text-primary">
-                    {new Date(n.at).toLocaleString()}
+        <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
+          {[...(historyFor?.notes ?? [])].reverse().map((n, i) => (
+            <li key={i} className="space-y-1">
+              <div className="flex items-center gap-2 text-xs">
+                <Tag color="purple" className="me-0">
+                  {new Date(n.at).toLocaleString()}
+                </Tag>
+                {n.by ? (
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <UserAvatar src={staffAvatarByName(n.by)} />
+                    {n.by}
                   </span>
-                  {n.by ? (
-                    <span className="flex items-center gap-1.5 text-muted-foreground">
-                      <UserAvatar src={staffAvatarByName(n.by)} />
-                      {n.by}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </div>
-                <p className="rounded-md border bg-muted/30 px-2.5 py-1.5 text-sm whitespace-pre-wrap">
-                  {n.text}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </DialogContent>
-      </Dialog>
+                ) : (
+                  DASH
+                )}
+              </div>
+              <p className="surface bg-muted/40 px-2.5 py-1.5 text-sm whitespace-pre-wrap">
+                {n.text}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </Modal>
     </Page>
+  );
+}
+
+function TotalPaid({ label, value }: { label: string; value: number }) {
+  return (
+    <p className="mt-3 border-t border-border pt-2 text-right text-sm tabular-nums">
+      {label}: <span className="font-medium">{formatRupiah(value)}</span>
+    </p>
   );
 }
 
@@ -880,148 +676,58 @@ function QuickNote({ customerId }: { customerId: string }) {
     });
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          size="sm"
-          variant="ghost"
-          title={t("addNote")}
-          aria-label={t("addNote")}
-        >
-          <Plus className="size-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 space-y-2">
-        <Textarea
-          className="resize-y"
-          rows={3}
-          autoFocus
-          placeholder={t("addNotePlaceholder")}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <div className="flex justify-end">
-          <Button size="sm" disabled={pending || !text.trim()} onClick={save}>
-            {pending && <RefreshCw className="animate-spin" />}
-            {t("save")}
-          </Button>
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      trigger="click"
+      placement="bottomRight"
+      content={
+        <div className="w-72 space-y-2">
+          <Input.TextArea
+            rows={3}
+            autoFocus
+            placeholder={t("addNotePlaceholder")}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div className="flex justify-end">
+            <Button
+              type="primary"
+              size="small"
+              loading={pending}
+              disabled={!text.trim()}
+              onClick={save}
+            >
+              {t("save")}
+            </Button>
+          </div>
         </div>
-      </PopoverContent>
+      }
+    >
+      <Button
+        type="text"
+        size="small"
+        title={t("addNote")}
+        aria-label={t("addNote")}
+        icon={<Plus className="size-4" />}
+      />
     </Popover>
   );
 }
 
-const NONE = "__none";
-
-/** Select inline trong ô bảng: trigger là chính giá trị đang hiển thị (tag/tên). */
-function InlineSelect({
-  value,
-  display,
-  options,
-  noneLabel,
-  ariaLabel,
-  disabled,
-  onSave,
-}: {
-  value: string; // "" = chưa chọn
-  display: React.ReactNode;
-  options: { value: string; label: React.ReactNode }[];
-  noneLabel?: string; // có = cho phép bỏ chọn
-  ariaLabel: string;
-  disabled?: boolean;
-  onSave: (value: string) => void;
-}) {
-  return (
-    <Select
-      value={value || NONE}
-      onValueChange={(v) => {
-        const next = v === NONE ? "" : v;
-        if (next !== value) onSave(next);
-      }}
-      disabled={disabled}
-    >
-      <SelectTrigger
-        aria-label={ariaLabel}
-        className="-m-1 rounded-md border-none bg-transparent p-1 hover:bg-accent/50 data-[size=default]:h-auto dark:bg-transparent dark:hover:bg-accent/50 [&>svg]:size-3"
-      >
-        {/* item-aligned của Radix cần node SelectValue trong trigger để đo vị trí. */}
-        <SelectValue>{display}</SelectValue>
-      </SelectTrigger>
-      <SelectContent position="popper">
-        {noneLabel && (
-          <SelectItem value={NONE} className="text-muted-foreground">
-            {noneLabel}
-          </SelectItem>
-        )}
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-/** Multi-select inline trong ô bảng: gom thay đổi, lưu 1 lần khi đóng popover. */
-function InlineServices({
-  ids,
-  options,
-  display,
-  ariaLabel,
-  disabled,
-  onSave,
-}: {
-  ids: string[];
-  options: SelectOption[];
-  display: React.ReactNode;
-  ariaLabel: string;
-  disabled?: boolean;
-  onSave: (next: string[]) => void;
-}) {
-  const [draft, setDraft] = useState<string[] | null>(null); // null = đang đóng
-  return (
-    <MultiSelect
-      value={draft ?? ids}
-      onValueChange={setDraft}
-      onOpenChange={(open) => {
-        if (open) {
-          setDraft(ids);
-          return;
-        }
-        // So như tập hợp (toggle có thể đổi thứ tự) — chỉ lưu khi thật sự đổi.
-        if (
-          draft &&
-          (draft.length !== ids.length || draft.some((d) => !ids.includes(d)))
-        ) {
-          onSave(draft);
-        }
-        setDraft(null);
-      }}
-      options={options}
-      ariaLabel={ariaLabel}
-      disabled={disabled}
-      className="-m-1 min-h-0 w-auto rounded-md border-none bg-transparent p-1 hover:bg-accent/50 dark:bg-transparent dark:hover:bg-accent/50 [&>svg]:size-3"
-    >
-      {display}
-    </MultiSelect>
-  );
-}
-
-const schema = z.object({
-  full_name: z.string().min(1),
-  phone: z.string().min(1),
-  social_name: z.string().optional(),
-  stage: z.string().min(1),
-  source: z.string().optional(),
-  staff_id: z.string().optional(),
-  sales_id: z.string().optional(),
-  technician_id: z.string().optional(),
-  lost_reason: z.string().optional(),
-  first_contact: z.string().optional(),
-  service_ids: z.array(z.string()).optional(),
-});
-type Values = z.infer<typeof schema>;
+type Values = {
+  full_name: string;
+  phone: string;
+  social_name?: string;
+  stage: string;
+  source?: string;
+  staff_id?: string;
+  sales_id?: string;
+  technician_id?: string;
+  lost_reason?: string;
+  first_contact?: string;
+  service_ids?: string[];
+};
 
 function CustomerDialog({
   open,
@@ -1040,55 +746,27 @@ function CustomerDialog({
 }) {
   const t = useTranslations("customers");
   const locale = useLocale();
+  const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
-
-  const {
-    register,
-    control,
-    handleSubmit,
-    watch,
-    reset,
-    formState: { errors },
-  } = useForm<Values>({
-    resolver: zodResolver(schema),
-    // values (deep-compare) tự nạp lại khi mở khách khác; typing không bị reset.
-    values: {
-      full_name: editing?.full_name ?? "",
-      phone: editing?.phone ?? "",
-      social_name: editing?.social_name ?? "",
-      stage: editing?.stage ?? "new_lead",
-      source: editing?.source ?? "",
-      staff_id: editing?.staff_id ?? "",
-      sales_id: editing?.sales_id ?? "",
-      technician_id: editing?.technician_id ?? "",
-      lost_reason: editing?.lost_reason ?? "",
-      first_contact: editing?.first_contact
-        ? editing.first_contact.slice(0, 10)
-        : "",
-      service_ids: editing?.service_ids ?? [],
-    },
-  });
-
-  const stage = watch("stage");
+  const stage = Form.useWatch("stage", form);
 
   // Option cho Select trong form: active + giá trị hiện tại (kể cả inactive).
-  const selectOptions = (kind: EnumKind, current?: string | null) =>
+  const selectOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
     options
-      .filter(
-        (o) => o.kind === kind && (o.is_active || o.value === current),
-      )
-      .sort((a, b) => a.sort_order - b.sort_order);
+      .filter((o) => o.kind === kind && (o.is_active || o.value === current))
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
 
   // Option dịch vụ: active + dịch vụ khách đang gắn (kể cả inactive, để bỏ được).
   const serviceOpts: SelectOption[] = services
     .filter((s) => s.is_active || editing?.service_ids.includes(s.id))
     .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
 
-  const onSubmit = (v: Values) =>
+  const onFinish = (v: Values) =>
     start(async () => {
       const input: CustomerInput = {
-        full_name: v.full_name,
-        phone: v.phone,
+        full_name: v.full_name.trim(),
+        phone: v.phone.trim(),
         social_name: v.social_name || null,
         source: v.source || null,
         stage: v.stage,
@@ -1107,215 +785,112 @@ function CustomerDialog({
         return;
       }
       toast.success(editing ? t("updateOk") : t("createOk"));
-      reset();
       onClose();
     });
 
+  const required = [{ required: true, whitespace: true, message: t("required") }];
+
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full gap-0 sm:max-w-xl">
-        <SheetHeader>
-          <SheetTitle>{editing ? t("editTitle") : t("createTitle")}</SheetTitle>
-        </SheetHeader>
-        {/* Footer nằm ngoài form (nút submit nối qua form id) — thân cuộn, footer dính đáy */}
-        <form
-          id="customer-form"
-          onSubmit={handleSubmit(onSubmit)}
-          className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-4"
-        >
-          <div className="grid gap-3">
-            <Field label={t("colName")} error={errors.full_name && t("required")}>
-              <Input {...register("full_name")} />
-            </Field>
-            <Field label={t("colPhone")} error={errors.phone && t("required")}>
-              <Input {...register("phone")} />
-            </Field>
-          </div>
-
-          <Field label={t("socialName")}>
-            <Input {...register("social_name")} />
-          </Field>
-
-          <div className="grid gap-3">
-            <Field label={t("colStage")}>
-              <Controller
-                control={control}
-                name="stage"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    clearable={false}
-                    options={selectOptions("stage", editing?.stage).map((o) => ({
-                      value: o.value,
-                      label: optionLabel(o, locale),
-                    }))}
-                    ariaLabel={t("colStage")}
-                  />
-                )}
-              />
-            </Field>
-            <Field label={t("colSource")}>
-              <Controller
-                control={control}
-                name="source"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                    options={selectOptions("source", editing?.source).map((o) => ({
-                      value: o.value,
-                      label: optionLabel(o, locale),
-                    }))}
-                    placeholder={t("noneOption")}
-                    clearLabel={t("clear")}
-                    ariaLabel={t("colSource")}
-                  />
-                )}
-              />
-            </Field>
-          </div>
-
-          {stage === "lost" && (
-            <Field label={t("colLostReason")}>
-              <Controller
-                control={control}
-                name="lost_reason"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                    options={selectOptions("lost_reason", editing?.lost_reason).map(
-                      (o) => ({ value: o.value, label: optionLabel(o, locale) }),
-                    )}
-                    placeholder={t("noneOption")}
-                    clearLabel={t("clear")}
-                    ariaLabel={t("colLostReason")}
-                  />
-                )}
-              />
-            </Field>
-          )}
-
-          <div className="grid gap-3">
-            <Field label={t("colStaff")}>
-              <Controller
-                control={control}
-                name="staff_id"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                    options={deptOptions(
-                      staff,
-                      "customer_care",
-                      editing?.staff_id,
-                    )}
-                    placeholder={t("noneOption")}
-                    clearLabel={t("clear")}
-                    ariaLabel={t("colStaff")}
-                  />
-                )}
-              />
-            </Field>
-            <Field label={t("colSales")}>
-              <Controller
-                control={control}
-                name="sales_id"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                    options={deptOptions(staff, "sales", editing?.sales_id)}
-                    placeholder={t("noneOption")}
-                    clearLabel={t("clear")}
-                    ariaLabel={t("colSales")}
-                  />
-                )}
-              />
-            </Field>
-            <Field label={t("colTechnician")}>
-              <Controller
-                control={control}
-                name="technician_id"
-                render={({ field }) => (
-                  <ClearableSelect
-                    value={field.value ?? ""}
-                    onValueChange={field.onChange}
-                    options={deptOptions(
-                      staff,
-                      "technician",
-                      editing?.technician_id,
-                    )}
-                    placeholder={t("noneOption")}
-                    clearLabel={t("clear")}
-                    ariaLabel={t("colTechnician")}
-                  />
-                )}
-              />
-            </Field>
-            <Field label={t("colFirstContact")}>
-              <Controller
-                control={control}
-                name="first_contact"
-                render={({ field }) => (
-                  <DatePicker
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder={t("pickDate")}
-                  />
-                )}
-              />
-            </Field>
-          </div>
-
-          {serviceOpts.length > 0 && (
-            <Field label={t("colServices")}>
-              <Controller
-                control={control}
-                name="service_ids"
-                render={({ field }) => (
-                  <MultiSelect
-                    value={field.value ?? []}
-                    onValueChange={field.onChange}
-                    options={serviceOpts}
-                    placeholder={t("pickServices")}
-                    ariaLabel={t("colServices")}
-                  />
-                )}
-              />
-            </Field>
-          )}
-
-        </form>
-        <SheetFooter className="flex-row justify-end border-t">
-          <Button type="button" variant="outline" onClick={onClose}>
-            {t("cancel")}
-          </Button>
-          <Button type="submit" form="customer-form" disabled={pending}>
-            {pending && <RefreshCw className="animate-spin" />}
+    <Drawer
+      open={open}
+      onClose={onClose}
+      size={560}
+      destroyOnHidden
+      title={editing ? t("editTitle") : t("createTitle")}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button onClick={onClose}>{t("cancel")}</Button>
+          <Button type="primary" loading={pending} onClick={() => form.submit()}>
             {editing ? t("save") : t("createSubmit")}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string | false;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+        </div>
+      }
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        onFinish={onFinish}
+        initialValues={{
+          full_name: editing?.full_name ?? "",
+          phone: editing?.phone ?? "",
+          social_name: editing?.social_name ?? "",
+          stage: editing?.stage ?? "new_lead",
+          source: editing?.source ?? "",
+          staff_id: editing?.staff_id ?? "",
+          sales_id: editing?.sales_id ?? "",
+          technician_id: editing?.technician_id ?? "",
+          lost_reason: editing?.lost_reason ?? "",
+          first_contact: editing?.first_contact?.slice(0, 10) ?? "",
+          service_ids: editing?.service_ids ?? [],
+        }}
+      >
+        <Form.Item name="full_name" label={t("colName")} rules={required}>
+          <Input />
+        </Form.Item>
+        <Form.Item name="phone" label={t("colPhone")} rules={required}>
+          <Input />
+        </Form.Item>
+        <Form.Item name="social_name" label={t("socialName")}>
+          <Input />
+        </Form.Item>
+        <Form.Item name="stage" label={t("colStage")}>
+          <ClearableSelect
+            clearable={false}
+            options={selectOptions("stage", editing?.stage)}
+            ariaLabel={t("colStage")}
+          />
+        </Form.Item>
+        <Form.Item name="source" label={t("colSource")}>
+          <ClearableSelect
+            options={selectOptions("source", editing?.source)}
+            placeholder={t("noneOption")}
+            ariaLabel={t("colSource")}
+          />
+        </Form.Item>
+        {stage === "lost" && (
+          <Form.Item name="lost_reason" label={t("colLostReason")}>
+            <ClearableSelect
+              options={selectOptions("lost_reason", editing?.lost_reason)}
+              placeholder={t("noneOption")}
+              ariaLabel={t("colLostReason")}
+            />
+          </Form.Item>
+        )}
+        <Form.Item name="staff_id" label={t("colStaff")}>
+          <ClearableSelect
+            options={deptOptions(staff, "customer_care", editing?.staff_id)}
+            placeholder={t("noneOption")}
+            ariaLabel={t("colStaff")}
+          />
+        </Form.Item>
+        <Form.Item name="sales_id" label={t("colSales")}>
+          <ClearableSelect
+            options={deptOptions(staff, "sales", editing?.sales_id)}
+            placeholder={t("noneOption")}
+            ariaLabel={t("colSales")}
+          />
+        </Form.Item>
+        <Form.Item name="technician_id" label={t("colTechnician")}>
+          <ClearableSelect
+            options={deptOptions(staff, "technician", editing?.technician_id)}
+            placeholder={t("noneOption")}
+            ariaLabel={t("colTechnician")}
+          />
+        </Form.Item>
+        <Form.Item name="first_contact" label={t("colFirstContact")}>
+          <DatePicker placeholder={t("pickDate")} />
+        </Form.Item>
+        {serviceOpts.length > 0 && (
+          <Form.Item name="service_ids" label={t("colServices")}>
+            <MultiSelect
+              options={serviceOpts}
+              placeholder={t("pickServices")}
+              ariaLabel={t("colServices")}
+            />
+          </Form.Item>
+        )}
+      </Form>
+    </Drawer>
   );
 }

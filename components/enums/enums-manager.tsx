@@ -1,46 +1,27 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import {
+  Button,
+  Checkbox,
+  ColorPicker,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Switch,
+  Table,
+  type TableProps,
+} from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { Check, Pencil, Pipette, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import { createOption, deleteOption, updateOption } from "@/app/(app)/enums/actions";
-import { cn } from "@/lib/utils";
+import { ConfirmAction } from "@/components/common/confirm-action";
 import { EnumTag } from "@/components/common/enum-tag";
 import { IconPicker } from "@/components/common/icon-picker";
 import { Page, PageHeader } from "@/components/layout/page";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { toast } from "@/lib/toast";
 import type { EnumKind, EnumOption } from "@/types/customer";
 
 // Bảng màu preset cho tag (đọc được cả nền sáng lẫn tối).
@@ -62,24 +43,18 @@ export function EnumsManager({
 }) {
   const t = useTranslations("enums");
   const [dialog, setDialog] = useState<DialogState>(null);
-  const [deleting, setDeleting] = useState<EnumOption | null>(null);
   const [pending, start] = useTransition();
 
-  const confirmDelete = () => {
-    const o = deleting;
-    if (!o) return;
-    setDeleting(null);
-    start(async () => {
-      const res = await deleteOption(o.id, o.kind, o.value);
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(t("deleteOk"));
-    });
+  const remove = async (o: EnumOption) => {
+    const res = await deleteOption(o.id, o.kind, o.value);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success(t("deleteOk"));
   };
 
-  // Bật/tắt trực tiếp từ checkbox trong bảng (giữ nguyên các trường còn lại).
+  // Bật/tắt trực tiếp trên bảng (giữ nguyên các trường còn lại).
   const onToggleActive = (o: EnumOption) =>
     start(async () => {
       const res = await updateOption(o.id, {
@@ -91,148 +66,119 @@ export function EnumsManager({
         sort_order: o.sort_order,
         is_active: !o.is_active,
       });
-      if (res.error) {
-        toast.error(res.error);
-      }
+      if (res.error) toast.error(res.error);
     });
+
+  const tag = (o: EnumOption, label: string | null) =>
+    label ? (
+      <EnumTag icon={o.icon} color={o.color} label={label} />
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    );
+
+  const columns: TableProps<EnumOption>["columns"] = [
+    {
+      title: t("colValue"),
+      dataIndex: "value",
+      width: 180,
+      render: (v: string) => <span className="font-mono text-xs">{v}</span>,
+    },
+    { title: t("colVi"), key: "vi", render: (_, o) => tag(o, o.label_vi) },
+    { title: t("colEn"), key: "en", render: (_, o) => tag(o, o.label_en) },
+    { title: t("colId"), key: "id", render: (_, o) => tag(o, o.label_id) },
+    {
+      title: t("colActive"),
+      dataIndex: "is_active",
+      width: 110,
+      align: "center",
+      render: (_, o) => (
+        <Switch
+          size="small"
+          checked={o.is_active}
+          disabled={pending}
+          aria-label={t("colActive")}
+          title={o.is_active ? t("active") : t("inactive")}
+          onChange={() => onToggleActive(o)}
+        />
+      ),
+    },
+    {
+      title: t("colActions"),
+      key: "actions",
+      width: 110,
+      align: "right",
+      render: (_, o) => (
+        <div className="flex justify-end gap-1">
+          <Button
+            type="text"
+            size="small"
+            title={t("edit")}
+            aria-label={t("edit")}
+            icon={<Pencil className="size-4" />}
+            onClick={() => setDialog({ kind, option: o })}
+          />
+          <ConfirmAction
+            title={t("deleteConfirm")}
+            description={t("deleteConfirmBody", { name: o.label_vi })}
+            okText={t("delete")}
+            cancelText={t("cancel")}
+            onConfirm={() => remove(o)}
+          >
+            <Button
+              type="text"
+              size="small"
+              danger
+              title={t("delete")}
+              aria-label={t("delete")}
+              icon={<Trash2 className="size-4" />}
+            />
+          </ConfirmAction>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <Page>
       <PageHeader
         title={t(`kind_${kind}`)}
         actions={
-          <Button onClick={() => setDialog({ kind, option: null })}>
-            <Plus className="size-4" />
+          <Button
+            type="primary"
+            icon={<Plus className="size-4" />}
+            onClick={() => setDialog({ kind, option: null })}
+          >
             {t("add")}
           </Button>
         }
       />
 
-      <div className="surface overflow-hidden">
-        <Table className="table-fixed">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[180px]">{t("colValue")}</TableHead>
-              <TableHead>{t("colVi")}</TableHead>
-              <TableHead>{t("colEn")}</TableHead>
-              <TableHead>{t("colId")}</TableHead>
-              <TableHead className="w-28 text-center">
-                {t("colActive")}
-              </TableHead>
-              <TableHead className="w-28 text-right">
-                {t("colActions")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {options.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="h-16 text-center text-muted-foreground"
-                >
-                  {t("empty")}
-                </TableCell>
-              </TableRow>
-            ) : (
-              options.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell className="font-mono text-xs">
-                    {o.value}
-                  </TableCell>
-                  <TableCell>
-                    <EnumTag icon={o.icon} color={o.color} label={o.label_vi} />
-                  </TableCell>
-                  <TableCell>
-                    {o.label_en ? (
-                      <EnumTag icon={o.icon} color={o.color} label={o.label_en} />
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {o.label_id ? (
-                      <EnumTag icon={o.icon} color={o.color} label={o.label_id} />
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <input
-                      type="checkbox"
-                      className="size-4 cursor-pointer accent-primary"
-                      checked={o.is_active}
-                      disabled={pending}
-                      aria-label={t("colActive")}
-                      title={o.is_active ? t("active") : t("inactive")}
-                      onChange={() => onToggleActive(o)}
-                    />
-                  </TableCell>
-                  <TableCell className="space-x-1 text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title={t("edit")}
-                      aria-label={t("edit")}
-                      disabled={pending}
-                      onClick={() => setDialog({ kind, option: o })}
-                    >
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      title={t("delete")}
-                      aria-label={t("delete")}
-                      disabled={pending}
-                      onClick={() => setDeleting(o)}
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <Table
+        className="surface overflow-hidden"
+        rowKey="id"
+        columns={columns}
+        dataSource={options}
+        pagination={false}
+        tableLayout="fixed"
+        scroll={{ x: 760 }}
+        locale={{ emptyText: t("empty") }}
+      />
 
       <OptionDialog state={dialog} onClose={() => setDialog(null)} />
-
-      <AlertDialog
-        open={deleting !== null}
-        onOpenChange={(o) => !o && setDeleting(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteConfirmBody", { name: deleting?.label_vi ?? "" })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
-              {t("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Page>
   );
 }
 
-const schema = z.object({
-  value: z.string().min(1),
-  label_vi: z.string().min(1),
-  label_en: z.string(), // không bắt buộc — "" = chưa dịch, lưu null
-  label_id: z.string(),
-  icon: z.string(), // tên icon Lucide; "" = không icon
-  color: z.string(), // hex #rrggbb; "" = không màu
-  sort_order: z.string(), // input number trả string; convert khi submit
-  is_active: z.boolean(),
-});
-type Values = z.infer<typeof schema>;
+type Values = {
+  value: string;
+  label_vi: string;
+  label_en?: string | null; // không bắt buộc — "" = chưa dịch, lưu null
+  label_id?: string | null;
+  icon?: string | null; // tên icon Lucide; null = không icon
+  color?: string | null; // hex #rrggbb; "" = không màu
+  sort_order?: number | null;
+  is_active: boolean;
+};
 
 function OptionDialog({
   state,
@@ -243,259 +189,131 @@ function OptionDialog({
 }) {
   const t = useTranslations("enums");
   const locale = useLocale();
+  const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
   const editing = state?.option ?? null;
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    watch,
-    reset,
-    formState: { errors },
-  } = useForm<Values>({
-    resolver: zodResolver(schema),
-    // Khóa remount theo option/kind để form nạp lại giá trị đúng khi mở.
-    values: {
-      value: editing?.value ?? "",
-      label_vi: editing?.label_vi ?? "",
-      label_en: editing?.label_en ?? "",
-      label_id: editing?.label_id ?? "",
-      icon: editing?.icon ?? "",
-      color: editing?.color ?? "",
-      sort_order: String(editing?.sort_order ?? 0),
-      is_active: editing?.is_active ?? true,
-    },
-  });
-
   // Xem trước tag theo giá trị đang nhập (nhãn theo locale hiện tại).
-  const w = watch();
+  const w = Form.useWatch([], form) as Partial<Values> | undefined;
   const previewLabel =
-    (locale === "en" ? w.label_en : locale === "id" ? w.label_id : w.label_vi) ||
-    w.value ||
+    (locale === "en" ? w?.label_en : locale === "id" ? w?.label_id : w?.label_vi) ||
+    w?.value ||
     "…";
 
-  const onSubmit = (v: Values) =>
+  const onFinish = (v: Values) =>
     start(async () => {
       if (!state) return;
-      const sort_order = Number(v.sort_order) || 0;
+      const fields = {
+        label_vi: v.label_vi.trim(),
+        label_en: v.label_en?.trim() || null,
+        label_id: v.label_id?.trim() || null,
+        icon: v.icon || null,
+        color: v.color || null,
+        sort_order: v.sort_order ?? 0,
+        is_active: v.is_active,
+      };
       const res = editing
-        ? await updateOption(editing.id, {
-            label_vi: v.label_vi,
-            label_en: v.label_en || null,
-            label_id: v.label_id || null,
-            icon: v.icon || null,
-            color: v.color || null,
-            sort_order,
-            is_active: v.is_active,
-          })
-        : await createOption({
-            kind: state.kind,
-            value: v.value,
-            label_vi: v.label_vi,
-            label_en: v.label_en || null,
-            label_id: v.label_id || null,
-            icon: v.icon || null,
-            color: v.color || null,
-            sort_order,
-            is_active: v.is_active,
-          });
+        ? await updateOption(editing.id, fields)
+        : await createOption({ kind: state.kind, value: v.value.trim(), ...fields });
       if (res.error) {
         toast.error(res.error);
         return;
       }
       toast.success(editing ? t("updateOk") : t("createOk"));
-      reset();
       onClose();
     });
 
   return (
-    <Dialog open={!!state} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? t("editTitle") : t("addTitle")}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t("colValue")} error={errors.value && t("required")}>
-              {/* value cố định sau khi tạo (đổi sẽ mồ côi customers). */}
-              <Input
-                {...register("value")}
-                disabled={!!editing}
-                placeholder="vd: new_lead"
-                autoComplete="off"
-              />
-            </Field>
-            <Field label={t("colSort")}>
-              <Input type="number" {...register("sort_order")} />
-            </Field>
-            <Field label={t("colVi")} error={errors.label_vi && t("required")}>
-              <Input {...register("label_vi")} />
-            </Field>
-            <Field label={t("colEn")}>
-              <Input {...register("label_en")} placeholder={t("optional")} />
-            </Field>
-            <Field label={t("colId")}>
-              <Input {...register("label_id")} placeholder={t("optional")} />
-            </Field>
-            <Field label={t("iconLabel")}>
-              <Controller
-                control={control}
-                name="icon"
-                render={({ field }) => (
-                  <IconPicker
-                    value={field.value || null}
-                    onChange={(i) => field.onChange(i ?? "")}
-                    placeholder={t("pickIcon")}
-                    searchPlaceholder={t("searchIcon")}
-                    clearLabel={t("clearIcon")}
-                    emptyText={t("noIconResults")}
-                    countText={(shown, total) =>
-                      t("iconShown", { shown, total })
-                    }
-                  />
-                )}
-              />
-            </Field>
-          </div>
-
-          <Field label={t("colorLabel")}>
-            <Controller
-              control={control}
-              name="color"
-              render={({ field }) => <ColorSwatches field={field} />}
+    <Modal
+      open={!!state}
+      onCancel={onClose}
+      title={editing ? t("editTitle") : t("addTitle")}
+      okText={t("save")}
+      cancelText={t("cancel")}
+      confirmLoading={pending}
+      onOk={() => form.submit()}
+      destroyOnHidden
+      width={560}
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        onFinish={onFinish}
+        initialValues={{
+          value: editing?.value ?? "",
+          label_vi: editing?.label_vi ?? "",
+          label_en: editing?.label_en ?? "",
+          label_id: editing?.label_id ?? "",
+          icon: editing?.icon ?? null,
+          color: editing?.color ?? "",
+          sort_order: editing?.sort_order ?? 0,
+          is_active: editing?.is_active ?? true,
+        }}
+      >
+        <div className="grid grid-cols-2 gap-x-3">
+          {/* value cố định sau khi tạo (đổi sẽ mồ côi customers). */}
+          <Form.Item
+            name="value"
+            label={t("colValue")}
+            rules={[{ required: true, whitespace: true, message: t("required") }]}
+          >
+            <Input disabled={!!editing} placeholder="vd: new_lead" autoComplete="off" />
+          </Form.Item>
+          <Form.Item name="sort_order" label={t("colSort")}>
+            <InputNumber className="w-full" />
+          </Form.Item>
+          <Form.Item
+            name="label_vi"
+            label={t("colVi")}
+            rules={[{ required: true, whitespace: true, message: t("required") }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item name="label_en" label={t("colEn")}>
+            <Input placeholder={t("optional")} />
+          </Form.Item>
+          <Form.Item name="label_id" label={t("colId")}>
+            <Input placeholder={t("optional")} />
+          </Form.Item>
+          <Form.Item name="icon" label={t("iconLabel")}>
+            <IconPicker
+              placeholder={t("pickIcon")}
+              searchPlaceholder={t("searchIcon")}
+              clearLabel={t("clearIcon")}
+              emptyText={t("noIconResults")}
+              countText={(shown, total) => t("iconShown", { shown, total })}
             />
-          </Field>
+          </Form.Item>
+        </div>
 
-          {/* Xem trước + kích hoạt */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed p-2.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                {t("preview")}
-              </span>
-              <EnumTag
-                icon={w.icon || null}
-                color={w.color || null}
-                label={previewLabel}
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="size-4 cursor-pointer accent-primary"
-                {...register("is_active")}
-              />
-              {t("activeLabel")}
-            </label>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              {t("cancel")}
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending && <RefreshCw className="animate-spin" />}
-              {t("save")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// Ô màu tròn: preset + "không màu" + màu tùy chỉnh (input color native ẩn bên trong).
-const swatchCls =
-  "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full border outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-const ringCls = "ring-2 ring-ring ring-offset-2 ring-offset-background";
-
-function ColorSwatches({
-  field,
-}: {
-  field: { value: string; onChange: (v: string) => void };
-}) {
-  const t = useTranslations("enums");
-  const isCustom = !!field.value && !TAG_COLORS.includes(field.value);
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        title={t("clearColor")}
-        aria-label={t("clearColor")}
-        onClick={() => field.onChange("")}
-        className={cn(
-          swatchCls,
-          "border-input bg-background text-muted-foreground",
-          !field.value && ringCls,
-        )}
-      >
-        <X className="size-3.5" />
-      </button>
-
-      {TAG_COLORS.map((c) => (
-        <button
-          key={c}
-          type="button"
-          title={c}
-          aria-label={c}
-          onClick={() => field.onChange(c)}
-          className={cn(swatchCls, "border-foreground/10", field.value === c && ringCls)}
-          style={{ backgroundColor: c }}
+        <Form.Item
+          name="color"
+          label={t("colorLabel")}
+          // ColorPicker trả object Color → lưu hex; xoá (allowClear) → "".
+          getValueFromEvent={(c) => (c?.cleared ? "" : (c?.toHexString?.() ?? ""))}
+          getValueProps={(v) => ({ value: v || undefined })}
         >
-          {field.value === c && (
-            <Check className="size-3.5 text-white drop-shadow-sm" />
-          )}
-        </button>
-      ))}
+          <ColorPicker
+            allowClear
+            showText
+            disabledAlpha
+            format="hex"
+            presets={[{ label: t("colorLabel"), colors: TAG_COLORS, defaultOpen: true }]}
+          />
+        </Form.Item>
 
-      <label
-        title={t("customColor")}
-        className={cn(
-          swatchCls,
-          "relative border-foreground/10 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
-          isCustom && ringCls,
-        )}
-        style={
-          isCustom
-            ? { backgroundColor: field.value }
-            : {
-                background:
-                  "conic-gradient(#ef4444,#f97316,#ca8a04,#22c55e,#0ea5e9,#7b68ee,#ec4899,#ef4444)",
-              }
-        }
-      >
-        {isCustom ? (
-          <Check className="size-3.5 text-white drop-shadow-sm" />
-        ) : (
-          <Pipette className="size-3.5 text-white drop-shadow-sm" />
-        )}
-        <input
-          type="color"
-          aria-label={t("customColor")}
-          value={field.value || "#7b68ee"}
-          onChange={(e) => field.onChange(e.target.value)}
-          className="absolute inset-0 size-full cursor-pointer opacity-0"
-        />
-      </label>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string | false;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+        {/* Xem trước + kích hoạt */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-dashed border-border p-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{t("preview")}</span>
+            <EnumTag icon={w?.icon || null} color={w?.color || null} label={previewLabel} />
+          </div>
+          <Form.Item name="is_active" valuePropName="checked" noStyle>
+            <Checkbox>{t("activeLabel")}</Checkbox>
+          </Form.Item>
+        </div>
+      </Form>
+    </Modal>
   );
 }

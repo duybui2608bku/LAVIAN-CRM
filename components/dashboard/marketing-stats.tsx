@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Avatar, Progress, Table, type TableColumnType } from "antd";
 import {
   ArrowUpRight,
   BadgeDollarSign,
@@ -35,15 +36,6 @@ import { formatRupiah, formatRupiahCompact } from "@/lib/currency";
 import { formatISODate, parseISODate } from "@/lib/date";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { PageHeader } from "@/components/layout/page";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { optionLabel, serviceName } from "@/lib/customers";
 import type { SalesPerformance, ServiceStats, SourceStats } from "@/lib/financial";
 
@@ -516,6 +508,8 @@ export function MarketingStats({
     revenue: row.revenue,
   }));
 
+  const fmtNum = (n: number) => n.toLocaleString(locale);
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -529,8 +523,7 @@ export function MarketingStats({
               onChange={(next) =>
                 setRange(next.from ? next : { from: today, to: today })
               }
-              placeholder={t("range")}
-              clearLabel={t("clear")}
+              allowClear={false}
               className="w-full sm:w-64"
             />
             {(stats || financialStats) && pending && (
@@ -702,71 +695,49 @@ export function MarketingStats({
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="space-y-4">
           <SectionTitle icon={UsersRound}>{t("staffSection")}</SectionTitle>
-          <div className={cn("surface overflow-hidden transition-opacity duration-200", pending && "opacity-60")}>
-            <Table>
-              <TableHeader className="bg-muted/40">
-                <TableRow>
-                  <TableHead>{t("staffName")}</TableHead>
-                  <TableHead className="text-right">{t("staffReplyAverage")}</TableHead>
-                  <TableHead className="text-right">{t("staffCustomers")}</TableHead>
-                  <TableHead className="text-right">{t("staffPhoneLeads")}</TableHead>
-                  <TableHead className="text-right">{t("staffWhatsappLeads")}</TableHead>
-                  <TableHead className="text-right">{t("staffPhoneRate")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {staffRows.map((row, index) => (
-                  <TableRow key={row.userId}>
-                    <TableCell className="font-medium">
-                      <span className="flex items-center gap-2">
-                        <InitialAvatar name={row.name} index={index} />
-                        {row.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{replyTime(row.replyAverage)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.customers.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.phoneLeads.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.whatsappLeads.toLocaleString(locale)}</TableCell>
-                    <TableCell>
-                      <span className="flex items-center justify-end gap-2">
-                        <span className="h-1.5 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
-                          <span
-                            className="block h-full rounded-full bg-primary"
-                            style={{ width: `${Math.min(100, row.phoneRate)}%` }}
-                          />
-                        </span>
-                        <span className="tabular-nums">
-                          {row.phoneRate.toLocaleString(locale, { maximumFractionDigits: 2 })}%
-                        </span>
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!stats?.errors.staff && stats?.staffStats?.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">{t("noStaffStats")}</TableCell>
-                  </TableRow>
-                )}
-                {!stats && pending && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">{t("loading")}</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-              {staffRows.length > 0 && (
-                <TableFooter>
-                  <TableRow>
-                    <TableCell className="font-semibold">{t("total")}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">—</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{staffTotal.customers.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{staffTotal.phoneLeads.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{staffTotal.whatsappLeads.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">—</TableCell>
-                  </TableRow>
-                </TableFooter>
-              )}
-            </Table>
-          </div>
+          <StatsTable
+            pending={pending}
+            loading={!stats && pending}
+            rowKey="userId"
+            rows={staffRows}
+            emptyText={stats?.errors.staff ? "—" : t("noStaffStats")}
+            columns={[
+              {
+                title: t("staffName"),
+                key: "name",
+                render: (_, row, index) => <PersonCell name={row.name} index={index} />,
+              },
+              {
+                title: t("staffReplyAverage"),
+                key: "reply",
+                align: "right",
+                render: (_, row) => <span className="font-semibold tabular-nums">{replyTime(row.replyAverage)}</span>,
+              },
+              { title: t("staffCustomers"), key: "customers", align: "right", render: (_, row) => fmtNum(row.customers) },
+              { title: t("staffPhoneLeads"), key: "phone", align: "right", render: (_, row) => fmtNum(row.phoneLeads) },
+              { title: t("staffWhatsappLeads"), key: "wa", align: "right", render: (_, row) => fmtNum(row.whatsappLeads) },
+              {
+                title: t("staffPhoneRate"),
+                key: "rate",
+                align: "right",
+                render: (_, row) => (
+                  <RateBar
+                    percent={row.phoneRate}
+                    label={`${row.phoneRate.toLocaleString(locale, { maximumFractionDigits: 2 })}%`}
+                    color="var(--primary)"
+                  />
+                ),
+              },
+            ]}
+            summary={[
+              t("total"),
+              "—",
+              fmtNum(staffTotal.customers),
+              fmtNum(staffTotal.phoneLeads),
+              fmtNum(staffTotal.whatsappLeads),
+              "—",
+            ]}
+          />
           {stats?.errors.staff && <p className="text-sm text-destructive">{stats.errors.staff}</p>}
           {stats?.errors.replyTime && <p className="text-sm text-destructive">{stats.errors.replyTime}</p>}
         </section>
@@ -787,145 +758,102 @@ export function MarketingStats({
 
         <section className="space-y-4">
           <SectionTitle icon={HandCoins}>{t("salesSection")}</SectionTitle>
-          <div className={cn("surface overflow-hidden transition-opacity duration-200", pending && "opacity-60")}>
-            <Table>
-              <TableHeader className="bg-muted/40">
-                <TableRow>
-                  <TableHead>{t("staffName")}</TableHead>
-                  <TableHead className="text-right">{t("salesCustomers")}</TableHead>
-                  <TableHead className="text-right">{t("revenue")}</TableHead>
-                  <TableHead className="text-right">{t("salesAov")}</TableHead>
-                  <TableHead className="text-right">{t("salesFailed")}</TableHead>
-                  <TableHead className="text-right">{t("salesCloseRate")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {salesRows.map((row, index) => (
-                  <TableRow key={row.salesId}>
-                    <TableCell className="font-medium">
-                      <span className="flex items-center gap-2">
-                        <InitialAvatar name={row.userName} index={index} />
-                        {row.userName}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{row.customers.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{formatRupiah(row.revenue)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatRupiah(row.aov)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{(row.customers - row.closedCustomers).toLocaleString(locale)}</TableCell>
-                    <TableCell>
-                      <span className="flex items-center justify-end gap-2">
-                        <span className="h-1.5 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
-                          <span
-                            className="block h-full rounded-full bg-success"
-                            style={{ width: `${Math.min(100, row.closeRate)}%` }}
-                          />
-                        </span>
-                        <span className="tabular-nums">
-                          {row.closeRate.toLocaleString(locale, { maximumFractionDigits: 1 })}%
-                        </span>
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!salesError && sales && salesRows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">{t("noSalesStats")}</TableCell>
-                  </TableRow>
-                )}
-                {!sales && pending && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">{t("loading")}</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-              {salesRows.length > 0 && (
-                <TableFooter>
-                  <TableRow>
-                    <TableCell className="font-semibold">{t("total")}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{salesTotal.customers.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{formatRupiah(salesTotal.revenue)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">
-                      {formatRupiah(salesTotal.bills === 0 ? 0 : salesTotal.revenue / salesTotal.bills)}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">
-                      {(salesTotal.customers - salesTotal.closed).toLocaleString(locale)}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">
-                      {(salesTotal.customers === 0
-                        ? 0
-                        : (salesTotal.closed / salesTotal.customers) * 100
-                      ).toLocaleString(locale, { maximumFractionDigits: 1 })}%
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
-              )}
-            </Table>
-          </div>
+          <StatsTable
+            pending={pending}
+            loading={!sales && pending}
+            rowKey="salesId"
+            rows={salesRows}
+            emptyText={salesError ? "—" : t("noSalesStats")}
+            columns={[
+              {
+                title: t("staffName"),
+                key: "name",
+                render: (_, row, index) => <PersonCell name={row.userName} index={index} />,
+              },
+              { title: t("salesCustomers"), key: "customers", align: "right", render: (_, row) => fmtNum(row.customers) },
+              {
+                title: t("revenue"),
+                key: "revenue",
+                align: "right",
+                render: (_, row) => <span className="font-semibold">{formatRupiah(row.revenue)}</span>,
+              },
+              { title: t("salesAov"), key: "aov", align: "right", render: (_, row) => formatRupiah(row.aov) },
+              {
+                title: t("salesFailed"),
+                key: "failed",
+                align: "right",
+                render: (_, row) => fmtNum(row.customers - row.closedCustomers),
+              },
+              {
+                title: t("salesCloseRate"),
+                key: "rate",
+                align: "right",
+                render: (_, row) => (
+                  <RateBar
+                    percent={row.closeRate}
+                    label={`${row.closeRate.toLocaleString(locale, { maximumFractionDigits: 1 })}%`}
+                    color="var(--success)"
+                  />
+                ),
+              },
+            ]}
+            summary={[
+              t("total"),
+              fmtNum(salesTotal.customers),
+              formatRupiah(salesTotal.revenue),
+              formatRupiah(salesTotal.bills === 0 ? 0 : salesTotal.revenue / salesTotal.bills),
+              fmtNum(salesTotal.customers - salesTotal.closed),
+              `${(salesTotal.customers === 0 ? 0 : (salesTotal.closed / salesTotal.customers) * 100).toLocaleString(locale, { maximumFractionDigits: 1 })}%`,
+            ]}
+          />
           {salesError && <p className="text-sm text-destructive">{salesError}</p>}
         </section>
 
         <section className="space-y-4">
           <SectionTitle icon={Sparkles}>{t("servicesSection")}</SectionTitle>
-          <div className={cn("surface overflow-hidden transition-opacity duration-200", pending && "opacity-60")}>
-            <Table>
-              <TableHeader className="bg-muted/40">
-                <TableRow>
-                  <TableHead>{t("serviceCol")}</TableHead>
-                  <TableHead className="text-right">{t("serviceData")}</TableHead>
-                  <TableHead className="text-right">{t("serviceBooked")}</TableHead>
-                  <TableHead className="text-right">{t("serviceArrived")}</TableHead>
-                  <TableHead className="text-right">{t("revenue")}</TableHead>
-                  <TableHead className="text-right">{t("salesAov")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {serviceRows.map((row) => (
-                  <TableRow key={row.serviceId}>
-                    <TableCell className="font-medium">{serviceName(row, locale)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.data.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{row.booked.toLocaleString(locale)}</TableCell>
-                    <TableCell>
-                      <span className="flex items-center justify-end gap-2">
-                        <span className="h-1.5 w-10 shrink-0 overflow-hidden rounded-full bg-muted">
-                          <span
-                            className="block h-full rounded-full bg-success"
-                            style={{ width: `${row.booked === 0 ? 0 : Math.min(100, (row.arrived / row.booked) * 100)}%` }}
-                          />
-                        </span>
-                        <span className="tabular-nums">{row.arrived.toLocaleString(locale)}</span>
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{formatRupiah(row.revenue)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatRupiah(row.aov)}</TableCell>
-                  </TableRow>
-                ))}
-                {!servicesError && services && serviceRows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">{t("noServiceStats")}</TableCell>
-                  </TableRow>
-                )}
-                {!services && pending && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">{t("loading")}</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-              {serviceRows.length > 0 && (
-                <TableFooter>
-                  <TableRow>
-                    <TableCell className="font-semibold">{t("total")}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{servicesTotal.data.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{servicesTotal.booked.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{servicesTotal.arrived.toLocaleString(locale)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">{formatRupiah(servicesTotal.revenue)}</TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums">
-                      {formatRupiah(servicesTotal.orders === 0 ? 0 : servicesTotal.revenue / servicesTotal.orders)}
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
-              )}
-            </Table>
-          </div>
+          <StatsTable
+            pending={pending}
+            loading={!services && pending}
+            rowKey="serviceId"
+            rows={serviceRows}
+            emptyText={servicesError ? "—" : t("noServiceStats")}
+            columns={[
+              {
+                title: t("serviceCol"),
+                key: "name",
+                render: (_, row) => <span className="font-medium">{serviceName(row, locale)}</span>,
+              },
+              { title: t("serviceData"), key: "data", align: "right", render: (_, row) => fmtNum(row.data) },
+              { title: t("serviceBooked"), key: "booked", align: "right", render: (_, row) => fmtNum(row.booked) },
+              {
+                title: t("serviceArrived"),
+                key: "arrived",
+                align: "right",
+                render: (_, row) => (
+                  <RateBar
+                    percent={row.booked === 0 ? 0 : (row.arrived / row.booked) * 100}
+                    label={fmtNum(row.arrived)}
+                    color="var(--success)"
+                  />
+                ),
+              },
+              {
+                title: t("revenue"),
+                key: "revenue",
+                align: "right",
+                render: (_, row) => <span className="font-semibold">{formatRupiah(row.revenue)}</span>,
+              },
+              { title: t("salesAov"), key: "aov", align: "right", render: (_, row) => formatRupiah(row.aov) },
+            ]}
+            summary={[
+              t("total"),
+              fmtNum(servicesTotal.data),
+              fmtNum(servicesTotal.booked),
+              fmtNum(servicesTotal.arrived),
+              formatRupiah(servicesTotal.revenue),
+              formatRupiah(servicesTotal.orders === 0 ? 0 : servicesTotal.revenue / servicesTotal.orders),
+            ]}
+          />
           {servicesError && <p className="text-sm text-destructive">{servicesError}</p>}
         </section>
       </div>
@@ -1107,15 +1035,79 @@ function TrendChart({
 }
 
 /** Avatar chữ cái đầu (SMAX không trả avatar) — tên VN lấy chữ đầu của tên gọi (từ cuối). */
-function InitialAvatar({ name, index }: { name: string; index: number }) {
+function PersonCell({ name, index }: { name: string; index: number }) {
   const initial = (name.trim().split(/\s+/).pop() ?? "").charAt(0).toUpperCase() || "?";
   return (
-    <span
-      className="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-      style={{ background: AVATAR_COLORS[index % AVATAR_COLORS.length] }}
-    >
-      {initial}
+    <span className="flex items-center gap-2 font-medium">
+      <Avatar size={24} style={{ background: AVATAR_COLORS[index % AVATAR_COLORS.length] }}>
+        {initial}
+      </Avatar>
+      {name}
     </span>
+  );
+}
+
+/** Thanh tỉ lệ mini + nhãn số bên phải (cột %/đã đến của bảng thống kê). */
+function RateBar({ percent, label, color }: { percent: number; label: string; color: string }) {
+  return (
+    <span className="flex items-center justify-end gap-2">
+      <Progress
+        percent={Math.min(100, percent)}
+        showInfo={false}
+        size={{ width: 40, height: 6 }}
+        strokeColor={color}
+        className="m-0 w-10"
+      />
+      <span className="tabular-nums">{label}</span>
+    </span>
+  );
+}
+
+/**
+ * Bảng thống kê dashboard: cột số canh phải, dòng tổng (`summary`, 1 ô/cột)
+ * chỉ hiện khi có dữ liệu. Mờ đi khi đang tải lại kỳ mới.
+ */
+function StatsTable<T extends object>({
+  rows,
+  rowKey,
+  columns,
+  summary,
+  emptyText,
+  loading,
+  pending,
+}: {
+  rows: T[];
+  rowKey: keyof T & string;
+  columns: TableColumnType<T>[];
+  summary: React.ReactNode[];
+  emptyText: string;
+  loading: boolean;
+  pending: boolean;
+}) {
+  return (
+    <div className={cn("surface overflow-hidden transition-opacity duration-200", pending && "opacity-60")}>
+      <Table<T>
+        size="small"
+        rowKey={rowKey}
+        columns={columns.map((c) => ({ ...c, className: "tabular-nums" }))}
+        dataSource={rows}
+        loading={loading}
+        pagination={false}
+        scroll={{ x: "max-content" }}
+        locale={{ emptyText }}
+        summary={() =>
+          rows.length > 0 ? (
+            <Table.Summary.Row className="font-semibold">
+              {summary.map((cell, i) => (
+                <Table.Summary.Cell key={i} index={i} align={i === 0 ? "left" : "right"}>
+                  {cell}
+                </Table.Summary.Cell>
+              ))}
+            </Table.Summary.Row>
+          ) : null
+        }
+      />
+    </div>
   );
 }
 
