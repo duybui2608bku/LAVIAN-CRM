@@ -81,18 +81,18 @@ export function AdsStatsView() {
 
       <div
         className={cn(
-          "grid gap-3 transition-opacity duration-200 sm:grid-cols-2 lg:grid-cols-4",
+          "grid grid-cols-2 gap-2 transition-opacity duration-200 sm:gap-3 lg:grid-cols-4",
           stats && pending && "opacity-60",
         )}
       >
         {cards.map((card) => (
-          <div key={card.key} className="surface flex flex-col p-4">
+          <div key={card.key} className="surface flex min-w-0 flex-col p-3 sm:p-4">
             <p className="truncate text-xs font-medium text-muted-foreground">
               {t(card.key)}
             </p>
-            <span className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
+            <span className="mt-1 truncate text-lg font-semibold tracking-tight tabular-nums sm:text-2xl">
               {!stats ? (
-                <span className="inline-block h-7 w-24 animate-pulse rounded-md bg-muted" />
+                <span className="inline-block h-6 w-20 animate-pulse rounded-md bg-muted sm:h-7 sm:w-24" />
               ) : (
                 (card.value ?? "—")
               )}
