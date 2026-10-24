@@ -8,7 +8,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { getAdsStats, type AdsStats } from "@/app/(app)/marketing/actions";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { PageHeader } from "@/components/layout/page";
-import { formatRupiah } from "@/lib/currency";
 import { formatISODate } from "@/lib/date";
 import type { FbCampaign } from "@/lib/marketing";
 import { cn } from "@/lib/utils";
@@ -16,6 +15,8 @@ import { cn } from "@/lib/utils";
 /** Chia an toàn: thiếu số hoặc mẫu 0 → null ("—"). */
 const ratio = (a: number | null, b: number | null) =>
   a != null && b ? Math.round(a / b) : null;
+
+const LOCALE_TAG: Record<string, string> = { vi: "vi-VN", en: "en-US", id: "id-ID" };
 
 // effective_status của Graph API → màu tag; trạng thái lạ hiện nguyên văn, màu mặc định.
 const STATUS_COLOR: Record<string, string> = {
@@ -45,7 +46,15 @@ export function AdsStatsView() {
     });
   }, [range]);
 
-  const money = (n: number | null) => (n == null ? null : formatRupiah(n));
+  // Tiền FB theo currency của tài khoản ads, định dạng theo ngôn ngữ đang chọn.
+  const currency = stats?.currency;
+  const moneyFormat = new Intl.NumberFormat(
+    LOCALE_TAG[locale] ?? locale,
+    currency
+      ? { style: "currency", currency, maximumFractionDigits: 0 }
+      : { maximumFractionDigits: 0 },
+  );
+  const money = (n: number | null) => (n == null ? null : moneyFormat.format(n));
   const count = (n: number | null) => (n == null ? null : n.toLocaleString(locale));
   const e = stats?.errors;
   const s = stats;
@@ -94,7 +103,7 @@ export function AdsStatsView() {
       title: t("spend"),
       align: "right",
       width: 140,
-      render: (_, r) => formatRupiah(r.spend),
+      render: (_, r) => money(r.spend),
       sorter: numSorter("spend"),
       defaultSortOrder: "descend",
     },

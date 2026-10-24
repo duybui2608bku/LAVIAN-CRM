@@ -93,7 +93,7 @@ test("fetchFbAds cộng spend + tin nhắn của 2 tài khoản ads", async () =
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
     accounts.push(url.pathname.split("/")[2]);
-    assert.equal(url.searchParams.get("fields"), "spend,actions");
+    assert.equal(url.searchParams.get("fields"), "spend,actions,account_currency");
     const empty = url.pathname.includes("405282048979489");
     return Response.json({
       data: empty
@@ -101,6 +101,7 @@ test("fetchFbAds cộng spend + tin nhắn của 2 tài khoản ads", async () =
         : [
             {
               spend: "1000.5",
+              account_currency: "IDR",
               actions: [
                 { action_type: "link_click", value: "99" },
                 {
@@ -117,6 +118,7 @@ test("fetchFbAds cộng spend + tin nhắn của 2 tài khoản ads", async () =
     assert.deepEqual(await fetchFbAds("2026-10-24", "2026-10-24"), {
       spend: 1000.5,
       messages: 12,
+      currency: "IDR",
     });
     assert.deepEqual(accounts.sort(), [
       "act_1494701561142295",
@@ -134,11 +136,18 @@ test("fetchFbCampaigns lọc impressions > 0, gắn trạng thái, sắp theo ch
   process.env.FB_TOKEN = "test-token";
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
-    if (url.searchParams.has("ids")) {
-      assert.equal(url.searchParams.get("ids"), "c1,c2");
+    assert.equal(url.searchParams.has("ids"), false);
+    if (url.pathname.endsWith("/campaigns")) {
+      const [filter] = JSON.parse(url.searchParams.get("filtering")!);
+      assert.equal(filter.operator, "IN");
+      const first = url.pathname.includes("1494701561142295");
+      assert.deepEqual(filter.value, first ? ["c1"] : ["c2"]);
       return Response.json({
-        c1: { effective_status: "ACTIVE", id: "c1" },
-        c2: { effective_status: "PAUSED", id: "c2" },
+        data: [
+          first
+            ? { id: "c1", effective_status: "ACTIVE" }
+            : { id: "c2", effective_status: "PAUSED" },
+        ],
       });
     }
     assert.equal(url.searchParams.get("level"), "campaign");

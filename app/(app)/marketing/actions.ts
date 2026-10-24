@@ -14,6 +14,8 @@ import { createClient } from "@/lib/supabase/server";
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface AdsStats {
+  /** Currency tài khoản ads (vd. "IDR", "VND"); null khi FB lỗi. */
+  currency: string | null;
   spend: number | null;
   messages: number | null;
   leads: number | null;
@@ -29,6 +31,7 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
   await requireAdmin();
 
   const stats: AdsStats = {
+    currency: null,
     spend: null,
     messages: null,
     leads: null,
@@ -59,6 +62,7 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
   ]);
 
   if (fb.status === "fulfilled") {
+    stats.currency = fb.value.currency;
     stats.spend = fb.value.spend;
     stats.messages = fb.value.messages;
   } else stats.errors.fb = normalizeError(fb.reason).message;

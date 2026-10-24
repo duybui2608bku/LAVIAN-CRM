@@ -51,6 +51,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-10-24 — /marketing: fix lấy trạng thái chiến dịch + tiền theo currency tài khoản
+- **Thay đổi:** Bỏ tham số `ids` (Graph API báo deprecated v26.0+). Trạng thái chiến dịch giờ lấy qua `GET /act_x/campaigns?filtering=[{id IN [...]}]&effective_status=[ACTIVE,PAUSED,DELETED,ARCHIVED,IN_PROCESS,WITH_ISSUES]` theo từng tài khoản (lô 100 id). `fetchFbAds` lấy thêm `account_currency` → `AdsStats.currency`; trang /marketing format tiền bằng `Intl.NumberFormat` theo locale đang chọn (vi-VN/en-US/id-ID) + currency tài khoản (KHÔNG còn `formatRupiah` cố định id-ID). Ví dụ vi + IDR → "6.082.373 IDR", vi + VND → "6.082.373 ₫".
+- **File ảnh hưởng:** `lib/marketing{,.test}.ts`, `app/(app)/marketing/actions.ts`, `components/marketing/ads-stats.tsx`.
+- **Còn dở / ghi chú:** Giả định 2 tài khoản cùng currency (có `ponytail:` comment). Chưa test token thật.
+
 ### 2026-10-24 — /marketing: bảng chiến dịch FB (lượt hiển thị > 0)
 - **Thay đổi:** Thêm bảng "Chiến dịch" dưới 7 card: Trạng thái (tag theo `effective_status`, nhãn i18n `marketing.status_*`, trạng thái lạ hiện nguyên văn), Tên, Chi tiêu, Tin nhắn, Chi tiêu/Tin nhắn, Lượt hiển thị, Lượt tiếp cận; mặc định sắp chi tiêu giảm dần, cột số sort được, phân trang 20, `scroll.x` cho mobile. `fetchFbCampaigns` (`lib/marketing.ts`): insights `level=campaign` của 2 tài khoản (theo `paging.next`), lọc `impressions > 0`, trạng thái lấy theo lô 50 id (`GET /?ids=…&fields=effective_status`). Chạy trong `getAdsStats` (lỗi riêng `errors.campaigns`, hiện ở empty state bảng).
 - **File ảnh hưởng:** `lib/marketing{,.test}.ts`, `app/(app)/marketing/actions.ts`, `components/marketing/ads-stats.tsx`, `messages/{vi,en,id}.json`.
