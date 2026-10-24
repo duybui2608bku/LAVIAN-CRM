@@ -130,7 +130,7 @@ test("fetchFbAds cộng spend + tin nhắn của 2 tài khoản ads", async () =
   }
 });
 
-test("fetchFbCampaigns lọc impressions > 0, gắn trạng thái, sắp theo chi tiêu", async () => {
+test("fetchFbCampaigns lọc impressions > 0, trạng thái best-effort, sắp theo chi tiêu", async () => {
   const originalFetch = globalThis.fetch;
   const originalToken = process.env.FB_TOKEN;
   process.env.FB_TOKEN = "test-token";
@@ -138,15 +138,13 @@ test("fetchFbCampaigns lọc impressions > 0, gắn trạng thái, sắp theo ch
     const url = new URL(String(input));
     assert.equal(url.searchParams.has("ids"), false);
     if (url.pathname.endsWith("/campaigns")) {
-      const [filter] = JSON.parse(url.searchParams.get("filtering")!);
-      assert.equal(filter.operator, "IN");
+      assert.equal(url.searchParams.has("filtering"), false);
       const first = url.pathname.includes("1494701561142295");
-      assert.deepEqual(filter.value, first ? ["c1"] : ["c2"]);
+      if (!first) return Response.json({ error: { message: "Invalid parameter" } }, { status: 400 });
       return Response.json({
         data: [
-          first
-            ? { id: "c1", effective_status: "ACTIVE" }
-            : { id: "c2", effective_status: "PAUSED" },
+          { id: "c1", effective_status: "ACTIVE" },
+          { id: "c9", effective_status: "PAUSED" },
         ],
       });
     }
@@ -175,7 +173,7 @@ test("fetchFbCampaigns lọc impressions > 0, gắn trạng thái, sắp theo ch
   try {
     const rows = await fetchFbCampaigns("2026-10-24", "2026-10-24");
     assert.deepEqual(rows, [
-      { id: "c2", name: "B", status: "PAUSED", spend: 300, messages: 6, impressions: 900, reach: 700 },
+      { id: "c2", name: "B", status: "UNKNOWN", spend: 300, messages: 6, impressions: 900, reach: 700 },
       { id: "c1", name: "A", status: "ACTIVE", spend: 100, messages: 0, impressions: 50, reach: 40 },
     ]);
   } finally {

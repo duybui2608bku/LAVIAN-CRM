@@ -143,20 +143,20 @@ type FbCampaignsRes = {
   error?: { message?: string };
 };
 
-const CAMPAIGN_STATUSES = [
-  "ACTIVE",
-  "PAUSED",
-  "DELETED",
-  "ARCHIVED",
-  "IN_PROCESS",
-  "WITH_ISSUES",
-];
-
 async function fbGet<T extends { error?: { message?: string } }>(url: string) {
   const res = await fetch(url, { cache: "no-store" });
   const json = (await res.json().catch(() => null)) as T | null;
-  if (!res.ok || !json || json.error)
-    throw new Error(json?.error?.message ?? `Facebook API ${res.status}`);
+  if (!res.ok || !json || json.error) {
+    // Kèm error_user_msg (nếu có) — "Invalid parameter" trơn không đủ để chẩn đoán.
+    const err = json?.error as
+      | { message?: string; error_user_msg?: string }
+      | undefined;
+    throw new Error(
+      [err?.message ?? `Facebook API ${res.status}`, err?.error_user_msg]
+        .filter(Boolean)
+        .join(" — "),
+    );
+  }
   return json;
 }
 
@@ -191,32 +191,30 @@ export async function fetchFbCampaigns(
     }),
   );
   const rows = byAccount.flat();
-  const perAccount = byAccount.map((list) => list.map((r) => r.campaign_id!));
 
-  // Trạng thái: GET /act_x/campaigns lọc id IN [...] theo từng tài khoản
-  // (tham số `ids` đã bị Graph API bỏ). Kèm đủ effective_status để không sót
-  // chiến dịch đã xoá/lưu trữ nhưng vẫn có số liệu trong range.
+  // Trạng thái: liệt kê /act_x/campaigns (tham số mặc định, không filtering —
+  // Graph API hay từ chối filter/ids với "Invalid parameter"). Best-effort:
+  // lỗi hoặc thiếu (chiến dịch đã xoá) → "UNKNOWN", bảng vẫn hiện số liệu.
   const status = new Map<string, string>();
+  const wanted = new Set(rows.map((r) => r.campaign_id!));
   await Promise.all(
-    FB_AD_ACCOUNTS.map(async (act, i) => {
-      const ids = perAccount[i];
-      for (let k = 0; k < ids.length; k += 100) {
-        const qs = new URLSearchParams({
-          fields: "id,effective_status",
-          filtering: JSON.stringify([
-            { field: "id", operator: "IN", value: ids.slice(k, k + 100) },
-          ]),
-          effective_status: JSON.stringify(CAMPAIGN_STATUSES),
-          limit: "500",
-          access_token: token,
-        });
-        let url: string | undefined = `${FB_API}/${act}/campaigns?${qs}`;
+    FB_AD_ACCOUNTS.map(async (act) => {
+      const qs = new URLSearchParams({
+        fields: "id,effective_status",
+        limit: "500",
+        access_token: token,
+      });
+      let url: string | undefined = `${FB_API}/${act}/campaigns?${qs}`;
+      try {
         while (url) {
           const json: FbCampaignsRes = await fbGet(url);
           for (const c of json.data ?? [])
-            if (c.id && c.effective_status) status.set(c.id, c.effective_status);
+            if (c.id && c.effective_status && wanted.has(c.id))
+              status.set(c.id, c.effective_status);
           url = json.paging?.next;
         }
+      } catch (err) {
+        console.error(`[fb] campaigns status ${act}:`, err);
       }
     }),
   );
