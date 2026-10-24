@@ -161,7 +161,7 @@ export function MarketingStats({
   header,
 }: {
   showFinancials?: boolean;
-  header?: { title: string; description: string };
+  header?: { title: string };
 }) {
   const t = useTranslations("dashboard");
   const locale = useLocale();
@@ -447,7 +447,6 @@ export function MarketingStats({
     <div className="space-y-8">
       <PageHeader
         title={header?.title ?? t("range")}
-        description={header?.description}
         actions={
           <>
             <DateRangePicker

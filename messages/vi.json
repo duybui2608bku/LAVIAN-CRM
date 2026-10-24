@@ -24,7 +24,6 @@
   },
   "dashboard": {
     "title": "Báo cáo",
-    "description": "Báo cáo khách hàng, doanh thu và lịch hẹn theo khoảng ngày (giờ Việt Nam).",
     "range": "Khoảng ngày",
     "clear": "Về hôm nay",
     "spend": "Chi tiêu",
@@ -422,7 +421,6 @@
   },
   "marketing": {
     "title": "Marketing",
-    "description": "Hiệu quả quảng cáo Facebook (2 tài khoản) theo khoảng ngày (giờ Việt Nam).",
     "spend": "Chi tiêu",
     "messages": "Tin nhắn",
     "costPerMessage": "Chi tiêu / Tin nhắn",

@@ -58,7 +58,6 @@ export function AdsStatsView() {
     <>
       <PageHeader
         title={t("title")}
-        description={t("description")}
         actions={
           <>
             {stats && pending && (

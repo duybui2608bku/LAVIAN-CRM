@@ -10,7 +10,7 @@ export default async function Home() {
     <Page>
       <MarketingStats
         showFinancials
-        header={{ title: t("title"), description: t("description") }}
+        header={{ title: t("title") }}
       />
     </Page>
   );

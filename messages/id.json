@@ -24,7 +24,6 @@
   },
   "dashboard": {
     "title": "Laporan",
-    "description": "Laporan pelanggan, pendapatan, dan janji temu per rentang tanggal (waktu Vietnam).",
     "range": "Rentang tanggal",
     "clear": "Kembali ke hari ini",
     "spend": "Belanja iklan",
@@ -422,7 +421,6 @@
   },
   "marketing": {
     "title": "Marketing",
-    "description": "Performa iklan Facebook (2 akun) berdasarkan rentang tanggal (waktu Vietnam).",
     "spend": "Pengeluaran",
     "messages": "Pesan",
     "costPerMessage": "Pengeluaran / Pesan",

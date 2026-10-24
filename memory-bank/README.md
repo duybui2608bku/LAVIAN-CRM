@@ -51,6 +51,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-10-24 — Mobile: sidebar ẩn hẳn + bỏ subtitle mọi trang
+- **Thay đổi:** `AppShell`: dưới `md` (< 768px) Sider ẩn 100% (`max-md:hidden!`), nút PanelLeft mở **Drawer trái** (232px) chứa cùng logo + menu (hàm `nav(compact)` dùng chung), bấm link tự đóng; ≥ md giữ thu gọn/mở rộng như cũ. Bỏ `breakpoint="md"` của Sider (không còn tự thu gọn + ghi đè cookie khi ở mobile). `PageHeader` bỏ prop `description` (không còn subtitle ở mọi trang), căn giữa dọc title/actions; xoá key i18n `dashboard.description`, `marketing.description`.
+- **File ảnh hưởng:** `components/layout/{app-shell,page}.tsx`, `components/marketing/ads-stats.tsx`, `components/dashboard/marketing-stats.tsx`, `app/(app)/page.tsx`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, `next build` PASS. Chưa xem trên điện thoại thật (cần đăng nhập).
+
 ### 2026-10-24 — Trang /marketing viết lại: 7 card quảng cáo từ 2 tài khoản ads
 - **Thay đổi:** Bỏ toàn bộ UI cũ của `/marketing` (trước dùng chung `MarketingStats` với trang chủ). UI mới `AdsStatsView` = DateRangePicker + 7 card: **Chi tiêu**, **Tin nhắn** (FB action `onsite_conversion.messaging_conversation_started_7d`), **Chi tiêu/Tin nhắn**, **Data** (SMAX `customer_lead_total` — khách để lại SĐT), **Chi tiêu/SĐT**, **Lịch hẹn** (đếm `appointments.scheduled_at` trong range), **Đã đến** (đếm `appointments.checked_in_at` trong range). Tài khoản ads đổi thành `act_1494701561142295` + `act_405282048979489` (bỏ `act_3723515967967924`). `fetchFbSpend` → `fetchFbAds` (spend + tin nhắn, 1 request/tài khoản). Server action riêng `getAdsStats` (`app/(app)/marketing/actions.ts`, requireAdmin, lỗi từng nguồn cô lập per card). Gỡ `showSpend`/`includeSpend`/`spend` khỏi `MarketingStats` + `getMarketingStats` (trang chủ không dùng). OpenSpec change `marketing-ads-cards` (chưa archive).
 - **File ảnh hưởng:** `lib/marketing{,.test}.ts`, `app/(app)/marketing/{page.tsx,actions.ts}`, `components/marketing/ads-stats.tsx` (mới), `components/dashboard/marketing-stats.tsx`, `app/(app)/actions.ts`, `messages/{vi,en,id}.json` (namespace `marketing`), `openspec/changes/marketing-ads-cards/*`.
