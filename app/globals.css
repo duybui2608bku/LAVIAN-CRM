@@ -118,6 +118,29 @@
   gap: 4px;
 }
 
+/* InlineSelect (sửa nhanh trên bảng): không khung/viền khi focus/mở, giá trị
+   giữ nguyên độ đậm, mũi tên chỉ hiện khi hover dòng hoặc đang mở. */
+.inline-select.ant-select,
+.inline-select.ant-select:hover,
+.inline-select.ant-select-focused {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
+}
+.inline-select .ant-select-content,
+.inline-select .ant-select-content > * {
+  opacity: 1 !important;
+}
+.inline-select .ant-select-suffix {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.ant-table-row:hover .inline-select .ant-select-suffix,
+.inline-select.ant-select-open .ant-select-suffix {
+  opacity: 1;
+}
+
 @utility surface {
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);

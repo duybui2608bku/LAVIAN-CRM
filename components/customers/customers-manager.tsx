@@ -9,19 +9,17 @@ import {
   Form,
   Input,
   Modal,
-  Popover,
   Table,
   Tag,
+  Tooltip,
   type TableProps,
 } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import {
   CalendarDays,
   CalendarPlus,
-  ExternalLink,
   Info,
   Pencil,
-  Plus,
   RefreshCw,
   Search,
   Trash2,
@@ -134,7 +132,8 @@ export function CustomersManager({
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     setFilters((f) => ({ ...f, [key]: value }));
   const [target, setTarget] = useState<Customer | "new" | null>(null);
-  const [historyFor, setHistoryFor] = useState<Customer | null>(null);
+  // Lưu id (không giữ object) để modal ghi chú tự nhận note mới sau revalidate.
+  const [notesFor, setNotesFor] = useState<string | null>(null);
   const [bookingFor, setBookingFor] = useState<Customer | null>(null);
   const [apptsFor, setApptsFor] = useState<Customer | null>(null);
   const [paymentsFor, setPaymentsFor] = useState<Customer | null>(null);
@@ -238,6 +237,9 @@ export function CustomersManager({
       .filter((o) => o.kind === kind && (o.is_active || o.value === current))
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
+  // Option dạng tag (icon + màu) cho select sửa nhanh trên bảng — khớp ô hiển thị.
+  const tagOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
+    kindOptions(kind, current).map((o) => ({ value: o.value, label: tagFor(kind, o.value) }));
   // Option dịch vụ: active + dịch vụ đang gắn (kể cả inactive, để bỏ được).
   const serviceOptions = (current: string[] = []): SelectOption[] =>
     services
@@ -246,26 +248,30 @@ export function CustomersManager({
 
   const columns: TableProps<Customer>["columns"] = [
     {
+      title: t("colCreated"),
+      dataIndex: "created_at",
+      render: (v: string) => (
+        <span className="text-muted-foreground">{new Date(v).toLocaleDateString()}</span>
+      ),
+    },
+    {
       title: t("colName"),
       dataIndex: "full_name",
-      fixed: "left",
-      render: (_, c) => (
-        <div className="flex items-center gap-2 font-medium">
-          <span className="min-w-0 truncate">{c.full_name}</span>
-          {c.thread?.link ? (
-            <a
-              href={c.thread.link}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex text-muted-foreground hover:text-foreground"
-              title={t("openThread")}
-              aria-label={t("openThread")}
-            >
-              <ExternalLink className="size-4" />
-            </a>
-          ) : null}
-        </div>
-      ),
+      render: (_, c) =>
+        // Có hội thoại SMAX → tên chính là link mở hội thoại.
+        c.thread?.link ? (
+          <a
+            href={c.thread.link}
+            target="_blank"
+            rel="noreferrer"
+            title={t("openThread")}
+            className="font-medium"
+          >
+            {c.full_name}
+          </a>
+        ) : (
+          <span className="font-medium">{c.full_name}</span>
+        ),
     },
     { title: t("colPhone"), dataIndex: "phone" },
     {
@@ -275,7 +281,7 @@ export function CustomersManager({
         <InlineSelect
           value={c.stage}
           display={tagFor("stage", c.stage)}
-          options={kindOptions("stage", c.stage)}
+          options={tagOptions("stage", c.stage)}
           ariaLabel={t("colStage")}
           onSave={(v) => patchField(c.id, { stage: v })}
         />
@@ -288,7 +294,7 @@ export function CustomersManager({
         <InlineSelect
           value={c.source ?? ""}
           display={tagFor("source", c.source)}
-          options={kindOptions("source", c.source)}
+          options={tagOptions("source", c.source)}
           noneLabel={t("noneOption")}
           ariaLabel={t("colSource")}
           onSave={(v) => patchField(c.id, { source: v || null })}
@@ -329,31 +335,34 @@ export function CustomersManager({
       ),
     })),
     {
-      title: t("colCreated"),
-      dataIndex: "created_at",
-      render: (v: string) => (
-        <span className="text-muted-foreground">{new Date(v).toLocaleDateString()}</span>
-      ),
-    },
-    {
       title: t("colNotes"),
       key: "notes",
-      render: (_, c) => (
-        <div className="flex items-center gap-1">
-          <QuickNote customerId={c.id} />
-          <Badge count={c.notes?.length ?? 0} size="small" overflowCount={9}>
-            <Button
-              type="text"
+      align: "center",
+      render: (_, c) => {
+        const last = c.notes?.at(-1);
+        return (
+          // Hover: xem ghi chú gần nhất; bấm: lịch sử + thêm ghi chú.
+          <Tooltip
+            title={last ? <NotePreview note={last} /> : t("addNote")}
+            placement="left"
+          >
+            <Badge
+              count={c.notes?.length ?? 0}
               size="small"
-              title={t("viewNotes")}
-              aria-label={t("viewNotes")}
-              disabled={!c.notes?.length}
-              icon={<Info className="size-4" />}
-              onClick={() => setHistoryFor(c)}
-            />
-          </Badge>
-        </div>
-      ),
+              overflowCount={9}
+              color="var(--primary)"
+            >
+              <Button
+                type="text"
+                size="small"
+                aria-label={t("viewNotes")}
+                icon={<Info className="size-4" />}
+                onClick={() => setNotesFor(c.id)}
+              />
+            </Badge>
+          </Tooltip>
+        );
+      },
     },
     {
       title: t("colActions"),
@@ -613,37 +622,12 @@ export function CustomersManager({
         )}
       </Modal>
 
-      {/* Lịch sử ghi chú (icon Info) — mới nhất trước */}
-      <Modal
-        open={historyFor !== null}
-        onCancel={() => setHistoryFor(null)}
-        footer={null}
-        width={480}
-        title={t("noteHistoryTitle", { name: historyFor?.full_name ?? "" })}
-      >
-        <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
-          {[...(historyFor?.notes ?? [])].reverse().map((n, i) => (
-            <li key={i} className="space-y-1">
-              <div className="flex items-center gap-2 text-xs">
-                <Tag color="purple" className="me-0">
-                  {new Date(n.at).toLocaleString()}
-                </Tag>
-                {n.by ? (
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
-                    <UserAvatar src={staffAvatarByName(n.by)} />
-                    {n.by}
-                  </span>
-                ) : (
-                  DASH
-                )}
-              </div>
-              <p className="surface bg-muted/40 px-2.5 py-1.5 text-sm whitespace-pre-wrap">
-                {n.text}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </Modal>
+      {/* Ghi chú (icon Info): lịch sử mới nhất trước + ô thêm ghi chú */}
+      <NotesModal
+        customer={rowsData.find((c) => c.id === notesFor) ?? null}
+        avatarOf={staffAvatarByName}
+        onClose={() => setNotesFor(null)}
+      />
     </Page>
   );
 }
@@ -656,62 +640,98 @@ function TotalPaid({ label, value }: { label: string; value: number }) {
   );
 }
 
-/** Nút Plus + Popover thêm ghi chú nhanh cho 1 khách. */
-function QuickNote({ customerId }: { customerId: string }) {
+/** Nội dung tooltip: ghi chú gần nhất (người ghi · thời gian + nội dung). */
+function NotePreview({ note }: { note: Customer["notes"][number] }) {
+  return (
+    <div className="max-w-64 space-y-0.5">
+      <p className="text-xs opacity-70">
+        {note.by ? `${note.by} · ` : ""}
+        {new Date(note.at).toLocaleString()}
+      </p>
+      <p className="line-clamp-4 whitespace-pre-wrap">{note.text}</p>
+    </div>
+  );
+}
+
+/** Modal ghi chú của 1 khách: thêm ghi chú mới ở trên, lịch sử bên dưới. */
+function NotesModal({
+  customer,
+  avatarOf,
+  onClose,
+}: {
+  customer: Customer | null;
+  avatarOf: (name: string | null | undefined) => string | null | undefined;
+  onClose: () => void;
+}) {
   const t = useTranslations("customers");
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
 
   const save = () =>
     start(async () => {
-      const res = await addCustomerNote(customerId, text);
+      if (!customer) return;
+      const res = await addCustomerNote(customer.id, text);
       if (res.error) {
         toast.error(res.error);
         return;
       }
       toast.success(t("noteOk"));
       setText("");
-      setOpen(false);
     });
 
+  const close = () => {
+    setText("");
+    onClose();
+  };
+
   return (
-    <Popover
-      open={open}
-      onOpenChange={setOpen}
-      trigger="click"
-      placement="bottomRight"
-      content={
-        <div className="w-72 space-y-2">
-          <Input.TextArea
-            rows={3}
-            autoFocus
-            placeholder={t("addNotePlaceholder")}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <div className="flex justify-end">
-            <Button
-              type="primary"
-              size="small"
-              loading={pending}
-              disabled={!text.trim()}
-              onClick={save}
-            >
-              {t("save")}
-            </Button>
-          </div>
-        </div>
-      }
+    <Modal
+      open={customer !== null}
+      onCancel={close}
+      footer={null}
+      width={520}
+      title={t("noteHistoryTitle", { name: customer?.full_name ?? "" })}
     >
-      <Button
-        type="text"
-        size="small"
-        title={t("addNote")}
-        aria-label={t("addNote")}
-        icon={<Plus className="size-4" />}
-      />
-    </Popover>
+      <div className="space-y-2">
+        <Input.TextArea
+          rows={3}
+          autoFocus
+          placeholder={t("addNotePlaceholder")}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onPressEnter={(e) => {
+            // Ctrl/⌘ + Enter = lưu nhanh; Enter thường vẫn xuống dòng.
+            if ((e.ctrlKey || e.metaKey) && text.trim()) save();
+          }}
+        />
+        <div className="flex justify-end">
+          <Button type="primary" loading={pending} disabled={!text.trim()} onClick={save}>
+            {t("addNote")}
+          </Button>
+        </div>
+      </div>
+
+      {customer?.notes?.length ? (
+        <ul className="mt-4 max-h-[50vh] space-y-3 overflow-y-auto border-t border-border pt-4">
+          {[...customer.notes].reverse().map((n, i) => (
+            <li key={i} className="space-y-1">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {n.by ? (
+                  <span className="flex items-center gap-1.5 font-medium text-foreground">
+                    <UserAvatar src={avatarOf(n.by)} />
+                    {n.by}
+                  </span>
+                ) : null}
+                <span className="tabular-nums">{new Date(n.at).toLocaleString()}</span>
+              </div>
+              <p className="rounded bg-muted px-2.5 py-1.5 text-sm whitespace-pre-wrap">
+                {n.text}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </Modal>
   );
 }
 

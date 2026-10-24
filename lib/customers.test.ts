@@ -1,7 +1,7 @@
 // Self-check: `node --test lib/customers.test.ts` (Node ≥ 23).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { matchesCustomerFilters, optionLabel, serviceName } from "./customers.ts";
+import { matchesCustomerFilters, optionLabel, resolveSource, serviceName } from "./customers.ts";
 import type { Customer, EnumOption } from "../types/customer.ts";
 import type { Service } from "../types/service.ts";
 
@@ -116,4 +116,17 @@ test("serviceName theo locale, fallback vi", () => {
   assert.equal(serviceName(svc, "vi"), "Chăm sóc da");
   assert.equal(serviceName(svc, "en"), "Skin care");
   assert.equal(serviceName(svc, "id"), "Chăm sóc da");
+});
+
+test("resolveSource khớp value/nhãn không phân biệt hoa thường", () => {
+  const opts = [
+    { value: "instagrams", label_vi: "Instagram", label_en: "Instagram", label_id: null },
+    { value: "whatsapp", label_vi: "WhatsApp", label_en: null, label_id: null },
+    { value: "walk_in", label_vi: "Khách vãng lai", label_en: "Walk-in", label_id: null },
+  ];
+  assert.equal(resolveSource("instagram", opts), "instagrams");
+  assert.equal(resolveSource("WHATSAPP", opts), "whatsapp");
+  assert.equal(resolveSource("walk in", opts), "walk_in");
+  assert.equal(resolveSource("tiktok", opts), null);
+  assert.equal(resolveSource("", opts), null);
 });
