@@ -38,7 +38,7 @@ export function InlineSelect({
       aria-label={ariaLabel}
       disabled={disabled}
       popupMatchSelectWidth={false}
-      className="-mx-2 max-w-full"
+      className="inline-select -mx-2 max-w-full"
       options={
         noneLabel
           ? [{ value: NONE, label: <span className="text-muted-foreground">{noneLabel}</span> }, ...options]

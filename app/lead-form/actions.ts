@@ -4,8 +4,9 @@ import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
 import { IDR_CURRENCY } from "@/lib/currency";
+import { resolveSource } from "@/lib/customers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { CustomerNote } from "@/types/customer";
+import type { CustomerNote, EnumOption } from "@/types/customer";
 
 const schema = z.object({
   customer_id: z.string().trim().max(200),
@@ -85,11 +86,21 @@ export async function submitLead(
       return { error: "Khách hàng chưa tồn tại. Hãy dùng nút Submit." };
     }
 
+    // Đồng bộ nguồn với danh mục /enums/source: platform SMAX ("instagram")
+    // hoặc ?source= khớp value/nhãn option → lưu đúng value; không khớp → "smax".
+    const { data: sources, error: srcError } = await supabase
+      .from("enum_options")
+      .select("value, label_vi, label_en, label_id")
+      .eq("kind", "source")
+      .eq("is_active", true);
+    if (srcError) throw srcError;
+    const options = (sources ?? []) as EnumOption[];
+
     const customer = {
       full_name: d.full_name,
       phone: d.phone,
       smax_customer_id: d.customer_id || null,
-      source: [d.platform, d.source].find((s) => VALUE_RE.test(s)) ?? "smax",
+      source: resolveSource(d.platform, options) ?? resolveSource(d.source, options) ?? "smax",
       social_name: d.social_name || null,
       picture: d.picture || null,
       tags: d.tags,

@@ -21,6 +21,26 @@ export function serviceName(
   return s.name_vi;
 }
 
+/** Chuẩn hoá để so khớp lỏng: chữ thường, bỏ dấu cách/ký tự đặc biệt. */
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Khớp một giá trị nguồn thô (vd. `platform` SMAX "instagram") với danh mục
+ * Nguồn: trùng value hoặc nhãn vi/en/id (không phân biệt hoa thường, ký tự
+ * đặc biệt). Trả `value` của option, không khớp → null.
+ */
+export function resolveSource(
+  raw: string | null | undefined,
+  options: Pick<EnumOption, "value" | "label_vi" | "label_en" | "label_id">[],
+): string | null {
+  const key = norm(raw ?? "");
+  if (!key) return null;
+  const hit = options.find((o) =>
+    [o.value, o.label_vi, o.label_en, o.label_id].some((v) => v && norm(v) === key),
+  );
+  return hit?.value ?? null;
+}
+
 export interface CustomerFilters {
   search?: string;
   stage?: string;
