@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   addDays,
+  fetchFbAds,
   fetchSmaxStaffReplyTimes,
   smaxRange,
   supaRange,
@@ -80,5 +81,48 @@ test("fetchSmaxStaffReplyTimes gửi đúng payload và map tên theo user_id", 
     globalThis.fetch = originalFetch;
     if (originalToken === undefined) delete process.env.SMAX_TOKEN;
     else process.env.SMAX_TOKEN = originalToken;
+  }
+});
+
+test("fetchFbAds cộng spend + tin nhắn của 2 tài khoản ads", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalToken = process.env.FB_TOKEN;
+  process.env.FB_TOKEN = "test-token";
+  const accounts: string[] = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    accounts.push(url.pathname.split("/")[2]);
+    assert.equal(url.searchParams.get("fields"), "spend,actions");
+    const empty = url.pathname.includes("405282048979489");
+    return Response.json({
+      data: empty
+        ? []
+        : [
+            {
+              spend: "1000.5",
+              actions: [
+                { action_type: "link_click", value: "99" },
+                {
+                  action_type:
+                    "onsite_conversion.messaging_conversation_started_7d",
+                  value: "12",
+                },
+              ],
+            },
+          ],
+    });
+  };
+  try {
+    assert.deepEqual(await fetchFbAds("2026-10-24", "2026-10-24"), {
+      spend: 1000.5,
+      messages: 12,
+    });
+    assert.deepEqual(accounts.sort(), [
+      "act_1494701561142295",
+      "act_405282048979489",
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.FB_TOKEN = originalToken;
   }
 });

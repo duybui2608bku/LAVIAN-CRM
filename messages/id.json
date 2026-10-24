@@ -419,5 +419,16 @@
     "upsaleDeleted": "Upsale dihapus",
     "deleteUpsaleConfirm": "Hapus upsale ini?",
     "upsalePermissionHint": "Upsale hanya dapat ditambahkan setelah check-in atau selesai."
+  },
+  "marketing": {
+    "title": "Marketing",
+    "description": "Performa iklan Facebook (2 akun) berdasarkan rentang tanggal (waktu Vietnam).",
+    "spend": "Pengeluaran",
+    "messages": "Pesan",
+    "costPerMessage": "Pengeluaran / Pesan",
+    "leads": "Data",
+    "costPerLead": "Pengeluaran / No. HP",
+    "appointments": "Janji temu",
+    "visited": "Datang"
   }
 }

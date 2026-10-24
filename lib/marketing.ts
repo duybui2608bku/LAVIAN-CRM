@@ -7,7 +7,7 @@
  */
 
 // ponytail: 2 account id hardcode — thành config khi có nhu cầu thêm/bớt tài khoản.
-const FB_AD_ACCOUNTS = ["act_1494701561142295", "act_3723515967967924"];
+const FB_AD_ACCOUNTS = ["act_1494701561142295", "act_405282048979489"];
 const FB_API = "https://graph.facebook.com/v25.0";
 const SMAX_API =
   "https://api.smax.ai/bizs/lavianbeautycenter/statistics-v2/customers";
@@ -58,20 +58,29 @@ export function supaRange(from: string, to: string) {
 }
 
 type FbInsightsRes = {
-  data?: { spend?: string }[];
+  data?: {
+    spend?: string;
+    actions?: { action_type?: string; value?: string }[];
+  }[];
   error?: { message?: string };
 };
 
-/** Tổng spend 2 tài khoản ads trong range (RP theo currency tài khoản).
+// Số cuộc trò chuyện nhắn tin bắt đầu từ quảng cáo (cột "Tin nhắn" trong Ads Manager).
+const FB_MESSAGE_ACTION = "onsite_conversion.messaging_conversation_started_7d";
+
+/** Tổng spend + tin nhắn của các tài khoản ads trong range (theo currency tài khoản).
  *  1 tài khoản lỗi → ném lỗi cả hàm (tổng thiếu 1 account là số sai). */
-export async function fetchFbSpend(from: string, to: string): Promise<number> {
+export async function fetchFbAds(
+  from: string,
+  to: string,
+): Promise<{ spend: number; messages: number }> {
   const token = process.env.FB_TOKEN;
   if (!token) throw new Error("Thiếu FB_TOKEN.");
   const time_range = JSON.stringify({ since: from, until: to });
-  const spends = await Promise.all(
+  const rows = await Promise.all(
     FB_AD_ACCOUNTS.map(async (act) => {
       const qs = new URLSearchParams({
-        fields: "spend",
+        fields: "spend,actions",
         time_range,
         access_token: token,
       });
@@ -81,11 +90,21 @@ export async function fetchFbSpend(from: string, to: string): Promise<number> {
       const json = (await res.json().catch(() => null)) as FbInsightsRes | null;
       if (!res.ok || !json || json.error)
         throw new Error(json?.error?.message ?? `Facebook API ${res.status}`);
-      // data rỗng = không chạy ads trong range → spend 0, không phải lỗi.
-      return Number(json.data?.[0]?.spend ?? 0);
+      // data rỗng = không chạy ads trong range → 0, không phải lỗi.
+      const row = json.data?.[0];
+      return {
+        spend: Number(row?.spend ?? 0),
+        messages: Number(
+          row?.actions?.find((a) => a.action_type === FB_MESSAGE_ACTION)
+            ?.value ?? 0,
+        ),
+      };
     }),
   );
-  return spends.reduce((a, b) => a + b, 0);
+  return rows.reduce(
+    (a, b) => ({ spend: a.spend + b.spend, messages: a.messages + b.messages }),
+    { spend: 0, messages: 0 },
+  );
 }
 
 type SmaxRes = {

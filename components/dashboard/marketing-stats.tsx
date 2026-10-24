@@ -6,13 +6,11 @@ import {
   ArrowUpRight,
   BadgeDollarSign,
   BarChart3,
-  Calculator,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
   CalendarPlus,
   ChevronRight,
-  CircleDollarSign,
   HandCoins,
   MapPinCheck,
   MessageCircle,
@@ -33,15 +31,13 @@ import { useLocale, useTranslations } from "next-intl";
 import { getMarketingStats, type DashboardStats } from "@/app/(app)/actions";
 import { cn } from "@/lib/utils";
 import { formatRupiah, formatRupiahCompact } from "@/lib/currency";
-import { formatISODate, parseISODate } from "@/lib/date";
+import { formatISODate } from "@/lib/date";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { PageHeader } from "@/components/layout/page";
 import { optionLabel, serviceName } from "@/lib/customers";
 import type { SalesPerformance, ServiceStats, SourceStats } from "@/lib/financial";
 
 type CustomerCardKey =
-  | "spend"
-  | "costPerMessage"
   | "messages"
   | "leads"
   | "appointments"
@@ -141,23 +137,6 @@ const AVATAR_COLORS = [
   "var(--chart-5)",
 ];
 
-function getPreviousRange(from: string, to: string) {
-  const fromDate = parseISODate(from)!;
-  const toDate = parseISODate(to)!;
-  const numberOfDays = Math.round((toDate.getTime() - fromDate.getTime()) / 86_400_000) + 1;
-  const previousTo = new Date(fromDate);
-  previousTo.setDate(previousTo.getDate() - 1);
-  const previousFrom = new Date(previousTo);
-  previousFrom.setDate(previousFrom.getDate() - numberOfDays + 1);
-  return { from: formatISODate(previousFrom), to: formatISODate(previousTo) };
-}
-
-function getGrowthRate(current: number | null, previous: number | null) {
-  if (current == null || previous == null) return null;
-  if (previous === 0) return current === 0 ? 0 : 100;
-  return ((current - previous) / Math.abs(previous)) * 100;
-}
-
 async function fetchApi<T extends { error?: { message?: string } }>(
   url: string,
   fallbackMessage: string,
@@ -178,11 +157,9 @@ async function fetchApi<T extends { error?: { message?: string } }>(
 }
 
 export function MarketingStats({
-  showSpend = false,
   showFinancials = false,
   header,
 }: {
-  showSpend?: boolean;
   showFinancials?: boolean;
   header?: { title: string; description: string };
 }) {
@@ -192,7 +169,6 @@ export function MarketingStats({
   const today = formatISODate(new Date());
   const [range, setRange] = React.useState({ from: today, to: today });
   const [stats, setStats] = React.useState<DashboardStats | null>(null);
-  const [previousStats, setPreviousStats] = React.useState<DashboardStats | null>(null);
   const [financialStats, setFinancialStats] =
     React.useState<FinancialApiResponse | null>(null);
   const [financialError, setFinancialError] = React.useState<string>();
@@ -215,13 +191,11 @@ export function MarketingStats({
     if (!range.from) return;
     const from = range.from;
     const to = range.to || range.from;
-    const previousRange = getPreviousRange(from, to);
     const query = `?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
     const currentRequest = ++requestId.current;
     startTransition(async () => {
       const [
         current,
-        previous,
         financial,
         funnelResult,
         summaryResult,
@@ -230,11 +204,7 @@ export function MarketingStats({
         servicesResult,
         sourcesResult,
       ] = await Promise.all([
-          getMarketingStats(from, to, showSpend),
-          // Kỳ trước chỉ còn phục vụ growth của 2 card spend.
-          showSpend
-            ? getMarketingStats(previousRange.from, previousRange.to, true)
-            : Promise.resolve(null),
+          getMarketingStats(from, to),
           showFinancials
             ? fetchApi<FinancialApiResponse>(
                 `/api/finance/revenue${query}`,
@@ -269,7 +239,6 @@ export function MarketingStats({
         ]);
       if (currentRequest !== requestId.current) return;
       setStats(current);
-      setPreviousStats(previous);
       setFinancialStats(financial.stats);
       setFinancialError(financial.error);
       setFunnel(funnelResult.stats);
@@ -285,45 +254,9 @@ export function MarketingStats({
       setSources(sourcesResult.stats);
       setSourcesError(sourcesResult.error);
     });
-  }, [range, showFinancials, showSpend]);
+  }, [range, showFinancials]);
 
   const num = (n: number | null) => (n == null ? null : n.toLocaleString(locale));
-  const costPerMessage =
-    stats?.spend != null && stats.messages != null && stats.messages > 0
-      ? Math.round(stats.spend / stats.messages)
-      : null;
-  const previousCostPerMessage =
-    previousStats?.spend != null && previousStats.messages != null && previousStats.messages > 0
-      ? Math.round(previousStats.spend / previousStats.messages)
-      : null;
-  const spendCards: {
-    key: CustomerCardKey;
-    icon: LucideIcon;
-    value: string | null;
-    current: number | null;
-    previous: number | null;
-    error?: string;
-  }[] = showSpend
-    ? [
-        {
-          key: "spend",
-          icon: CircleDollarSign,
-          value: stats?.spend != null ? formatRupiah(stats.spend) : null,
-          current: stats?.spend ?? null,
-          previous: previousStats?.spend ?? null,
-          error: stats?.errors.fb,
-        },
-        {
-          key: "costPerMessage",
-          icon: Calculator,
-          value: costPerMessage != null ? formatRupiah(costPerMessage) : null,
-          current: costPerMessage,
-          previous: previousCostPerMessage,
-          error: stats?.errors.fb ?? stats?.errors.smax,
-        },
-      ]
-    : [];
-
   const funnelCards: {
     key: CustomerCardKey;
     icon: LucideIcon;
@@ -570,21 +503,6 @@ export function MarketingStats({
 
       <section className="space-y-4">
         <SectionTitle icon={Users}>{t("funnelSection")}</SectionTitle>
-        {showSpend && (
-          <div className={cn("grid gap-4 transition-opacity duration-200 sm:grid-cols-2", pending && "opacity-60")}>
-            {spendCards.map((card) => (
-              <StatCard
-                key={card.key}
-                label={t(card.key)}
-                value={value(card.value)}
-                error={card.error}
-                growth={getGrowthRate(card.current, card.previous)}
-                comparisonLabel={comparisonLabel}
-                locale={locale}
-              />
-            ))}
-          </div>
-        )}
         <div className={cn("flex flex-col gap-3 transition-opacity duration-200 xl:flex-row xl:items-stretch", pending && "opacity-60")}>
           {funnelCards.map((card, index) => (
             <React.Fragment key={card.key}>

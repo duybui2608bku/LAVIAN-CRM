@@ -419,5 +419,16 @@
     "upsaleDeleted": "Upsale deleted",
     "deleteUpsaleConfirm": "Delete this upsale?",
     "upsalePermissionHint": "Upsales can only be added after check-in or completion."
+  },
+  "marketing": {
+    "title": "Marketing",
+    "description": "Facebook ads performance (2 accounts) by date range (Vietnam time).",
+    "spend": "Spend",
+    "messages": "Messages",
+    "costPerMessage": "Spend / Message",
+    "leads": "Data",
+    "costPerLead": "Spend / Phone",
+    "appointments": "Appointments",
+    "visited": "Visited"
   }
 }

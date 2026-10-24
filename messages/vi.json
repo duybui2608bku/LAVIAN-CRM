@@ -419,5 +419,16 @@
     "upsaleDeleted": "Đã xóa upsale",
     "deleteUpsaleConfirm": "Xóa khoản upsale?",
     "upsalePermissionHint": "Chỉ có thể thêm upsale khi khách đã đến hoặc lịch đã hoàn tất."
+  },
+  "marketing": {
+    "title": "Marketing",
+    "description": "Hiệu quả quảng cáo Facebook (2 tài khoản) theo khoảng ngày (giờ Việt Nam).",
+    "spend": "Chi tiêu",
+    "messages": "Tin nhắn",
+    "costPerMessage": "Chi tiêu / Tin nhắn",
+    "leads": "Data",
+    "costPerLead": "Chi tiêu / SĐT",
+    "appointments": "Lịch hẹn",
+    "visited": "Đã đến"
   }
 }

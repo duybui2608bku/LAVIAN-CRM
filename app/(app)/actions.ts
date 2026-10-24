@@ -3,7 +3,6 @@
 import {
   fetchSmaxStats,
   fetchSmaxTags,
-  fetchFbSpend,
   fetchSmaxStaffStats,
   fetchSmaxStaffReplyTimes,
   supaRange,
@@ -25,7 +24,6 @@ export interface AppointmentBreakdown {
 }
 
 export interface DashboardStats {
-  spend: number | null;
   messages: number | null;
   leads: number | null;
   appointments: number | null;
@@ -39,7 +37,7 @@ export interface DashboardStats {
     today: AppointmentBreakdown;
     tomorrow: AppointmentBreakdown;
   };
-  errors: { fb?: string; smax?: string; tags?: string; staff?: string; replyTime?: string; db?: string };
+  errors: { smax?: string; tags?: string; staff?: string; replyTime?: string; db?: string };
   error?: string;
 }
 
@@ -50,7 +48,6 @@ const EMPTY_BREAKDOWN: AppointmentBreakdown = {
 };
 
 const EMPTY: DashboardStats = {
-  spend: null,
   messages: null,
   leads: null,
   appointments: null,
@@ -97,7 +94,6 @@ function netRevenue(rows: PaymentRow[]) {
 export async function getMarketingStats(
   from: string,
   to: string,
-  includeSpend = false,
 ): Promise<DashboardStats> {
   await requireAdmin();
 
@@ -126,9 +122,8 @@ export async function getMarketingStats(
       .gte("scheduled_at", start)
       .lt("scheduled_at", end);
 
-  const [spend, staff, replyTime, smax, tags, selectedAppointments, todayAppointments, tomorrowAppointments, visited, payments] =
+  const [staff, replyTime, smax, tags, selectedAppointments, todayAppointments, tomorrowAppointments, visited, payments] =
     await Promise.allSettled([
-      includeSpend ? fetchFbSpend(from, to) : Promise.resolve(null),
       fetchSmaxStaffStats(from, to),
       fetchSmaxStaffReplyTimes(from, to),
       fetchSmaxStats(from, to),
@@ -159,9 +154,6 @@ export async function getMarketingStats(
     },
     errors: {},
   };
-
-  if (spend.status === "fulfilled") stats.spend = spend.value;
-  else stats.errors.fb = normalizeError(spend.reason).message;
 
   if (staff.status === "fulfilled") stats.staffStats = staff.value;
   else stats.errors.staff = normalizeError(staff.reason).message;
