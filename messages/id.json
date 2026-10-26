@@ -219,6 +219,10 @@
     "createOk": "Ditambahkan"
   },
   "customers": {
+    "statMessagesToData": "Pesan → Data",
+    "statConversion": "Tingkat konversi {rate}",
+    "statBooked": "Booking",
+    "statDeposited": "Deposit",
     "title": "Pelanggan",
     "create": "Pelanggan baru",
     "searchPlaceholder": "Cari nama atau telepon…",

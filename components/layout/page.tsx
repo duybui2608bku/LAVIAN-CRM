@@ -24,18 +24,20 @@ export function PageHeader({
   title,
   actions,
 }: {
-  title: React.ReactNode;
+  title?: React.ReactNode;
   actions?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
-        {/* Thẻ thuần (không Typography.Title): file này render cả ở Server
-            Component, nơi không "chấm" vào export client của antd được. */}
-        <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
-      </div>
+      {title ? (
+        <div className="min-w-0">
+          {/* Thẻ thuần (không Typography.Title): file này render cả ở Server
+              Component, nơi không "chấm" vào export client của antd được. */}
+          <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
+        </div>
+      ) : null}
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:ms-auto">
           {actions}
         </div>
       ) : null}

@@ -5,9 +5,27 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
+import { fetchFbAds } from "@/lib/marketing";
 import type { CustomerInput, CustomerNote } from "@/types/customer";
 
 type Result = { error?: string };
+
+/** Số tin nhắn FB Ads trong khoảng ngày VN — cho ô "Tin nhắn → Data" trang /customers.
+ *  Chỉ trả số tin nhắn (không lộ chi tiêu) nên mọi user đăng nhập đều xem được. */
+export async function getFbMessages(
+  from: string,
+  to: string,
+): Promise<{ messages: number | null; error?: string }> {
+  if (!(await getCurrentProfile())) return { messages: null, error: "Chưa đăng nhập." };
+  const ymd = /^\d{4}-\d{2}-\d{2}$/;
+  if (!ymd.test(from) || !ymd.test(to) || from > to)
+    return { messages: null, error: "Khoảng ngày không hợp lệ." };
+  try {
+    return { messages: (await fetchFbAds(from, to)).messages };
+  } catch (err) {
+    return { messages: null, error: normalizeError(err).message };
+  }
+}
 
 // Note mới do server stamp thời điểm + người ghi (không tin client).
 async function stampNote(text: string): Promise<CustomerNote> {
