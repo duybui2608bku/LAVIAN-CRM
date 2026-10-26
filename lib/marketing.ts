@@ -117,6 +117,7 @@ export async function fetchFbAds(
 export interface FbCampaign {
   id: string;
   name: string;
+  accountName: string;
   status: string;
   spend: number;
   messages: number;
@@ -128,6 +129,7 @@ type FbCampaignInsightsRes = {
   data?: {
     campaign_id?: string;
     campaign_name?: string;
+    account_name?: string;
     spend?: string;
     impressions?: string;
     reach?: string;
@@ -142,6 +144,30 @@ type FbCampaignsRes = {
   paging?: { next?: string };
   error?: { message?: string };
 };
+
+/** Bật/tắt chiến dịch trên Facebook (token cần quyền ads_management). */
+export async function setFbCampaignStatus(
+  id: string,
+  status: "ACTIVE" | "PAUSED",
+): Promise<void> {
+  const token = process.env.FB_TOKEN;
+  if (!token) throw new Error("Thiếu FB_TOKEN.");
+  const res = await fetch(`${FB_API}/${id}`, {
+    method: "POST",
+    body: new URLSearchParams({ status, access_token: token }),
+    cache: "no-store",
+  });
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean;
+    error?: { message?: string; error_user_msg?: string };
+  } | null;
+  if (!res.ok || !json?.success)
+    throw new Error(
+      [json?.error?.message ?? `Facebook API ${res.status}`, json?.error?.error_user_msg]
+        .filter(Boolean)
+        .join(" — "),
+    );
+}
 
 async function fbGet<T extends { error?: { message?: string } }>(url: string) {
   const res = await fetch(url, { cache: "no-store" });
@@ -173,7 +199,8 @@ export async function fetchFbCampaigns(
     FB_AD_ACCOUNTS.map(async (act) => {
       const qs = new URLSearchParams({
         level: "campaign",
-        fields: "campaign_id,campaign_name,spend,impressions,reach,actions",
+        fields:
+          "campaign_id,campaign_name,account_name,spend,impressions,reach,actions",
         time_range,
         limit: "500",
         access_token: token,
@@ -223,6 +250,7 @@ export async function fetchFbCampaigns(
     .map((r) => ({
       id: r.campaign_id!,
       name: r.campaign_name ?? "—",
+      accountName: r.account_name ?? "—",
       status: status.get(r.campaign_id!) ?? "UNKNOWN",
       spend: Number(r.spend ?? 0),
       messages: Number(
