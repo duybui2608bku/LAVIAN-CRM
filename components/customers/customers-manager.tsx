@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useOptimistic, useState, useTransition } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Badge,
@@ -33,6 +33,7 @@ import {
   deleteCustomer,
   patchCustomer,
   updateCustomer,
+  getFbMessages,
 } from "@/app/(app)/customers/actions";
 import { AppointmentDialog } from "@/components/appointments/appointment-dialog";
 import { PaymentLine } from "@/components/appointments/payments-dialog";
@@ -53,6 +54,7 @@ import {
   paidTotal,
 } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
+import { formatISODate } from "@/lib/date";
 import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import type { Appointment } from "@/types/appointment";
@@ -178,6 +180,50 @@ export function CustomersManager({
     () => rowsData.filter((c) => matchesCustomerFilters(c, filters)),
     [rowsData, filters],
   );
+
+  // Thống kê đầu trang: tin nhắn FB theo khoảng ngày lọc (trống = hôm nay),
+  // còn Data / Lịch hẹn / Đặt cọc đếm trên danh sách đang lọc.
+  const today = formatISODate(new Date());
+  const msgFrom = filters.from || today;
+  const msgTo = filters.to || filters.from || today;
+  const [fbMessages, setFbMessages] = useState<Awaited<
+    ReturnType<typeof getFbMessages>
+  > | null>(null);
+  const msgRequest = useRef(0);
+  useEffect(() => {
+    const current = ++msgRequest.current;
+    getFbMessages(msgFrom, msgTo).then((res) => {
+      if (current === msgRequest.current) setFbMessages(res);
+    });
+  }, [msgFrom, msgTo]);
+  const countStage = (stage: string) => filtered.filter((c) => c.stage === stage).length;
+  const messages = fbMessages?.messages ?? null;
+  const conversion = messages
+    ? `${((filtered.length / messages) * 100).toLocaleString(locale, {
+        maximumFractionDigits: 1,
+      })}%`
+    : null;
+  const stats: { key: string; value: React.ReactNode; hint?: React.ReactNode }[] = [
+    {
+      key: "statMessagesToData",
+      value: (
+        <>
+          {fbMessages ? (messages?.toLocaleString(locale) ?? "—") : (
+            <span className="inline-block h-6 w-12 animate-pulse rounded-md bg-muted align-middle" />
+          )}
+          <span className="mx-1.5 text-muted-foreground">→</span>
+          {filtered.length.toLocaleString(locale)}
+        </>
+      ),
+      hint: fbMessages?.error ? (
+        <span className="text-destructive">{fbMessages.error}</span>
+      ) : conversion ? (
+        t("statConversion", { rate: conversion })
+      ) : null,
+    },
+    { key: "statBooked", value: countStage("booked").toLocaleString(locale) },
+    { key: "statDeposited", value: countStage("deposited").toLocaleString(locale) },
+  ];
 
   // Lọc đổi → về trang 1. Điều chỉnh ngay trong render (không effect).
   const [seenFilters, setSeenFilters] = useState(filters);
@@ -416,7 +462,6 @@ export function CustomersManager({
   return (
     <Page>
       <PageHeader
-        title={t("title")}
         actions={
           <>
             <Button
@@ -436,6 +481,18 @@ export function CustomersManager({
           </>
         }
       />
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+        {stats.map((s) => (
+          <div key={s.key} className="surface flex min-w-0 flex-col p-3 sm:p-4">
+            <p className="truncate text-xs font-medium text-muted-foreground">{t(s.key)}</p>
+            <span className="mt-1 truncate text-lg font-semibold tracking-tight tabular-nums sm:text-2xl">
+              {s.value}
+            </span>
+            {s.hint && <p className="mt-1 truncate text-xs text-muted-foreground">{s.hint}</p>}
+          </div>
+        ))}
+      </div>
 
       {/* Thanh lọc */}
       <PageToolbar>

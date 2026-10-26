@@ -219,6 +219,10 @@
     "createOk": "Đã thêm"
   },
   "customers": {
+    "statMessagesToData": "Tin nhắn → Data",
+    "statConversion": "Tỉ lệ chuyển đổi {rate}",
+    "statBooked": "Lịch hẹn",
+    "statDeposited": "Đặt cọc",
     "title": "Khách hàng",
     "create": "Thêm khách hàng",
     "searchPlaceholder": "Tìm theo tên hoặc SĐT…",

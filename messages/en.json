@@ -219,6 +219,10 @@
     "createOk": "Added"
   },
   "customers": {
+    "statMessagesToData": "Messages → Data",
+    "statConversion": "Conversion rate {rate}",
+    "statBooked": "Booked",
+    "statDeposited": "Deposited",
     "title": "Customers",
     "create": "New customer",
     "searchPlaceholder": "Search by name or phone…",
