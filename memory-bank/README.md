@@ -51,6 +51,14 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-10-26 — Marketing: switch trạng thái chiến dịch + cột tài khoản QC + phân trang
+- **Thay đổi:**
+  - Cột Trạng thái bảng chiến dịch `/marketing` = antd `Switch` (bọc `ConfirmAction` hỏi lại) — bật/tắt THẬT trên Facebook qua server action `updateCampaignStatus` → `setFbCampaignStatus` (POST `/{campaign_id}` `status=ACTIVE|PAUSED`, admin-only). Chỉ ACTIVE/PAUSED có switch; trạng thái khác giữ `Tag`. Thành công → vá status tại chỗ trong state (không tải lại).
+  - Thêm cột **Tài khoản quảng cáo** (`account_name` từ insights, có lọc khi >1 tài khoản + sort).
+  - Phân trang luôn hiện: 20/50/100 dòng + tổng số chiến dịch (bỏ `hideOnSinglePage`).
+- **File ảnh hưởng:** `lib/marketing.ts`, `app/(app)/marketing/actions.ts`, `components/marketing/ads-stats.tsx`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:** `FB_TOKEN` phải có quyền **`ads_management`** thì switch mới ghi được (thiếu quyền → toast lỗi từ FB). Không có thay đổi DB. Chưa verify trên dữ liệu FB thật (môi trường không có token).
+
 ### 2026-10-24 — /marketing: fix "Invalid parameter" khi lấy trạng thái chiến dịch
 - **Thay đổi:** Bỏ `filtering`/`effective_status` (FB trả "Invalid parameter"). Trạng thái giờ lấy bằng cách liệt kê `GET /act_x/campaigns?fields=id,effective_status` (tham số mặc định, có phân trang) rồi khớp id; **best-effort** — lỗi hoặc không thấy (vd. chiến dịch đã xoá) → trạng thái "Không rõ", bảng vẫn hiện số liệu (lỗi chỉ log server). `fbGet` kèm `error_user_msg` vào message lỗi để dễ chẩn đoán.
 - **File ảnh hưởng:** `lib/marketing{,.test}.ts`.

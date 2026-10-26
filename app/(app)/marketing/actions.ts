@@ -6,6 +6,7 @@ import {
   fetchFbAds,
   fetchFbCampaigns,
   fetchSmaxStats,
+  setFbCampaignStatus,
   supaRange,
   type FbCampaign,
 } from "@/lib/marketing";
@@ -85,4 +86,20 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
   }
 
   return stats;
+}
+
+/** Bật (ACTIVE) / tạm dừng (PAUSED) một chiến dịch FB. */
+export async function updateCampaignStatus(
+  id: string,
+  status: "ACTIVE" | "PAUSED",
+): Promise<{ error?: string }> {
+  await requireAdmin();
+  if (!/^\d+$/.test(id) || (status !== "ACTIVE" && status !== "PAUSED"))
+    return { error: "Tham số không hợp lệ." };
+  try {
+    await setFbCampaignStatus(id, status);
+    return {};
+  } catch (err) {
+    return { error: normalizeError(err).message };
+  }
 }

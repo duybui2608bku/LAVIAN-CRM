@@ -1,14 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { Table, Tag, type TableColumnType } from "antd";
+import { Switch, Table, Tag, type TableColumnType } from "antd";
 import { RefreshCw } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
-import { getAdsStats, type AdsStats } from "@/app/(app)/marketing/actions";
+import {
+  getAdsStats,
+  updateCampaignStatus,
+  type AdsStats,
+} from "@/app/(app)/marketing/actions";
+import { ConfirmAction } from "@/components/common/confirm-action";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { PageHeader } from "@/components/layout/page";
 import { formatISODate } from "@/lib/date";
+import { toast } from "@/lib/toast";
 import type { FbCampaign } from "@/lib/marketing";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +82,28 @@ export function AdsStatsView() {
     { key: "visited", value: count(s?.visited ?? null), error: e?.db },
   ];
 
+  // Bật/tắt chiến dịch: FB nhận xong thì vá trạng thái tại chỗ, không tải lại cả trang.
+  const [toggling, setToggling] = React.useState<string | null>(null);
+  const toggleStatus = async (id: string, next: "ACTIVE" | "PAUSED") => {
+    setToggling(id);
+    const res = await updateCampaignStatus(id, next);
+    setToggling(null);
+    if (res.error) return toast.error(res.error);
+    setStats(
+      (prev) =>
+        prev && {
+          ...prev,
+          campaigns:
+            prev.campaigns?.map((c) =>
+              c.id === id ? { ...c, status: next } : c,
+            ) ?? null,
+        },
+    );
+    toast.success(t("statusUpdated"));
+  };
+  const campaigns = stats?.campaigns ?? [];
+  const accounts = [...new Set(campaigns.map((c) => c.accountName))];
+
   const statusLabel = (status: string) =>
     t.has(`status_${status}`) ? t(`status_${status}`) : status;
   const numSorter = (key: keyof FbCampaign) => (a: FbCampaign, b: FbCampaign) =>
@@ -86,9 +114,26 @@ export function AdsStatsView() {
       title: t("colStatus"),
       dataIndex: "status",
       width: 150,
-      render: (status: string) => (
-        <Tag color={STATUS_COLOR[status]}>{statusLabel(status)}</Tag>
-      ),
+      // Chỉ ACTIVE/PAUSED bật tắt được; trạng thái khác (xoá, lưu trữ, lỗi…) giữ dạng tag.
+      render: (status: string, r) => {
+        if (status !== "ACTIVE" && status !== "PAUSED")
+          return <Tag color={STATUS_COLOR[status]}>{statusLabel(status)}</Tag>;
+        const active = status === "ACTIVE";
+        return (
+          <ConfirmAction
+            title={t(active ? "confirmPause" : "confirmActivate")}
+            danger={active}
+            onConfirm={() => toggleStatus(r.id, active ? "PAUSED" : "ACTIVE")}
+          >
+            <Switch
+              size="small"
+              checked={active}
+              loading={toggling === r.id}
+              aria-label={statusLabel(status)}
+            />
+          </ConfirmAction>
+        );
+      },
       sorter: (a, b) => a.status.localeCompare(b.status),
     },
     {
@@ -97,6 +142,19 @@ export function AdsStatsView() {
       dataIndex: "name",
       width: 320,
       ellipsis: { showTitle: true },
+    },
+    {
+      key: "account",
+      title: t("colAccount"),
+      dataIndex: "accountName",
+      width: 200,
+      ellipsis: { showTitle: true },
+      filters:
+        accounts.length > 1
+          ? accounts.map((a) => ({ text: a, value: a }))
+          : undefined,
+      onFilter: (value, r) => r.accountName === value,
+      sorter: (a, b) => a.accountName.localeCompare(b.accountName),
     },
     {
       key: "spend",
@@ -174,7 +232,10 @@ export function AdsStatsView() {
         )}
       >
         {cards.map((card) => (
-          <div key={card.key} className="surface flex min-w-0 flex-col p-3 sm:p-4">
+          <div
+            key={card.key}
+            className="surface flex min-w-0 flex-col p-3 sm:p-4"
+          >
             <p className="truncate text-xs font-medium text-muted-foreground">
               {t(card.key)}
             </p>
@@ -198,10 +259,16 @@ export function AdsStatsView() {
           className="surface overflow-hidden"
           rowKey="id"
           columns={columns}
-          dataSource={stats?.campaigns ?? []}
+          dataSource={campaigns}
           loading={!stats || pending}
-          pagination={{ pageSize: 20, hideOnSinglePage: true, showSizeChanger: false }}
-          scroll={{ x: 1140 }}
+          pagination={{
+            defaultPageSize: 20,
+            showSizeChanger: true,
+            pageSizeOptions: [20, 50, 100],
+            showTotal: (total, [from, to]) =>
+              t("totalCampaigns", { from, to, total }),
+          }}
+          scroll={{ x: 1340 }}
           size="middle"
           locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
         />
