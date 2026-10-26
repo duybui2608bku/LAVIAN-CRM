@@ -51,6 +51,14 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-10-26 — Khách hàng: bỏ tiêu đề + thống kê đầu trang
+- **Thay đổi:**
+  - `/customers` bỏ tiêu đề "Khách hàng" (`PageHeader.title` thành optional — không title thì chỉ render nút, căn phải).
+  - 3 ô thống kê trên bảng: **Tin nhắn → Data** (tin nhắn FB Ads theo khoảng ngày bộ lọc, trống = hôm nay → số KH trong danh sách đang lọc, kèm tỉ lệ chuyển đổi), **Lịch hẹn** (KH stage `booked`), **Đặt cọc** (KH stage `deposited`) — 2 ô sau đếm trên danh sách đang lọc.
+  - Server action `getFbMessages` (`app/(app)/customers/actions.ts`) — chỉ cần đăng nhập, chỉ trả số tin nhắn (không lộ spend).
+- **File ảnh hưởng:** `components/layout/page.tsx`, `components/customers/customers-manager.tsx`, `app/(app)/customers/actions.ts`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:** Khi bộ lọc ngày trống, tin nhắn = hôm nay nhưng Data = toàn bộ KH → tỉ lệ chỉ có nghĩa khi chọn khoảng ngày. Không thay đổi DB.
+
 ### 2026-10-26 — Marketing: switch trạng thái chiến dịch + cột tài khoản QC + phân trang
 - **Thay đổi:**
   - Cột Trạng thái bảng chiến dịch `/marketing` = antd `Switch` (bọc `ConfirmAction` hỏi lại) — bật/tắt THẬT trên Facebook qua server action `updateCampaignStatus` → `setFbCampaignStatus` (POST `/{campaign_id}` `status=ACTIVE|PAUSED`, admin-only). Chỉ ACTIVE/PAUSED có switch; trạng thái khác giữ `Tag`. Thành công → vá status tại chỗ trong state (không tải lại).
