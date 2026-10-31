@@ -13,8 +13,8 @@ import {
   type LeadMode,
 } from "@/app/lead-form/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
-import { CurrencyInput } from "@/components/common/currency-input";
 import { optionLabel } from "@/lib/customers";
+import { normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import type { EnumOption } from "@/types/customer";
 
@@ -44,7 +44,6 @@ type Values = {
   stage: string;
   note: string;
   website: string; // honeypot chống bot — người thật không thấy ô này
-  deposit_amount: string;
 };
 
 const DEFAULTS: Values = {
@@ -54,10 +53,9 @@ const DEFAULTS: Values = {
   stage: "new_lead",
   note: "",
   website: "",
-  deposit_amount: "",
 };
 
-const PHONE_RE = /^[0-9+ ().-]{8,15}$/;
+
 
 export function LeadForm({
   staff,
@@ -139,12 +137,12 @@ export function LeadForm({
           form.setFieldValue("full_name", String(c.name));
         }
         if (phone && !form.getFieldValue("phone")) {
-          form.setFieldValue("phone", String(phone));
+          form.setFieldValue("phone", normalizePhone(String(phone)));
         }
       } else if (id !== prev) {
         form.setFieldsValue({
           full_name: c.name ? String(c.name) : "",
-          phone: phone ? String(phone) : "",
+          phone: phone ? normalizePhone(String(phone)) : "",
         });
       }
     };
@@ -161,15 +159,11 @@ export function LeadForm({
 
   const onSubmit = (mode: LeadMode) => () =>
     void form.validateFields().then((raw) => start(async () => {
-      const values = { ...raw, full_name: raw.full_name.trim(), phone: raw.phone.trim() };
-      const amount = values.deposit_amount === ""
-        ? null
-        : Number(values.deposit_amount);
+      const values = { ...raw, full_name: raw.full_name.trim(), phone: normalizePhone(raw.phone) };
       const res = await submitLead(
         {
           ...values,
           customer_id: customerId,
-          deposit_amount: amount,
           source,
           ...smaxMeta,
         },
@@ -220,10 +214,10 @@ export function LeadForm({
       <Form.Item
         name="phone"
         label={t("phone")}
-        rules={[{ required: true, pattern: PHONE_RE, message: t("phoneInvalid") }]}
-        normalize={(v: string) => v.trimStart()}
+        rules={[{ required: true, message: t("phoneInvalid") }]}
+        normalize={normalizePhone}
       >
-        <Input type="tel" autoComplete="tel" />
+        <Input type="text" autoComplete="tel" />
       </Form.Item>
       {staff.length > 0 && (
         <Form.Item name="staff_id" label={t("staff")}>
@@ -243,9 +237,6 @@ export function LeadForm({
           />
         </Form.Item>
       )}
-      <Form.Item name="deposit_amount" label={t("deposit")}>
-        <CurrencyInput placeholder={t("currencyPlaceholder")} />
-      </Form.Item>
       <Form.Item
         name="note"
         label={t("note")}

@@ -1,4 +1,4 @@
-export const locales = ["en", "vi", "id"] as const;
+export const locales = ["en", "vi"] as const;
 
 export type Locale = (typeof locales)[number];
 
@@ -10,7 +10,6 @@ export const LOCALE_COOKIE = "NEXT_LOCALE";
 export const localeLabels: Record<Locale, string> = {
   en: "English",
   vi: "Tiếng Việt",
-  id: "Bahasa Indonesia",
 };
 
 export function isLocale(value: string | undefined | null): value is Locale {

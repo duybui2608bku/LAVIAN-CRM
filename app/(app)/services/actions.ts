@@ -58,37 +58,6 @@ export async function deleteService(id: string): Promise<Result> {
         error: `Đang có ${count} khách hàng gắn dịch vụ này — hãy tắt "Kích hoạt" thay vì xóa.`,
       };
     }
-    const { count: apptCount, error: aErr } = await supabase
-      .from("appointment_services")
-      .select("appointment_id", { count: "exact", head: true })
-      .eq("service_id", id);
-    if (aErr) throw aErr;
-    if ((apptCount ?? 0) > 0) {
-      return {
-        error: `Đang có ${apptCount} lịch hẹn gắn dịch vụ này — hãy tắt "Kích hoạt" thay vì xóa.`,
-      };
-    }
-    const { count: ledgerCount, error: lErr } = await supabase
-      .from("service_ledgers")
-      .select("id", { count: "exact", head: true })
-      .eq("service_id", id);
-    if (lErr) throw lErr;
-    if ((ledgerCount ?? 0) > 0) {
-      return {
-        error: `Đang có ${ledgerCount} sổ tiền gắn dịch vụ này — hãy tắt "Kích hoạt" thay vì xóa.`,
-      };
-    }
-    const { count: upsaleCount, error: uErr } = await supabase
-      .from("appointment_upsales")
-      .select("id", { count: "exact", head: true })
-      .eq("service_id", id);
-    if (uErr) throw uErr;
-    if ((upsaleCount ?? 0) > 0) {
-      return {
-        error: `Đang có ${upsaleCount} khoản upsale gắn dịch vụ này — hãy tắt "Kích hoạt" thay vì xóa.`,
-      };
-    }
-
     const { error } = await supabase.from("services").delete().eq("id", id);
     if (error) throw error;
     revalidatePath("/services");

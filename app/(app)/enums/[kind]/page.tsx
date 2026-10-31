@@ -12,7 +12,7 @@ export default async function EnumKindPage({
   params: Promise<{ kind: string }>;
 }) {
   const { kind } = await params;
-  if (!ENUM_KINDS.includes(kind as EnumKind)) notFound();
+  if (!ENUM_KINDS.includes(kind as EnumKind) || kind !== "lost_reason") notFound();
 
   await requireAdmin();
   const supabase = await createClient();

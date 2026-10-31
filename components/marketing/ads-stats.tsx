@@ -50,8 +50,6 @@ export function AdsStatsView() {
       value: money(ratio(s?.spend ?? null, s?.leads ?? null)),
       error: e?.fb ?? e?.smax,
     },
-    { key: "appointments", value: count(s?.appointments ?? null), error: e?.db },
-    { key: "visited", value: count(s?.visited ?? null), error: e?.db },
   ];
 
   return (

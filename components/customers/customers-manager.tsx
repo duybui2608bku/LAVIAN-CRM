@@ -16,15 +16,12 @@ import {
 } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  CalendarDays,
-  CalendarPlus,
   Info,
   Pencil,
   RefreshCw,
   Search,
   Trash2,
   UserPlus,
-  Wallet,
 } from "lucide-react";
 
 import {
@@ -34,9 +31,6 @@ import {
   patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
-import { AppointmentDialog } from "@/components/appointments/appointment-dialog";
-import { PaymentLine } from "@/components/appointments/payments-dialog";
-import { AppointmentStatusTag } from "@/components/appointments/status-tag";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
@@ -46,16 +40,9 @@ import { MultiSelect } from "@/components/common/multi-select";
 import { RowActions } from "@/components/common/row-actions";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import {
-  customerPayments,
-  customerTotalPaid,
-  outstanding,
-  paidTotal,
-} from "@/lib/appointments";
-import { formatRupiah } from "@/lib/currency";
 import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
+import { normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
-import type { Appointment } from "@/types/appointment";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
 
@@ -110,19 +97,16 @@ type Patch = {
 
 export function CustomersManager({
   customers,
-  appointments,
   staff,
   options,
   services,
 }: {
   customers: Customer[];
-  appointments: Appointment[];
   staff: Staff[];
   options: EnumOption[];
   services: Service[];
 }) {
   const t = useTranslations("customers");
-  const tAppt = useTranslations("appointments");
   const locale = useLocale();
   const router = useRouter();
   const confirm = useConfirm();
@@ -134,9 +118,6 @@ export function CustomersManager({
   const [target, setTarget] = useState<Customer | "new" | null>(null);
   // Lưu id (không giữ object) để modal ghi chú tự nhận note mới sau revalidate.
   const [notesFor, setNotesFor] = useState<string | null>(null);
-  const [bookingFor, setBookingFor] = useState<Customer | null>(null);
-  const [apptsFor, setApptsFor] = useState<Customer | null>(null);
-  const [paymentsFor, setPaymentsFor] = useState<Customer | null>(null);
   const [page, setPage] = useState(1);
 
   // Sửa inline hiện ngay, không chờ server. React tự trả về dữ liệu server khi
@@ -146,11 +127,6 @@ export function CustomersManager({
     (state: Customer[], patch: Patch & { id: string }) =>
       state.map((c) => (c.id === patch.id ? { ...c, ...patch } : c)),
   );
-
-  const apptsOf = (customerId: string) =>
-    appointments.filter((a) => a.customer_id === customerId);
-  // Toàn bộ dòng tiền của khách (dedupe sổ chung) — cho dialog lịch sử thanh toán.
-  const paymentsOf = (customerId: string) => customerPayments(apptsOf(customerId));
 
   // Tag (theo locale) cho một value bất kỳ — dùng cả option inactive để hiện dữ
   // liệu cũ; value mất option hiển thị thô trong tag trung tính.
@@ -374,25 +350,6 @@ export function CustomersManager({
           label={t("colActions")}
           items={[
             {
-              icon: <CalendarPlus className="size-4" />,
-              label: tAppt("book"),
-              onSelect: () => setBookingFor(c),
-            },
-            {
-              icon: <CalendarDays className="size-4" />,
-              label: tAppt("title"),
-              count: apptsOf(c.id).length,
-              disabled: apptsOf(c.id).length === 0,
-              onSelect: () => setApptsFor(c),
-            },
-            {
-              icon: <Wallet className="size-4" />,
-              label: tAppt("payments"),
-              count: paymentsOf(c.id).length,
-              disabled: paymentsOf(c.id).length === 0,
-              onSelect: () => setPaymentsFor(c),
-            },
-            {
               icon: <Pencil className="size-4" />,
               label: t("edit"),
               onSelect: () => setTarget(c),
@@ -410,8 +367,6 @@ export function CustomersManager({
   ];
 
   const editing = target && target !== "new" ? target : null;
-  const apptList = apptsFor ? apptsOf(apptsFor.id) : [];
-  const paymentList = paymentsFor ? paymentsOf(paymentsFor.id) : [];
 
   return (
     <Page>
@@ -529,99 +484,6 @@ export function CustomersManager({
         onClose={() => setTarget(null)}
       />
 
-      {/* Đặt lịch hẹn cho 1 khách (khách bị khóa cứng trong dialog) */}
-      <AppointmentDialog
-        open={bookingFor !== null}
-        editing={null}
-        customerLock={bookingFor}
-        customers={[]}
-        staff={staff}
-        options={options}
-        services={services}
-        appointments={appointments}
-        returningIds={new Set(appointments.map((a) => a.customer_id))}
-        onClose={() => setBookingFor(null)}
-      />
-
-      {/* Lịch sử lịch hẹn của 1 khách — mới nhất trước (page đã order desc) */}
-      <Modal
-        open={apptsFor !== null}
-        onCancel={() => setApptsFor(null)}
-        footer={null}
-        title={tAppt("historyTitle", { name: apptsFor?.full_name ?? "" })}
-      >
-        <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
-          {apptList.length === 0 && (
-            <li className="text-sm text-muted-foreground">{tAppt("historyEmpty")}</li>
-          )}
-          {apptList.map((a) => (
-            <li key={a.id} className="surface space-y-1 px-2.5 py-2">
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="font-medium tabular-nums">
-                  {a.scheduled_at ? (
-                    new Date(a.scheduled_at).toLocaleString(locale)
-                  ) : (
-                    <span className="text-muted-foreground">{tAppt("tabWaiting")}</span>
-                  )}
-                </span>
-                <AppointmentStatusTag status={a.status} />
-              </div>
-              <div>{serviceTags(a.service_ids)}</div>
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {tAppt("colTotal")}:{" "}
-                {a.ledger?.total_amount != null ? formatRupiah(a.ledger.total_amount) : "—"}
-                {" · "}
-                {tAppt("colPaid")}: {formatRupiah(paidTotal(a))}
-                {outstanding(a) > 0 && (
-                  <span className="text-destructive">
-                    {" · "}
-                    {tAppt("colOutstanding")}: {formatRupiah(outstanding(a))}
-                  </span>
-                )}
-              </p>
-            </li>
-          ))}
-        </ul>
-        {/* Tổng đã trả của khách = Σ theo SỔ (dedupe — nhiều lịch chung sổ
-            không cộng trùng) + dòng mồ côi của lịch không sổ */}
-        {apptList.length > 0 && (
-          <TotalPaid label={tAppt("totalPaid")} value={customerTotalPaid(apptList)} />
-        )}
-      </Modal>
-
-      {/* Lịch sử thanh toán của 1 khách — mọi dòng tiền qua các sổ (dedupe sổ
-          chung) + dòng của lịch không sổ, mới nhất trước. Chỉ xem — thu/hoàn
-          thao tác ở /appointments (dialog Thanh toán theo sổ). */}
-      <Modal
-        open={paymentsFor !== null}
-        onCancel={() => setPaymentsFor(null)}
-        footer={null}
-        title={tAppt("paymentsTitle", { name: paymentsFor?.full_name ?? "" })}
-      >
-        <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
-          {paymentList.length === 0 && (
-            <li className="text-sm text-muted-foreground">{tAppt("paymentsEmpty")}</li>
-          )}
-          {paymentList.map(({ payment, service_id }) => {
-            const s = service_id ? services.find((x) => x.id === service_id) : undefined;
-            return (
-              <PaymentLine
-                key={payment.id}
-                payment={payment}
-                staff={staff}
-                serviceLabel={s ? serviceName(s, locale) : null}
-              />
-            );
-          })}
-        </ul>
-        {paymentsFor && paymentList.length > 0 && (
-          <TotalPaid
-            label={tAppt("totalPaid")}
-            value={customerTotalPaid(apptsOf(paymentsFor.id))}
-          />
-        )}
-      </Modal>
-
       {/* Ghi chú (icon Info): lịch sử mới nhất trước + ô thêm ghi chú */}
       <NotesModal
         customer={rowsData.find((c) => c.id === notesFor) ?? null}
@@ -632,13 +494,6 @@ export function CustomersManager({
   );
 }
 
-function TotalPaid({ label, value }: { label: string; value: number }) {
-  return (
-    <p className="mt-3 border-t border-border pt-2 text-right text-sm tabular-nums">
-      {label}: <span className="font-medium">{formatRupiah(value)}</span>
-    </p>
-  );
-}
 
 /** Nội dung tooltip: ghi chú gần nhất (người ghi · thời gian + nội dung). */
 function NotePreview({ note }: { note: Customer["notes"][number] }) {
@@ -786,7 +641,7 @@ function CustomerDialog({
     start(async () => {
       const input: CustomerInput = {
         full_name: v.full_name.trim(),
-        phone: v.phone.trim(),
+        phone: normalizePhone(v.phone),
         social_name: v.social_name || null,
         source: v.source || null,
         stage: v.stage,
@@ -848,7 +703,7 @@ function CustomerDialog({
         <Form.Item name="full_name" label={t("colName")} rules={required}>
           <Input />
         </Form.Item>
-        <Form.Item name="phone" label={t("colPhone")} rules={required}>
+        <Form.Item name="phone" label={t("colPhone")} rules={required} normalize={normalizePhone}>
           <Input />
         </Form.Item>
         <Form.Item name="social_name" label={t("socialName")}>

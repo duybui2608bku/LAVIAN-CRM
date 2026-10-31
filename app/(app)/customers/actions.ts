@@ -1,5 +1,7 @@
 "use server";
 
+import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
+import { normalizePhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
@@ -19,9 +21,12 @@ async function stampNote(text: string): Promise<CustomerNote> {
 // (create dựa default '[]' của DB; note quản lý riêng qua addCustomerNote).
 function clean(input: CustomerInput) {
   const nz = (v?: string | null) => (v && v.trim() !== "" ? v.trim() : null);
+  if (!CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === input.stage) ||
+      (input.source && !CUSTOMER_OPTIONS.some((o) => o.kind === "source" && o.value === input.source)))
+    throw new Error("Giai đoạn hoặc nguồn không hợp lệ.");
   return {
     full_name: input.full_name.trim(),
-    phone: input.phone.trim(),
+    phone: normalizePhone(input.phone),
     social_name: nz(input.social_name),
     source: nz(input.source),
     stage: input.stage,
@@ -103,6 +108,11 @@ export async function patchCustomer(
   },
 ): Promise<Result> {
   try {
+    for (const kind of ["stage", "source"] as const) {
+      const value = patch[kind];
+      if (value && !CUSTOMER_OPTIONS.some((o) => o.kind === kind && o.value === value))
+        throw new Error("Giai đoạn hoặc nguồn không hợp lệ.");
+    }
     const data: Record<string, string | null> = {};
     if (patch.stage !== undefined) {
       data.stage = patch.stage;

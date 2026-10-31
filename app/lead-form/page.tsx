@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/common/theme-toggle";
 import { LeadForm } from "@/components/lead-form/lead-form";
 import { Logo } from "@/components/layout/logo";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { EnumOption } from "@/types/customer";
+import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 
 // Trang public (không cần đăng nhập) — nhúng iframe vào SMAX hoặc mở trực tiếp.
 
@@ -25,7 +25,7 @@ export default async function LeadFormPage() {
   // Trang anonymous nên đọc profiles/enum_options bằng admin client
   // (RLS chỉ cho authenticated).
   const admin = createAdminClient();
-  const [{ data: staff }, { data: stages }] = await Promise.all([
+  const [{ data: staff }] = await Promise.all([
     admin
       .from("profiles")
       .select("id, user_name")
@@ -33,12 +33,6 @@ export default async function LeadFormPage() {
       .eq("department", "customer_care")
       .neq("user_name", "")
       .order("user_name"),
-    admin
-      .from("enum_options")
-      .select("*")
-      .eq("kind", "stage")
-      .eq("is_active", true)
-      .order("sort_order"),
   ]);
 
   return (
@@ -58,7 +52,7 @@ export default async function LeadFormPage() {
         <Suspense>
           <LeadForm
             staff={staff ?? []}
-            stages={(stages ?? []) as EnumOption[]}
+            stages={CUSTOMER_OPTIONS.filter((o) => o.kind === "stage")}
           />
         </Suspense>
       </div>
