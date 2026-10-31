@@ -212,7 +212,7 @@ export function CustomersManager({
     options
       .filter((o) => o.kind === kind && (o.is_active || o.value === current))
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
+      .map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }));
   // Option dạng tag (icon + màu) cho select sửa nhanh trên bảng — khớp ô hiển thị.
   const tagOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
     kindOptions(kind, current).map((o) => ({ value: o.value, label: tagFor(kind, o.value) }));
@@ -630,7 +630,7 @@ function CustomerDialog({
     options
       .filter((o) => o.kind === kind && (o.is_active || o.value === current))
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
+      .map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }));
 
   // Option dịch vụ: active + dịch vụ khách đang gắn (kể cả inactive, để bỏ được).
   const serviceOpts: SelectOption[] = services

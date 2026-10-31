@@ -1,3 +1,4 @@
+import { PageTransition } from "@/components/layout/page-transition";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,9 +14,9 @@ export function Page({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("flex flex-1 flex-col gap-4 p-4 sm:p-6", className)}>
+    <PageTransition className={cn("flex flex-1 flex-col gap-4 p-4 sm:p-6", className)}>
       {children}
-    </div>
+    </PageTransition>
   );
 }
 

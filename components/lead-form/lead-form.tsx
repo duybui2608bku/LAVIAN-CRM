@@ -12,6 +12,7 @@ import {
   type LeadInput,
   type LeadMode,
 } from "@/app/lead-form/actions";
+import { EnumTag } from "@/components/common/enum-tag";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { optionLabel } from "@/lib/customers";
 import { normalizePhone } from "@/lib/phone";
@@ -232,7 +233,7 @@ export function LeadForm({
         <Form.Item name="stage" label={t("stage")}>
           <ClearableSelect
             clearable={false}
-            options={stages.map((o) => ({ value: o.value, label: optionLabel(o, locale) }))}
+            options={stages.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }))}
             ariaLabel={t("stage")}
           />
         </Form.Item>
