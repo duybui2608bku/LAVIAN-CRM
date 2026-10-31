@@ -85,7 +85,6 @@ export function EnumsManager({
     },
     { title: t("colVi"), key: "vi", render: (_, o) => tag(o, o.label_vi) },
     { title: t("colEn"), key: "en", render: (_, o) => tag(o, o.label_en) },
-    { title: t("colId"), key: "id", render: (_, o) => tag(o, o.label_id) },
     {
       title: t("colActive"),
       dataIndex: "is_active",
@@ -196,7 +195,7 @@ function OptionDialog({
   // Xem trước tag theo giá trị đang nhập (nhãn theo locale hiện tại).
   const w = Form.useWatch([], form) as Partial<Values> | undefined;
   const previewLabel =
-    (locale === "en" ? w?.label_en : locale === "id" ? w?.label_id : w?.label_vi) ||
+    (locale === "en" ? w?.label_en : w?.label_vi) ||
     w?.value ||
     "…";
 
@@ -271,9 +270,6 @@ function OptionDialog({
             <Input />
           </Form.Item>
           <Form.Item name="label_en" label={t("colEn")}>
-            <Input placeholder={t("optional")} />
-          </Form.Item>
-          <Form.Item name="label_id" label={t("colId")}>
             <Input placeholder={t("optional")} />
           </Form.Item>
           <Form.Item name="icon" label={t("iconLabel")}>

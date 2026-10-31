@@ -3,21 +3,21 @@
 import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
-import { IDR_CURRENCY } from "@/lib/currency";
 import { resolveSource } from "@/lib/customers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { CustomerNote, EnumOption } from "@/types/customer";
+import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
+import { normalizePhone } from "@/lib/phone";
+import type { CustomerNote } from "@/types/customer";
 
 const schema = z.object({
   customer_id: z.string().trim().max(200),
   full_name: z.string().trim().min(1).max(120),
-  phone: z.string().trim().regex(/^[0-9+ ().-]{8,15}$/),
+  phone: z.string().transform(normalizePhone).pipe(z.string().min(1)),
   note: z.string().trim().max(1000),
   staff_id: z.uuid().or(z.literal("")),
   stage: z.string(),
   website: z.string(),
   source: z.string(),
-  deposit_amount: z.number().finite().min(0).nullable(),
   platform: z.string().max(50).catch(""),
   social_name: z.string().trim().max(200).catch(""),
   picture: z.string().trim().max(2000).catch(""),
@@ -45,8 +45,6 @@ const schema = z.object({
 
 export type LeadInput = z.input<typeof schema>;
 export type LeadMode = "create" | "update";
-
-const VALUE_RE = /^[a-z0-9_]{1,50}$/;
 
 export async function checkLeadCustomer(customerId: string): Promise<boolean> {
   const id = z.string().trim().min(1).max(200).safeParse(customerId);
@@ -86,15 +84,7 @@ export async function submitLead(
       return { error: "Khách hàng chưa tồn tại. Hãy dùng nút Submit." };
     }
 
-    // Đồng bộ nguồn với danh mục /enums/source: platform SMAX ("instagram")
-    // hoặc ?source= khớp value/nhãn option → lưu đúng value; không khớp → "smax".
-    const { data: sources, error: srcError } = await supabase
-      .from("enum_options")
-      .select("value, label_vi, label_en, label_id")
-      .eq("kind", "source")
-      .eq("is_active", true);
-    if (srcError) throw srcError;
-    const options = (sources ?? []) as EnumOption[];
+    const options = CUSTOMER_OPTIONS.filter((o) => o.kind === "source");
 
     const customer = {
       full_name: d.full_name,
@@ -105,13 +95,11 @@ export async function submitLead(
       picture: d.picture || null,
       tags: d.tags,
       thread: d.thread,
-      stage: VALUE_RE.test(d.stage) ? d.stage : "new_lead",
+      stage: CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === d.stage) ? d.stage : "new_lead",
       staff_id: d.staff_id || null,
       first_contact: new Date().toLocaleDateString("en-CA", {
         timeZone: "Asia/Ho_Chi_Minh",
       }),
-      deposit_amount: d.deposit_amount,
-      deposit_currency: d.deposit_amount === null ? null : IDR_CURRENCY,
     };
 
     if (mode === "create") {

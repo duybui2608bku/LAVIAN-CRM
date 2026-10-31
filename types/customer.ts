@@ -73,8 +73,6 @@ export interface Customer {
   technician_id: string | null; // kỹ thuật viên làm dịch vụ (profiles)
   first_contact: string | null;
   notes: CustomerNote[];
-  deposit_amount: number | null;
-  deposit_currency: string | null;
   service_ids: string[]; // map từ bảng nối customer_services (page query nested)
   created_at: string;
   updated_at: string;

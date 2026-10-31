@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { Button, Divider, Drawer, Layout, Menu, type MenuProps } from "antd";
 import {
   Briefcase,
-  CalendarDays,
   LayoutDashboard,
   Megaphone,
   PanelLeft,
@@ -30,7 +29,6 @@ const COLLAPSE_COOKIE = "sidebar_state";
 const ITEMS = [
   { key: "dashboard", href: "/", icon: LayoutDashboard },
   { key: "customers", href: "/customers", icon: Users },
-  { key: "appointments", href: "/appointments", icon: CalendarDays },
 ] as const;
 
 const ADMIN_ITEMS = [
@@ -80,7 +78,7 @@ export function AppShell({
       key: "/enums",
       icon: <SlidersHorizontal className="size-4" />,
       label: t("nav.enums"),
-      children: ENUM_KINDS.map((kind) => ({
+      children: ENUM_KINDS.filter((kind) => kind === "lost_reason").map((kind) => ({
         key: `/enums/${kind}`,
         label: <Link href={`/enums/${kind}`}>{t(`enums.kind_${kind}`)}</Link>,
       })),

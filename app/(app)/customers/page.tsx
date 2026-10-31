@@ -1,17 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import {
-  hydrateLedgerUpsales,
-  normalizeAppointmentRow,
-  type AppointmentRow,
-} from "@/lib/appointments";
 import { CustomersManager } from "@/components/customers/customers-manager";
 import type { Customer, EnumOption } from "@/types/customer";
+import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import type { Service } from "@/types/service";
 
 // Mọi user đăng nhập đều xem được (RLS customers cho authenticated). Proxy đã gác login.
 export default async function CustomersPage() {
   const supabase = await createClient();
-  const [customersRes, staffRes, optionsRes, servicesRes, apptsRes] = await Promise.all([
+  const [customersRes, staffRes, optionsRes, servicesRes] = await Promise.all([
     supabase
       .from("customers")
       // Nested select qua FK bảng nối — 1 query, không N+1.
@@ -27,21 +23,13 @@ export default async function CustomersPage() {
     supabase
       .from("enum_options")
       .select("*")
-      .order("kind", { ascending: true })
+      .eq("kind", "lost_reason")
       .order("sort_order", { ascending: true }),
     // Services cũng nạp cả inactive (hiện tên dịch vụ cũ còn gắn trên khách).
     supabase
       .from("services")
       .select("*")
       .order("sort_order", { ascending: true }),
-    // Lịch hẹn cho dialog "Lịch hẹn - {khách}" (lọc theo khách phía client).
-    supabase
-      .from("appointments")
-      .select(
-        "*, appointment_services(service_id), appointment_upsales(*), appointment_payments(*), ledger:service_ledgers(*, appointment_payments(*)), customer:customers(full_name, phone)",
-      )
-      .is("deleted_at", null)
-      .order("scheduled_at", { ascending: false }),
   ]);
 
   type Row = Customer & { customer_services: { service_id: string }[] | null };
@@ -52,17 +40,9 @@ export default async function CustomersPage() {
     }),
   ) as Customer[]);
 
-  if (apptsRes.error) throw apptsRes.error;
-  const appointments = hydrateLedgerUpsales(
-    ((apptsRes.data as unknown as AppointmentRow[]) ?? []).map(
-      normalizeAppointmentRow,
-    ),
-  );
-
   return (
     <CustomersManager
       customers={customers}
-      appointments={appointments}
       staff={
         (staffRes.data as {
           id: string;
@@ -71,7 +51,7 @@ export default async function CustomersPage() {
           department: string | null;
         }[]) ?? []
       }
-      options={(optionsRes.data as EnumOption[]) ?? []}
+      options={[...CUSTOMER_OPTIONS, ...((optionsRes.data as EnumOption[]) ?? [])]}
       services={(servicesRes.data as Service[]) ?? []}
     />
   );

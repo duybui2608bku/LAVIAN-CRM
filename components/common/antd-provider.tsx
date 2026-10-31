@@ -3,11 +3,9 @@
 import { useEffect, useMemo } from "react";
 import { App, ConfigProvider, theme, type ThemeConfig } from "antd";
 import enUS from "antd/locale/en_US";
-import idID from "antd/locale/id_ID";
 import viVN from "antd/locale/vi_VN";
 import dayjs from "dayjs";
 import "dayjs/locale/en";
-import "dayjs/locale/id";
 import "dayjs/locale/vi";
 import { useTheme } from "next-themes";
 
@@ -15,7 +13,7 @@ import { useMounted } from "@/hooks/use-mounted";
 import type { Locale } from "@/i18n/config";
 import { bindToast } from "@/lib/toast";
 
-const ANTD_LOCALES = { vi: viVN, en: enUS, id: idID } as const;
+const ANTD_LOCALES = { vi: viVN, en: enUS } as const;
 
 // Bảng màu dự án — cùng giá trị với biến CSS trong globals.css (Tailwind dùng
 // biến CSS cho bố cục, antd dùng token này cho component).

@@ -173,8 +173,8 @@ test("fetchFbCampaigns lọc impressions > 0, trạng thái best-effort, sắp t
   try {
     const rows = await fetchFbCampaigns("2026-10-24", "2026-10-24");
     assert.deepEqual(rows, [
-      { id: "c2", name: "B", status: "UNKNOWN", spend: 300, messages: 6, impressions: 900, reach: 700 },
-      { id: "c1", name: "A", status: "ACTIVE", spend: 100, messages: 0, impressions: 50, reach: 40 },
+      { id: "c2", name: "B", accountName: "—", status: "UNKNOWN", spend: 300, messages: 6, impressions: 900, reach: 700 },
+      { id: "c1", name: "A", accountName: "—", status: "ACTIVE", spend: 100, messages: 0, impressions: 50, reach: 40 },
     ]);
   } finally {
     globalThis.fetch = originalFetch;

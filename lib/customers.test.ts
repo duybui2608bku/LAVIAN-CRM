@@ -95,7 +95,7 @@ test("optionLabel theo locale, fallback vi", () => {
   };
   assert.equal(optionLabel(opt, "vi"), "Khách mới");
   assert.equal(optionLabel(opt, "en"), "New lead");
-  assert.equal(optionLabel(opt, "id"), "Prospek baru");
+  assert.equal(optionLabel(opt, "id"), "Khách mới");
   assert.equal(optionLabel(opt, "fr"), "Khách mới");
   // Nhãn en/id không bắt buộc — thiếu thì fallback tiếng Việt.
   assert.equal(optionLabel({ ...opt, label_en: null }, "en"), "Khách mới");

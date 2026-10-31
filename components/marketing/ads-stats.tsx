@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 const ratio = (a: number | null, b: number | null) =>
   a != null && b ? Math.round(a / b) : null;
 
-const LOCALE_TAG: Record<string, string> = { vi: "vi-VN", en: "en-US", id: "id-ID" };
+const LOCALE_TAG: Record<string, string> = { vi: "vi-VN", en: "en-US" };
 
 // effective_status của Graph API → màu tag; trạng thái lạ hiện nguyên văn, màu mặc định.
 const STATUS_COLOR: Record<string, string> = {
@@ -78,8 +78,6 @@ export function AdsStatsView() {
       value: money(ratio(s?.spend ?? null, s?.leads ?? null)),
       error: e?.fb ?? e?.smax,
     },
-    { key: "appointments", value: count(s?.appointments ?? null), error: e?.db },
-    { key: "visited", value: count(s?.visited ?? null), error: e?.db },
   ];
 
   // Bật/tắt chiến dịch: FB nhận xong thì vá trạng thái tại chỗ, không tải lại cả trang.

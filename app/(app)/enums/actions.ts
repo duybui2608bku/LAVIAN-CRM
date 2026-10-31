@@ -30,6 +30,7 @@ export async function createOption(input: {
   try {
     await requireAdmin();
     const supabase = await createClient();
+    if (input.kind !== "lost_reason") return { error: "Danh mục cố định." };
     const { error } = await supabase.from("enum_options").insert(input);
     if (error) throw error;
     revalidatePath("/enums/[kind]", "page");
@@ -57,7 +58,7 @@ export async function updateOption(
     const { error } = await supabase
       .from("enum_options")
       .update(input)
-      .eq("id", id);
+      .eq("id", id).eq("kind", "lost_reason");
     if (error) throw error;
     revalidatePath("/enums/[kind]", "page");
     return {};
@@ -88,7 +89,7 @@ export async function deleteOption(
       };
     }
 
-    const { error } = await supabase.from("enum_options").delete().eq("id", id);
+    const { error } = await supabase.from("enum_options").delete().eq("id", id).eq("kind", "lost_reason");
     if (error) throw error;
     revalidatePath("/enums/[kind]", "page");
     return {};

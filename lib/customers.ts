@@ -7,7 +7,6 @@ export function optionLabel(
   locale: string,
 ): string {
   if (locale === "en") return opt.label_en || opt.label_vi;
-  if (locale === "id") return opt.label_id || opt.label_vi;
   return opt.label_vi;
 }
 
@@ -17,7 +16,6 @@ export function serviceName(
   locale: string,
 ): string {
   if (locale === "en") return s.name_en || s.name_vi;
-  if (locale === "id") return s.name_id || s.name_vi;
   return s.name_vi;
 }
 

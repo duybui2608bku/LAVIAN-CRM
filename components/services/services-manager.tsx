@@ -61,7 +61,6 @@ export function ServicesManager({ services }: { services: Service[] }) {
   const columns: TableProps<Service>["columns"] = [
     { title: t("colVi"), dataIndex: "name_vi", ellipsis: true },
     { title: t("colEn"), dataIndex: "name_en", ellipsis: true, render: dash },
-    { title: t("colId"), dataIndex: "name_id", ellipsis: true, render: dash },
     {
       title: t("colActive"),
       dataIndex: "is_active",
@@ -219,9 +218,6 @@ function ServiceDialog({
             <Input />
           </Form.Item>
           <Form.Item name="name_en" label={t("colEn")}>
-            <Input placeholder={t("optional")} />
-          </Form.Item>
-          <Form.Item name="name_id" label={t("colId")}>
             <Input placeholder={t("optional")} />
           </Form.Item>
           <Form.Item name="sort_order" label={t("colSort")}>

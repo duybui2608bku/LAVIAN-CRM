@@ -28,12 +28,6 @@ const flags: Record<Locale, React.ReactElement> = {
       <path d="M30,0 v30 M0,15 h60" stroke="#c8102e" strokeWidth="6" />
     </svg>
   ),
-  id: (
-    <svg viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" className="size-full">
-      <rect width="30" height="10" fill="#ff0000" />
-      <rect y="10" width="30" height="10" fill="#fff" />
-    </svg>
-  ),
 };
 
 export function LocaleFlag({
