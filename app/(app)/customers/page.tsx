@@ -3,11 +3,13 @@ import { CustomersManager } from "@/components/customers/customers-manager";
 import type { Customer, EnumOption } from "@/types/customer";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import type { Service } from "@/types/service";
+import { customerAppointment } from "@/lib/appointments";
+import type { AppointmentSummary } from "@/types/appointment";
 
 // Mọi user đăng nhập đều xem được (RLS customers cho authenticated). Proxy đã gác login.
 export default async function CustomersPage() {
   const supabase = await createClient();
-  const [customersRes, staffRes, optionsRes, servicesRes] = await Promise.all([
+  const [customersRes, staffRes, optionsRes, servicesRes, appointmentsRes] = await Promise.all([
     supabase
       .from("customers")
       // Nested select qua FK bảng nối — 1 query, không N+1.
@@ -30,6 +32,7 @@ export default async function CustomersPage() {
       .from("services")
       .select("*")
       .order("sort_order", { ascending: true }),
+    supabase.from("clinic_appointments").select("id,customer_id,scheduled_at,checked_in").is("deleted_at", null),
   ]);
 
   type Row = Customer & { customer_services: { service_id: string }[] | null };
@@ -39,6 +42,17 @@ export default async function CustomersPage() {
       service_ids: (customer_services ?? []).map((r) => r.service_id),
     }),
   ) as Customer[]);
+
+  const grouped = new Map<string, AppointmentSummary[]>();
+  for (const appointment of (appointmentsRes.data ?? []) as AppointmentSummary[]) {
+    const rows = grouped.get(appointment.customer_id) ?? [];
+    rows.push(appointment);
+    grouped.set(appointment.customer_id, rows);
+  }
+  // This async Server Component reads the clock once per authenticated request.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const appointments = Object.fromEntries([...grouped].map(([id, rows]) => [id, customerAppointment(rows, now)]));
 
   return (
     <CustomersManager
@@ -53,6 +67,8 @@ export default async function CustomersPage() {
       }
       options={[...CUSTOMER_OPTIONS, ...((optionsRes.data as EnumOption[]) ?? [])]}
       services={(servicesRes.data as Service[]) ?? []}
+      appointments={appointments}
+      appointmentsAvailable={!appointmentsRes.error}
     />
   );
 }

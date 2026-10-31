@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Button, Divider, Drawer, Layout, Menu, type MenuProps } from "antd";
 import {
   Briefcase,
+  CalendarDays,
   LayoutDashboard,
   Megaphone,
   PanelLeft,
@@ -29,6 +30,7 @@ const COLLAPSE_COOKIE = "sidebar_state";
 const ITEMS = [
   { key: "dashboard", href: "/", icon: LayoutDashboard },
   { key: "customers", href: "/customers", icon: Users },
+  { key: "appointments", href: "/appointments", icon: CalendarDays },
 ] as const;
 
 const ADMIN_ITEMS = [

@@ -4,6 +4,7 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Badge,
+  Alert,
   Button,
   Drawer,
   Form,
@@ -45,6 +46,8 @@ import { normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
+import { CustomerAppointment } from "@/components/appointments/customer-appointment";
+import type { AppointmentSummary } from "@/types/appointment";
 
 type Staff = StaffRef & { department?: string | null };
 
@@ -100,13 +103,18 @@ export function CustomersManager({
   staff,
   options,
   services,
+  appointments,
+  appointmentsAvailable,
 }: {
   customers: Customer[];
   staff: Staff[];
   options: EnumOption[];
   services: Service[];
+  appointments: Record<string, AppointmentSummary | undefined>;
+  appointmentsAvailable: boolean;
 }) {
   const t = useTranslations("customers");
+  const ta = useTranslations("appointments");
   const locale = useLocale();
   const router = useRouter();
   const confirm = useConfirm();
@@ -251,6 +259,12 @@ export function CustomersManager({
     },
     { title: t("colPhone"), dataIndex: "phone" },
     {
+      title: ta("title"),
+      key: "appointment",
+      render: (_, customer) => <CustomerAppointment customerId={customer.id}
+        appointment={appointments[customer.id]} disabled={!appointmentsAvailable} />,
+    },
+    {
       title: t("colStage"),
       dataIndex: "stage",
       render: (_, c) => (
@@ -393,6 +407,7 @@ export function CustomersManager({
       />
 
       {/* Thanh lọc */}
+      {!appointmentsAvailable ? <Alert type="warning" showIcon title={ta("unavailable")} /> : null}
       <PageToolbar>
         <Input
           allowClear
