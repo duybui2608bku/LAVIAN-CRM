@@ -58,6 +58,12 @@ export async function deleteService(id: string): Promise<Result> {
         error: `Đang có ${count} khách hàng gắn dịch vụ này — hãy tắt "Kích hoạt" thay vì xóa.`,
       };
     }
+    const { count: appointments, error: appointmentError } = await supabase
+      .from("clinic_appointments").select("id", { count: "exact", head: true })
+      .contains("service_ids", [id]);
+    if (appointmentError) throw appointmentError;
+    if ((appointments ?? 0) > 0)
+      return { error: "Dịch vụ đã dùng trong lịch hẹn — hãy tắt Kích hoạt thay vì xóa." };
     const { error } = await supabase.from("services").delete().eq("id", id);
     if (error) throw error;
     revalidatePath("/services");
