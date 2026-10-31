@@ -135,3 +135,30 @@
   border: 1px solid var(--border);
   background-color: var(--card);
 }
+
+/* React remounts the page on navigation and tags when their value changes. */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes tag-enter {
+  from { opacity: 0.4; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .page-motion > :not(.ant-modal-root):not(.ant-drawer) {
+    animation: page-enter 240ms ease-out backwards;
+  }
+  .page-motion > :nth-child(2) { animation-delay: 35ms; }
+  .page-motion > :nth-child(3) { animation-delay: 70ms; }
+  .tag-motion { animation: tag-enter 160ms ease-out; }
+  .page-motion .ant-btn {
+    transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  }
+  .page-motion .ant-btn:not(:disabled):hover { transform: translateY(-1px); }
+  .page-motion .ant-btn:not(:disabled):active { transform: scale(0.98); }
+  .page-motion .ant-table-cell { transition: background-color 160ms ease; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
