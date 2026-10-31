@@ -51,10 +51,39 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-10-26 — Marketing: switch trạng thái chiến dịch + cột tài khoản QC + phân trang
+- **Thay đổi:**
+  - Cột Trạng thái bảng chiến dịch `/marketing` = antd `Switch` (bọc `ConfirmAction` hỏi lại) — bật/tắt THẬT trên Facebook qua server action `updateCampaignStatus` → `setFbCampaignStatus` (POST `/{campaign_id}` `status=ACTIVE|PAUSED`, admin-only). Chỉ ACTIVE/PAUSED có switch; trạng thái khác giữ `Tag`. Thành công → vá status tại chỗ trong state (không tải lại).
+  - Thêm cột **Tài khoản quảng cáo** (`account_name` từ insights, có lọc khi >1 tài khoản + sort).
+  - Phân trang luôn hiện: 20/50/100 dòng + tổng số chiến dịch (bỏ `hideOnSinglePage`).
+- **File ảnh hưởng:** `lib/marketing.ts`, `app/(app)/marketing/actions.ts`, `components/marketing/ads-stats.tsx`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:** `FB_TOKEN` phải có quyền **`ads_management`** thì switch mới ghi được (thiếu quyền → toast lỗi từ FB). Không có thay đổi DB. Chưa verify trên dữ liệu FB thật (môi trường không có token).
+
+### 2026-10-24 — /marketing: fix "Invalid parameter" khi lấy trạng thái chiến dịch
+- **Thay đổi:** Bỏ `filtering`/`effective_status` (FB trả "Invalid parameter"). Trạng thái giờ lấy bằng cách liệt kê `GET /act_x/campaigns?fields=id,effective_status` (tham số mặc định, có phân trang) rồi khớp id; **best-effort** — lỗi hoặc không thấy (vd. chiến dịch đã xoá) → trạng thái "Không rõ", bảng vẫn hiện số liệu (lỗi chỉ log server). `fbGet` kèm `error_user_msg` vào message lỗi để dễ chẩn đoán.
+- **File ảnh hưởng:** `lib/marketing{,.test}.ts`.
+- **Còn dở / ghi chú:** Chưa test token thật — nếu bảng vẫn lỗi thì lỗi nằm ở insights `level=campaign`, message mới sẽ chi tiết hơn.
+
+### 2026-10-24 — /marketing: fix lấy trạng thái chiến dịch + tiền theo currency tài khoản
+- **Thay đổi:** Bỏ tham số `ids` (Graph API báo deprecated v26.0+). Trạng thái chiến dịch giờ lấy qua `GET /act_x/campaigns?filtering=[{id IN [...]}]&effective_status=[ACTIVE,PAUSED,DELETED,ARCHIVED,IN_PROCESS,WITH_ISSUES]` theo từng tài khoản (lô 100 id). `fetchFbAds` lấy thêm `account_currency` → `AdsStats.currency`; trang /marketing format tiền bằng `Intl.NumberFormat` theo locale đang chọn (vi-VN/en-US/id-ID) + currency tài khoản (KHÔNG còn `formatRupiah` cố định id-ID). Ví dụ vi + IDR → "6.082.373 IDR", vi + VND → "6.082.373 ₫".
+- **File ảnh hưởng:** `lib/marketing{,.test}.ts`, `app/(app)/marketing/actions.ts`, `components/marketing/ads-stats.tsx`.
+- **Còn dở / ghi chú:** Giả định 2 tài khoản cùng currency (có `ponytail:` comment). Chưa test token thật.
+
+### 2026-10-24 — /marketing: bảng chiến dịch FB (lượt hiển thị > 0)
+- **Thay đổi:** Thêm bảng "Chiến dịch" dưới 7 card: Trạng thái (tag theo `effective_status`, nhãn i18n `marketing.status_*`, trạng thái lạ hiện nguyên văn), Tên, Chi tiêu, Tin nhắn, Chi tiêu/Tin nhắn, Lượt hiển thị, Lượt tiếp cận; mặc định sắp chi tiêu giảm dần, cột số sort được, phân trang 20, `scroll.x` cho mobile. `fetchFbCampaigns` (`lib/marketing.ts`): insights `level=campaign` của 2 tài khoản (theo `paging.next`), lọc `impressions > 0`, trạng thái lấy theo lô 50 id (`GET /?ids=…&fields=effective_status`). Chạy trong `getAdsStats` (lỗi riêng `errors.campaigns`, hiện ở empty state bảng).
+- **File ảnh hưởng:** `lib/marketing{,.test}.ts`, `app/(app)/marketing/actions.ts`, `components/marketing/ads-stats.tsx`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, test 48/48, `next build` PASS. Chưa test với token thật / browser.
+
+### 2026-10-24 — Mobile: sidebar ẩn hẳn + bỏ subtitle mọi trang
+- **Thay đổi:** `AppShell`: dưới `md` (< 768px) Sider ẩn 100% (`max-md:hidden!`), nút PanelLeft mở **Drawer trái** (232px) chứa cùng logo + menu (hàm `nav(compact)` dùng chung), bấm link tự đóng; ≥ md giữ thu gọn/mở rộng như cũ. Bỏ `breakpoint="md"` của Sider (không còn tự thu gọn + ghi đè cookie khi ở mobile). `PageHeader` bỏ prop `description` (không còn subtitle ở mọi trang), căn giữa dọc title/actions; xoá key i18n `dashboard.description`, `marketing.description`.
+- **File ảnh hưởng:** `components/layout/{app-shell,page}.tsx`, `components/marketing/ads-stats.tsx`, `components/dashboard/marketing-stats.tsx`, `app/(app)/page.tsx`, `messages/{vi,en,id}.json`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, `next build` PASS. Chưa xem trên điện thoại thật (cần đăng nhập).
+
 ### 2026-10-24 — Trang /marketing viết lại: 7 card quảng cáo từ 2 tài khoản ads
 - **Thay đổi:** Bỏ toàn bộ UI cũ của `/marketing` (trước dùng chung `MarketingStats` với trang chủ). UI mới `AdsStatsView` = DateRangePicker + 7 card: **Chi tiêu**, **Tin nhắn** (FB action `onsite_conversion.messaging_conversation_started_7d`), **Chi tiêu/Tin nhắn**, **Data** (SMAX `customer_lead_total` — khách để lại SĐT), **Chi tiêu/SĐT**, **Lịch hẹn** (đếm `appointments.scheduled_at` trong range), **Đã đến** (đếm `appointments.checked_in_at` trong range). Tài khoản ads đổi thành `act_1494701561142295` + `act_405282048979489` (bỏ `act_3723515967967924`). `fetchFbSpend` → `fetchFbAds` (spend + tin nhắn, 1 request/tài khoản). Server action riêng `getAdsStats` (`app/(app)/marketing/actions.ts`, requireAdmin, lỗi từng nguồn cô lập per card). Gỡ `showSpend`/`includeSpend`/`spend` khỏi `MarketingStats` + `getMarketingStats` (trang chủ không dùng). OpenSpec change `marketing-ads-cards` (chưa archive).
 - **File ảnh hưởng:** `lib/marketing{,.test}.ts`, `app/(app)/marketing/{page.tsx,actions.ts}`, `components/marketing/ads-stats.tsx` (mới), `components/dashboard/marketing-stats.tsx`, `app/(app)/actions.ts`, `messages/{vi,en,id}.json` (namespace `marketing`), `openspec/changes/marketing-ads-cards/*`.
 - **Còn dở / ghi chú:** tsc/eslint sạch, test 47/47, `next build` PASS. **Chưa smoke test token thật** và chưa xem trên browser (cần đăng nhập + `FB_TOKEN` có quyền đọc tài khoản `405282048979489`). Nếu "Tin nhắn" lệch Ads Manager thì đổi hằng `FB_MESSAGE_ACTION`. Key `dashboard.spend`/`dashboard.costPerMessage` không còn dùng.
+- **Cập nhật:** mobile hiển thị 2 cột (`grid-cols-2`, lg 4 cột), padding/cỡ số nhỏ lại ở mobile (`text-lg` → `sm:text-2xl`).
 
 ### 2026-10-24 — Tag màu dùng kiểu Presets (solid) của antd
 - **Thay đổi:** `EnumTag` có màu → `<Tag color variant="solid">` (nền đặc, chữ trắng), bỏ class `.tag-tint`. Bảng màu preset ở /enums đổi sang 11 màu preset antd (magenta…purple) + xám `#8c8c8c`; màu trạng thái lịch hẹn (`STATUS_META`) và loại thanh toán (`KIND_COLOR`) đổi sang hex preset antd. Tag preset cố định (`blue`, `purple` admin, `error` banned) thêm `variant="solid"`. Tag không màu giữ mặc định (không set solid toàn cục vì solid mặc định là nền đen).

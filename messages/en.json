@@ -241,13 +241,31 @@
   },
   "marketing": {
     "title": "Marketing",
-    "description": "Facebook ads performance (2 accounts) by date range (Vietnam time).",
     "spend": "Spend",
     "messages": "Messages",
     "costPerMessage": "Spend / Message",
     "leads": "Data",
     "costPerLead": "Spend / Phone",
     "appointments": "Appointments",
-    "visited": "Visited"
+    "visited": "Visited",
+    "campaigns": "Campaigns",
+    "noCampaigns": "No campaigns with impressions in this date range",
+    "colStatus": "Status",
+    "colName": "Campaign name",
+    "colAccount": "Ad account",
+    "confirmPause": "Pause this campaign?",
+    "confirmActivate": "Activate this campaign?",
+    "statusUpdated": "Campaign status updated",
+    "totalCampaigns": "{from}–{to} of {total} campaigns",
+    "colImpressions": "Impressions",
+    "colReach": "Reach",
+    "status_ACTIVE": "Active",
+    "status_PAUSED": "Paused",
+    "status_CAMPAIGN_PAUSED": "Paused",
+    "status_IN_PROCESS": "In process",
+    "status_WITH_ISSUES": "With issues",
+    "status_DELETED": "Deleted",
+    "status_ARCHIVED": "Archived",
+    "status_UNKNOWN": "Unknown"
   }
 }

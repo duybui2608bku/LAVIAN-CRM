@@ -60,6 +60,7 @@ export function supaRange(from: string, to: string) {
 type FbInsightsRes = {
   data?: {
     spend?: string;
+    account_currency?: string;
     actions?: { action_type?: string; value?: string }[];
   }[];
   error?: { message?: string };
@@ -73,14 +74,14 @@ const FB_MESSAGE_ACTION = "onsite_conversion.messaging_conversation_started_7d";
 export async function fetchFbAds(
   from: string,
   to: string,
-): Promise<{ spend: number; messages: number }> {
+): Promise<{ spend: number; messages: number; currency: string | null }> {
   const token = process.env.FB_TOKEN;
   if (!token) throw new Error("Thiếu FB_TOKEN.");
   const time_range = JSON.stringify({ since: from, until: to });
   const rows = await Promise.all(
     FB_AD_ACCOUNTS.map(async (act) => {
       const qs = new URLSearchParams({
-        fields: "spend,actions",
+        fields: "spend,actions,account_currency",
         time_range,
         access_token: token,
       });
@@ -93,6 +94,7 @@ export async function fetchFbAds(
       // data rỗng = không chạy ads trong range → 0, không phải lỗi.
       const row = json.data?.[0];
       return {
+        currency: row?.account_currency ?? null,
         spend: Number(row?.spend ?? 0),
         messages: Number(
           row?.actions?.find((a) => a.action_type === FB_MESSAGE_ACTION)
@@ -101,10 +103,163 @@ export async function fetchFbAds(
       };
     }),
   );
+  // ponytail: giả định các tài khoản cùng currency — lấy currency đầu tiên có dữ liệu.
   return rows.reduce(
-    (a, b) => ({ spend: a.spend + b.spend, messages: a.messages + b.messages }),
-    { spend: 0, messages: 0 },
+    (a, b) => ({
+      spend: a.spend + b.spend,
+      messages: a.messages + b.messages,
+      currency: a.currency ?? b.currency,
+    }),
+    { spend: 0, messages: 0, currency: null as string | null },
   );
+}
+
+export interface FbCampaign {
+  id: string;
+  name: string;
+  accountName: string;
+  status: string;
+  spend: number;
+  messages: number;
+  impressions: number;
+  reach: number;
+}
+
+type FbCampaignInsightsRes = {
+  data?: {
+    campaign_id?: string;
+    campaign_name?: string;
+    account_name?: string;
+    spend?: string;
+    impressions?: string;
+    reach?: string;
+    actions?: { action_type?: string; value?: string }[];
+  }[];
+  paging?: { next?: string };
+  error?: { message?: string };
+};
+
+type FbCampaignsRes = {
+  data?: { id?: string; effective_status?: string }[];
+  paging?: { next?: string };
+  error?: { message?: string };
+};
+
+/** Bật/tắt chiến dịch trên Facebook (token cần quyền ads_management). */
+export async function setFbCampaignStatus(
+  id: string,
+  status: "ACTIVE" | "PAUSED",
+): Promise<void> {
+  const token = process.env.FB_TOKEN;
+  if (!token) throw new Error("Thiếu FB_TOKEN.");
+  const res = await fetch(`${FB_API}/${id}`, {
+    method: "POST",
+    body: new URLSearchParams({ status, access_token: token }),
+    cache: "no-store",
+  });
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean;
+    error?: { message?: string; error_user_msg?: string };
+  } | null;
+  if (!res.ok || !json?.success)
+    throw new Error(
+      [json?.error?.message ?? `Facebook API ${res.status}`, json?.error?.error_user_msg]
+        .filter(Boolean)
+        .join(" — "),
+    );
+}
+
+async function fbGet<T extends { error?: { message?: string } }>(url: string) {
+  const res = await fetch(url, { cache: "no-store" });
+  const json = (await res.json().catch(() => null)) as T | null;
+  if (!res.ok || !json || json.error) {
+    // Kèm error_user_msg (nếu có) — "Invalid parameter" trơn không đủ để chẩn đoán.
+    const err = json?.error as
+      | { message?: string; error_user_msg?: string }
+      | undefined;
+    throw new Error(
+      [err?.message ?? `Facebook API ${res.status}`, err?.error_user_msg]
+        .filter(Boolean)
+        .join(" — "),
+    );
+  }
+  return json;
+}
+
+/** Chiến dịch có lượt hiển thị > 0 trong range (gộp các tài khoản ads), kèm trạng thái hiện tại. */
+export async function fetchFbCampaigns(
+  from: string,
+  to: string,
+): Promise<FbCampaign[]> {
+  const token = process.env.FB_TOKEN;
+  if (!token) throw new Error("Thiếu FB_TOKEN.");
+  const time_range = JSON.stringify({ since: from, until: to });
+
+  const byAccount = await Promise.all(
+    FB_AD_ACCOUNTS.map(async (act) => {
+      const qs = new URLSearchParams({
+        level: "campaign",
+        fields:
+          "campaign_id,campaign_name,account_name,spend,impressions,reach,actions",
+        time_range,
+        limit: "500",
+        access_token: token,
+      });
+      const out: NonNullable<FbCampaignInsightsRes["data"]> = [];
+      let url: string | undefined = `${FB_API}/${act}/insights?${qs}`;
+      while (url) {
+        const json: FbCampaignInsightsRes = await fbGet(url);
+        out.push(...(json.data ?? []));
+        url = json.paging?.next;
+      }
+      return out.filter(
+        (r) => r.campaign_id && Number(r.impressions ?? 0) > 0,
+      );
+    }),
+  );
+  const rows = byAccount.flat();
+
+  // Trạng thái: liệt kê /act_x/campaigns (tham số mặc định, không filtering —
+  // Graph API hay từ chối filter/ids với "Invalid parameter"). Best-effort:
+  // lỗi hoặc thiếu (chiến dịch đã xoá) → "UNKNOWN", bảng vẫn hiện số liệu.
+  const status = new Map<string, string>();
+  const wanted = new Set(rows.map((r) => r.campaign_id!));
+  await Promise.all(
+    FB_AD_ACCOUNTS.map(async (act) => {
+      const qs = new URLSearchParams({
+        fields: "id,effective_status",
+        limit: "500",
+        access_token: token,
+      });
+      let url: string | undefined = `${FB_API}/${act}/campaigns?${qs}`;
+      try {
+        while (url) {
+          const json: FbCampaignsRes = await fbGet(url);
+          for (const c of json.data ?? [])
+            if (c.id && c.effective_status && wanted.has(c.id))
+              status.set(c.id, c.effective_status);
+          url = json.paging?.next;
+        }
+      } catch (err) {
+        console.error(`[fb] campaigns status ${act}:`, err);
+      }
+    }),
+  );
+
+  return rows
+    .map((r) => ({
+      id: r.campaign_id!,
+      name: r.campaign_name ?? "—",
+      accountName: r.account_name ?? "—",
+      status: status.get(r.campaign_id!) ?? "UNKNOWN",
+      spend: Number(r.spend ?? 0),
+      messages: Number(
+        r.actions?.find((a) => a.action_type === FB_MESSAGE_ACTION)?.value ?? 0,
+      ),
+      impressions: Number(r.impressions ?? 0),
+      reach: Number(r.reach ?? 0),
+    }))
+    .sort((a, b) => b.spend - a.spend);
 }
 
 type SmaxRes = {

@@ -19,25 +19,20 @@ export function Page({
   );
 }
 
-/** Tiêu đề trang + mô tả + nút thao tác. Trang con không tự viết `<h1>`. */
+/** Tiêu đề trang + nút thao tác. Trang con không tự viết `<h1>`. */
 export function PageHeader({
   title,
-  description,
   actions,
 }: {
   title: React.ReactNode;
-  description?: React.ReactNode;
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         {/* Thẻ thuần (không Typography.Title): file này render cả ở Server
             Component, nơi không "chấm" vào export client của antd được. */}
         <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
-        {description ? (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        ) : null}
       </div>
       {actions ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2">

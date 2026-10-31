@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Button, Divider, Layout, Menu, type MenuProps } from "antd";
+import { Button, Divider, Drawer, Layout, Menu, type MenuProps } from "antd";
 import {
   Briefcase,
   LayoutDashboard,
@@ -54,10 +54,16 @@ export function AppShell({
   const t = useTranslations();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  // Mobile (< md): Sider ẩn hẳn, menu mở dạng Drawer đè lên nội dung.
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const toggle = (next: boolean) => {
     setCollapsed(next);
     document.cookie = `${COLLAPSE_COOKIE}=${!next}; path=/; max-age=31536000`;
+  };
+  const onToggleClick = () => {
+    if (window.matchMedia("(min-width: 768px)").matches) toggle(!collapsed);
+    else setMobileOpen(true);
   };
 
   const navItems = isAdmin ? [...ITEMS, ...ADMIN_ITEMS] : ITEMS;
@@ -84,6 +90,31 @@ export function AppShell({
       : (navItems.find((i) => i.href !== "/" && pathname.startsWith(i.href))?.href ??
         pathname);
 
+  const nav = (compact: boolean) => (
+    <>
+      <Link
+        href="/"
+        className="flex h-14 items-center gap-2.5 border-b border-border px-4"
+      >
+        <span className="flex size-8 shrink-0 items-center justify-center rounded bg-white">
+          <Logo className="size-7" />
+        </span>
+        {!compact && (
+          <span className="truncate text-sm font-semibold tracking-[0.08em] text-foreground">
+            LAVIAN <span className="text-primary">CRM</span>
+          </span>
+        )}
+      </Link>
+      <Menu
+        mode="inline"
+        selectedKeys={[selected]}
+        defaultOpenKeys={pathname.startsWith("/enums") ? ["/enums"] : []}
+        items={menuItems}
+        className="border-0 px-1 py-3"
+      />
+    </>
+  );
+
   return (
     <Layout className="min-h-svh">
       <Layout.Sider
@@ -91,31 +122,25 @@ export function AppShell({
         collapsed={collapsed}
         onCollapse={toggle}
         trigger={null}
-        breakpoint="md"
         width={232}
-        className="sticky top-0 h-svh border-r border-border"
+        className="sticky top-0 h-svh border-r border-border max-md:hidden!"
       >
-        <Link
-          href="/"
-          className="flex h-14 items-center gap-2.5 border-b border-border px-4"
-        >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded bg-white">
-            <Logo className="size-7" />
-          </span>
-          {!collapsed && (
-            <span className="truncate text-sm font-semibold tracking-[0.08em] text-foreground">
-              LAVIAN <span className="text-primary">CRM</span>
-            </span>
-          )}
-        </Link>
-        <Menu
-          mode="inline"
-          selectedKeys={[selected]}
-          defaultOpenKeys={pathname.startsWith("/enums") ? ["/enums"] : []}
-          items={menuItems}
-          className="border-0 px-1 py-3"
-        />
+        {nav(collapsed)}
       </Layout.Sider>
+
+      <Drawer
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        placement="left"
+        size={232}
+        closable={false}
+        styles={{ body: { padding: 0 } }}
+      >
+        {/* Bấm vào link nào cũng đóng drawer. */}
+        <div onClick={(e) => (e.target as HTMLElement).closest("a") && setMobileOpen(false)}>
+          {nav(false)}
+        </div>
+      </Drawer>
 
       <Layout className="min-w-0">
         <Layout.Header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border">
@@ -123,7 +148,7 @@ export function AppShell({
             type="text"
             icon={<PanelLeft className="size-4" />}
             aria-label={t("nav.toggleSidebar")}
-            onClick={() => toggle(!collapsed)}
+            onClick={onToggleClick}
           />
           <span className="hidden text-sm font-semibold sm:inline">
             {t("common.appName")}
