@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Button, Form, Input, InputNumber, Select, Switch, Tag, type TableProps } from "antd";
+import { Button, Form, Input, Select, Switch, Tag, type TableProps } from "antd";
 import { CalendarPlus, Search, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
@@ -12,14 +12,10 @@ import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { RowActions } from "@/components/common/row-actions";
 import { EnumTag } from "@/components/common/enum-tag";
-import { InlineMultiSelect, InlineSelect, matchWords } from "@/components/common/inline-select";
+import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import {
-  decodeDetail, encodeDetail, MAX_SESSION, SESSION_DETAILS, tourAmount, tourRate, type ServiceDetail,
-} from "@/lib/appointments";
-import { formatRupiah, sanitizeCurrencyInput } from "@/lib/currency";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import { optionLabel, serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
@@ -28,29 +24,10 @@ import type { Service } from "@/types/service";
 
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
 
-// Mỗi cột người phụ trách chỉ chọn người đúng bộ phận (giữ người đang gán để vẫn hiển thị).
-const STAFF_FIELDS = [["staff_id", "staff", "customer_care"], ["technician_id", "technician", "technician"]] as const;
-const staffOptions = (staff: AppointmentStaff[], department: string, current?: string | null) => staff
-  .filter((s) => s.id === current || (s.status === "active" && s.department === department))
+// Chỉ chọn CSKH (giữ người đang gán để vẫn hiển thị).
+const staffOptions = (staff: AppointmentStaff[], current?: string | null) => staff
+  .filter((s) => s.id === current || (s.status === "active" && s.department === "customer_care"))
   .map((s) => ({ value: s.id, label: staffLabel(s) }));
-
-type T = ReturnType<typeof useTranslations<"appointments">>;
-
-const detailLabel = (t: T, detail: ServiceDetail, session: number | null) =>
-  session ? `${t(`detail_${detail}`)} ${session}` : t(`detail_${detail}`);
-
-// Thứ tự theo nghiệp vụ: Laser, Plasma, New, Debt, Retouch. Nhãn kèm % tour để chọn là biết.
-function detailOptions(t: T) {
-  const leaf = (detail: ServiceDetail, session: number | null) => ({
-    value: encodeDetail(detail, session),
-    label: `${detailLabel(t, detail, session)} · ${Math.round(tourRate(detail, session) * 100)}%`,
-  });
-  const sessions = (detail: (typeof SESSION_DETAILS)[number]) => ({
-    label: t(`detail_${detail}`),
-    options: Array.from({ length: MAX_SESSION }, (_, i) => leaf(detail, i + 1)),
-  });
-  return [sessions("laser"), sessions("plasma"), leaf("new", null), leaf("debt", null), sessions("retouch")];
-}
 
 export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer }: {
   appointments: Appointment[];
@@ -116,31 +93,11 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       })}</div> : <span className="text-muted-foreground">{t("choose")}</span>}
       options={services.filter((s) => s.is_active || row.service_ids.includes(s.id)).map((s) => ({ value: s.id, label: serviceName(s, locale) }))}
       onSave={(service_ids) => save(row.id, { service_ids })} /> },
-    { title: t("payment"), width: 160, render: (_, row) => <InlineSelect value={row.payment_method ?? ""}
-      ariaLabel={t("payment")} noneLabel={t("choose")}
-      display={row.payment_method ? <EnumTag label={t(row.payment_method)} color="gold" /> : t("choose")}
-      options={(["cash", "bank", "card"] as const).map((value) => ({ value, label: t(value) }))}
-      onSave={(value) => save(row.id, { payment_method: (value || null) as Appointment["payment_method"] })} /> },
-    ...STAFF_FIELDS.map(([field, label, department]) => ({ key: field, title: t(label), width: 170,
-      render: (_: unknown, row: Appointment) => <InlineSelect value={row[field] ?? ""}
-        ariaLabel={t(label)} noneLabel={t("choose")}
-        display={staff.find((s) => s.id === row[field])?.user_name ?? t("choose")}
-        options={staffOptions(staff, department, row[field])}
-        onSave={(value) => save(row.id, { [field]: value || null })} /> })),
-    { title: t("serviceDetail"), width: 170, render: (_, row) => <InlineSelect searchable
-      value={encodeDetail(row.service_detail, row.service_session)}
-      ariaLabel={t("serviceDetail")} noneLabel={t("choose")} options={detailOptions(t)}
-      display={row.service_detail
-        ? <Tag color="cyan" className="me-0">{detailLabel(t, row.service_detail, row.service_session)}</Tag>
-        : t("choose")}
-      onSave={(value) => save(row.id, decodeDetail(value))} /> },
-    { title: t("bill"), width: 150, render: (_, row) => <AppointmentBill value={row.bill_amount}
-      label={t("bill")} onSave={(bill_amount) => save(row.id, { bill_amount })} /> },
-    { title: t("tour"), width: 120, align: "right", render: (_, row) => {
-      const tour = tourAmount(row.service_detail, row.service_session, row.bill_amount);
-      return tour == null ? <span className="text-muted-foreground">—</span>
-        : <span className="tabular-nums font-medium">{formatRupiah(tour)}</span>;
-    } },
+    { title: t("staff"), width: 170, render: (_, row) => <InlineSelect value={row.staff_id ?? ""}
+      ariaLabel={t("staff")} noneLabel={t("choose")}
+      display={staff.find((s) => s.id === row.staff_id)?.user_name ?? t("choose")}
+      options={staffOptions(staff, row.staff_id)}
+      onSave={(value) => save(row.id, { staff_id: value || null })} /> },
     { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note}
       label={t("note")} onSave={(note) => save(row.id, { note })} /> },
     { key: "actions", width: 56, align: "right", fixed: "right", render: (_, row) => <RowActions label={t("remove")}
@@ -168,7 +125,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
         options={[{ value: "all", label: t("allArrivals") }, { value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
     </PageToolbar>
-    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2410 }} empty={t("empty")}
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1640 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff} services={services}
@@ -189,26 +146,8 @@ function AppointmentNote({ value, label, onSave }: {
     }} />;
 }
 
-const formatBill = (v: number | string | undefined) => (v === undefined || v === "" ? "" : Number(v).toLocaleString("id-ID"));
-const parseBill = (v: string | undefined) => sanitizeCurrencyInput(v ?? "") as unknown as number;
-
-function AppointmentBill({ value, label, onSave }: {
-  value: number | null; label: string; onSave: (bill: number | null) => void;
-}) {
-  const [draft, setDraft] = useState(value);
-  const [seen, setSeen] = useState(value);
-  if (seen !== value) { setSeen(value); setDraft(value); }
-  return <InputNumber<number> value={draft} aria-label={label} placeholder="Rp"
-    variant="borderless" size="small" min={0} precision={0} controls={false} className="w-full tabular-nums"
-    formatter={formatBill} parser={parseBill}
-    onChange={(v) => setDraft(v ?? null)}
-    onBlur={() => { if (draft !== value) onSave(draft); }}
-    onPressEnter={(e) => e.currentTarget.blur()} />;
-}
-
 type CreateValues = Required<Pick<AppointmentPatch, "scheduled_at">> & Omit<AppointmentPatch, "scheduled_at"> & {
   customer_id: string;
-  detail?: string;
 };
 
 function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff, services }: {
@@ -225,11 +164,9 @@ function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, cu
   const [form] = Form.useForm<CreateValues>();
   const [pending, start] = useTransition();
 
-  const onFinish = ({ customer_id, detail, ...values }: CreateValues) => start(async () => {
+  const onFinish = ({ customer_id, ...values }: CreateValues) => start(async () => {
     try {
-      const result = await createAppointment(customer_id, {
-        ...values, ...decodeDetail(detail ?? ""), bill_amount: values.bill_amount ?? null, note: values.note ?? "",
-      });
+      const result = await createAppointment(customer_id, { ...values, note: values.note ?? "" });
       if (result.error) toast.error(result.error);
       else { toast.success(t("saved")); onCreated(); }
     } catch { toast.error(t("saveError")); }
@@ -253,24 +190,10 @@ function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, cu
         <Select mode="multiple" allowClear placeholder={t("choose")} optionFilterProp="label"
           options={services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />
       </Form.Item>
-      <Form.Item name="payment_method" label={t("payment")}>
-        <Select allowClear placeholder={t("choose")}
-          options={(["cash", "bank", "card"] as const).map((value) => ({ value, label: t(value) }))} />
-      </Form.Item>
-      {STAFF_FIELDS.map(([field, label, department]) => <Form.Item key={field} name={field} label={t(label)}>
+      <Form.Item name="staff_id" label={t("staff")}>
         <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("choose")}
-          options={staffOptions(staff, department)} />
-      </Form.Item>)}
-      <div className="grid grid-cols-2 gap-3">
-        <Form.Item name="detail" label={t("serviceDetail")}>
-          <Select allowClear placeholder={t("choose")} options={detailOptions(t)}
-            showSearch={{ filterOption: (input, option) => matchWords(input, option?.label) }} />
-        </Form.Item>
-        <Form.Item name="bill_amount" label={t("bill")}>
-          <InputNumber<number> className="w-full" min={0} precision={0} controls={false} placeholder="Rp"
-            formatter={formatBill} parser={parseBill} />
-        </Form.Item>
-      </div>
+          options={staffOptions(staff)} />
+      </Form.Item>
       <Form.Item name="note" label={t("note")} className="mb-0">
         <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />
       </Form.Item>

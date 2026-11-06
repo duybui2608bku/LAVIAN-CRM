@@ -10,7 +10,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 /** Upload qua /api/upload (proxy cfig.ibytecdn.org phía server), trả public URL. */
-async function uploadImage(file: File): Promise<string> {
+export async function uploadImage(file: File): Promise<string> {
   const form = new FormData();
   form.append("file", file);
   form.append("server", "server_1"); // ponytail: server CDN cố định, thêm chọn lựa khi upstream có nhiều server

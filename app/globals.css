@@ -154,6 +154,9 @@
   .tag-motion { animation: tag-enter 160ms ease-out; }
   .page-motion .ant-table-cell { transition: background-color 160ms ease; }
 }
+/* Drawer form (FormDrawer) không tràn màn hình điện thoại. */
+.ant-drawer-content-wrapper { max-width: 100vw; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }

@@ -26,13 +26,12 @@ async function failure(error: unknown) {
     ? t("duplicate") : normalizeError(error).message };
 }
 
-// Các kiểm tra độc lập → chạy song song (1 round-trip thay vì tối đa 3).
+// Các kiểm tra độc lập → chạy song song.
 async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch: AppointmentPatch) {
   const checks: PromiseLike<void>[] = [];
-  for (const [id, department] of [[patch.staff_id, "customer_care"], [patch.technician_id, "technician"]]) {
-    if (!id) continue;
-    checks.push(db.from("profiles").select("id").eq("id", id).eq("status", "active")
-      .eq("department", department).single().then(({ error }) => { if (error) throw error; }));
+  if (patch.staff_id) {
+    checks.push(db.from("profiles").select("id").eq("id", patch.staff_id).eq("status", "active")
+      .eq("department", "customer_care").single().then(({ error }) => { if (error) throw error; }));
   }
   const serviceIds = patch.service_ids;
   if (serviceIds?.length) {

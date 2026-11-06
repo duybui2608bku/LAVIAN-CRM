@@ -16,6 +16,7 @@ export function FormDrawer({
   width = 480,
   onSubmit,
   onClose,
+  footerExtra,
   children,
 }: {
   open: boolean;
@@ -25,6 +26,8 @@ export function FormDrawer({
   width?: number;
   onSubmit: () => void;
   onClose: () => void;
+  /** Nút phụ canh trái footer (vd. Xác nhận, Trả tour). */
+  footerExtra?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const t = useTranslations("common");
@@ -38,8 +41,9 @@ export function FormDrawer({
       closable={!pending}
       mask={{ closable: !pending }}
       footer={
-        <div className="flex justify-end gap-2">
-          <Button onClick={onClose} disabled={pending}>
+        <div className="flex flex-wrap items-center gap-2">
+          {footerExtra}
+          <Button className="ms-auto" onClick={onClose} disabled={pending}>
             {t("cancel")}
           </Button>
           <Button type="primary" loading={pending} onClick={onSubmit}>

@@ -37,39 +37,39 @@ export function TourSlips({ groups, month }: { groups: TourGroup[]; month: strin
             <thead>
               <tr>
                 <th>No.</th><th>Date</th><th>Customer</th><th>Service</th>
-                <th className="num">Bill</th><th className="num">Rate</th><th className="num">Tour</th>
+                <th className="num">Bill</th><th className="num">Rate</th><th className="num">Received</th>
               </tr>
             </thead>
             <tbody>
               {[...g.rows].reverse().map((row, i) => (
                 <tr key={row.id}>
                   <td>{i + 1}</td>
-                  <td>{dayjs(row.scheduled_at).format("DD/MM/YYYY")}</td>
+                  <td>{dayjs(row.tour_date).format("DD/MM/YYYY")}</td>
                   <td>{row.customer?.full_name ?? "—"}</td>
                   <td>{detailLabelEn(row) || "—"}</td>
                   <td className="num">{row.bill_amount == null ? "—" : formatRupiah(row.bill_amount)}</td>
                   <td className="num">{row.rate == null ? "—" : `${Math.round(row.rate * 100)}%`}</td>
-                  <td className="num">{row.tour == null ? "—" : formatRupiah(row.tour)}</td>
+                  <td className="num">{row.amount == null ? "—" : formatRupiah(row.amount)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={4}>Total ({g.rows.length} appointments)</td>
+                <td colSpan={4}>Total ({g.rows.length} tours)</td>
                 <td className="num">{formatRupiah(g.bill)}</td>
                 <td />
-                <td className="num">{formatRupiah(g.tour)}</td>
+                <td className="num">{formatRupiah(g.amount)}</td>
               </tr>
             </tfoot>
           </table>
 
           {g.missing ? (
             <p className="tour-slip-note">
-              {g.missing} appointment(s) missing bill or service detail are not included in the tour total.
+              {g.missing} tour(s) missing bill or service detail are not included in the total.
             </p>
           ) : null}
 
-          <p className="tour-slip-amount">Total tour payable: <strong>{formatRupiah(g.tour)}</strong></p>
+          <p className="tour-slip-amount">Total payable: <strong>{formatRupiah(g.amount)}</strong></p>
 
           <div className="tour-slip-sign">
             <div><span>Technician</span><i />{g.technician.user_name}</div>

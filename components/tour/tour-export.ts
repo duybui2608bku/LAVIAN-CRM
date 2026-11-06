@@ -21,7 +21,7 @@ export async function downloadTourExcel(groups: TourGroup[], month: string, labe
   const ws = wb.addWorksheet(`Tour ${month}`, { views: [{ state: "frozen", ySplit: 1 }] });
   ws.columns = [
     { header: labels.technician, width: 24 },
-    { header: labels.date, width: 18 },
+    { header: labels.date, width: 14 },
     { header: labels.customer, width: 28 },
     { header: labels.service, width: 14 },
     { header: labels.bill, width: 16, style: { numFmt: "#,##0" } },
@@ -35,15 +35,15 @@ export async function downloadTourExcel(groups: TourGroup[], month: string, labe
     for (const row of g.rows) {
       ws.addRow([
         g.technician.user_name,
-        dayjs(row.scheduled_at).format("DD/MM/YYYY HH:mm"),
+        dayjs(row.tour_date).format("DD/MM/YYYY"),
         row.customer?.full_name ?? "",
         labels.detail(row),
         row.bill_amount,
         row.rate,
-        row.tour,
+        row.amount,
       ]);
     }
-    const sub = ws.addRow([`${labels.subtotal} ${g.technician.user_name}`, `${g.rows.length}`, null, null, g.bill, null, g.tour]);
+    const sub = ws.addRow([`${labels.subtotal} ${g.technician.user_name}`, `${g.rows.length}`, null, null, g.bill, null, g.amount]);
     sub.font = { bold: true };
     sub.eachCell((cell) => { cell.fill = fill; });
   }
@@ -51,7 +51,7 @@ export async function downloadTourExcel(groups: TourGroup[], month: string, labe
   const total = ws.addRow([
     labels.total, `${count}`, null, null,
     groups.reduce((n, g) => n + g.bill, 0), null,
-    groups.reduce((n, g) => n + g.tour, 0),
+    groups.reduce((n, g) => n + g.amount, 0),
   ]);
   total.font = { bold: true };
 

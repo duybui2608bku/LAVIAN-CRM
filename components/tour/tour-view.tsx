@@ -1,72 +1,178 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button, DatePicker, Select, Switch, Tag, type TableProps } from "antd";
-import { FileSpreadsheet, Printer } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { Button, DatePicker, Empty, Input, Segmented, Select, Tag, type TableProps } from "antd";
+import { CheckCircle2, FileSpreadsheet, Images, PencilLine, Plus, Printer, Search, Trash2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
+import { claimTour, confirmTour, deleteTour } from "@/app/(app)/tour/actions";
+import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
+import { RowActions } from "@/components/common/row-actions";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { ALL_TECHNICIANS, groupByTechnician, toItem, type TourGroup, type TourItem, type TourRow } from "@/components/tour/tour-data";
+import { CreateTourDrawer, detailText, runAction, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
+import { groupByTechnician, toItem, type TourItem } from "@/components/tour/tour-data";
 import { TourSlips } from "@/components/tour/tour-slips";
 import { formatRupiah } from "@/lib/currency";
+import { serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
+import { tourStatus, type TourStatus } from "@/lib/tours";
+import type { AppointmentCustomer } from "@/types/appointment";
+import type { Service } from "@/types/service";
+import type { Tour } from "@/types/tour";
 
 const DASH = <span className="text-muted-foreground">—</span>;
+const ALL = "all";
 
-/** Dòng bảng: lịch hẹn, hoặc dòng nhóm KTV (`group`) có `children` khi gom nhóm. */
-type TableRow = (TourItem & { group?: undefined; children?: undefined })
-  | { id: string; group: TourGroup; children: TourItem[] };
-
-/**
- * Tiền tour theo tháng (chỉ đọc). `technicians` != null → admin: chọn KTV hoặc "Tất cả",
- * thêm cột Nhân viên, gom nhóm theo nhân viên, xuất Excel và phiếu tour PDF.
- */
-export function TourView({ rows, month, technicianId, technicians, staff }: {
-  rows: TourRow[];
+type Props = {
+  me: TourMe;
   month: string;
-  technicianId: string;
-  technicians: StaffRef[] | null;
+  tours: Tour[];
+  pending: Tour[];
+  services: Service[];
   staff: StaffRef[];
-}) {
-  const t = useTranslations("tour");
-  const ta = useTranslations("appointments");
+  customers: AppointmentCustomer[];
+};
+
+/** Menu Tour: KTV → danh sách thẻ (điện thoại); CSKH/admin → bảng. Bấm tour mở drawer chi tiết. */
+export function TourView(props: Props) {
   const router = useRouter();
-  const isAdmin = technicians != null;
-  const isAll = technicianId === ALL_TECHNICIANS;
-  const [grouped, setGrouped] = useState(true);
-  const [exporting, setExporting] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = openId ? [...props.pending, ...props.tours].find((t) => t.id === openId) : undefined;
+  const goMonth = (month: string) => router.push(`/tour?month=${month}`);
+  const shared = { ...props, onOpen: setOpenId, goMonth };
 
-  const monthStart = dayjs(`${month}-01`);
-  const items = rows.filter((row) => dayjs(row.scheduled_at).isSame(monthStart, "month")).map(toItem);
-  const groups = isAdmin ? groupByTechnician(items, staff) : [];
-  const staffById = new Map(staff.map((s) => [s.id, s]));
-  const totalTour = items.reduce((sum, row) => sum + (row.tour ?? 0), 0);
-  const totalBill = items.reduce((sum, row) => sum + (row.bill_amount ?? 0), 0);
-  const missing = items.filter((row) => row.tour == null).length;
-  const showGroups = isAll && grouped;
+  return <Page>
+    {props.me.isTechnician ? <TechnicianTours {...shared} /> : <TourTable {...shared} />}
+    {open ? <TourDrawer key={open.id} tour={open} me={props.me} services={props.services} staff={props.staff}
+      customers={props.customers} onClose={() => setOpenId(null)} /> : null}
+  </Page>;
+}
 
-  const go = (next: { month?: string; technician?: string }) => {
-    const qs = new URLSearchParams({ month: next.month ?? month });
-    const tech = next.technician ?? technicianId;
-    if (isAdmin && tech !== ALL_TECHNICIANS) qs.set("technician", tech);
-    router.push(`/tour?${qs}`);
+type ViewProps = Props & { onOpen: (id: string) => void; goMonth: (month: string) => void };
+
+function MonthPicker({ month, goMonth }: { month: string; goMonth: (m: string) => void }) {
+  const t = useTranslations("tour");
+  return <DatePicker picker="month" value={dayjs(`${month}-01`)} allowClear={false} format="MM/YYYY"
+    aria-label={t("month")} inputReadOnly onChange={(d) => d && goMonth(d.format("YYYY-MM"))} />;
+}
+
+function useServiceLabel(services: Service[]) {
+  const locale = useLocale();
+  return (id: string) => {
+    const s = services.find((x) => x.id === id);
+    return s ? serviceName(s, locale) : "—";
+  };
+}
+
+const photoCount = (t: Tour) => t.before_images.length + t.after_images.length + t.extra_images.length;
+
+// ───────────────────────── KTV ─────────────────────────
+
+function TechnicianTours({ month, tours, pending, services, onOpen, goMonth }: ViewProps) {
+  const t = useTranslations("tour");
+  const serviceLabel = useServiceLabel(services);
+  const [tab, setTab] = useState<"pending" | "mine">(pending.length ? "pending" : "mine");
+  const [claiming, setClaiming] = useState<string | null>(null);
+  const [, start] = useTransition();
+  const items = tours.map(toItem);
+  const unconfirmed = items.filter((r) => !r.confirmed_at).length;
+  const total = items.reduce((n, r) => n + (r.amount ?? 0), 0);
+  const confirmedTotal = items.reduce((n, r) => n + (r.confirmed_at ? r.amount ?? 0 : 0), 0);
+
+  const claim = (id: string) => {
+    setClaiming(id);
+    start(async () => {
+      if (await runAction(claimTour(id), t("claimed"), t("saveError"))) { setTab("mine"); onOpen(id); }
+      setClaiming(null);
+    });
   };
 
-  const detailText = (row: TourItem) =>
-    row.service_detail ? `${ta(`detail_${row.service_detail}`)}${row.service_session ? ` ${row.service_session}` : ""}` : "";
+  return <>
+    <PageHeader title={t("title")} />
+    <Segmented block value={tab} onChange={(v) => setTab(v as typeof tab)} options={[
+      { value: "pending", label: `${t("tabPending")} (${pending.length})` },
+      { value: "mine", label: t("tabMine") },
+    ]} />
+    {tab === "pending" ? <div className="flex flex-col gap-2">
+      {pending.length ? pending.map((tour) => <div key={tour.id} className="surface flex flex-col gap-2 p-3">
+        <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
+        {tour.note ? <p className="line-clamp-3 text-sm text-muted-foreground">{tour.note}</p> : null}
+        <Button type="primary" size="large" block loading={claiming === tour.id} disabled={!!claiming}
+          onClick={() => claim(tour.id)}>{t("claim")}</Button>
+      </div>) : <div className="surface py-10"><Empty description={t("noPending")} /></div>}
+    </div> : <>
+      <PageToolbar><MonthPicker month={month} goMonth={goMonth} /></PageToolbar>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <StatCard label={t("count")} value={items.length} />
+        <StatCard label={t("status_claimed")} value={unconfirmed} />
+        <StatCard label={t("received")} value={formatRupiah(total)}
+          hint={t("confirmedAmount", { amount: formatRupiah(confirmedTotal) })} />
+      </div>
+      <div className="flex flex-col gap-2">
+        {items.length ? items.map((tour) => <button key={tour.id} type="button" onClick={() => onOpen(tour.id)}
+          className="surface flex flex-col gap-2 p-3 text-left hover:border-primary">
+          <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <span className="flex items-center gap-2">
+              {tour.service_detail ? <Tag color="cyan" className="me-0">{detailText(t, tour)}</Tag> : <Tag className="me-0">{t("needDetail")}</Tag>}
+              <span className="flex items-center gap-1 text-muted-foreground"><Images className="size-4" />{photoCount(tour)}</span>
+            </span>
+            <span className="font-semibold tabular-nums">{tour.amount == null ? "—" : formatRupiah(tour.amount)}</span>
+          </div>
+        </button>) : <div className="surface py-10"><Empty description={t("empty")} /></div>}
+      </div>
+    </>}
+  </>;
+}
+
+function TourCardBody({ tour, service }: { tour: Tour; service: string }) {
+  return <>
+    <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0">
+        <p className="truncate font-medium">{tour.customer?.full_name ?? "—"}</p>
+        <p className="text-sm text-muted-foreground">{dayjs(tour.tour_date).format("DD/MM/YYYY")} · {service}</p>
+      </div>
+      <TourStatusTag tour={tour} />
+    </div>
+  </>;
+}
+
+// ───────────────────────── CSKH / admin ─────────────────────────
+
+function TourTable({ me, month, tours, services, staff, customers, onOpen, goMonth }: ViewProps) {
+  const t = useTranslations("tour");
+  const confirm = useConfirm();
+  const serviceLabel = useServiceLabel(services);
+  const [status, setStatus] = useState<TourStatus | typeof ALL>(ALL);
+  const [technician, setTechnician] = useState(ALL);
+  const [search, setSearch] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const staffById = new Map(staff.map((s) => [s.id, s]));
+  const technicians = staff.filter((s) => s.department === "technician");
+
+  const all = tours.map(toItem);
+  const q = search.trim().toLocaleLowerCase();
+  const items = all.filter((r) => (status === ALL || tourStatus(r) === status)
+    && (technician === ALL || r.technician_id === technician)
+    && (!q || `${r.customer?.full_name ?? ""} ${r.customer?.phone ?? ""}`.toLocaleLowerCase().includes(q)));
+  const groups = me.isAdmin ? groupByTechnician(items, staff) : [];
+  const count = (s: TourStatus) => all.filter((r) => tourStatus(r) === s).length;
+  const total = items.reduce((n, r) => n + (r.amount ?? 0), 0);
+  const failed = t("saveError");
 
   const exportExcel = async () => {
     setExporting(true);
     try {
       const { downloadTourExcel } = await import("@/components/tour/tour-export");
       await downloadTourExcel(groups, month, {
-        technician: t("staff"), date: t("date"), customer: t("customer"), service: ta("serviceDetail"),
-        bill: ta("bill"), rate: "%", tour: ta("tour"), subtotal: t("subtotal"), total: t("grandTotal"),
-        detail: detailText,
+        technician: t("technician"), date: t("date"), customer: t("customer"), service: t("serviceDetail"),
+        bill: t("bill"), rate: "%", tour: t("received"), subtotal: t("subtotal"), total: t("grandTotal"),
+        detail: (row) => detailText(t, row),
       });
     } catch {
       toast.error(t("exportFailed"));
@@ -75,71 +181,79 @@ export function TourView({ rows, month, technicianId, technicians, staff }: {
     }
   };
 
-  const columns: TableProps<TableRow>["columns"] = [
-    ...(isAdmin ? [{
-      title: t("staff"), width: 200,
-      render: (_: unknown, row: TableRow) => {
-        if (row.group) return <span className="font-medium">{staffLabel(row.group.technician)}</span>;
-        if (showGroups) return null;
-        const s = row.technician_id ? staffById.get(row.technician_id) : undefined;
-        return s ? staffLabel(s) : DASH;
-      },
-    }] : []),
-    { title: t("date"), width: 150, render: (_, row) => row.group
-      ? <span className="text-muted-foreground">{t("groupCount", { count: row.group.rows.length })}</span>
-      : dayjs(row.scheduled_at).format("DD/MM/YYYY HH:mm") },
-    { title: t("customer"), render: (_, row) => row.group
-      ? (row.group.missing ? <Tag color="warning" className="me-0">{t("missing", { count: row.group.missing })}</Tag> : null)
-      : <span className="font-medium">{row.customer?.full_name ?? "—"}</span> },
-    { title: ta("serviceDetail"), width: 160, render: (_, row) => row.group ? null : row.service_detail
-      ? <Tag color="cyan" className="me-0">{detailText(row)}</Tag>
-      : DASH },
-    { title: ta("bill"), width: 150, align: "right", render: (_, row) => {
-      const value = row.group ? row.group.bill : row.bill_amount;
-      return value == null ? DASH : <span className={row.group ? "tabular-nums font-semibold" : "tabular-nums"}>{formatRupiah(value)}</span>;
+  const columns: TableProps<TourItem>["columns"] = [
+    { title: t("date"), width: 110, render: (_, r) => dayjs(r.tour_date).format("DD/MM/YYYY") },
+    { title: t("customer"), width: 200, render: (_, r) => <div className="min-w-0">
+      <p className="font-medium">{r.customer?.full_name ?? "—"}</p>
+      <p className="text-xs text-muted-foreground">{r.customer?.phone}</p>
+    </div> },
+    { title: t("service"), width: 140, render: (_, r) => serviceLabel(r.service_id) },
+    { title: t("serviceDetail"), width: 130, render: (_, r) => r.service_detail
+      ? <Tag color="cyan" className="me-0">{detailText(t, r)}</Tag> : DASH },
+    { title: t("technician"), width: 170, render: (_, r) => {
+      const s = r.technician_id ? staffById.get(r.technician_id) : undefined;
+      return s ? staffLabel(s) : DASH;
     } },
-    { title: "%", width: 70, align: "right", render: (_, row) =>
-      row.group ? null : row.rate == null ? DASH : `${Math.round(row.rate * 100)}%` },
-    { title: ta("tour"), width: 140, align: "right", render: (_, row) => {
-      const value = row.group ? row.group.tour : row.tour;
-      return value == null ? DASH : <span className="tabular-nums font-semibold">{formatRupiah(value)}</span>;
-    } },
+    { title: t("photos"), width: 90, render: (_, r) => <span className="flex items-center gap-1 text-muted-foreground">
+      <Images className="size-4" />{photoCount(r)}</span> },
+    { title: t("bill"), width: 140, align: "right", render: (_, r) =>
+      r.bill_amount == null ? DASH : <span className="tabular-nums">{formatRupiah(r.bill_amount)}</span> },
+    { title: t("payment"), width: 120, render: (_, r) => r.payment_method ? t(`pay_${r.payment_method}`) : DASH },
+    { title: "%", width: 60, align: "right", render: (_, r) => r.rate == null ? DASH : `${Math.round(r.rate * 100)}%` },
+    { title: t("received"), width: 140, align: "right", render: (_, r) =>
+      r.amount == null ? DASH : <span className="tabular-nums font-semibold">{formatRupiah(r.amount)}</span> },
+    { title: t("status"), width: 140, render: (_, r) => <TourStatusTag tour={r} /> },
+    { key: "actions", width: 56, align: "right", fixed: "right", render: (_, r) => <div onClick={(e) => e.stopPropagation()}>
+      <RowActions label={t("actions")} items={[
+        { icon: <PencilLine className="size-4" />, label: t("open"), onSelect: () => onOpen(r.id) },
+        ...(me.isAdmin && tourStatus(r) === "claimed" ? [{ icon: <CheckCircle2 className="size-4" />, label: t("confirm"),
+          onSelect: () => void runAction(confirmTour(r.id, true), t("confirmedToast"), failed) }] : []),
+        ...(me.isAdmin || (r.created_by === me.id && !r.technician_id) ? [{
+          icon: <Trash2 className="size-4" />, label: t("remove"), danger: true, onSelect: () => confirm({
+            title: t("removeTitle"), content: t("removeBody", { name: r.customer?.full_name ?? "" }),
+            okText: t("remove"), cancelText: t("cancel"),
+            onOk: () => runAction(deleteTour(r.id), t("removed"), failed),
+          }),
+        }] : []),
+      ]} />
+    </div> },
   ];
 
-  const dataSource: TableRow[] = showGroups
-    ? groups.map((g) => ({ id: `group:${g.technician.id}`, group: g, children: g.rows }))
-    : items;
-
-  return <Page>
-    <PageHeader title={t("title")} actions={isAdmin ? <>
-      <Button icon={<FileSpreadsheet className="size-4" />} loading={exporting} disabled={!items.length} onClick={exportExcel}>
-        {t("exportExcel")}
-      </Button>
-      <Button icon={<Printer className="size-4" />} disabled={!items.length} onClick={() => window.print()}>
-        {t("exportSlip")}
-      </Button>
-    </> : undefined} />
+  return <>
+    <PageHeader title={t("title")} actions={<>
+      {me.isAdmin ? <>
+        <Button icon={<FileSpreadsheet className="size-4" />} loading={exporting} disabled={!groups.length} onClick={exportExcel}>
+          {t("exportExcel")}
+        </Button>
+        <Button icon={<Printer className="size-4" />} disabled={!groups.length} onClick={() => window.print()}>
+          {t("exportSlip")}
+        </Button>
+      </> : null}
+      <Button type="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>{t("create")}</Button>
+    </>} />
     <PageToolbar>
-      <DatePicker picker="month" value={monthStart} allowClear={false} format="MM/YYYY" aria-label={t("month")}
-        onChange={(d) => d && go({ month: d.format("YYYY-MM") })} />
-      {technicians ? <Select className="min-w-56" value={technicianId} aria-label={t("technician")}
-        showSearch={{ optionFilterProp: "title" }}
-        options={[
-          { value: ALL_TECHNICIANS, title: t("allTechnicians"), label: t("allTechnicians") },
+      <MonthPicker month={month} goMonth={goMonth} />
+      <Input value={search} allowClear className="w-full sm:max-w-60" placeholder={t("search")} aria-label={t("search")}
+        prefix={<Search className="size-4" />} onChange={(e) => setSearch(e.target.value)} />
+      <Select className="min-w-40" value={status} aria-label={t("status")} onChange={setStatus} options={[
+        { value: ALL, label: t("allStatuses") },
+        ...(["pending", "claimed", "confirmed"] as const).map((s) => ({ value: s, label: t(`status_${s}`) })),
+      ]} />
+      <Select className="min-w-52" value={technician} aria-label={t("technician")} onChange={setTechnician}
+        showSearch={{ optionFilterProp: "title" }} options={[
+          { value: ALL, title: t("allTechnicians"), label: t("allTechnicians") },
           ...technicians.map((s) => ({ value: s.id, title: s.user_name, label: staffLabel(s) })),
-        ]}
-        onChange={(id) => go({ technician: id })} /> : null}
-      {isAll ? <label className="flex items-center gap-2 text-sm">
-        <Switch size="small" checked={grouped} onChange={setGrouped} />{t("groupByStaff")}
-      </label> : null}
+        ]} />
     </PageToolbar>
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <StatCard label={t("totalTour")} value={formatRupiah(totalTour)} />
-      <StatCard label={t("totalBill")} value={formatRupiah(totalBill)} />
-      <StatCard label={t("count")} value={items.length} tone="warning"
-        hint={missing ? t("missing", { count: missing }) : undefined} />
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatCard label={t("count")} value={all.length} />
+      <StatCard label={t("status_pending")} value={count("pending")} />
+      <StatCard label={t("status_claimed")} value={count("claimed")} />
+      <StatCard label={t("received")} value={formatRupiah(total)} />
     </div>
-    <DataTable<TableRow> columns={columns} dataSource={dataSource} pageSize={50} empty={t("empty")} />
-    {isAdmin ? <TourSlips groups={groups} month={month} /> : null}
-  </Page>;
+    <DataTable<TourItem> columns={columns} dataSource={items} pageSize={50} empty={t("empty")}
+      onRow={(r) => ({ onClick: () => onOpen(r.id), className: "cursor-pointer" })} />
+    <CreateTourDrawer open={creating} onClose={() => setCreating(false)} services={services} customers={customers} />
+    {me.isAdmin ? <TourSlips groups={groups} month={month} /> : null}
+  </>;
 }
