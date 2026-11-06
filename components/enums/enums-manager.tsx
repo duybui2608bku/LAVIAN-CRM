@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import {
   Button,
   Checkbox,
@@ -8,16 +8,17 @@ import {
   Form,
   Input,
   InputNumber,
-  Modal,
   Switch,
-  Table,
   type TableProps,
 } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import { createOption, deleteOption, updateOption } from "@/app/(app)/enums/actions";
-import { ConfirmAction } from "@/components/common/confirm-action";
+import { useConfirm } from "@/components/common/confirm-action";
+import { DataTable } from "@/components/common/data-table";
+import { FormDrawer } from "@/components/common/form-drawer";
+import { RowActions } from "@/components/common/row-actions";
 import { EnumTag } from "@/components/common/enum-tag";
 import { IconPicker } from "@/components/common/icon-picker";
 import { Page, PageHeader } from "@/components/layout/page";
@@ -43,7 +44,14 @@ export function EnumsManager({
 }) {
   const t = useTranslations("enums");
   const [dialog, setDialog] = useState<DialogState>(null);
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
+  // Bật/tắt hiện ngay; server trả về thì React tự đồng bộ (lỗi → quay lại).
+  const [rows, patchRow] = useOptimistic(
+    options,
+    (state: EnumOption[], p: { id: string; is_active: boolean }) =>
+      state.map((r) => (r.id === p.id ? { ...r, is_active: p.is_active } : r)),
+  );
+  const confirm = useConfirm();
 
   const remove = async (o: EnumOption) => {
     const res = await deleteOption(o.id, o.kind, o.value);
@@ -57,6 +65,7 @@ export function EnumsManager({
   // Bật/tắt trực tiếp trên bảng (giữ nguyên các trường còn lại).
   const onToggleActive = (o: EnumOption) =>
     start(async () => {
+      patchRow({ id: o.id, is_active: !o.is_active });
       const res = await updateOption(o.id, {
         label_vi: o.label_vi,
         label_en: o.label_en,
@@ -94,7 +103,6 @@ export function EnumsManager({
         <Switch
           size="small"
           checked={o.is_active}
-          disabled={pending}
           aria-label={t("colActive")}
           title={o.is_active ? t("active") : t("inactive")}
           onChange={() => onToggleActive(o)}
@@ -104,35 +112,32 @@ export function EnumsManager({
     {
       title: t("colActions"),
       key: "actions",
-      width: 110,
+      width: 72,
       align: "right",
       render: (_, o) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            type="text"
-            size="small"
-            title={t("edit")}
-            aria-label={t("edit")}
-            icon={<Pencil className="size-4" />}
-            onClick={() => setDialog({ kind, option: o })}
-          />
-          <ConfirmAction
-            title={t("deleteConfirm")}
-            description={t("deleteConfirmBody", { name: o.label_vi })}
-            okText={t("delete")}
-            cancelText={t("cancel")}
-            onConfirm={() => remove(o)}
-          >
-            <Button
-              type="text"
-              size="small"
-              danger
-              title={t("delete")}
-              aria-label={t("delete")}
-              icon={<Trash2 className="size-4" />}
-            />
-          </ConfirmAction>
-        </div>
+        <RowActions
+          label={t("colActions")}
+          items={[
+            {
+              icon: <Pencil className="size-4" />,
+              label: t("edit"),
+              onSelect: () => setDialog({ kind, option: o }),
+            },
+            {
+              icon: <Trash2 className="size-4" />,
+              label: t("delete"),
+              danger: true,
+              onSelect: () =>
+                confirm({
+                  title: t("deleteConfirm"),
+                  content: t("deleteConfirmBody", { name: o.label_vi }),
+                  okText: t("delete"),
+                  cancelText: t("cancel"),
+                  onOk: () => remove(o),
+                }),
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -152,15 +157,13 @@ export function EnumsManager({
         }
       />
 
-      <Table
-        className="surface overflow-hidden"
-        rowKey="id"
+      <DataTable
         columns={columns}
-        dataSource={options}
-        pagination={false}
+        dataSource={rows}
+        pageSize={0}
         tableLayout="fixed"
         scroll={{ x: 760 }}
-        locale={{ emptyText: t("empty") }}
+        empty={t("empty")}
       />
 
       <OptionDialog state={dialog} onClose={() => setDialog(null)} />
@@ -223,16 +226,12 @@ function OptionDialog({
     });
 
   return (
-    <Modal
+    <FormDrawer
       open={!!state}
-      onCancel={onClose}
+      onClose={onClose}
       title={editing ? t("editTitle") : t("addTitle")}
-      okText={t("save")}
-      cancelText={t("cancel")}
-      confirmLoading={pending}
-      onOk={() => form.submit()}
-      destroyOnHidden
-      width={560}
+      pending={pending}
+      onSubmit={() => form.submit()}
     >
       <Form
         form={form}
@@ -310,6 +309,6 @@ function OptionDialog({
           </Form.Item>
         </div>
       </Form>
-    </Modal>
+    </FormDrawer>
   );
 }

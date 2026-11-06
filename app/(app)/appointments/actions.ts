@@ -26,18 +26,22 @@ async function failure(error: unknown) {
     ? t("duplicate") : normalizeError(error).message };
 }
 
+// Các kiểm tra độc lập → chạy song song (1 round-trip thay vì tối đa 3).
 async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch: AppointmentPatch) {
+  const checks: PromiseLike<void>[] = [];
   for (const [id, department] of [[patch.staff_id, "customer_care"], [patch.technician_id, "technician"]]) {
     if (!id) continue;
-    const { error } = await db.from("profiles").select("id").eq("id", id).eq("status", "active")
-      .eq("department", department).single();
-    if (error) throw error;
+    checks.push(db.from("profiles").select("id").eq("id", id).eq("status", "active")
+      .eq("department", department).single().then(({ error }) => { if (error) throw error; }));
   }
-  if (patch.service_ids?.length) {
-    const { data, error } = await db.from("services").select("id").in("id", patch.service_ids);
-    if (error) throw error;
-    if (data?.length !== patch.service_ids.length) throw new Error("Invalid services");
+  const serviceIds = patch.service_ids;
+  if (serviceIds?.length) {
+    checks.push(db.from("services").select("id").in("id", serviceIds).then(({ data, error }) => {
+      if (error) throw error;
+      if (data?.length !== serviceIds.length) throw new Error("Invalid services");
+    }));
   }
+  await Promise.all(checks);
 }
 
 export async function createAppointment(

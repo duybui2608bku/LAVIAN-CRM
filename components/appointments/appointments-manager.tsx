@@ -1,13 +1,16 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Button, Drawer, Form, Input, InputNumber, Select, Switch, Table, Tag, type TableProps } from "antd";
+import { Button, Form, Input, InputNumber, Select, Switch, Tag, type TableProps } from "antd";
 import { CalendarPlus, Search, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { createAppointment, deleteAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
+import { DataTable } from "@/components/common/data-table";
 import { DatePicker } from "@/components/common/date-picker";
+import { FormDrawer } from "@/components/common/form-drawer";
+import { RowActions } from "@/components/common/row-actions";
 import { EnumTag } from "@/components/common/enum-tag";
 import { InlineMultiSelect, InlineSelect, matchWords } from "@/components/common/inline-select";
 import { useConfirm } from "@/components/common/confirm-action";
@@ -59,7 +62,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const t = useTranslations("appointments");
   const locale = useLocale();
   const confirm = useConfirm();
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
   const [search, setSearch] = useState("");
   const [date, setDate] = useState("");
   const [customerFilter, setCustomerFilter] = useState(initialCustomer);
@@ -99,14 +102,14 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     { title: t("phone"), width: 160, render: (_, row) => customerMap.get(row.customer_id)?.phone },
     { title: t("source"), width: 140, render: (_, row) => sourceTag(customerMap.get(row.customer_id)?.source ?? null) },
     { title: t("date"), width: 220, sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
-      render: (_, row) => <AppointmentDate inline value={row.scheduled_at} disabled={pending} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
+      render: (_, row) => <AppointmentDate inline value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
-      value={row.checked_in ? "arrived" : "waiting"} disabled={pending} ariaLabel={t("confirmation")}
+      value={row.checked_in ? "arrived" : "waiting"} ariaLabel={t("confirmation")}
       display={<Tag color={row.checked_in ? "green" : "default"} className="me-0">{row.checked_in ? t("arrived") : t("notArrived")}</Tag>}
       options={[{ value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]}
       onSave={(value) => save(row.id, { checked_in: value === "arrived" })} /> },
     { title: t("services"), width: 220, render: (_, row) => <InlineMultiSelect
-      value={row.service_ids} disabled={pending} ariaLabel={t("services")}
+      value={row.service_ids} ariaLabel={t("services")}
       display={row.service_ids.length ? <div className="flex flex-wrap gap-1">{row.service_ids.map((id) => {
         const service = services.find((s) => s.id === id);
         return <Tag key={id} color="purple" className="me-0">{service ? serviceName(service, locale) : id}</Tag>;
@@ -114,34 +117,34 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       options={services.filter((s) => s.is_active || row.service_ids.includes(s.id)).map((s) => ({ value: s.id, label: serviceName(s, locale) }))}
       onSave={(service_ids) => save(row.id, { service_ids })} /> },
     { title: t("payment"), width: 160, render: (_, row) => <InlineSelect value={row.payment_method ?? ""}
-      disabled={pending} ariaLabel={t("payment")} noneLabel={t("choose")}
+      ariaLabel={t("payment")} noneLabel={t("choose")}
       display={row.payment_method ? <EnumTag label={t(row.payment_method)} color="gold" /> : t("choose")}
       options={(["cash", "bank", "card"] as const).map((value) => ({ value, label: t(value) }))}
       onSave={(value) => save(row.id, { payment_method: (value || null) as Appointment["payment_method"] })} /> },
     ...STAFF_FIELDS.map(([field, label, department]) => ({ key: field, title: t(label), width: 170,
       render: (_: unknown, row: Appointment) => <InlineSelect value={row[field] ?? ""}
-        disabled={pending} ariaLabel={t(label)} noneLabel={t("choose")}
+        ariaLabel={t(label)} noneLabel={t("choose")}
         display={staff.find((s) => s.id === row[field])?.user_name ?? t("choose")}
         options={staffOptions(staff, department, row[field])}
         onSave={(value) => save(row.id, { [field]: value || null })} /> })),
     { title: t("serviceDetail"), width: 170, render: (_, row) => <InlineSelect searchable
-      value={encodeDetail(row.service_detail, row.service_session)} disabled={pending}
+      value={encodeDetail(row.service_detail, row.service_session)}
       ariaLabel={t("serviceDetail")} noneLabel={t("choose")} options={detailOptions(t)}
       display={row.service_detail
         ? <Tag color="cyan" className="me-0">{detailLabel(t, row.service_detail, row.service_session)}</Tag>
         : t("choose")}
       onSave={(value) => save(row.id, decodeDetail(value))} /> },
     { title: t("bill"), width: 150, render: (_, row) => <AppointmentBill value={row.bill_amount}
-      disabled={pending} label={t("bill")} onSave={(bill_amount) => save(row.id, { bill_amount })} /> },
+      label={t("bill")} onSave={(bill_amount) => save(row.id, { bill_amount })} /> },
     { title: t("tour"), width: 120, align: "right", render: (_, row) => {
       const tour = tourAmount(row.service_detail, row.service_session, row.bill_amount);
       return tour == null ? <span className="text-muted-foreground">—</span>
         : <span className="tabular-nums font-medium">{formatRupiah(tour)}</span>;
     } },
-    { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note} disabled={pending}
+    { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note}
       label={t("note")} onSave={(note) => save(row.id, { note })} /> },
-    { key: "actions", width: 52, render: (_, row) => <Button type="text" danger disabled={pending}
-      aria-label={t("remove")} icon={<Trash2 className="size-4" />} onClick={() => confirm({
+    { key: "actions", width: 56, align: "right", fixed: "right", render: (_, row) => <RowActions label={t("remove")}
+      items={[{ icon: <Trash2 className="size-4" />, label: t("remove"), danger: true, onSelect: () => confirm({
         title: t("removeTitle"), content: t("removeBody", { name: customerMap.get(row.customer_id)?.full_name ?? "" }),
         okText: t("remove"), cancelText: t("cancel"), onOk: async () => {
           try {
@@ -150,7 +153,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
             else toast.success(t("removed"));
           } catch { toast.error(t("saveError")); }
         },
-      })} /> },
+      }) }]} /> },
   ];
 
   return <Page>
@@ -164,24 +167,22 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <Select value={arrival} aria-label={t("confirmation")} className="min-w-40" onChange={(v) => { setArrival(v); resetPage(); }}
         options={[{ value: "all", label: t("allArrivals") }, { value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
-      <span className="ml-auto text-sm text-muted-foreground" role="status">{pending ? t("saving") : t("count", { count: filtered.length })}</span>
     </PageToolbar>
-    <Table className="surface overflow-hidden" rowKey="id" size="small" bordered sticky
-      columns={columns} dataSource={filtered} scroll={{ x: 2410 }} locale={{ emptyText: t("empty") }}
-      pagination={{ current: page, pageSize: 30, onChange: setPage, showSizeChanger: false, hideOnSinglePage: true }} />
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2410 }} empty={t("empty")}
+      page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff} services={services}
       onCreated={() => { setCreating(false); setDate(""); setCustomerFilter(""); setSearch(""); setArrival("all"); setPage(1); }} />
   </Page>;
 }
 
-function AppointmentNote({ value, disabled, label, onSave }: {
-  value: string; disabled: boolean; label: string; onSave: (note: string) => void;
+function AppointmentNote({ value, label, onSave }: {
+  value: string; label: string; onSave: (note: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
   const [seen, setSeen] = useState(value);
   if (seen !== value) { setSeen(value); setDraft(value); }
-  return <Input.TextArea value={draft} disabled={disabled} aria-label={label} placeholder={label}
+  return <Input.TextArea value={draft} aria-label={label} placeholder={label}
     variant="borderless" autoSize={{ minRows: 1, maxRows: 6 }} maxLength={10000}
     onChange={(e) => setDraft(e.target.value)} onBlur={() => {
       if (draft.trim() !== value) onSave(draft);
@@ -191,13 +192,13 @@ function AppointmentNote({ value, disabled, label, onSave }: {
 const formatBill = (v: number | string | undefined) => (v === undefined || v === "" ? "" : Number(v).toLocaleString("id-ID"));
 const parseBill = (v: string | undefined) => sanitizeCurrencyInput(v ?? "") as unknown as number;
 
-function AppointmentBill({ value, disabled, label, onSave }: {
-  value: number | null; disabled: boolean; label: string; onSave: (bill: number | null) => void;
+function AppointmentBill({ value, label, onSave }: {
+  value: number | null; label: string; onSave: (bill: number | null) => void;
 }) {
   const [draft, setDraft] = useState(value);
   const [seen, setSeen] = useState(value);
   if (seen !== value) { setSeen(value); setDraft(value); }
-  return <InputNumber<number> value={draft} disabled={disabled} aria-label={label} placeholder="Rp"
+  return <InputNumber<number> value={draft} aria-label={label} placeholder="Rp"
     variant="borderless" size="small" min={0} precision={0} controls={false} className="w-full tabular-nums"
     formatter={formatBill} parser={parseBill}
     onChange={(v) => setDraft(v ?? null)}
@@ -234,12 +235,8 @@ function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, cu
     } catch { toast.error(t("saveError")); }
   });
 
-  return <Drawer open={open} onClose={onClose} size={480} destroyOnHidden title={t("create")}
-    closable={!pending} mask={{ closable: !pending }}
-    footer={<div className="flex justify-end gap-2">
-      <Button onClick={onClose} disabled={pending}>{t("cancel")}</Button>
-      <Button type="primary" loading={pending} onClick={() => form.submit()}>{t("create")}</Button>
-    </div>}>
+  return <FormDrawer open={open} onClose={onClose} title={t("create")} submitText={t("create")}
+    pending={pending} onSubmit={() => form.submit()}>
     <Form form={form} layout="vertical" requiredMark={false} disabled={pending} onFinish={onFinish}
       initialValues={{ customer_id: initialCustomer || undefined, checked_in: false }}>
       <Form.Item name="customer_id" label={t("name")} rules={[{ required: true, message: t("chooseCustomer") }]}>
@@ -278,5 +275,5 @@ function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, cu
         <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />
       </Form.Item>
     </Form>
-  </Drawer>;
+  </FormDrawer>;
 }

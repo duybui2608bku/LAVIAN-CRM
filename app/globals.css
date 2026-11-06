@@ -24,22 +24,22 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
-  --radius-sm: var(--radius);
+  --radius-sm: 6px;
   --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: var(--radius);
+  --radius-xl: 12px;
 }
 
 :root {
-  --background: #f6f7fb;
-  --foreground: #182230;
+  --background: #f7f7f9;
+  --foreground: #18181b;
   --card: #ffffff;
   --primary: #684fd4;
   --primary-foreground: #ffffff;
-  --muted: #eef1f6;
-  --muted-foreground: #667085;
-  --accent: #eeeafd;
-  --border: #dfe3ea;
+  --muted: #f1f1f4;
+  --muted-foreground: #71717a;
+  --accent: #f0edfc;
+  --border: #e7e7ec;
   --destructive: #d92d20;
   --success: #16834a;
   --warning: #d97706;
@@ -49,19 +49,19 @@
   --chart-3: #16834a;
   --chart-4: #d97706;
   --chart-5: #db2777;
-  --radius: 4px;
+  --radius: 8px;
 }
 
 .dark {
-  --background: #11151b;
-  --foreground: #edf0f5;
-  --card: #1a1f28;
+  --background: #0f0f12;
+  --foreground: #ececf1;
+  --card: #18181c;
   --primary: #9b87f5;
   --primary-foreground: #171126;
-  --muted: #242a35;
-  --muted-foreground: #aab2c0;
-  --accent: #312b4c;
-  --border: #303745;
+  --muted: #232329;
+  --muted-foreground: #a1a1aa;
+  --accent: #2a2540;
+  --border: #2a2a31;
   --destructive: #ff6b6b;
   --success: #48d58b;
   --warning: #f6b94a;
@@ -138,7 +138,7 @@
 
 /* React remounts the page on navigation and tags when their value changes. */
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes tag-enter {
@@ -152,13 +152,19 @@
   .page-motion > :nth-child(2) { animation-delay: 35ms; }
   .page-motion > :nth-child(3) { animation-delay: 70ms; }
   .tag-motion { animation: tag-enter 160ms ease-out; }
-  .page-motion .ant-btn {
-    transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
-  }
-  .page-motion .ant-btn:not(:disabled):hover { transform: translateY(-1px); }
-  .page-motion .ant-btn:not(:disabled):active { transform: scale(0.98); }
   .page-motion .ant-table-cell { transition: background-color 160ms ease; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+}
+
+/* Header bảng: chữ nhỏ, màu phụ, không nền — đọc dữ liệu là chính. */
+.ant-table-wrapper .ant-table-thead > tr > th {
+  font-size: 12px;
+  font-weight: 500;
+}
+.ant-table-wrapper .ant-table-pagination.ant-pagination {
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
 }

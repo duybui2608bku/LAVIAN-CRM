@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
-  Drawer,
   Form,
   Input,
   Modal,
-  Table,
+  Popover,
   Tag,
   Tooltip,
   type TableProps,
@@ -17,11 +16,13 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import {
   Info,
+  ListFilter,
   Pencil,
   RefreshCw,
   Search,
   Trash2,
   UserPlus,
+  X,
 } from "lucide-react";
 
 import {
@@ -33,6 +34,8 @@ import {
 } from "@/app/(app)/customers/actions";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
+import { DataTable } from "@/components/common/data-table";
+import { FormDrawer } from "@/components/common/form-drawer";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
 import { EnumTag } from "@/components/common/enum-tag";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
@@ -55,10 +58,6 @@ const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
   staff
     .filter((s) => s.department === dept || s.id === current)
     .map((s) => ({ value: s.id, label: staffLabel(s) }));
-
-// ponytail: phân trang client (data đã tải sẵn); đổi sang server-side
-// nếu danh sách vượt vài nghìn dòng.
-const PAGE_SIZE = 20;
 
 const DASH = <span className="text-muted-foreground">—</span>;
 
@@ -107,6 +106,7 @@ export function CustomersManager({
   services: Service[];
 }) {
   const t = useTranslations("customers");
+  const tc = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
   const confirm = useConfirm();
@@ -253,6 +253,7 @@ export function CustomersManager({
     {
       title: t("colStage"),
       dataIndex: "stage",
+      width: 150,
       render: (_, c) => (
         <InlineSelect
           value={c.stage}
@@ -266,6 +267,7 @@ export function CustomersManager({
     {
       title: t("colSource"),
       dataIndex: "source",
+      width: 140,
       render: (_, c) => (
         <InlineSelect
           value={c.source ?? ""}
@@ -280,6 +282,7 @@ export function CustomersManager({
     {
       title: t("colServices"),
       dataIndex: "service_ids",
+      width: 200,
       render: (_, c) => (
         <InlineMultiSelect
           value={c.service_ids}
@@ -299,6 +302,7 @@ export function CustomersManager({
     ).map(([field, label, dept]) => ({
       title: t(label),
       key: field,
+      width: 160,
       render: (_: unknown, c: Customer) => (
         <InlineSelect
           value={c[field] ?? ""}
@@ -367,6 +371,12 @@ export function CustomersManager({
   ];
 
   const editing = target && target !== "new" ? target : null;
+  // Số lọc đang bật (khoảng ngày tính 1) — lọc phụ hiện badge trên nút "Bộ lọc".
+  const extraCount =
+    [filters.staffId, filters.salesId, filters.technicianId, filters.serviceId].filter(Boolean)
+      .length + (filters.from || filters.to ? 1 : 0);
+  const activeCount =
+    extraCount + [filters.search, filters.stage, filters.source].filter(Boolean).length;
 
   return (
     <Page>
@@ -377,10 +387,10 @@ export function CustomersManager({
             <Button
               icon={<RefreshCw className="size-4" />}
               loading={pending}
+              aria-label={t("reload")}
+              title={t("reload")}
               onClick={() => start(() => router.refresh())}
-            >
-              {t("reload")}
-            </Button>
+            />
             <Button
               type="primary"
               icon={<UserPlus className="size-4" />}
@@ -392,11 +402,11 @@ export function CustomersManager({
         }
       />
 
-      {/* Thanh lọc */}
+      {/* Thanh lọc: tìm + 2 lọc chính; lọc phụ gom vào nút "Bộ lọc". */}
       <PageToolbar>
         <Input
           allowClear
-          className="w-full sm:max-w-56"
+          className="w-full sm:max-w-64"
           prefix={<Search className="size-4 text-muted-foreground" />}
           placeholder={t("searchPlaceholder")}
           value={filters.search}
@@ -418,61 +428,58 @@ export function CustomersManager({
           placeholder={t("allSource")}
           ariaLabel={t("colSource")}
         />
-        <ClearableSelect
-          className="min-w-36"
-          value={filters.staffId}
-          onChange={(v) => setFilter("staffId", v)}
-          options={deptOptions(staff, "customer_care")}
-          placeholder={t("allStaff")}
-          ariaLabel={t("colStaff")}
-        />
-        <ClearableSelect
-          className="min-w-36"
-          value={filters.salesId}
-          onChange={(v) => setFilter("salesId", v)}
-          options={deptOptions(staff, "sales")}
-          placeholder={t("allSales")}
-          ariaLabel={t("colSales")}
-        />
-        <ClearableSelect
-          className="min-w-36"
-          value={filters.technicianId}
-          onChange={(v) => setFilter("technicianId", v)}
-          options={deptOptions(staff, "technician")}
-          placeholder={t("allTechnician")}
-          ariaLabel={t("colTechnician")}
-        />
-        <ClearableSelect
-          className="min-w-36"
-          value={filters.serviceId}
-          onChange={(v) => setFilter("serviceId", v)}
-          options={serviceOptions()}
-          placeholder={t("allServices")}
-          ariaLabel={t("colServices")}
-        />
-        <DateRangePicker
-          from={filters.from}
-          to={filters.to}
-          onChange={(r) => setFilters((f) => ({ ...f, ...r }))}
-        />
+        <Popover
+          trigger="click"
+          placement="bottomLeft"
+          content={
+            <div className="flex w-64 flex-col gap-2">
+              {(
+                [
+                  ["staffId", "allStaff", "colStaff", deptOptions(staff, "customer_care")],
+                  ["salesId", "allSales", "colSales", deptOptions(staff, "sales")],
+                  ["technicianId", "allTechnician", "colTechnician", deptOptions(staff, "technician")],
+                  ["serviceId", "allServices", "colServices", serviceOptions()],
+                ] as const
+              ).map(([key, placeholder, label, opts]) => (
+                <ClearableSelect
+                  key={key}
+                  value={filters[key]}
+                  onChange={(v) => setFilter(key, v)}
+                  options={opts}
+                  placeholder={t(placeholder)}
+                  ariaLabel={t(label)}
+                />
+              ))}
+              <DateRangePicker
+                from={filters.from}
+                to={filters.to}
+                onChange={(r) => setFilters((f) => ({ ...f, ...r }))}
+              />
+            </div>
+          }
+        >
+          <Button icon={<ListFilter className="size-4" />}>
+            {tc("filters")}
+            {extraCount > 0 && (
+              <span className="rounded-full bg-primary px-1.5 text-xs leading-5 text-primary-foreground tabular-nums">
+                {extraCount}
+              </span>
+            )}
+          </Button>
+        </Popover>
+        {activeCount > 0 && (
+          <Button type="text" icon={<X className="size-4" />} onClick={() => setFilters(EMPTY_FILTERS)}>
+            {tc("clearFilters")}
+          </Button>
+        )}
       </PageToolbar>
 
-      <Table
-        className="surface overflow-hidden"
-        rowKey="id"
-        size="middle"
+      <DataTable
         columns={columns}
         dataSource={filtered}
-        scroll={{ x: "max-content" }}
-        locale={{ emptyText: t("empty") }}
-        pagination={{
-          current: page,
-          pageSize: PAGE_SIZE,
-          onChange: setPage,
-          showSizeChanger: false,
-          hideOnSinglePage: false,
-          showTotal: (total, [from, to]) => t("pageInfo", { from, to, total }),
-        }}
+        page={page}
+        onPageChange={setPage}
+        empty={t("empty")}
       />
 
       <CustomerDialog
@@ -666,20 +673,14 @@ function CustomerDialog({
   const required = [{ required: true, whitespace: true, message: t("required") }];
 
   return (
-    <Drawer
+    <FormDrawer
       open={open}
       onClose={onClose}
-      size={560}
-      destroyOnHidden
+      width={560}
+      pending={pending}
       title={editing ? t("editTitle") : t("createTitle")}
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button onClick={onClose}>{t("cancel")}</Button>
-          <Button type="primary" loading={pending} onClick={() => form.submit()}>
-            {editing ? t("save") : t("createSubmit")}
-          </Button>
-        </div>
-      }
+      submitText={editing ? t("save") : t("createSubmit")}
+      onSubmit={() => form.submit()}
     >
       <Form
         form={form}
@@ -766,6 +767,6 @@ function CustomerDialog({
           </Form.Item>
         )}
       </Form>
-    </Drawer>
+    </FormDrawer>
   );
 }

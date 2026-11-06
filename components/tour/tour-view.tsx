@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DatePicker, Select, Table, Tag, type TableProps } from "antd";
+import { DatePicker, Select, Tag, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
+import { DataTable } from "@/components/common/data-table";
+import { StatCard } from "@/components/common/stat-card";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { tourAmount, tourRate, type ServiceDetail } from "@/lib/appointments";
@@ -60,27 +62,17 @@ export function TourView({ rows, technicianId, technicians }: {
     <PageToolbar>
       <DatePicker picker="month" value={month} allowClear={false} format="MM/YYYY" aria-label={t("month")}
         onChange={(d) => d && setMonth(d.startOf("month"))} />
-      {technicians ? <Select className="min-w-56" value={technicianId} aria-label={t("technician")}
+      {technicians ? <Select className="min-w-56" value={technicianId || undefined} placeholder={t("technician")} aria-label={t("technician")}
         showSearch={{ optionFilterProp: "title" }}
         options={technicians.map((s) => ({ value: s.id, title: s.user_name, label: staffLabel(s) }))}
         onChange={(id) => router.push(`/tour?technician=${id}`)} /> : null}
     </PageToolbar>
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <Stat label={t("totalTour")} value={formatRupiah(totalTour)} strong />
-      <Stat label={t("totalBill")} value={formatRupiah(totalBill)} />
-      <Stat label={t("count")} value={String(monthRows.length)}
+      <StatCard label={t("totalTour")} value={formatRupiah(totalTour)} />
+      <StatCard label={t("totalBill")} value={formatRupiah(totalBill)} />
+      <StatCard label={t("count")} value={monthRows.length} tone="warning"
         hint={missing ? t("missing", { count: missing }) : undefined} />
     </div>
-    <Table className="surface overflow-hidden" rowKey="id" size="small" bordered
-      columns={columns} dataSource={monthRows} scroll={{ x: 800 }} locale={{ emptyText: t("empty") }}
-      pagination={{ pageSize: 50, showSizeChanger: false, hideOnSinglePage: true }} />
+    <DataTable columns={columns} dataSource={monthRows} pageSize={50} empty={t("empty")} />
   </Page>;
-}
-
-function Stat({ label, value, hint, strong }: { label: string; value: string; hint?: string; strong?: boolean }) {
-  return <div className="surface rounded-lg p-4">
-    <div className="text-sm text-muted-foreground">{label}</div>
-    <div className={`mt-1 tabular-nums ${strong ? "text-2xl font-semibold" : "text-xl font-medium"}`}>{value}</div>
-    {hint ? <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">{hint}</div> : null}
-  </div>;
 }
