@@ -60,6 +60,7 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 - File thêm: `app/(app)/customers/page.tsx`, `components/customers/customers-manager.tsx`, `lib/appointments{,.test}.ts`, `types/appointment.ts`.
 - `/appointments`: bỏ dòng hướng dẫn dưới tiêu đề (key `appointments.hint`). Nút "Thêm lịch hẹn" mở **Drawer** (thay Modal) với đủ trường: khách, ngày giờ, xác nhận đến, dịch vụ, thanh toán, nhân viên, ghi chú. `createAppointment(customerId, input)` nhận cả patch (validate qua `appointmentPatchSchema` + `validateReferences`); không chọn dịch vụ → mặc định lấy dịch vụ đang gắn trên khách. Không đổi DB.
 - File thêm: `components/appointments/appointments-manager.tsx`, `app/(app)/appointments/actions.ts`.
+- Bảng `/appointments`: cột Xác nhận = Tag antd (xanh "Đã đến" / xám "Chưa đến") bấm để đổi qua `InlineSelect`; cột Ngày giờ hẹn hiện như chữ (DatePicker `inline`: borderless, không icon), bấm mới mở picker. File: `components/appointments/appointment-date.tsx`.
 - Còn dở: chưa kiểm tra trên trình duyệt.
 
 ### 2026-10-26 — Marketing: switch trạng thái chiến dịch + cột tài khoản QC + phân trang
