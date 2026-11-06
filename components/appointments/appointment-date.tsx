@@ -5,9 +5,11 @@ import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
 
 /** Confirm date and time together; changing the day alone never writes a booking. */
-export function AppointmentDate({ value, disabled, onSave }: {
+export function AppointmentDate({ value, disabled, inline, onSave }: {
   value?: string | null;
   disabled?: boolean;
+  /** Ô bảng: hiện như chữ thường, bấm vào mới mở picker để sửa. */
+  inline?: boolean;
   onSave: (iso: string) => void;
 }) {
   const t = useTranslations("appointments");
@@ -20,7 +22,10 @@ export function AppointmentDate({ value, disabled, onSave }: {
     disabled={disabled}
     aria-label={t("date")}
     placeholder={t("chooseDate")}
-    className="w-48"
+    variant={inline ? "borderless" : undefined}
+    suffixIcon={inline ? null : undefined}
+    size={inline ? "small" : undefined}
+    className={inline ? "-mx-2 w-40 cursor-pointer" : "w-48"}
     onChange={(date) => {
       const iso = date?.second(0).millisecond(0).toISOString();
       if (iso && iso !== value) onSave(iso);
