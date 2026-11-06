@@ -27,8 +27,10 @@ async function failure(error: unknown) {
 }
 
 async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch: AppointmentPatch) {
-  if (patch.staff_id) {
-    const { error } = await db.from("profiles").select("id").eq("id", patch.staff_id).eq("status", "active").single();
+  for (const [id, department] of [[patch.staff_id, "customer_care"], [patch.technician_id, "technician"]]) {
+    if (!id) continue;
+    const { error } = await db.from("profiles").select("id").eq("id", id).eq("status", "active")
+      .eq("department", department).single();
     if (error) throw error;
   }
   if (patch.service_ids?.length) {

@@ -51,6 +51,21 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-06 — Trang /tour: KTV xem tiền tour theo tháng
+- **Thay đổi:** OpenSpec change `technician-tour-page`. Trang `/tour` (menu "Tour của tôi", mọi user): lịch `clinic_appointments` có `technician_id` = user và `checked_in = true`; chọn tháng (lọc dayjs phía client, theo múi giờ trình duyệt như /appointments); 3 thẻ Tổng tour / Tổng bill / Số lịch (cảnh báo số lịch thiếu bill/dịch vụ chi tiết); bảng chỉ đọc Ngày, Khách, Dịch vụ chi tiết, Bill, %, Tour. Admin có select KTV (`?technician=`), non-admin bị ép về chính mình. Không đổi DB. Thêm `.claude/launch.json` (npm run dev, port 3000).
+- **File ảnh hưởng:** `app/(app)/tour/page.tsx`, `components/tour/tour-view.tsx`, `components/layout/app-shell.tsx`, `messages/{vi,en}.json`, `openspec/changes/technician-tour-page/`, `.claude/launch.json`
+- **Còn dở / ghi chú:** Chưa xem được trên app (preview cần đăng nhập). RLS vẫn cho mọi nhân viên active đọc lịch người khác qua API — chỉ giới hạn ở tầng trang.
+
+### 2026-11-06 — Lịch hẹn: Dịch vụ chi tiết + Bill + Tour KTV
+- **Thay đổi:** OpenSpec change `appointment-tour-commission`. Thêm cột `clinic_appointments.service_detail` (laser|plasma|new|debt|retouch), `service_session` (1–10, null với new/debt — check constraint), `bill_amount` (bigint ≥ 0, Rupiah). Tour = round(bill × tỷ lệ) tính trong code `tourRate`/`tourAmount` (`lib/appointments.ts`): Laser/Plasma 0%, New/Debt 7%, Retouch lần 1 3%, lần ≥2 0%. UI: 1 select gộp có nhóm + tìm kiếm (giá trị mã hóa `retouch:2`, helper `encodeDetail`/`decodeDetail`), nhãn kèm %; Bill sửa inline (InputNumber, lưu khi blur/Enter); cột Tour chỉ đọc. Drawer tạo lịch có 2 field mới. `InlineSelect` thêm `searchable` + option nhóm (`SelectGroup`, `matchWords`).
+- **File ảnh hưởng:** `supabase/migrations/20261106100000_clinic_appointments_tour.sql`, `lib/appointments.ts(+test)`, `types/appointment.ts`, `app/(app)/appointments/page.tsx`, `components/appointments/appointments-manager.tsx`, `components/common/inline-select.tsx`, `messages/{vi,en}.json`, `openspec/changes/appointment-tour-commission/`
+- **Còn dở / ghi chú:** Migration `20261106100000_clinic_appointments_tour.sql` **đã chạy** trên project Lavian (`fghnzykhcbvkfyxqehcd`) ngày 2026-11-06. Đổi tỷ lệ sẽ áp ngược cho lịch cũ (không lưu snapshot). Chưa có báo cáo tổng tour theo KTV. Chưa test trên app. Archive openspec change sau khi duyệt.
+
+### 2026-11-06 — Lịch hẹn: tách 2 cột Chăm sóc khách hàng / Kỹ thuật viên
+- **Thay đổi:** Thêm cột `clinic_appointments.technician_id` (FK profiles, on delete set null). `staff_id` giờ là **Chăm sóc khách hàng** (chỉ chọn `department='customer_care'`), `technician_id` là **Kỹ thuật viên** (`department='technician'`). Bảng + drawer tạo lịch hẹn có 2 select (cấu hình `STAFF_FIELDS` + helper `staffOptions` trong appointments-manager). Server `validateReferences` kiểm tra đúng bộ phận cho từng cột. Migration dời `staff_id` cũ đang là kỹ thuật viên sang `technician_id`.
+- **File ảnh hưởng:** `supabase/migrations/20261106090000_clinic_appointments_technician.sql`, `app/(app)/appointments/{page,actions}.ts(x)`, `components/appointments/appointments-manager.tsx`, `lib/appointments.ts`, `types/appointment.ts`, `messages/{vi,en}.json`
+- **Còn dở / ghi chú:** Migration **đã chạy** trên project Lavian (`fghnzykhcbvkfyxqehcd`) ngày 2026-11-06. Chưa test trên app thật.
+
 ### 2026-11-06 — Form tạo user gọn lại + bỏ menu Danh mục + bỏ cột Lịch hẹn ở Khách hàng + Drawer thêm lịch hẹn
 - Form "Tạo user mới": căn giữa ảnh đại diện (cả label), bỏ dòng mô tả "Admin đặt mật khẩu trực tiếp…", bỏ checkbox "Cấp quyền admin" (user mới luôn `role: "user"`; đổi quyền qua chỗ khác nếu cần).
 - Sidebar: bỏ menu cha "Danh mục" (`/enums`); route `/enums/*` vẫn còn, chỉ ẩn khỏi menu.

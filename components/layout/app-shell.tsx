@@ -13,6 +13,7 @@ import {
   PanelLeft,
   UserCog,
   Users,
+  Wallet,
 } from "lucide-react";
 
 import { LanguageSwitcher } from "@/components/common/language-switcher";
@@ -29,6 +30,7 @@ const ITEMS = [
   { key: "dashboard", href: "/", icon: LayoutDashboard },
   { key: "customers", href: "/customers", icon: Users },
   { key: "appointments", href: "/appointments", icon: CalendarDays },
+  { key: "tour", href: "/tour", icon: Wallet },
 ] as const;
 
 const ADMIN_ITEMS = [
