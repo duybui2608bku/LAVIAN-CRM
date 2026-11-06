@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   Megaphone,
   PanelLeft,
-  SlidersHorizontal,
   UserCog,
   Users,
 } from "lucide-react";
@@ -21,7 +20,6 @@ import { ThemeToggle } from "@/components/common/theme-toggle";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Logo } from "@/components/layout/logo";
 import { SignOutButton } from "@/components/layout/sign-out-button";
-import { ENUM_KINDS } from "@/types/customer";
 
 // Cookie giữ trạng thái thu gọn qua lần tải lại (layout server đọc lại → không nháy).
 const COLLAPSE_COOKIE = "sidebar_state";
@@ -74,17 +72,6 @@ export function AppShell({
     icon: <Icon className="size-4" />,
     label: <Link href={href}>{t(`nav.${key}`)}</Link>,
   }));
-  // Danh mục (admin): menu cha + menu con theo kind.
-  if (isAdmin)
-    menuItems.push({
-      key: "/enums",
-      icon: <SlidersHorizontal className="size-4" />,
-      label: t("nav.enums"),
-      children: ENUM_KINDS.filter((kind) => kind === "lost_reason").map((kind) => ({
-        key: `/enums/${kind}`,
-        label: <Link href={`/enums/${kind}`}>{t(`enums.kind_${kind}`)}</Link>,
-      })),
-    });
 
   const selected =
     pathname === "/"
@@ -110,7 +97,6 @@ export function AppShell({
       <Menu
         mode="inline"
         selectedKeys={[selected]}
-        defaultOpenKeys={pathname.startsWith("/enums") ? ["/enums"] : []}
         items={menuItems}
         className="border-0 px-1 py-3"
       />

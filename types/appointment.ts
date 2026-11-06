@@ -20,4 +20,3 @@ export type AppointmentPatch = Partial<Pick<Appointment,
   "scheduled_at" | "checked_in" | "service_ids" | "payment_method" | "staff_id" | "note"
 >>;
 
-export type AppointmentSummary = Pick<Appointment, "id" | "customer_id" | "scheduled_at" | "checked_in">;

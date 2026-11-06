@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Button, Checkbox, Form, Input, Modal, Table, Tag, type TableProps } from "antd";
+import { Button, Form, Input, Modal, Table, Tag, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
 import { Ban, KeyRound, Search, ShieldCheck, UserPlus } from "lucide-react";
 
@@ -212,7 +212,6 @@ type CreateValues = {
   user_name: string;
   avatar_url?: string | null;
   department?: string;
-  isAdmin?: boolean;
 };
 
 function CreateUserDialog({
@@ -233,7 +232,7 @@ function CreateUserDialog({
         password: v.password,
         user_name: v.user_name,
         avatar_url: v.avatar_url || undefined,
-        role: v.isAdmin ? "admin" : "user",
+        role: "user",
         department: (v.department || null) as UserDepartment | null,
       });
       if (res.error) {
@@ -256,7 +255,6 @@ function CreateUserDialog({
       onOk={() => form.submit()}
       destroyOnHidden
     >
-      <p className="mb-4 text-sm text-muted-foreground">{t("createDesc")}</p>
       <Form form={form} layout="vertical" requiredMark={false} onFinish={onFinish}>
         <Form.Item
           name="email"
@@ -286,11 +284,12 @@ function CreateUserDialog({
             ariaLabel={t("colDepartment")}
           />
         </Form.Item>
-        <Form.Item name="avatar_url" label={t("avatarUrl")}>
+        <Form.Item
+          name="avatar_url"
+          label={t("avatarUrl")}
+          className="mb-0 text-center [&_.ant-form-item-label]:text-center"
+        >
           <ImageUpload className="rounded-full" />
-        </Form.Item>
-        <Form.Item name="isAdmin" valuePropName="checked" className="mb-0">
-          <Checkbox>{t("makeAdmin")}</Checkbox>
         </Form.Item>
       </Form>
     </Modal>

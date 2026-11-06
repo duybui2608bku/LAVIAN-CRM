@@ -51,6 +51,17 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-06 — Form tạo user gọn lại + bỏ menu Danh mục + bỏ cột Lịch hẹn ở Khách hàng + Drawer thêm lịch hẹn
+- Form "Tạo user mới": căn giữa ảnh đại diện (cả label), bỏ dòng mô tả "Admin đặt mật khẩu trực tiếp…", bỏ checkbox "Cấp quyền admin" (user mới luôn `role: "user"`; đổi quyền qua chỗ khác nếu cần).
+- Sidebar: bỏ menu cha "Danh mục" (`/enums`); route `/enums/*` vẫn còn, chỉ ẩn khỏi menu.
+- i18n: xoá key `users.createDesc`, `users.makeAdmin` (vi/en).
+- File: `components/users/users-manager.tsx`, `components/layout/app-shell.tsx`, `messages/vi.json`, `messages/en.json`.
+- Bảng `/customers`: bỏ cột "Lịch hẹn" (chọn ngày hẹn inline) + cảnh báo "chưa tải được lịch hẹn"; trang không còn query `clinic_appointments`. Xoá code chết: `components/appointments/customer-appointment.tsx`, `customerAppointment()` (+ test), type `AppointmentSummary`, key i18n `appointments.unavailable`; sửa câu `appointments.empty`. Trang `/appointments` giữ nguyên.
+- File thêm: `app/(app)/customers/page.tsx`, `components/customers/customers-manager.tsx`, `lib/appointments{,.test}.ts`, `types/appointment.ts`.
+- `/appointments`: bỏ dòng hướng dẫn dưới tiêu đề (key `appointments.hint`). Nút "Thêm lịch hẹn" mở **Drawer** (thay Modal) với đủ trường: khách, ngày giờ, xác nhận đến, dịch vụ, thanh toán, nhân viên, ghi chú. `createAppointment(customerId, input)` nhận cả patch (validate qua `appointmentPatchSchema` + `validateReferences`); không chọn dịch vụ → mặc định lấy dịch vụ đang gắn trên khách. Không đổi DB.
+- File thêm: `components/appointments/appointments-manager.tsx`, `app/(app)/appointments/actions.ts`.
+- Còn dở: chưa kiểm tra trên trình duyệt.
+
 ### 2026-10-26 — Marketing: switch trạng thái chiến dịch + cột tài khoản QC + phân trang
 - **Thay đổi:**
   - Cột Trạng thái bảng chiến dịch `/marketing` = antd `Switch` (bọc `ConfirmAction` hỏi lại) — bật/tắt THẬT trên Facebook qua server action `updateCampaignStatus` → `setFbCampaignStatus` (POST `/{campaign_id}` `status=ACTIVE|PAUSED`, admin-only). Chỉ ACTIVE/PAUSED có switch; trạng thái khác giữ `Tag`. Thành công → vá status tại chỗ trong state (không tải lại).
