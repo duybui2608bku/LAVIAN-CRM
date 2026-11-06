@@ -49,7 +49,15 @@
   "common": {
     "appName": "LAVIAN CRM",
     "getStarted": "Get started",
-    "language": "Language"
+    "language": "Language",
+    "pageInfo": "{from}–{to} of {total}",
+    "cancel": "Cancel",
+    "save": "Save",
+    "actions": "Actions",
+    "filters": "Filters",
+    "clearFilters": "Clear filters",
+    "account": "Account",
+    "darkMode": "Dark mode"
   },
   "home": {
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
@@ -80,7 +88,9 @@
     "users": "Users",
     "enums": "Categories",
     "services": "Services",
-    "toggleSidebar": "Toggle sidebar"
+    "toggleSidebar": "Toggle sidebar",
+    "groupMain": "Workspace",
+    "groupAdmin": "Admin"
   },
   "theme": {
     "toggle": "Toggle theme"
@@ -148,7 +158,8 @@
     "resetTitle": "Reset password",
     "resetSubmit": "Update",
     "resetOk": "Password reset",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "emailInvalid": "Invalid email"
   },
   "enums": {
     "title": "Categories (Enum)",

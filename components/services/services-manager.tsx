@@ -7,9 +7,7 @@ import {
   Form,
   Input,
   InputNumber,
-  Modal,
   Switch,
-  Table,
   type TableProps,
 } from "antd";
 import { useTranslations } from "next-intl";
@@ -20,7 +18,10 @@ import {
   deleteService,
   updateService,
 } from "@/app/(app)/services/actions";
-import { ConfirmAction } from "@/components/common/confirm-action";
+import { useConfirm } from "@/components/common/confirm-action";
+import { DataTable } from "@/components/common/data-table";
+import { FormDrawer } from "@/components/common/form-drawer";
+import { RowActions } from "@/components/common/row-actions";
 import { Page, PageHeader } from "@/components/layout/page";
 import { toast } from "@/lib/toast";
 import type { Service, ServiceInput } from "@/types/service";
@@ -35,6 +36,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
   const t = useTranslations("services");
   const [dialog, setDialog] = useState<DialogState>(null);
   const [pending, start] = useTransition();
+  const confirm = useConfirm();
 
   const remove = async (s: Service) => {
     const res = await deleteService(s.id);
@@ -80,35 +82,32 @@ export function ServicesManager({ services }: { services: Service[] }) {
     {
       title: t("colActions"),
       key: "actions",
-      width: 110,
+      width: 72,
       align: "right",
       render: (_, s) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            type="text"
-            size="small"
-            title={t("edit")}
-            aria-label={t("edit")}
-            icon={<Pencil className="size-4" />}
-            onClick={() => setDialog({ service: s })}
-          />
-          <ConfirmAction
-            title={t("deleteConfirm")}
-            description={t("deleteConfirmBody", { name: s.name_vi })}
-            okText={t("delete")}
-            cancelText={t("cancel")}
-            onConfirm={() => remove(s)}
-          >
-            <Button
-              type="text"
-              size="small"
-              danger
-              title={t("delete")}
-              aria-label={t("delete")}
-              icon={<Trash2 className="size-4" />}
-            />
-          </ConfirmAction>
-        </div>
+        <RowActions
+          label={t("colActions")}
+          items={[
+            {
+              icon: <Pencil className="size-4" />,
+              label: t("edit"),
+              onSelect: () => setDialog({ service: s }),
+            },
+            {
+              icon: <Trash2 className="size-4" />,
+              label: t("delete"),
+              danger: true,
+              onSelect: () =>
+                confirm({
+                  title: t("deleteConfirm"),
+                  content: t("deleteConfirmBody", { name: s.name_vi }),
+                  okText: t("delete"),
+                  cancelText: t("cancel"),
+                  onOk: () => remove(s),
+                }),
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -128,14 +127,12 @@ export function ServicesManager({ services }: { services: Service[] }) {
         }
       />
 
-      <Table
-        className="surface overflow-hidden"
-        rowKey="id"
+      <DataTable
         columns={columns}
         dataSource={services}
-        pagination={false}
+        pageSize={0}
         tableLayout="fixed"
-        locale={{ emptyText: t("empty") }}
+        empty={t("empty")}
       />
 
       <ServiceDialog state={dialog} onClose={() => setDialog(null)} />
@@ -185,16 +182,12 @@ function ServiceDialog({
     });
 
   return (
-    <Modal
+    <FormDrawer
       open={!!state}
-      onCancel={onClose}
+      onClose={onClose}
       title={editing ? t("editTitle") : t("addTitle")}
-      okText={t("save")}
-      cancelText={t("cancel")}
-      confirmLoading={pending}
-      onOk={() => form.submit()}
-      destroyOnHidden
-      width={560}
+      pending={pending}
+      onSubmit={() => form.submit()}
     >
       <Form
         form={form}
@@ -228,6 +221,6 @@ function ServiceDialog({
           <Checkbox>{t("activeLabel")}</Checkbox>
         </Form.Item>
       </Form>
-    </Modal>
+    </FormDrawer>
   );
 }

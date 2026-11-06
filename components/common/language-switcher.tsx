@@ -19,14 +19,30 @@ const OPTIONS = locales.map((l) => ({
   ),
 }));
 
+/**
+ * Đổi ngôn ngữ chạy revalidatePath("/", "layout") → re-render toàn bộ server
+ * components, khá lâu. Chạy thanh top-loader để có phản hồi trực quan.
+ */
+export function useSwitchLocale() {
+  const loader = useTopLoader();
+  const [pending, startTransition] = useTransition();
+  const switchTo = (v: Locale) =>
+    startTransition(async () => {
+      loader.start();
+      try {
+        await setLocale(v);
+      } finally {
+        loader.done();
+      }
+    });
+  return { pending, switchTo };
+}
+
 export function LanguageSwitcher({ className }: { className?: string }) {
   const t = useTranslations("common");
   const current = useLocale() as Locale;
-  const loader = useTopLoader();
-  const [pending, startTransition] = useTransition();
+  const { pending, switchTo } = useSwitchLocale();
 
-  // Đổi ngôn ngữ chạy revalidatePath("/", "layout") → re-render toàn bộ server
-  // components, khá lâu. Chạy thanh top-loader để có phản hồi trực quan.
   return (
     <Select
       value={current}
@@ -37,16 +53,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
       popupMatchSelectWidth={false}
       placement="bottomRight"
       className={className}
-      onChange={(v) =>
-        startTransition(async () => {
-          loader.start();
-          try {
-            await setLocale(v);
-          } finally {
-            loader.done();
-          }
-        })
-      }
+      onChange={switchTo}
     />
   );
 }

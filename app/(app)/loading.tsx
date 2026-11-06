@@ -17,8 +17,8 @@ export default function Loading() {
         <Skeleton.Button active />
       </div>
       <div className="flex flex-wrap gap-2">
-        {[220, 140, 140, 240].map((w) => (
-          <Skeleton.Input key={w} active size="small" style={{ width: w }} />
+        {[220, 140, 140, 240].map((w, i) => (
+          <Skeleton.Input key={i} active size="small" style={{ width: w }} />
         ))}
       </div>
       <div className="surface p-4">

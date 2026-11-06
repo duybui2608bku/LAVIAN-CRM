@@ -49,7 +49,15 @@
   "common": {
     "appName": "LAVIAN CRM",
     "getStarted": "Bắt đầu",
-    "language": "Ngôn ngữ"
+    "language": "Ngôn ngữ",
+    "pageInfo": "{from}–{to} trên {total}",
+    "cancel": "Huỷ",
+    "save": "Lưu",
+    "actions": "Thao tác",
+    "filters": "Bộ lọc",
+    "clearFilters": "Xoá lọc",
+    "account": "Tài khoản",
+    "darkMode": "Giao diện tối"
   },
   "home": {
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
@@ -80,7 +88,9 @@
     "users": "Người dùng",
     "enums": "Danh mục",
     "services": "Dịch vụ",
-    "toggleSidebar": "Đóng/mở thanh bên"
+    "toggleSidebar": "Đóng/mở thanh bên",
+    "groupMain": "Vận hành",
+    "groupAdmin": "Quản trị"
   },
   "theme": {
     "toggle": "Chuyển giao diện sáng/tối"
@@ -148,7 +158,8 @@
     "resetTitle": "Đặt lại mật khẩu",
     "resetSubmit": "Cập nhật",
     "resetOk": "Đã đặt lại mật khẩu",
-    "cancel": "Huỷ"
+    "cancel": "Huỷ",
+    "emailInvalid": "Email không hợp lệ"
   },
   "enums": {
     "title": "Danh mục (Enum)",

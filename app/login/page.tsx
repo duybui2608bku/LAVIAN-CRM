@@ -8,9 +8,9 @@ export default async function LoginPage() {
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-background p-4">
-      <div className="surface w-full max-w-md space-y-6 p-7 sm:p-9">
+      <div className="surface w-full max-w-sm space-y-6 p-7 shadow-sm sm:p-8">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="mb-2 flex size-14 items-center justify-center rounded bg-white ring-1 ring-border">
+          <div className="mb-2 flex size-14 items-center justify-center rounded-xl bg-white ring-1 ring-border">
             <Logo className="size-11" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight">{t("loginTitle")}</h1>

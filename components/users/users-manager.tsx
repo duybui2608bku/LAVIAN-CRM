@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Button, Form, Input, Modal, Table, Tag, type TableProps } from "antd";
+import { Button, Form, Input, Modal, Tag, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
 import { Ban, KeyRound, Search, ShieldCheck, UserPlus } from "lucide-react";
 
@@ -12,7 +12,11 @@ import {
   setUserStatus,
 } from "@/app/(app)/users/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
-import { ConfirmAction } from "@/components/common/confirm-action";
+import { useConfirm } from "@/components/common/confirm-action";
+import { DataTable } from "@/components/common/data-table";
+import { FormDrawer } from "@/components/common/form-drawer";
+import { InlineSelect } from "@/components/common/inline-select";
+import { RowActions } from "@/components/common/row-actions";
 import { ImageUpload } from "@/components/common/image-upload";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { toast } from "@/lib/toast";
@@ -32,6 +36,7 @@ export function UsersManager({
   const [createOpen, setCreateOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<Profile | null>(null);
   const [pending, start] = useTransition();
+  const confirm = useConfirm();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -89,13 +94,16 @@ export function UsersManager({
       title: t("colDepartment"),
       dataIndex: "department",
       render: (_, p) => (
-        <ClearableSelect
-          value={p.department}
-          onChange={(v) => changeDepartment(p, v)}
+        <InlineSelect
+          value={p.department ?? ""}
+          display={
+            p.department ? t(`dept_${p.department}`) : <span className="text-muted-foreground">—</span>
+          }
           options={departmentOptions}
-          placeholder="—"
+          noneLabel="—"
           ariaLabel={t("colDepartment")}
-          className="w-full min-w-40"
+          disabled={pending}
+          onSave={(v) => changeDepartment(p, v)}
         />
       ),
     },
@@ -119,42 +127,34 @@ export function UsersManager({
       title: t("colActions"),
       key: "actions",
       align: "right",
+      width: 72,
       render: (_, p) => {
         const banned = p.status === "banned";
         return (
-          <div className="flex justify-end gap-1">
-            <Button
-              type="text"
-              size="small"
-              title={t("resetPassword")}
-              aria-label={t("resetPassword")}
-              icon={<KeyRound className="size-4" />}
-              onClick={() => setResetTarget(p)}
-            />
-            <ConfirmAction
-              title={banned ? t("unban") : t("ban")}
-              description={p.email}
-              danger={!banned}
-              disabled={p.id === currentUserId}
-              onConfirm={() => toggleBan(p)}
-            >
-              <Button
-                type="text"
-                size="small"
-                danger={!banned}
-                title={banned ? t("unban") : t("ban")}
-                aria-label={banned ? t("unban") : t("ban")}
-                disabled={p.id === currentUserId}
-                icon={
-                  banned ? (
-                    <ShieldCheck className="size-4 text-success" />
-                  ) : (
-                    <Ban className="size-4" />
-                  )
-                }
-              />
-            </ConfirmAction>
-          </div>
+          <RowActions
+            label={t("colActions")}
+            items={[
+              {
+                icon: <KeyRound className="size-4" />,
+                label: t("resetPassword"),
+                onSelect: () => setResetTarget(p),
+              },
+              {
+                icon: banned ? <ShieldCheck className="size-4" /> : <Ban className="size-4" />,
+                label: banned ? t("unban") : t("ban"),
+                danger: !banned,
+                disabled: p.id === currentUserId,
+                onSelect: () =>
+                  confirm({
+                    title: banned ? t("unban") : t("ban"),
+                    content: p.email,
+                    okText: banned ? t("unban") : t("ban"),
+                    cancelText: t("cancel"),
+                    onOk: () => toggleBan(p),
+                  }),
+              },
+            ]}
+          />
         );
       },
     },
@@ -186,16 +186,7 @@ export function UsersManager({
         />
       </PageToolbar>
 
-      <Table
-        className="surface overflow-hidden"
-        rowKey="id"
-        columns={columns}
-        dataSource={filtered}
-        loading={pending}
-        pagination={false}
-        scroll={{ x: "max-content" }}
-        locale={{ emptyText: t("empty") }}
-      />
+      <DataTable columns={columns} dataSource={filtered} pageSize={0} empty={t("empty")} />
 
       <CreateUserDialog open={createOpen} onClose={() => setCreateOpen(false)} />
       <ResetPasswordDialog
@@ -245,15 +236,13 @@ function CreateUserDialog({
     });
 
   return (
-    <Modal
+    <FormDrawer
       open={open}
-      onCancel={onClose}
+      onClose={onClose}
       title={t("createTitle")}
-      okText={t("createSubmit")}
-      cancelText={t("cancel")}
-      confirmLoading={pending}
-      onOk={() => form.submit()}
-      destroyOnHidden
+      submitText={t("createSubmit")}
+      pending={pending}
+      onSubmit={() => form.submit()}
     >
       <Form form={form} layout="vertical" requiredMark={false} onFinish={onFinish}>
         <Form.Item
@@ -287,12 +276,12 @@ function CreateUserDialog({
         <Form.Item
           name="avatar_url"
           label={t("avatarUrl")}
-          className="mb-0 text-center [&_.ant-form-item-label]:text-center"
+          className="mb-0"
         >
           <ImageUpload className="rounded-full" />
         </Form.Item>
       </Form>
-    </Modal>
+    </FormDrawer>
   );
 }
 

@@ -1,13 +1,16 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Button, Drawer, Form, Input, InputNumber, Select, Switch, Table, Tag, type TableProps } from "antd";
+import { Button, Form, Input, InputNumber, Select, Switch, Tag, type TableProps } from "antd";
 import { CalendarPlus, Search, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { createAppointment, deleteAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
+import { DataTable } from "@/components/common/data-table";
 import { DatePicker } from "@/components/common/date-picker";
+import { FormDrawer } from "@/components/common/form-drawer";
+import { RowActions } from "@/components/common/row-actions";
 import { EnumTag } from "@/components/common/enum-tag";
 import { InlineMultiSelect, InlineSelect, matchWords } from "@/components/common/inline-select";
 import { useConfirm } from "@/components/common/confirm-action";
@@ -140,8 +143,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     } },
     { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note} disabled={pending}
       label={t("note")} onSave={(note) => save(row.id, { note })} /> },
-    { key: "actions", width: 52, render: (_, row) => <Button type="text" danger disabled={pending}
-      aria-label={t("remove")} icon={<Trash2 className="size-4" />} onClick={() => confirm({
+    { key: "actions", width: 56, align: "right", fixed: "right", render: (_, row) => <RowActions label={t("remove")}
+      items={[{ icon: <Trash2 className="size-4" />, label: t("remove"), danger: true, disabled: pending, onSelect: () => confirm({
         title: t("removeTitle"), content: t("removeBody", { name: customerMap.get(row.customer_id)?.full_name ?? "" }),
         okText: t("remove"), cancelText: t("cancel"), onOk: async () => {
           try {
@@ -150,7 +153,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
             else toast.success(t("removed"));
           } catch { toast.error(t("saveError")); }
         },
-      })} /> },
+      }) }]} /> },
   ];
 
   return <Page>
@@ -164,11 +167,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <Select value={arrival} aria-label={t("confirmation")} className="min-w-40" onChange={(v) => { setArrival(v); resetPage(); }}
         options={[{ value: "all", label: t("allArrivals") }, { value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
-      <span className="ml-auto text-sm text-muted-foreground" role="status">{pending ? t("saving") : t("count", { count: filtered.length })}</span>
     </PageToolbar>
-    <Table className="surface overflow-hidden" rowKey="id" size="small" bordered sticky
-      columns={columns} dataSource={filtered} scroll={{ x: 2410 }} locale={{ emptyText: t("empty") }}
-      pagination={{ current: page, pageSize: 30, onChange: setPage, showSizeChanger: false, hideOnSinglePage: true }} />
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2410 }} empty={t("empty")}
+      page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff} services={services}
       onCreated={() => { setCreating(false); setDate(""); setCustomerFilter(""); setSearch(""); setArrival("all"); setPage(1); }} />
@@ -234,12 +235,8 @@ function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, cu
     } catch { toast.error(t("saveError")); }
   });
 
-  return <Drawer open={open} onClose={onClose} size={480} destroyOnHidden title={t("create")}
-    closable={!pending} mask={{ closable: !pending }}
-    footer={<div className="flex justify-end gap-2">
-      <Button onClick={onClose} disabled={pending}>{t("cancel")}</Button>
-      <Button type="primary" loading={pending} onClick={() => form.submit()}>{t("create")}</Button>
-    </div>}>
+  return <FormDrawer open={open} onClose={onClose} title={t("create")} submitText={t("create")}
+    pending={pending} onSubmit={() => form.submit()}>
     <Form form={form} layout="vertical" requiredMark={false} disabled={pending} onFinish={onFinish}
       initialValues={{ customer_id: initialCustomer || undefined, checked_in: false }}>
       <Form.Item name="customer_id" label={t("name")} rules={[{ required: true, message: t("chooseCustomer") }]}>
@@ -278,5 +275,5 @@ function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, cu
         <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />
       </Form.Item>
     </Form>
-  </Drawer>;
+  </FormDrawer>;
 }
