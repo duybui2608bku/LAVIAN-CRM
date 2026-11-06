@@ -70,8 +70,8 @@ export function PhotoField({ label, value, onChange, capture, disabled }: {
           {disabled ? null : <ConfirmAction title={t("removePhoto")} okText={t("remove")} cancelText={t("cancel")}
             onConfirm={() => onChange(value.filter((u) => u !== url))}>
             <button type="button" aria-label={t("removePhoto")}
-              className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white">
-              <X className="size-3.5" />
+              className="absolute top-1 right-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-white">
+              <X className="size-4" />
             </button>
           </ConfirmAction>}
         </div>)}
