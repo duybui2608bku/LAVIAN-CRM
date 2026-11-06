@@ -51,6 +51,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-06 — /tour cho admin: cột nhân viên, gom nhóm, Excel, phiếu tour PDF
+- **Thay đổi:** OpenSpec change `admin-tour-export`. Admin ở `/tour`: select KTV có "Tất cả kỹ thuật viên" (mặc định), cột Nhân viên, công tắc "Gom theo nhân viên" (tree data antd: dòng nhóm có số lịch/tổng bill/tổng tour/cảnh báo thiếu). Nút **Xuất Excel** (`exceljs` import động, gom theo KTV + dòng tổng mỗi KTV + tổng cộng, file `tour-YYYY-MM.xlsx`). Nút **Phiếu tour (PDF)**: phiếu tiếng Anh mỗi KTV 1 trang A4 (bảng lịch, tổng, chỗ ký) render qua portal vào `body`, ẩn trên màn hình, `@media print` chỉ in phiếu → `window.print()` → "Save as PDF" (không dùng thư viện PDF vì font mặc định thiếu dấu). Tháng chuyển lên URL `?month=YYYY-MM`, server lọc khoảng tháng ±1 ngày (tránh giới hạn 1000 dòng), client lọc chính xác theo múi giờ trình duyệt. Non-admin không đổi.
+- **File ảnh hưởng:** `app/(app)/tour/page.tsx`, `components/tour/{tour-view.tsx,tour-data.ts,tour-export.ts,tour-slips.tsx}`, `app/globals.css`, `messages/{vi,en}.json`, `package.json` (+exceljs), `openspec/changes/admin-tour-export/`
+- **Còn dở / ghi chú:** Đã thử trên preview (admin): gom nhóm, nội dung phiếu, sinh file Excel OK; chưa mở thử file Excel bằng Excel thật và chưa in thật. Ctrl+P trên /tour (admin) cũng in ra phiếu. Chưa commit. Archive openspec change sau khi duyệt.
+
 ### 2026-11-06 — Tăng tốc thao tác cập nhật, sửa select KTV /tour, bỏ menu Danh mục
 - **Thay đổi:** `getCurrentProfile` dùng `getClaims()` (project dùng khoá ES256 → xác thực JWT tại chỗ, bỏ 1 round-trip tới Auth) + bọc `cache()` (layout/page/action cùng request đọc profile 1 lần). `appointments/actions.ts`: kiểm tra nhân viên/dịch vụ chạy song song. UI không khoá cả bảng khi lưu nữa: bỏ `disabled={pending}` ở các ô Lịch hẹn; Người dùng (phòng ban), Dịch vụ/Danh mục (bật/tắt) chuyển sang `useOptimistic`. `/tour`: admin mặc định chọn KTV đầu tiên (trước lấy id admin → select hiện UUID). Bỏ mục "Danh mục" khỏi sidebar (trang /enums vẫn còn).
 - **File ảnh hưởng:** `lib/auth.ts`, `app/(app)/appointments/actions.ts`, `app/(app)/tour/page.tsx`, `components/tour/tour-view.tsx`, `components/layout/app-shell.tsx`, `components/{appointments,users,services,enums}/*-manager.tsx`

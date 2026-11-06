@@ -175,3 +175,29 @@
 .ant-table-wrapper .ant-table-header > table {
   min-width: 100%;
 }
+
+/* Phiếu tour (components/tour/tour-slips.tsx): ẩn trên màn hình, khi in chỉ in phiếu. */
+.tour-print { display: none; }
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body:has(> .tour-print) { background: #fff !important; }
+  body:has(> .tour-print) > :not(.tour-print) { display: none !important; }
+  .tour-print { display: block; color: #111; font: 11px/1.45 system-ui, sans-serif; }
+  .tour-slip { break-after: page; }
+  .tour-slip:last-child { break-after: auto; }
+  .tour-slip-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .tour-slip-head h1 { font-size: 20px; font-weight: 700; letter-spacing: .08em; }
+  .tour-slip-meta th { text-align: left; padding-right: 12px; color: #555; font-weight: 500; }
+  .tour-slip-table { width: 100%; border-collapse: collapse; }
+  .tour-slip-table th, .tour-slip-table td { border: 1px solid #bbb; padding: 4px 6px; text-align: left; }
+  .tour-slip-table thead th { background: #f1f0fb; font-weight: 600; }
+  .tour-slip-table tfoot td { font-weight: 700; }
+  .tour-slip-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tour-slip-table tr { break-inside: avoid; }
+  .tour-slip-note { margin-top: 6px; color: #a15c00; }
+  .tour-slip-amount { margin-top: 12px; font-size: 13px; }
+  .tour-slip-sign { display: flex; justify-content: space-between; margin-top: 40px; text-align: center; }
+  .tour-slip-sign div { width: 40%; display: flex; flex-direction: column; }
+  .tour-slip-sign span { font-weight: 600; }
+  .tour-slip-sign i { display: block; height: 56px; border-bottom: 1px solid #999; margin-bottom: 4px; }
+}

@@ -72,7 +72,16 @@
     "totalBill": "Total bill",
     "count": "Arrived appointments",
     "missing": "{count} appointments missing bill or service detail",
-    "empty": "No appointments this month"
+    "empty": "No appointments this month",
+    "staff": "Staff",
+    "allTechnicians": "All technicians",
+    "groupByStaff": "Group by staff",
+    "groupCount": "{count} appointments",
+    "exportExcel": "Export Excel",
+    "exportSlip": "Tour slip (PDF)",
+    "exportFailed": "Excel export failed",
+    "subtotal": "Total",
+    "grandTotal": "Grand total"
   },
   "nav": {
     "tour": "My tour",

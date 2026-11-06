@@ -72,7 +72,16 @@
     "totalBill": "Tổng bill",
     "count": "Số lịch đã đến",
     "missing": "{count} lịch chưa có bill hoặc dịch vụ chi tiết",
-    "empty": "Chưa có lịch nào trong tháng này"
+    "empty": "Chưa có lịch nào trong tháng này",
+    "staff": "Nhân viên",
+    "allTechnicians": "Tất cả kỹ thuật viên",
+    "groupByStaff": "Gom theo nhân viên",
+    "groupCount": "{count} lịch",
+    "exportExcel": "Xuất Excel",
+    "exportSlip": "Phiếu tour (PDF)",
+    "exportFailed": "Xuất Excel thất bại",
+    "subtotal": "Tổng",
+    "grandTotal": "Tổng cộng"
   },
   "nav": {
     "tour": "Tour của tôi",
