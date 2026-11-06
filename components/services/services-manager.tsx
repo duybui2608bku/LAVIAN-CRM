@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import {
   Button,
   Checkbox,
@@ -35,8 +35,15 @@ const dash = (v: string | null) =>
 export function ServicesManager({ services }: { services: Service[] }) {
   const t = useTranslations("services");
   const [dialog, setDialog] = useState<DialogState>(null);
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
   const confirm = useConfirm();
+  // Bật/tắt hiện ngay; server trả về thì React tự đồng bộ (lỗi → quay lại).
+  const [rows, patchRow] = useOptimistic(
+    services,
+    (state: Service[], p: { id: string; is_active: boolean }) =>
+      state.map((r) => (r.id === p.id ? { ...r, is_active: p.is_active } : r)),
+  );
+
 
   const remove = async (s: Service) => {
     const res = await deleteService(s.id);
@@ -50,6 +57,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
   // Bật/tắt trực tiếp trên bảng (giữ nguyên các trường còn lại).
   const onToggleActive = (s: Service) =>
     start(async () => {
+      patchRow({ id: s.id, is_active: !s.is_active });
       const res = await updateService(s.id, {
         name_vi: s.name_vi,
         name_en: s.name_en,
@@ -72,7 +80,6 @@ export function ServicesManager({ services }: { services: Service[] }) {
         <Switch
           size="small"
           checked={s.is_active}
-          disabled={pending}
           aria-label={t("colActive")}
           title={s.is_active ? t("active") : t("inactive")}
           onChange={() => onToggleActive(s)}
@@ -129,7 +136,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
 
       <DataTable
         columns={columns}
-        dataSource={services}
+        dataSource={rows}
         pageSize={0}
         tableLayout="fixed"
         empty={t("empty")}

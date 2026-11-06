@@ -1,23 +1,29 @@
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
 import type { Profile } from "@/types/user";
 
-/** Hồ sơ của người dùng đang đăng nhập (null nếu chưa đăng nhập). */
-export async function getCurrentProfile(): Promise<Profile | null> {
+/**
+ * Hồ sơ của người dùng đang đăng nhập (null nếu chưa đăng nhập).
+ * - `getClaims()` xác thực JWT tại chỗ (khoá ký bất đối xứng) thay vì `getUser()`
+ *   đi mạng tới Auth server mỗi lần — nhanh hơn 1 round-trip.
+ * - `cache()`: layout + page + action trong cùng request dùng chung 1 lần đọc.
+ */
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data: auth } = await supabase.auth.getClaims();
+  const userId = auth?.claims?.sub;
+  if (!userId) return null;
 
   const { data } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user.id)
+    .eq("id", userId)
     .single();
 
   return (data as Profile) ?? null;
-}
+});
 
 /** Chặn thao tác nếu người gọi không phải admin. Dùng đầu mỗi Server Action admin. */
 export async function requireAdmin(): Promise<Profile> {

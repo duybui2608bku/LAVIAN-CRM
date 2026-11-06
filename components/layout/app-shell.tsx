@@ -12,7 +12,6 @@ import {
   Check,
   ChevronsUpDown,
   Languages,
-  ListTree,
   LogOut,
   Megaphone,
   Menu as MenuIcon,
@@ -47,7 +46,6 @@ const ADMIN_ITEMS = [
   { key: "marketing", href: "/marketing", icon: Megaphone },
   { key: "users", href: "/users", icon: UserCog },
   { key: "services", href: "/services", icon: Briefcase },
-  { key: "enums", href: "/enums", icon: ListTree },
 ] as const;
 
 type NavItem = (typeof ITEMS)[number] | (typeof ADMIN_ITEMS)[number];

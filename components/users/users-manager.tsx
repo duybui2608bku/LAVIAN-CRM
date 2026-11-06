@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Button, Form, Input, Modal, Tag, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
 import { Ban, KeyRound, Search, ShieldCheck, UserPlus } from "lucide-react";
@@ -35,18 +35,24 @@ export function UsersManager({
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<Profile | null>(null);
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
   const confirm = useConfirm();
+  // Đổi phòng ban hiện ngay; server trả về thì React tự đồng bộ (lỗi → quay lại).
+  const [rows, patchRow] = useOptimistic(
+    profiles,
+    (state: Profile[], p: { id: string; department: UserDepartment | null }) =>
+      state.map((r) => (r.id === p.id ? { ...r, department: p.department } : r)),
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return profiles;
-    return profiles.filter(
+    if (!q) return rows;
+    return rows.filter(
       (p) =>
         p.user_name.toLowerCase().includes(q) ||
         p.email.toLowerCase().includes(q),
     );
-  }, [profiles, query]);
+  }, [rows, query]);
 
   const departmentOptions = DEPARTMENTS.map((d) => ({
     value: d,
@@ -55,6 +61,7 @@ export function UsersManager({
 
   const changeDepartment = (p: Profile, value: string) =>
     start(async () => {
+      patchRow({ id: p.id, department: (value || null) as UserDepartment | null });
       const res = await setUserDepartment(
         p.id,
         (value || null) as UserDepartment | null,
@@ -102,7 +109,6 @@ export function UsersManager({
           options={departmentOptions}
           noneLabel="—"
           ariaLabel={t("colDepartment")}
-          disabled={pending}
           onSave={(v) => changeDepartment(p, v)}
         />
       ),

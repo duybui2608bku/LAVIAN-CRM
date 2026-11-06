@@ -62,7 +62,7 @@ export function TourView({ rows, technicianId, technicians }: {
     <PageToolbar>
       <DatePicker picker="month" value={month} allowClear={false} format="MM/YYYY" aria-label={t("month")}
         onChange={(d) => d && setMonth(d.startOf("month"))} />
-      {technicians ? <Select className="min-w-56" value={technicianId} aria-label={t("technician")}
+      {technicians ? <Select className="min-w-56" value={technicianId || undefined} placeholder={t("technician")} aria-label={t("technician")}
         showSearch={{ optionFilterProp: "title" }}
         options={technicians.map((s) => ({ value: s.id, title: s.user_name, label: staffLabel(s) }))}
         onChange={(id) => router.push(`/tour?technician=${id}`)} /> : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import {
   Button,
   Checkbox,
@@ -44,7 +44,13 @@ export function EnumsManager({
 }) {
   const t = useTranslations("enums");
   const [dialog, setDialog] = useState<DialogState>(null);
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
+  // Bật/tắt hiện ngay; server trả về thì React tự đồng bộ (lỗi → quay lại).
+  const [rows, patchRow] = useOptimistic(
+    options,
+    (state: EnumOption[], p: { id: string; is_active: boolean }) =>
+      state.map((r) => (r.id === p.id ? { ...r, is_active: p.is_active } : r)),
+  );
   const confirm = useConfirm();
 
   const remove = async (o: EnumOption) => {
@@ -59,6 +65,7 @@ export function EnumsManager({
   // Bật/tắt trực tiếp trên bảng (giữ nguyên các trường còn lại).
   const onToggleActive = (o: EnumOption) =>
     start(async () => {
+      patchRow({ id: o.id, is_active: !o.is_active });
       const res = await updateOption(o.id, {
         label_vi: o.label_vi,
         label_en: o.label_en,
@@ -96,7 +103,6 @@ export function EnumsManager({
         <Switch
           size="small"
           checked={o.is_active}
-          disabled={pending}
           aria-label={t("colActive")}
           title={o.is_active ? t("active") : t("inactive")}
           onChange={() => onToggleActive(o)}
@@ -153,7 +159,7 @@ export function EnumsManager({
 
       <DataTable
         columns={columns}
-        dataSource={options}
+        dataSource={rows}
         pageSize={0}
         tableLayout="fixed"
         scroll={{ x: 760 }}
