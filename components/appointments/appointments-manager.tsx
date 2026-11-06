@@ -69,10 +69,12 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     { title: t("phone"), width: 160, render: (_, row) => customerMap.get(row.customer_id)?.phone },
     { title: t("source"), width: 140, render: (_, row) => sourceTag(customerMap.get(row.customer_id)?.source ?? null) },
     { title: t("date"), width: 220, sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
-      render: (_, row) => <AppointmentDate value={row.scheduled_at} disabled={pending} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
-    { title: t("confirmation"), width: 170, render: (_, row) => <Switch checked={row.checked_in} disabled={pending}
-      checkedChildren={t("arrived")} unCheckedChildren={t("notArrived")} aria-label={t("confirmation")}
-      onChange={(checked_in) => save(row.id, { checked_in })} /> },
+      render: (_, row) => <AppointmentDate inline value={row.scheduled_at} disabled={pending} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
+    { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
+      value={row.checked_in ? "arrived" : "waiting"} disabled={pending} ariaLabel={t("confirmation")}
+      display={<Tag color={row.checked_in ? "green" : "default"} className="me-0">{row.checked_in ? t("arrived") : t("notArrived")}</Tag>}
+      options={[{ value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]}
+      onSave={(value) => save(row.id, { checked_in: value === "arrived" })} /> },
     { title: t("services"), width: 220, render: (_, row) => <InlineMultiSelect
       value={row.service_ids} disabled={pending} ariaLabel={t("services")}
       display={row.service_ids.length ? <div className="flex flex-wrap gap-1">{row.service_ids.map((id) => {
