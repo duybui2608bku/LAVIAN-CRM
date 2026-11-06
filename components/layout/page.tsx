@@ -14,7 +14,7 @@ export function Page({
   children: React.ReactNode;
 }) {
   return (
-    <PageTransition className={cn("mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 p-4 sm:px-8 sm:py-6", className)}>
+    <PageTransition className={cn("flex w-full flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-5", className)}>
       {children}
     </PageTransition>
   );
