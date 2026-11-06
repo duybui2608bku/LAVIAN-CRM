@@ -1,53 +1,40 @@
-// Dữ liệu dùng chung cho trang /tour (server page, bảng, Excel, phiếu PDF) — không "use client"
-// để server import được hằng số.
+// Dữ liệu dùng chung cho Excel + phiếu tour PDF (admin).
 import type { StaffRef } from "@/components/common/user-avatar";
-import { tourAmount, tourRate, type ServiceDetail } from "@/lib/appointments";
+import { tourAmount, tourRate, type ServiceDetail } from "@/lib/tours";
+import type { Tour } from "@/types/tour";
 
-export const ALL_TECHNICIANS = "all";
-
-export type TourRow = {
-  id: string;
-  technician_id: string | null;
-  scheduled_at: string;
-  service_detail: ServiceDetail | null;
-  service_session: number | null;
-  bill_amount: number | null;
-  customer: { full_name: string } | null;
-};
-
-export type TourItem = TourRow & { tour: number | null; rate: number | null };
+/** Tour kèm thực thu (`amount`) và % (`rate`). */
+export type TourItem = Tour & { amount: number | null; rate: number | null };
 
 export type TourGroup = {
   technician: StaffRef;
   rows: TourItem[];
   bill: number;
-  tour: number;
+  amount: number;
   missing: number;
 };
 
-export function toItem(row: TourRow): TourItem {
-  return {
-    ...row,
-    tour: tourAmount(row.service_detail, row.service_session, row.bill_amount),
-    rate: row.service_detail ? tourRate(row.service_detail, row.service_session) : null,
-  };
+export function toItem(row: Tour): TourItem {
+  const amount = tourAmount(row.service_detail, row.service_session, row.bill_amount);
+  return { ...row, amount, rate: amount == null ? null : tourRate(row.service_detail!, row.service_session) };
 }
 
-/** Gom lịch theo KTV, sắp theo tên. `staff` dùng để lấy tên/avatar. */
+/** Gom tour đã có KTV theo KTV, sắp theo tên. */
 export function groupByTechnician(items: TourItem[], staff: StaffRef[]): TourGroup[] {
   const byId = new Map(staff.map((s) => [s.id, s]));
   const groups = new Map<string, TourGroup>();
   for (const item of items) {
-    const id = item.technician_id ?? "";
-    let group = groups.get(id);
+    if (!item.technician_id) continue;
+    let group = groups.get(item.technician_id);
     if (!group) {
-      group = { technician: byId.get(id) ?? { id, user_name: "—", avatar_url: null }, rows: [], bill: 0, tour: 0, missing: 0 };
-      groups.set(id, group);
+      const technician = byId.get(item.technician_id) ?? { id: item.technician_id, user_name: "—", avatar_url: null };
+      group = { technician, rows: [], bill: 0, amount: 0, missing: 0 };
+      groups.set(item.technician_id, group);
     }
     group.rows.push(item);
     group.bill += item.bill_amount ?? 0;
-    group.tour += item.tour ?? 0;
-    if (item.tour == null) group.missing += 1;
+    group.amount += item.amount ?? 0;
+    if (item.amount == null) group.missing += 1;
   }
   return [...groups.values()].sort((a, b) => a.technician.user_name.localeCompare(b.technician.user_name));
 }
@@ -57,5 +44,5 @@ const DETAIL_EN: Record<ServiceDetail, string> = {
 };
 
 /** Nhãn dịch vụ chi tiết tiếng Anh (phiếu tour luôn tiếng Anh). */
-export const detailLabelEn = (row: TourRow) =>
+export const detailLabelEn = (row: Tour) =>
   row.service_detail ? `${DETAIL_EN[row.service_detail]}${row.service_session ? ` ${row.service_session}` : ""}` : "";
