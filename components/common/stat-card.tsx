@@ -16,9 +16,9 @@ export function StatCard({
   loading?: boolean;
 }) {
   return (
-    <div className="surface flex min-w-0 flex-col gap-1 p-4">
+    <div className="surface flex min-w-0 flex-col gap-1 p-3 sm:p-4">
       <p className="truncate text-xs font-medium text-muted-foreground">{label}</p>
-      <div className="truncate text-2xl font-semibold tracking-tight tabular-nums">
+      <div className="truncate text-xl font-semibold sm:text-2xl tracking-tight tabular-nums">
         {loading ? (
           <span className="inline-block h-7 w-24 animate-pulse rounded-md bg-muted" />
         ) : (

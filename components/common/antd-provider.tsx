@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { App, ConfigProvider, theme, type ThemeConfig } from "antd";
 import enUS from "antd/locale/en_US";
 import viVN from "antd/locale/vi_VN";
@@ -12,6 +12,7 @@ import { useTheme } from "next-themes";
 import { useMounted } from "@/hooks/use-mounted";
 import type { Locale } from "@/i18n/config";
 import { bindToast } from "@/lib/toast";
+import { THEME_BG, THEME_COOKIE, type UiHints } from "@/lib/ui-hints";
 
 const ANTD_LOCALES = { vi: viVN, en: enUS } as const;
 
@@ -48,7 +49,7 @@ const DARK = {
   colorFillTertiary: "#232329",
 };
 
-function buildTheme(dark: boolean): ThemeConfig {
+function buildTheme(dark: boolean, touch: boolean): ThemeConfig {
   const c = dark ? DARK : LIGHT;
   return {
     algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
@@ -60,7 +61,8 @@ function buildTheme(dark: boolean): ThemeConfig {
       fontSize: 14,
       fontFamily: "var(--font-inter), system-ui, sans-serif",
       fontFamilyCode: "var(--font-geist-mono), monospace",
-      controlHeight: 34,
+      // Cảm ứng: control 40px cho dễ chạm (antd tự suy ra padding/size).
+      controlHeight: touch ? 40 : 34,
       boxShadowSecondary: dark
         ? "0 8px 24px rgb(0 0 0 / 0.45)"
         : "0 8px 24px rgb(24 24 27 / 0.08), 0 1px 2px rgb(24 24 27 / 0.06)",
@@ -76,7 +78,7 @@ function buildTheme(dark: boolean): ThemeConfig {
       Menu: {
         itemBorderRadius: 6,
         activeBarBorderWidth: 0,
-        itemHeight: 36,
+        itemHeight: touch ? 44 : 36,
         itemMarginInline: 8,
         itemMarginBlock: 2,
         itemBg: "transparent",
@@ -107,6 +109,13 @@ function buildTheme(dark: boolean): ThemeConfig {
   };
 }
 
+const COARSE = "(pointer: coarse)";
+const subscribeCoarse = (cb: () => void) => {
+  const mq = window.matchMedia(COARSE);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+};
+
 /** Gắn `message` của <App> vào `toast` dùng chung. */
 function ToastBridge() {
   const { message } = App.useApp();
@@ -116,17 +125,31 @@ function ToastBridge() {
 
 export function AntdProvider({
   locale,
+  hints,
   children,
 }: {
   locale: Locale;
+  hints: UiHints;
   children: React.ReactNode;
 }) {
   const { resolvedTheme } = useTheme();
-  // Chờ mount mới đọc theme để server/client render cùng một cây (tránh lệch hydration).
+  // Trước mount dùng gợi ý từ cookie (server và lượt hydrate cùng giá trị → không lệch,
+  // không nháy sáng); sau mount theo next-themes.
   const mounted = useMounted();
-  const dark = mounted && resolvedTheme === "dark";
+  const dark = mounted ? resolvedTheme === "dark" : !!hints.dark;
+  const touch = useSyncExternalStore(subscribeCoarse, () => window.matchMedia(COARSE).matches, () => hints.touch);
 
-  const themeConfig = useMemo(() => buildTheme(dark), [dark]);
+  // Ghi theme đã áp dụng cho lần SSR sau + đổi màu thanh trạng thái điện thoại.
+  useEffect(() => {
+    if (!resolvedTheme) return;
+    const isDark = resolvedTheme === "dark";
+    document.cookie = `${THEME_COOKIE}=${isDark ? "dark" : "light"}; path=/; max-age=31536000; samesite=lax`;
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
+      m.setAttribute("content", isDark ? THEME_BG.dark : THEME_BG.light);
+    });
+  }, [resolvedTheme]);
+
+  const themeConfig = useMemo(() => buildTheme(dark, touch), [dark, touch]);
   dayjs.locale(locale);
 
   return (

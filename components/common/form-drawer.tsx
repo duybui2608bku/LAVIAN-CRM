@@ -41,9 +41,10 @@ export function FormDrawer({
       closable={!pending}
       mask={{ closable: !pending }}
       footer={
-        <div className="flex flex-wrap items-center gap-2">
+        // Điện thoại: nút giãn đều cho dễ chạm; ẩn "Huỷ" (header đã có nút đóng).
+        <div className="flex flex-wrap items-center gap-2 max-sm:[&>*]:flex-1">
           {footerExtra}
-          <Button className="ms-auto" onClick={onClose} disabled={pending}>
+          <Button className="ms-auto max-sm:hidden!" onClick={onClose} disabled={pending}>
             {t("cancel")}
           </Button>
           <Button type="primary" loading={pending} onClick={onSubmit}>

@@ -5,15 +5,19 @@ import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 
 import { AntdProvider } from "@/components/common/antd-provider";
+import { MobileHintContext } from "@/hooks/use-is-mobile";
 import type { Locale } from "@/i18n/config";
+import type { UiHints } from "@/lib/ui-hints";
 
 // Global client-side providers. One QueryClient per browser session
 // (useState keeps it stable across re-renders; a fresh one per request on the server).
 export function Providers({
   locale,
+  hints,
   children,
 }: {
   locale: Locale;
+  hints: UiHints;
   children: React.ReactNode;
 }) {
   const [queryClient] = useState(
@@ -30,9 +34,11 @@ export function Providers({
       enableSystem
       disableTransitionOnChange
     >
-      <AntdProvider locale={locale}>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      </AntdProvider>
+      <MobileHintContext value={hints.mobile}>
+        <AntdProvider locale={locale} hints={hints}>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        </AntdProvider>
+      </MobileHintContext>
     </ThemeProvider>
   );
 }

@@ -41,7 +41,7 @@ export function PageHeader({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:[&>*]:flex-1">
           {actions}
         </div>
       ) : null}
@@ -58,7 +58,8 @@ export function PageToolbar({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+    // Điện thoại: mỗi control 1 hàng, full width (không ô dài ô ngắn).
+    <div className={cn("flex flex-wrap items-center gap-2 max-sm:flex-col max-sm:items-stretch max-sm:[&>*]:w-full! max-sm:[&>*]:max-w-none!", className)}>
       {children}
     </div>
   );

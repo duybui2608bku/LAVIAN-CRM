@@ -106,15 +106,18 @@ function TechnicianTours({ month, tours, pending, services, onOpen, goMonth }: V
       </div>) : <div className="surface py-10"><Empty description={t("noPending")} /></div>}
     </div> : <>
       <PageToolbar><MonthPicker month={month} goMonth={goMonth} /></PageToolbar>
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      {/* Điện thoại: 2 thẻ đếm 1 hàng, "Đã nhận" cả hàng để không cắt số tiền. */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
         <StatCard label={t("count")} value={items.length} />
         <StatCard label={t("status_claimed")} value={unconfirmed} />
-        <StatCard label={t("received")} value={formatRupiah(total)}
-          hint={t("confirmedAmount", { amount: formatRupiah(confirmedTotal) })} />
+        <div className="col-span-2 sm:col-span-1">
+          <StatCard label={t("received")} value={formatRupiah(total)}
+            hint={t("confirmedAmount", { amount: formatRupiah(confirmedTotal) })} />
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         {items.length ? items.map((tour) => <button key={tour.id} type="button" onClick={() => onOpen(tour.id)}
-          className="surface flex flex-col gap-2 p-3 text-left hover:border-primary">
+          className="surface flex flex-col gap-2 p-3 text-left transition-colors hover:border-primary active:bg-muted">
           <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="flex items-center gap-2">
