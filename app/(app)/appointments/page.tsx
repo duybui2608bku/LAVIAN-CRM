@@ -1,7 +1,6 @@
-import { AppointmentsManager } from "@/components/appointments/appointments-manager";
+import { AppointmentsManager, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { createClient } from "@/lib/supabase/server";
 import type { Appointment, AppointmentCustomer } from "@/types/appointment";
-import type { StaffRef } from "@/components/common/user-avatar";
 import type { Service } from "@/types/service";
 
 export default async function AppointmentsPage({ searchParams }: {
@@ -9,10 +8,11 @@ export default async function AppointmentsPage({ searchParams }: {
 }) {
   const db = await createClient();
   const [appointments, customers, staff, services, params] = await Promise.all([
-    db.from("clinic_appointments").select("id,customer_id,scheduled_at,checked_in,service_ids,payment_method,staff_id,note")
+    db.from("clinic_appointments").select("id,customer_id,scheduled_at,checked_in,service_ids,payment_method,staff_id,technician_id,service_detail,service_session,bill_amount,note")
       .is("deleted_at", null).order("scheduled_at"),
     db.from("customers").select("id,full_name,phone,source").is("deleted_at", null).order("full_name"),
-    db.from("profiles").select("id,user_name,avatar_url,status").order("user_name"),
+    db.from("profiles").select("id,user_name,avatar_url,status,department")
+      .in("department", ["customer_care", "technician"]).order("user_name"),
     db.from("services").select("*").order("sort_order"),
     searchParams,
   ]);
@@ -22,7 +22,7 @@ export default async function AppointmentsPage({ searchParams }: {
   return <AppointmentsManager
     appointments={(appointments.data ?? []) as Appointment[]}
     customers={(customers.data ?? []) as AppointmentCustomer[]}
-    staff={(staff.data ?? []) as (StaffRef & { status: string })[]}
+    staff={(staff.data ?? []) as AppointmentStaff[]}
     services={(services.data ?? []) as Service[]}
     initialCustomer={params.customer ?? ""}
   />;

@@ -7,10 +7,18 @@ import type { SelectOption } from "@/components/common/clearable-select";
 
 const NONE = "__none";
 
+export type SelectGroup = { label: React.ReactNode; options: SelectOption[] };
+
+/** Tìm theo từng từ: "ret 2" khớp "Retouch 2". */
+export const matchWords = (input: string, label: unknown) => {
+  const text = String(label ?? "").toLocaleLowerCase();
+  return input.toLocaleLowerCase().split(/\s+/).every((word) => text.includes(word));
+};
+
 /**
  * Select sửa inline trong ô bảng: không viền, phần hiển thị là chính giá trị
  * (tag/avatar…) qua `display`. `noneLabel` có = cho phép bỏ chọn ("" = trống).
- * Chỉ gọi onSave khi giá trị thật sự đổi.
+ * Chỉ gọi onSave khi giá trị thật sự đổi. `searchable` = gõ để lọc (label phải là chuỗi).
  */
 export function InlineSelect({
   value,
@@ -19,14 +27,16 @@ export function InlineSelect({
   noneLabel,
   ariaLabel,
   disabled,
+  searchable,
   onSave,
 }: {
   value: string;
   display: React.ReactNode;
-  options: SelectOption[];
+  options: (SelectOption | SelectGroup)[];
   noneLabel?: string;
   ariaLabel: string;
   disabled?: boolean;
+  searchable?: boolean;
   onSave: (value: string) => void;
 }) {
   return (
@@ -38,6 +48,7 @@ export function InlineSelect({
       aria-label={ariaLabel}
       disabled={disabled}
       popupMatchSelectWidth={false}
+      showSearch={searchable ? { filterOption: (input, option) => matchWords(input, option?.label) } : undefined}
       className="inline-select -mx-2 max-w-full"
       options={
         noneLabel
