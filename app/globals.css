@@ -168,3 +168,10 @@
   padding: 10px 14px;
   border-top: 1px solid var(--border);
 }
+
+/* scroll.x = max-content làm bảng chỉ rộng bằng nội dung → luôn giãn đủ khung. */
+.ant-table-wrapper .ant-table-content > table,
+.ant-table-wrapper .ant-table-body > table,
+.ant-table-wrapper .ant-table-header > table {
+  min-width: 100%;
+}
