@@ -28,7 +28,6 @@
     "saveError": "Could not save. Please try again.",
     "duplicate": "This customer already has an appointment at the selected date and time.",
     "count": "{count} appointments",
-    "viewAppointments": "View appointments →",
     "unavailable": "Appointments could not be loaded. Reload the page or contact your administrator.",
     "cash": "Cash",
     "bank": "Bank transfer",

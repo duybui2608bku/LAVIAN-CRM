@@ -16,11 +16,12 @@ test("appointment edits validate dates, IDs and whitelist; no financial fields",
   assert.equal(appointmentPatchSchema.safeParse({ payment_method: null, staff_id: null, checked_in: false, note: "" }).success, true);
 });
 
-test("customer cell uses nearest upcoming visit, skips checked-in; input order is preserved", () => {
+test("customer cell shows the next visit, falling back to the latest saved visit", () => {
   const row = (id: string, day: number, checked_in = false) => ({ id, scheduled_at: `2026-11-${day}T10:00:00Z`, checked_in }) as Appointment;
   const rows = [row("later", 15), row("past", 10), row("arrived", 12, true), row("next", 13)];
   assert.equal(customerAppointment(rows, Date.parse("2026-11-11T00:00:00Z"))?.id, "next");
-  assert.equal(customerAppointment(rows, Date.parse("2026-12-01T00:00:00Z")), undefined);
+  assert.equal(customerAppointment(rows, Date.parse("2026-12-01T00:00:00Z"))?.id, "later");
+  assert.equal(customerAppointment([row("arrived", 12, true)], Date.parse("2026-11-11T00:00:00Z"))?.id, "arrived");
   assert.equal(rows[0].id, "later");
   assert.equal(customerAppointment([], Date.now()), undefined);
 });
