@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Button, Input, Modal, Select, Switch, Table, Tag, type TableProps } from "antd";
+import { Button, Drawer, Form, Input, Select, Switch, Table, Tag, type TableProps } from "antd";
 import { CalendarPlus, Search, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
@@ -36,8 +36,6 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [arrival, setArrival] = useState("all");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
-  const [newCustomer, setNewCustomer] = useState("");
-  const [newDate, setNewDate] = useState("");
   const [rows, patchOptimistic] = useOptimistic(appointments,
     (state: Appointment[], patch: AppointmentPatch & { id: string }) =>
       state.map((row) => row.id === patch.id ? { ...row, ...patch } : row));
@@ -110,8 +108,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
 
   return <Page>
     <PageHeader title={t("title")} actions={<Button type="primary" icon={<CalendarPlus className="size-4" />}
-      onClick={() => { setNewCustomer(customerFilter); setNewDate(""); setCreating(true); }}>{t("create")}</Button>} />
-    <p className="text-sm text-muted-foreground">{t("hint")}</p>
+      onClick={() => setCreating(true)}>{t("create")}</Button>} />
     <PageToolbar>
       <Input value={search} allowClear className="w-full sm:max-w-64" placeholder={t("search")}
         aria-label={t("search")} prefix={<Search className="size-4" />} onChange={(e) => { setSearch(e.target.value); resetPage(); }} />
@@ -125,27 +122,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <Table className="surface overflow-hidden" rowKey="id" size="small" bordered sticky
       columns={columns} dataSource={filtered} scroll={{ x: 1800 }} locale={{ emptyText: t("empty") }}
       pagination={{ current: page, pageSize: 30, onChange: setPage, showSizeChanger: false, hideOnSinglePage: true }} />
-    <Modal open={creating} title={t("create")} okText={t("create")} cancelText={t("cancel")}
-      confirmLoading={pending} okButtonProps={{ disabled: !newCustomer || !newDate }}
-      cancelButtonProps={{ disabled: pending }} closable={!pending} mask={{ closable: !pending }}
-      onCancel={() => setCreating(false)} onOk={() => start(async () => {
-        try {
-          const result = await createAppointment(newCustomer, newDate);
-          if (result.error) toast.error(result.error);
-          else { setCreating(false); setDate(""); setCustomerFilter(""); setSearch(""); setArrival("all"); setPage(1); toast.success(t("saved")); }
-        } catch { toast.error(t("saveError")); }
-      })}>
-      <div className="flex flex-col gap-4 py-3">
-        <label className="flex flex-col gap-1">{t("name")}
-          <Select showSearch={{ optionFilterProp: "label" }} value={newCustomer || undefined} disabled={pending}
-            placeholder={t("chooseCustomer")} aria-label={t("name")} onChange={setNewCustomer}
-            options={customers.map((c) => ({ value: c.id, label: `${c.full_name} · ${c.phone}` }))} />
-        </label>
-        <label className="flex flex-col gap-1">{t("date")}
-          <AppointmentDate key={creating ? "open" : "closed"} value={newDate} disabled={pending} onSave={setNewDate} />
-        </label>
-      </div>
-    </Modal>
+    <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
+      customers={customers} staff={staff} services={services}
+      onCreated={() => { setCreating(false); setDate(""); setCustomerFilter(""); setSearch(""); setArrival("all"); setPage(1); }} />
   </Page>;
 }
 
@@ -160,4 +139,67 @@ function AppointmentNote({ value, disabled, label, onSave }: {
     onChange={(e) => setDraft(e.target.value)} onBlur={() => {
       if (draft.trim() !== value) onSave(draft);
     }} />;
+}
+
+type CreateValues = Required<Pick<AppointmentPatch, "scheduled_at">> & Omit<AppointmentPatch, "scheduled_at"> & {
+  customer_id: string;
+};
+
+function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff, services }: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+  initialCustomer: string;
+  customers: AppointmentCustomer[];
+  staff: (StaffRef & { status: string })[];
+  services: Service[];
+}) {
+  const t = useTranslations("appointments");
+  const locale = useLocale();
+  const [form] = Form.useForm<CreateValues>();
+  const [pending, start] = useTransition();
+
+  const onFinish = ({ customer_id, ...values }: CreateValues) => start(async () => {
+    try {
+      const result = await createAppointment(customer_id, { ...values, note: values.note ?? "" });
+      if (result.error) toast.error(result.error);
+      else { toast.success(t("saved")); onCreated(); }
+    } catch { toast.error(t("saveError")); }
+  });
+
+  return <Drawer open={open} onClose={onClose} size={480} destroyOnHidden title={t("create")}
+    closable={!pending} mask={{ closable: !pending }}
+    footer={<div className="flex justify-end gap-2">
+      <Button onClick={onClose} disabled={pending}>{t("cancel")}</Button>
+      <Button type="primary" loading={pending} onClick={() => form.submit()}>{t("create")}</Button>
+    </div>}>
+    <Form form={form} layout="vertical" requiredMark={false} disabled={pending} onFinish={onFinish}
+      initialValues={{ customer_id: initialCustomer || undefined, checked_in: false }}>
+      <Form.Item name="customer_id" label={t("name")} rules={[{ required: true, message: t("chooseCustomer") }]}>
+        <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("chooseCustomer")}
+          options={customers.map((c) => ({ value: c.id, label: `${c.full_name} · ${c.phone}` }))} />
+      </Form.Item>
+      <Form.Item name="scheduled_at" label={t("date")} trigger="onSave" rules={[{ required: true, message: t("chooseDate") }]}>
+        <AppointmentDate onSave={() => {}} />
+      </Form.Item>
+      <Form.Item name="checked_in" label={t("confirmation")} valuePropName="checked">
+        <Switch checkedChildren={t("arrived")} unCheckedChildren={t("notArrived")} />
+      </Form.Item>
+      <Form.Item name="service_ids" label={t("services")}>
+        <Select mode="multiple" allowClear placeholder={t("choose")} optionFilterProp="label"
+          options={services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />
+      </Form.Item>
+      <Form.Item name="payment_method" label={t("payment")}>
+        <Select allowClear placeholder={t("choose")}
+          options={(["cash", "bank", "card"] as const).map((value) => ({ value, label: t(value) }))} />
+      </Form.Item>
+      <Form.Item name="staff_id" label={t("staff")}>
+        <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("choose")}
+          options={staff.filter((s) => s.status === "active").map((s) => ({ value: s.id, label: staffLabel(s) }))} />
+      </Form.Item>
+      <Form.Item name="note" label={t("note")} className="mb-0">
+        <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />
+      </Form.Item>
+    </Form>
+  </Drawer>;
 }

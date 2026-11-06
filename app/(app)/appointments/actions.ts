@@ -38,15 +38,21 @@ async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch:
   }
 }
 
-export async function createAppointment(customerId: string, scheduledAt: string): Promise<{ error?: string }> {
+export async function createAppointment(
+  customerId: string,
+  input: AppointmentPatch & { scheduled_at: string },
+): Promise<{ error?: string }> {
   try {
     z.uuid().parse(customerId);
-    const patch = appointmentPatchSchema.parse({ scheduled_at: scheduledAt });
+    const patch = appointmentPatchSchema.parse(input);
+    if (!patch.scheduled_at) throw new Error("Missing date");
     const db = await client();
+    await validateReferences(db, patch);
     const { data: customer, error: customerError } = await db.from("customers")
       .select("customer_services(service_id)").eq("id", customerId).is("deleted_at", null).single();
     if (customerError) throw customerError;
-    const serviceIds = (customer.customer_services ?? []).map((s: { service_id: string }) => s.service_id);
+    // Không chọn dịch vụ → lấy dịch vụ đang gắn trên khách.
+    const serviceIds = patch.service_ids ?? (customer.customer_services ?? []).map((s: { service_id: string }) => s.service_id);
     const { error } = await db.from("clinic_appointments").insert({
       customer_id: customerId, ...patch, service_ids: serviceIds,
     });

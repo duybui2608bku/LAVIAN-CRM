@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { AppointmentSummary } from "../types/appointment.ts";
 
 export const appointmentPatchSchema = z.object({
   scheduled_at: z.iso.datetime({ offset: true }),
@@ -9,9 +8,3 @@ export const appointmentPatchSchema = z.object({
   staff_id: z.uuid().nullable(),
   note: z.string().trim().max(10000),
 }).partial().strict().refine((patch) => Object.keys(patch).length > 0);
-
-/** Keep a saved appointment visible even after its time has passed or the customer arrives. */
-export function customerAppointment(rows: AppointmentSummary[], now: number): AppointmentSummary | undefined {
-  const sorted = [...rows].sort((a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at));
-  return sorted.find((a) => !a.checked_in && Date.parse(a.scheduled_at) >= now) ?? sorted.at(-1);
-}
