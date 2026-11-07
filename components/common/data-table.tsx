@@ -124,10 +124,10 @@ function CardList<T extends object>({
                 {actions.map((c, k) => <Fragment key={k}>{cellValue(c, record, index)}</Fragment>)}
               </div>
             ) : null}
-            <dl className={cn("grid grid-cols-[minmax(5rem,auto)_minmax(0,1fr)] items-center gap-x-3 gap-y-2 text-sm", actions.length && "pr-9")}>
+            <dl className={cn("grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 text-sm", actions.length && "pr-9")}>
               {fields.map((c, k) => (
                 <Fragment key={String(c.key ?? c.dataIndex ?? k)}>
-                  <dt className="text-xs text-muted-foreground">{c.title as React.ReactNode}</dt>
+                  <dt className="break-words text-xs text-muted-foreground">{c.title as React.ReactNode}</dt>
                   <dd className="min-w-0 break-words">{cellValue(c, record, index) ?? "—"}</dd>
                 </Fragment>
               ))}
