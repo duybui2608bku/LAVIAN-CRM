@@ -5,7 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 
 import { AntdProvider } from "@/components/common/antd-provider";
-import { MobileHintContext } from "@/hooks/use-is-mobile";
+import { UiHintContext } from "@/hooks/use-is-mobile";
 import type { Locale } from "@/i18n/config";
 import type { UiHints } from "@/lib/ui-hints";
 
@@ -30,15 +30,16 @@ export function Providers({
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      // Mặc định sáng, không theo theme hệ thống; người dùng tự bật tối trong menu tài khoản.
+      defaultTheme="light"
+      enableSystem={false}
       disableTransitionOnChange
     >
-      <MobileHintContext value={hints.mobile}>
+      <UiHintContext value={hints}>
         <AntdProvider locale={locale} hints={hints}>
           <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         </AntdProvider>
-      </MobileHintContext>
+      </UiHintContext>
     </ThemeProvider>
   );
 }

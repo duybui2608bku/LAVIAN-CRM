@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo } from "react";
 import { App, ConfigProvider, theme, type ThemeConfig } from "antd";
 import enUS from "antd/locale/en_US";
 import viVN from "antd/locale/vi_VN";
@@ -9,6 +9,7 @@ import "dayjs/locale/en";
 import "dayjs/locale/vi";
 import { useTheme } from "next-themes";
 
+import { useIsTouch } from "@/hooks/use-is-mobile";
 import { useMounted } from "@/hooks/use-mounted";
 import type { Locale } from "@/i18n/config";
 import { bindToast } from "@/lib/toast";
@@ -109,13 +110,6 @@ function buildTheme(dark: boolean, touch: boolean): ThemeConfig {
   };
 }
 
-const COARSE = "(pointer: coarse)";
-const subscribeCoarse = (cb: () => void) => {
-  const mq = window.matchMedia(COARSE);
-  mq.addEventListener("change", cb);
-  return () => mq.removeEventListener("change", cb);
-};
-
 /** Gắn `message` của <App> vào `toast` dùng chung. */
 function ToastBridge() {
   const { message } = App.useApp();
@@ -137,7 +131,7 @@ export function AntdProvider({
   // không nháy sáng); sau mount theo next-themes.
   const mounted = useMounted();
   const dark = mounted ? resolvedTheme === "dark" : !!hints.dark;
-  const touch = useSyncExternalStore(subscribeCoarse, () => window.matchMedia(COARSE).matches, () => hints.touch);
+  const touch = useIsTouch();
 
   // Ghi theme đã áp dụng cho lần SSR sau + đổi màu thanh trạng thái điện thoại.
   useEffect(() => {
@@ -153,7 +147,9 @@ export function AntdProvider({
   dayjs.locale(locale);
 
   return (
-    <ConfigProvider theme={themeConfig} locale={ANTD_LOCALES[locale]}>
+    // Cảm ứng: tắt virtual list — rc-virtual-list tự cuộn bằng JS khi vuốt nên
+    // dropdown dài bị giật; danh sách thường chỉ vài trăm dòng nên cuộn native đủ nhanh.
+    <ConfigProvider theme={themeConfig} locale={ANTD_LOCALES[locale]} virtual={!touch}>
       <App>
         <ToastBridge />
         {children}

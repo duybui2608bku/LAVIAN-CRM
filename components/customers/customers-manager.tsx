@@ -705,7 +705,7 @@ function CustomerDialog({
           <Input />
         </Form.Item>
         <Form.Item name="phone" label={t("colPhone")} rules={required} normalize={normalizePhone}>
-          <Input />
+          <Input inputMode="tel" autoComplete="off" />
         </Form.Item>
         <Form.Item name="social_name" label={t("socialName")}>
           <Input />

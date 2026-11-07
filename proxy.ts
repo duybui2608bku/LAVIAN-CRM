@@ -107,7 +107,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // API tự trả JSON + tự xác thực trong Route Handler; không redirect sang HTML login.
+  // manifest.webmanifest: trình duyệt tải không kèm cookie → phải công khai để cài được PWA.
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

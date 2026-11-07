@@ -178,6 +178,18 @@
   }
 }
 
+/* Cảm giác app trên cảm ứng: không vệt xanh khi chạm, không kéo dội cả trang;
+   vuốt hết danh sách dropdown không kéo theo trang/drawer phía sau (làm dropdown nhảy). */
+@media (pointer: coarse) {
+  html { -webkit-tap-highlight-color: transparent; }
+  body { overscroll-behavior-y: none; }
+  .ant-select-dropdown-list-holder,
+  .ant-picker-dropdown .ant-picker-time-panel-column,
+  .ant-drawer-body {
+    overscroll-behavior: contain;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
