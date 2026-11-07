@@ -3,7 +3,6 @@
 import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
-import { resolveSource } from "@/lib/customers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import { normalizePhone } from "@/lib/phone";
@@ -18,7 +17,6 @@ const schema = z.object({
   stage: z.string(),
   website: z.string(),
   source: z.string(),
-  platform: z.string().max(50).catch(""),
   social_name: z.string().trim().max(200).catch(""),
   picture: z.string().trim().max(2000).catch(""),
   tags: z
@@ -68,6 +66,10 @@ export async function submitLead(
   if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
   const d = parsed.data;
   if (d.website) return {};
+  // Nguồn do người dùng chọn — bắt buộc, phải nằm trong danh mục.
+  if (!CUSTOMER_OPTIONS.some((o) => o.kind === "source" && o.value === d.source)) {
+    return { error: "Vui lòng chọn nguồn" };
+  }
   const notes: CustomerNote[] = d.note
     ? [{ text: d.note, at: new Date().toISOString(), by: "Form SMAX" }]
     : [];
@@ -84,13 +86,11 @@ export async function submitLead(
       return { error: "Khách hàng chưa tồn tại. Hãy dùng nút Submit." };
     }
 
-    const options = CUSTOMER_OPTIONS.filter((o) => o.kind === "source");
-
     const customer = {
       full_name: d.full_name,
       phone: d.phone,
       smax_customer_id: d.customer_id || null,
-      source: resolveSource(d.platform, options) ?? resolveSource(d.source, options) ?? "smax",
+      source: d.source,
       social_name: d.social_name || null,
       picture: d.picture || null,
       tags: d.tags,

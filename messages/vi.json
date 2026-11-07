@@ -288,6 +288,19 @@
     "createOk": "Đã thêm"
   },
   "customers": {
+    "pipeline": {
+      "dataGroup": "Data",
+      "appointmentGroup": "Lịch hẹn",
+      "today": "Hôm nay",
+      "messages": "Tin nhắn",
+      "data": "Data",
+      "deposited": "Đặt cọc",
+      "booked": "Lịch hẹn",
+      "visited": "Đã đến",
+      "total": "Tổng lịch hẹn ({range})",
+      "todayAppointments": "Lịch hẹn hôm nay",
+      "tomorrow": "Lịch hẹn ngày mai"
+    },
     "title": "Khách hàng",
     "create": "Thêm khách hàng",
     "searchPlaceholder": "Tìm theo tên hoặc SĐT…",
@@ -351,6 +364,9 @@
     "phone": "Số điện thoại",
     "phoneInvalid": "Số điện thoại không hợp lệ",
     "staff": "Nhân viên tư vấn",
+    "source": "Nguồn",
+    "sourcePlaceholder": "Chọn nguồn khách",
+    "sourceRequired": "Vui lòng chọn nguồn",
     "stage": "Giai đoạn",
     "note": "Ghi chú",
     "noteOptional": "Không bắt buộc",

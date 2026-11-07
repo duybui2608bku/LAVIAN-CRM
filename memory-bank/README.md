@@ -53,6 +53,22 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-07 — Pipeline số liệu trên danh sách /customers
+- **Thay đổi:** `CustomerPipeline` đặt trên thanh lọc /customers, 2 nhóm. **Data** (theo khoảng ngày tạo của Bộ lọc; chưa lọc → hôm nay): Tin nhắn (FB Ads qua action mới `getAdMessages` → `fetchFbAds`, mọi user đăng nhập gọi được) → Data (khách tạo trong khoảng, cùng `matchesCustomerFilters` nên khớp tổng bảng) → Đặt cọc (dồn phễu: stage deposited/booked/visited/returning) → Lịch hẹn (khách có ≥1 `clinic_appointments`) → Đã đến (≥1 lịch `checked_in`). **Lịch hẹn**: Tổng lịch hẹn theo khoảng đang lọc, Hôm nay / Ngày mai cố định theo giờ máy (dayjs local, giống trang /appointments). Page nạp thêm `clinic_appointments(customer_id, scheduled_at, checked_in)`. Mobile: lưới 2–3 cột, ẩn mũi tên; ≥xl 2 nhóm cùng hàng (5fr/3fr).
+- **File ảnh hưởng:** `components/customers/customer-pipeline.tsx` (mới), `components/customers/customers-manager.tsx`, `app/(app)/customers/{page,actions}.ts(x)`, `messages/{vi,en}.json` (`customers.pipeline.*`).
+- **Còn dở / ghi chú:** tsc/eslint sạch; đã xem trên browser (khoảng 01/08–07/11: Data 22 = tổng bảng, Đặt cọc 18). **Tin nhắn hiện "—"** vì `FB_TOKEN` trong `.env.local` báo "Invalid OAuth access token data" — cần token mới (trang /marketing cũng bị). Data lọc theo ngày UTC (giống bộ lọc bảng), lịch hẹn theo ngày local.
+
+### 2026-11-07 — Lead form: bỏ nguồn SMAX, bắt buộc chọn nguồn
+- **Thay đổi:** Bỏ option nguồn `smax` khỏi `CUSTOMER_OPTIONS`. Lead form thêm ô **Nguồn** bắt buộc, không giá trị mặc định (reset lại sau "Gửi thông tin khác"); server chỉ nhận source nằm trong danh mục. Bỏ tự suy nguồn từ `platform` SMAX / `?source=` → xoá `resolveSource()` (+ test) và trường `platform` khỏi schema. Thêm `.catch` cho `validateFields()` (trước đây báo unhandled rejection khi form thiếu dữ liệu). Migration chuyển dữ liệu cũ `smax` → `instagrams` (customers + appointments) và xoá option `smax` khỏi `enum_options`.
+- **File ảnh hưởng:** `lib/customer-options{,.test}.ts`, `lib/customers{,.test}.ts`, `app/lead-form/{actions,page}.ts(x)`, `components/lead-form/lead-form.tsx`, `messages/{vi,en}.json` (`leadForm.source*`), `supabase/migrations/20261107090000_source_smax_to_instagram.sql`.
+- **Còn dở / ghi chú:** Migration `20261107090000_source_smax_to_instagram.sql` **đã chạy** trên Supabase (2026-11-07: 5 khách `smax` → `instagrams`, xoá option `smax`). tsc/eslint/test sạch, đã xem form trên browser (chưa thử submit thật vào DB).
+
+### 2026-11-07 — Tài liệu PDF hướng dẫn nhân viên: Lịch hẹn & Tour
+- **Thay đổi:** Soạn tài liệu hướng dẫn tiếng Việt (10 trang A4) cho CSKH/KTV: làm quen app (vai trò, menu, cài PWA), Lịch hẹn (dùng để làm gì, thêm/lọc/sửa inline/xoá), quy trình Tour 3 trạng thái, CSKH tạo tour, KTV nhận tour/điền dịch vụ chi tiết + bill + thanh toán/chụp ảnh/trả tour, bảng tỷ lệ thực thu, KTV xem "Tour của tôi", phần admin, FAQ theo đúng thông báo lỗi trong app. Hình minh hoạ vẽ bằng HTML/CSS (dữ liệu ví dụ), không phải ảnh chụp màn hình thật.
+- **File ảnh hưởng:** `docs/huong-dan-lich-hen-tour.pdf` (bản phát cho nhân viên), `docs/huong-dan-lich-hen-tour.html` (nguồn — sửa xong in lại bằng Chrome headless: `chrome --headless=new --no-pdf-header-footer --print-to-pdf=<pdf> file:///<html>`).
+- **Bản tiếng Anh:** `docs/user-guide-appointments-tours.{pdf,html}` (10 trang, cùng nội dung, dùng đúng nhãn UI tiếng Anh từ `messages/en.json`: Take tour / Waiting / Unconfirmed / My tours…; thêm mục đổi ngôn ngữ). Sửa nội dung thì sửa CẢ 2 bản.
+- **Còn dở / ghi chú:** Không đổi code/DB. Khi đổi quy trình Tour/Lịch hẹn (tỷ lệ, trạng thái, nút) cần cập nhật lại tài liệu. Chưa commit.
+
 ### 2026-11-07 — Tour: bấm icon ảnh mở modal xem ảnh
 - **Thay đổi:** Icon ảnh + số lượng (bảng CSKH/admin và thẻ KTV) thành nút; bấm mở `TourPhotosModal` (nhóm Trước / Sau / Thêm, lưới thumbnail, bấm ảnh phóng to và lướt qua cả 3 nhóm) mà không mở drawer. Tour 0 ảnh giữ icon xám, không bấm được. Thẻ KTV đổi `<button>` → `div role="button"` để không lồng nút.
 - **File ảnh hưởng:** `components/tour/tour-photos.tsx` (mới, chứa luôn `photoCount`), `components/tour/tour-view.tsx`.

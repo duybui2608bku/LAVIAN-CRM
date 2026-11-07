@@ -27,11 +27,10 @@ const requestCustomer = (integrationId: string) =>
 
 type SmaxMeta = Pick<
   LeadInput,
-  "platform" | "social_name" | "picture" | "tags" | "thread"
+  "social_name" | "picture" | "tags" | "thread"
 >;
 
 const EMPTY_META: SmaxMeta = {
-  platform: "",
   social_name: "",
   picture: "",
   tags: [],
@@ -43,11 +42,12 @@ type Values = {
   phone: string;
   staff_id: string;
   stage: string;
+  source?: string; // không mặc định — người dùng bắt buộc chọn
   note: string;
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
 
-const DEFAULTS: Values = {
+const DEFAULTS: Omit<Values, "source"> = {
   full_name: "",
   phone: "",
   staff_id: "",
@@ -61,15 +61,16 @@ const DEFAULTS: Values = {
 export function LeadForm({
   staff,
   stages,
+  sources,
 }: {
   staff: { id: string; user_name: string }[];
   stages: EnumOption[];
+  sources: EnumOption[];
 }) {
   const t = useTranslations("leadForm");
   const locale = useLocale();
   const params = useSearchParams();
   const integrationId = params.get("integration_id") ?? "";
-  const source = params.get("source") ?? "";
   const [pending, start] = useTransition();
   const [done, setDone] = useState(false);
   const [eventLog, setEventLog] = useState("");
@@ -98,7 +99,6 @@ export function LeadForm({
 
       const c = msg.data?.customer ?? {};
       const meta: SmaxMeta = {
-        platform: c.platform ? String(c.platform) : "",
         social_name: c.name_original ? String(c.name_original) : "",
         picture: c.picture ? String(c.picture) : "",
         tags: Array.isArray(c.tags) ? c.tags : [],
@@ -165,7 +165,7 @@ export function LeadForm({
         {
           ...values,
           customer_id: customerId,
-          source,
+          source: values.source ?? "",
           ...smaxMeta,
         },
         mode,
@@ -175,7 +175,7 @@ export function LeadForm({
         return;
       }
       setDone(true);
-    }));
+    }), () => {}); // thiếu dữ liệu: antd đã hiện lỗi dưới từng ô
 
   if (done) {
     return (
@@ -229,6 +229,18 @@ export function LeadForm({
           />
         </Form.Item>
       )}
+      <Form.Item
+        name="source"
+        label={t("source")}
+        rules={[{ required: true, message: t("sourceRequired") }]}
+      >
+        <ClearableSelect
+          clearable={false}
+          placeholder={t("sourcePlaceholder")}
+          options={sources.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }))}
+          ariaLabel={t("source")}
+        />
+      </Form.Item>
       {stages.length > 0 && (
         <Form.Item name="stage" label={t("stage")}>
           <ClearableSelect

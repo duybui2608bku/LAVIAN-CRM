@@ -288,6 +288,19 @@
     "createOk": "Added"
   },
   "customers": {
+    "pipeline": {
+      "dataGroup": "Data",
+      "appointmentGroup": "Appointments",
+      "today": "Today",
+      "messages": "Messages",
+      "data": "Data",
+      "deposited": "Deposited",
+      "booked": "Booked",
+      "visited": "Visited",
+      "total": "Total appointments ({range})",
+      "todayAppointments": "Today's appointments",
+      "tomorrow": "Tomorrow"
+    },
     "title": "Customers",
     "create": "New customer",
     "searchPlaceholder": "Search by name or phone…",
@@ -351,6 +364,9 @@
     "phone": "Phone number",
     "phoneInvalid": "Invalid phone number",
     "staff": "Consultant",
+    "source": "Source",
+    "sourcePlaceholder": "Select a source",
+    "sourceRequired": "Please select a source",
     "stage": "Stage",
     "note": "Note",
     "noteOptional": "Optional",

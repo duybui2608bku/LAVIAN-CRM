@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
+import { fetchFbAds } from "@/lib/marketing";
 import type { CustomerInput, CustomerNote } from "@/types/customer";
 
 type Result = { error?: string };
@@ -186,5 +187,21 @@ export async function deleteCustomer(id: string): Promise<Result> {
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };
+  }
+}
+
+/** Số tin nhắn từ các tài khoản quảng cáo FB trong khoảng ngày `YYYY-MM-DD` (pipeline /customers). */
+export async function getAdMessages(
+  from: string,
+  to: string,
+): Promise<{ messages?: number; error?: string }> {
+  if (!(await getCurrentProfile())) return { error: "Bạn cần đăng nhập." };
+  const ymd = /^\d{4}-\d{2}-\d{2}$/;
+  if (!ymd.test(from) || !ymd.test(to) || from > to)
+    return { error: "Khoảng ngày không hợp lệ." };
+  try {
+    return { messages: (await fetchFbAds(from, to)).messages };
+  } catch (err) {
+    return { error: normalizeError(err).message };
   }
 }

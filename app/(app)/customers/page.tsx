@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { CustomersManager } from "@/components/customers/customers-manager";
+import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
 import type { Customer, EnumOption } from "@/types/customer";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import type { Service } from "@/types/service";
@@ -7,7 +8,7 @@ import type { Service } from "@/types/service";
 // Mọi user đăng nhập đều xem được (RLS customers cho authenticated). Proxy đã gác login.
 export default async function CustomersPage() {
   const supabase = await createClient();
-  const [customersRes, staffRes, optionsRes, servicesRes] = await Promise.all([
+  const [customersRes, staffRes, optionsRes, servicesRes, appointmentsRes] = await Promise.all([
     supabase
       .from("customers")
       // Nested select qua FK bảng nối — 1 query, không N+1.
@@ -30,6 +31,11 @@ export default async function CustomersPage() {
       .from("services")
       .select("*")
       .order("sort_order", { ascending: true }),
+    // Lịch hẹn cho pipeline (chỉ 3 cột cần đếm).
+    supabase
+      .from("clinic_appointments")
+      .select("customer_id, scheduled_at, checked_in")
+      .is("deleted_at", null),
   ]);
 
   type Row = Customer & { customer_services: { service_id: string }[] | null };
@@ -53,6 +59,7 @@ export default async function CustomersPage() {
       }
       options={[...CUSTOMER_OPTIONS, ...((optionsRes.data as EnumOption[]) ?? [])]}
       services={(servicesRes.data as Service[]) ?? []}
+      appointments={(appointmentsRes.data as PipelineAppointment[]) ?? []}
     />
   );
 }
