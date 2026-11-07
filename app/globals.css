@@ -167,12 +167,13 @@
   .ant-drawer .ant-drawer-footer { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
 }
 
-/* Cảm ứng: chữ ô nhập ≥ 16px để iOS Safari không tự phóng to khi chạm vào. */
+/* Cảm ứng: chữ ô nhập ≥ 16px để iOS Safari không tự phóng to khi chạm vào.
+   Bỏ qua ô sửa inline (size small / borderless) trong bảng, thẻ — 16px làm chúng tràn, cắt chữ. */
 @media (pointer: coarse) {
-  input,
-  textarea,
-  .ant-select,
-  .ant-picker-input > input {
+  :is(input, textarea, .ant-select):not(
+    .ant-select-sm, .ant-select-borderless, .ant-input-sm, .ant-input-borderless,
+    :is(.ant-select-sm, .ant-select-borderless, .ant-picker-small, .ant-picker-borderless, .ant-input-affix-wrapper-sm) *
+  ) {
     font-size: 16px !important;
   }
 }
