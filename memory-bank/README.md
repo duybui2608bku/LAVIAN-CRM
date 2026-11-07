@@ -53,6 +53,16 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-07 — Tour: bấm icon ảnh mở modal xem ảnh
+- **Thay đổi:** Icon ảnh + số lượng (bảng CSKH/admin và thẻ KTV) thành nút; bấm mở `TourPhotosModal` (nhóm Trước / Sau / Thêm, lưới thumbnail, bấm ảnh phóng to và lướt qua cả 3 nhóm) mà không mở drawer. Tour 0 ảnh giữ icon xám, không bấm được. Thẻ KTV đổi `<button>` → `div role="button"` để không lồng nút.
+- **File ảnh hưởng:** `components/tour/tour-photos.tsx` (mới, chứa luôn `photoCount`), `components/tour/tour-view.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint PASS; chưa xem trực tiếp (dev server của chat khác đang giữ cổng 3000, trình duyệt không vào được).
+
+### 2026-11-07 — Tour: nhập Bill khi tạo mới + nút chọn full width
+- **Thay đổi:** Form "Tạo tour" thêm ô Bill (tuỳ chọn) — `tourCreateSchema` nhận `bill_amount` (dùng chung validator `billAmount` với patch). Drawer tour: nhóm nút Dịch vụ chi tiết và Thanh toán kéo giãn hết chiều ngang, các nút chia đều (`FULL_GROUP`/`FULL_OPTION`, dùng `className` của option antd).
+- **File ảnh hưởng:** `lib/tours.ts`, `components/tour/tour-drawer.tsx`.
+- **Còn dở / ghi chú:** Không đổi DB (cột `bill_amount` có sẵn). tsc + `lib/tours.test.ts` PASS; chưa xem trực tiếp trên trình duyệt (dev server hết RAM lúc khởi động).
+
 ### 2026-11-07 — PWA kiểu app điện thoại + nhập liệu mobile + đăng xuất sạch
 - **Thay đổi:** OpenSpec change `mobile-pwa-app` (tạo tay — máy không có CLI `openspec`).
   - **Đăng xuất:** modal xác nhận treo trên `/login` vì `onOk` chờ server action có `redirect()` (Promise không resolve, modal sống ở root layout). `signOut()` giờ chỉ huỷ phiên; client `window.location.replace("/login")` (xoá sạch modal/drawer/cache React Query). `/banned` dùng `signOutAndRedirect` (form action).

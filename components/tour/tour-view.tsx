@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, DatePicker, Empty, Input, Segmented, Select, Tag, type TableProps } from "antd";
-import { CheckCircle2, FileSpreadsheet, Images, PencilLine, Plus, Printer, Search, Trash2 } from "lucide-react";
+import { CheckCircle2, FileSpreadsheet, PencilLine, Plus, Printer, Search, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { claimTour, confirmTour, deleteTour } from "@/app/(app)/tour/actions";
@@ -15,6 +15,7 @@ import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { CreateTourDrawer, detailText, runAction, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import { groupByTechnician, toItem, type TourItem } from "@/components/tour/tour-data";
+import { PhotoCountButton, TourPhotosModal } from "@/components/tour/tour-photos";
 import { TourSlips } from "@/components/tour/tour-slips";
 import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
@@ -41,18 +42,21 @@ type Props = {
 export function TourView(props: Props) {
   const router = useRouter();
   const [openId, setOpenId] = useState<string | null>(null);
-  const open = openId ? [...props.pending, ...props.tours].find((t) => t.id === openId) : undefined;
+  const [photosId, setPhotosId] = useState<string | null>(null);
+  const find = (id: string | null) => (id ? [...props.pending, ...props.tours].find((t) => t.id === id) : undefined);
+  const open = find(openId);
   const goMonth = (month: string) => router.push(`/tour?month=${month}`);
-  const shared = { ...props, onOpen: setOpenId, goMonth };
+  const shared = { ...props, onOpen: setOpenId, onPhotos: setPhotosId, goMonth };
 
   return <Page>
     {props.me.isTechnician ? <TechnicianTours {...shared} /> : <TourTable {...shared} />}
     {open ? <TourDrawer key={open.id} tour={open} me={props.me} services={props.services} staff={props.staff}
       customers={props.customers} onClose={() => setOpenId(null)} /> : null}
+    <TourPhotosModal tour={find(photosId)} onClose={() => setPhotosId(null)} />
   </Page>;
 }
 
-type ViewProps = Props & { onOpen: (id: string) => void; goMonth: (month: string) => void };
+type ViewProps = Props & { onOpen: (id: string) => void; onPhotos: (id: string) => void; goMonth: (month: string) => void };
 
 function MonthPicker({ month, goMonth }: { month: string; goMonth: (m: string) => void }) {
   const t = useTranslations("tour");
@@ -68,11 +72,9 @@ function useServiceLabel(services: Service[]) {
   };
 }
 
-const photoCount = (t: Tour) => t.before_images.length + t.after_images.length + t.extra_images.length;
-
 // ───────────────────────── KTV ─────────────────────────
 
-function TechnicianTours({ month, tours, pending, services, onOpen, goMonth }: ViewProps) {
+function TechnicianTours({ month, tours, pending, services, onOpen, onPhotos, goMonth }: ViewProps) {
   const t = useTranslations("tour");
   const serviceLabel = useServiceLabel(services);
   const [tab, setTab] = useState<"pending" | "mine">(pending.length ? "pending" : "mine");
@@ -116,17 +118,19 @@ function TechnicianTours({ month, tours, pending, services, onOpen, goMonth }: V
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        {items.length ? items.map((tour) => <button key={tour.id} type="button" onClick={() => onOpen(tour.id)}
-          className="surface flex flex-col gap-2 p-3 text-left transition-colors hover:border-primary active:bg-muted">
+        {/* div role=button: thẻ chứa nút ảnh bên trong, không lồng <button>. */}
+        {items.length ? items.map((tour) => <div key={tour.id} role="button" tabIndex={0} onClick={() => onOpen(tour.id)}
+          onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onOpen(tour.id); } }}
+          className="surface flex cursor-pointer flex-col gap-2 p-3 text-left transition-colors hover:border-primary active:bg-muted">
           <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="flex items-center gap-2">
               {tour.service_detail ? <Tag color="cyan" className="me-0">{detailText(t, tour)}</Tag> : <Tag className="me-0">{t("needDetail")}</Tag>}
-              <span className="flex items-center gap-1 text-muted-foreground"><Images className="size-4" />{photoCount(tour)}</span>
+              <PhotoCountButton tour={tour} onOpen={onPhotos} />
             </span>
             <span className="font-semibold tabular-nums">{tour.amount == null ? "—" : formatRupiah(tour.amount)}</span>
           </div>
-        </button>) : <div className="surface py-10"><Empty description={t("empty")} /></div>}
+        </div>) : <div className="surface py-10"><Empty description={t("empty")} /></div>}
       </div>
     </>}
   </>;
@@ -146,7 +150,7 @@ function TourCardBody({ tour, service }: { tour: Tour; service: string }) {
 
 // ───────────────────────── CSKH / admin ─────────────────────────
 
-function TourTable({ me, month, tours, services, staff, customers, onOpen, goMonth }: ViewProps) {
+function TourTable({ me, month, tours, services, staff, customers, onOpen, onPhotos, goMonth }: ViewProps) {
   const t = useTranslations("tour");
   const confirm = useConfirm();
   const serviceLabel = useServiceLabel(services);
@@ -197,8 +201,7 @@ function TourTable({ me, month, tours, services, staff, customers, onOpen, goMon
       const s = r.technician_id ? staffById.get(r.technician_id) : undefined;
       return s ? staffLabel(s) : DASH;
     } },
-    { title: t("photos"), width: 90, render: (_, r) => <span className="flex items-center gap-1 text-muted-foreground">
-      <Images className="size-4" />{photoCount(r)}</span> },
+    { title: t("photos"), width: 90, render: (_, r) => <PhotoCountButton tour={r} onOpen={onPhotos} /> },
     { title: t("bill"), width: 140, align: "right", render: (_, r) =>
       r.bill_amount == null ? DASH : <span className="tabular-nums">{formatRupiah(r.bill_amount)}</span> },
     { title: t("payment"), width: 120, render: (_, r) => r.payment_method ? t(`pay_${r.payment_method}`) : DASH },

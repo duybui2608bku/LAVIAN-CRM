@@ -31,11 +31,13 @@ export const tourStatus = (t: { technician_id: string | null; confirmed_at: stri
   t.confirmed_at ? "confirmed" : t.technician_id ? "claimed" : "pending";
 
 const images = z.array(z.url({ protocol: /^https?$/ })).max(30);
+const billAmount = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).nullable();
 
 export const tourCreateSchema = z.object({
   tour_date: z.iso.date(),
   customer_id: z.uuid(),
   service_id: z.uuid(),
+  bill_amount: billAmount.optional(),
   note: z.string().trim().max(10000).default(""),
 }).strict();
 
@@ -47,7 +49,7 @@ export const tourPatchSchema = z.object({
   technician_id: z.uuid().nullable(),
   service_detail: z.enum(SERVICE_DETAILS).nullable(),
   service_session: z.number().int().min(1).max(MAX_SESSION).nullable(),
-  bill_amount: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).nullable(),
+  bill_amount: billAmount,
   payment_method: z.enum(PAYMENT_METHODS).nullable(),
   before_images: images,
   after_images: images,
