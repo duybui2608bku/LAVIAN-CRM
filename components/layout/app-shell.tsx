@@ -5,16 +5,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
-import { Button, Drawer, Dropdown, Layout, Menu, Switch, type MenuProps } from "antd";
+import { Button, Drawer, Dropdown, Layout, Menu, Segmented, Switch, type MenuProps } from "antd";
 import {
   Briefcase,
   CalendarDays,
   Check,
   ChevronsUpDown,
   Languages,
+  LayoutGrid,
   LogOut,
   Megaphone,
-  Menu as MenuIcon,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
@@ -31,6 +31,7 @@ import { Logo } from "@/components/layout/logo";
 import { useMounted } from "@/hooks/use-mounted";
 import { localeLabels, locales, type Locale } from "@/i18n/config";
 import { signOut } from "@/lib/actions/auth";
+import { cn } from "@/lib/utils";
 
 // Cookie giữ trạng thái thu gọn qua lần tải lại (layout server đọc lại → không nháy).
 const COLLAPSE_COOKIE = "sidebar_state";
@@ -50,9 +51,12 @@ const ADMIN_ITEMS = [
 
 type NavItem = (typeof ITEMS)[number] | (typeof ADMIN_ITEMS)[number];
 
+type Account = { userName?: string; avatarUrl?: string | null };
+
 /**
- * Khung app kiểu Linear/Attio: sidebar (logo, menu chia nhóm, tài khoản ở đáy)
- * + nội dung. Desktop không có header; mobile có thanh trên mỏng mở menu.
+ * Khung app. Desktop (≥ md): sidebar kiểu Linear/Attio (logo, menu chia nhóm, tài khoản ở đáy).
+ * Điện thoại: như app — thanh trên (logo + avatar), thanh tab dưới (3 trang chính + Menu),
+ * "Menu" mở bottom sheet chứa mục quản trị + tài khoản.
  */
 export function AppShell({
   defaultCollapsed,
@@ -63,15 +67,12 @@ export function AppShell({
 }: {
   defaultCollapsed: boolean;
   isAdmin: boolean;
-  userName?: string;
-  avatarUrl?: string | null;
   children: React.ReactNode;
-}) {
+} & Account) {
   const t = useTranslations();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  // Mobile (< md): Sider ẩn hẳn, menu mở dạng Drawer đè lên nội dung.
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const toggle = () => {
     setCollapsed(!collapsed);
@@ -97,47 +98,15 @@ export function AppShell({
     ];
   };
 
-  const nav = (compact: boolean, mobile = false) => (
-    <div className="flex h-full flex-col">
-      <Link
-        href="/customers"
-        className="flex h-14 shrink-0 items-center gap-2.5 px-4"
-      >
-        <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
-          <Logo className="size-7" />
-        </span>
-        {!compact && (
-          <span className="truncate text-sm font-semibold tracking-wide text-foreground">
-            LAVIAN <span className="text-primary">CRM</span>
-          </span>
-        )}
-      </Link>
-      <Menu
-        mode="inline"
-        inlineCollapsed={compact}
-        selectedKeys={[selected]}
-        items={menuItems(compact)}
-        className="min-h-0 flex-1 overflow-y-auto border-0! py-2"
-      />
-      <div className={compact ? "flex flex-col items-center gap-1 p-2" : "flex items-center gap-1 p-2"}>
-        <AccountMenu compact={compact} userName={userName} avatarUrl={avatarUrl} />
-        {!mobile && (
-          <Button
-            type="text"
-            aria-label={t("nav.toggleSidebar")}
-            title={t("nav.toggleSidebar")}
-            icon={
-              collapsed ? (
-                <PanelLeftOpen className="size-4" />
-              ) : (
-                <PanelLeftClose className="size-4" />
-              )
-            }
-            onClick={toggle}
-          />
-        )}
-      </div>
-    </div>
+  const brand = (
+    <span className="truncate text-sm font-semibold tracking-wide text-foreground">
+      LAVIAN <span className="text-primary">CRM</span>
+    </span>
+  );
+  const logo = (
+    <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white ring-1 ring-border">
+      <Logo className="size-7" />
+    </span>
   );
 
   return (
@@ -149,62 +118,257 @@ export function AppShell({
         collapsedWidth={64}
         className="sticky! top-0 h-svh border-r border-border max-md:hidden!"
       >
-        {nav(collapsed)}
+        <div className="flex h-full flex-col">
+          <Link href="/customers" className="flex h-14 shrink-0 items-center gap-2.5 px-4">
+            {logo}
+            {!collapsed && brand}
+          </Link>
+          <Menu
+            mode="inline"
+            inlineCollapsed={collapsed}
+            selectedKeys={[selected]}
+            items={menuItems(collapsed)}
+            className="min-h-0 flex-1 overflow-y-auto border-0! py-2"
+          />
+          <div className={collapsed ? "flex flex-col items-center gap-1 p-2" : "flex items-center gap-1 p-2"}>
+            <AccountMenu compact={collapsed} userName={userName} avatarUrl={avatarUrl} />
+            <Button
+              type="text"
+              aria-label={t("nav.toggleSidebar")}
+              title={t("nav.toggleSidebar")}
+              icon={collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+              onClick={toggle}
+            />
+          </div>
+        </div>
       </Layout.Sider>
 
-      <Drawer
-        open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        placement="left"
-        size={260}
-        closable={false}
-        styles={{ body: { padding: 0 } }}
-      >
-        {/* Bấm vào link nào cũng đóng drawer. */}
-        <div
-          className="h-full"
-          onClick={(e) => (e.target as HTMLElement).closest("a") && setMobileOpen(false)}
-        >
-          {nav(false, true)}
-        </div>
-      </Drawer>
-
       <Layout className="min-w-0">
-        {/* Chỉ mobile: thanh trên mỏng mở menu. */}
-        <header className="sticky top-0 z-20 flex h-13 items-center gap-2 border-b border-border bg-card px-3 md:hidden">
-          <Button
-            type="text"
-            icon={<MenuIcon className="size-5" />}
-            aria-label={t("nav.toggleSidebar")}
-            onClick={() => setMobileOpen(true)}
-          />
-          <span className="text-sm font-semibold tracking-wide">
-            LAVIAN <span className="text-primary">CRM</span>
-          </span>
+        {/* Điện thoại: thanh trên kiểu app — logo + tên, avatar mở Menu. */}
+        <header className="sticky top-0 z-30 border-b border-border bg-card/90 pt-[env(safe-area-inset-top)] backdrop-blur md:hidden">
+          <div className="flex h-13 items-center gap-2.5 px-4">
+            <Link href="/customers" className="flex min-w-0 items-center gap-2.5">
+              {logo}
+              {brand}
+            </Link>
+            <button
+              type="button"
+              aria-label={t("common.account")}
+              onClick={() => setSheetOpen(true)}
+              className="ms-auto flex size-10 items-center justify-center rounded-full active:bg-muted"
+            >
+              <UserAvatar src={avatarUrl} size={30} />
+            </button>
+          </div>
         </header>
-        <Layout.Content className="flex flex-col">{children}</Layout.Content>
+
+        {/* Chừa chỗ cho thanh tab dưới trên điện thoại. */}
+        <Layout.Content className="flex flex-col max-md:pb-[calc(4rem+env(safe-area-inset-bottom))]">
+          {children}
+        </Layout.Content>
       </Layout>
+
+      <BottomTabs
+        pathname={pathname}
+        menuActive={sheetOpen || ADMIN_ITEMS.some((i) => pathname.startsWith(i.href))}
+        onMenu={() => setSheetOpen(true)}
+      />
+      <MenuSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        isAdmin={isAdmin}
+        pathname={pathname}
+        userName={userName}
+        avatarUrl={avatarUrl}
+      />
     </Layout>
   );
 }
 
-/** Avatar + tên ở đáy sidebar → menu: giao diện tối, ngôn ngữ, đăng xuất. */
-function AccountMenu({
-  compact,
+/** Thanh tab dưới (chỉ điện thoại): 3 trang chính + Menu. Chạm bằng ngón cái. */
+function BottomTabs({
+  pathname,
+  menuActive,
+  onMenu,
+}: {
+  pathname: string;
+  menuActive: boolean;
+  onMenu: () => void;
+}) {
+  const t = useTranslations("nav");
+  const tab = (active: boolean, Icon: typeof Users, label: string) => (
+    <>
+      <span
+        className={cn(
+          "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
+          active && "bg-primary/12",
+        )}
+      >
+        <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
+      </span>
+      <span className={cn("text-[11px] leading-none", active && "font-semibold")}>{label}</span>
+    </>
+  );
+  const cls = (active: boolean) =>
+    cn(
+      "flex flex-1 flex-col items-center justify-center gap-1 select-none transition-colors",
+      active ? "text-primary" : "text-muted-foreground active:text-foreground",
+    );
+
+  return (
+    <nav
+      aria-label="Menu"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+    >
+      <div className="flex h-16 items-stretch">
+        {ITEMS.map(({ key, href, icon }) => {
+          const active = !menuActive && pathname.startsWith(href);
+          return (
+            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={cls(active)}>
+              {tab(active, icon, t(key))}
+            </Link>
+          );
+        })}
+        <button type="button" onClick={onMenu} className={cls(menuActive)}>
+          {tab(menuActive, LayoutGrid, t("more"))}
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+/** Bottom sheet "Menu" (điện thoại): mục quản trị + tài khoản, giao diện tối, ngôn ngữ, đăng xuất. */
+function MenuSheet({
+  open,
+  onClose,
+  isAdmin,
+  pathname,
   userName,
   avatarUrl,
 }: {
-  compact: boolean;
-  userName?: string;
-  avatarUrl?: string | null;
-}) {
+  open: boolean;
+  onClose: () => void;
+  isAdmin: boolean;
+  pathname: string;
+} & Account) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
-  const confirm = useConfirm();
-  const { resolvedTheme, setTheme } = useTheme();
-  const mounted = useMounted();
-  const isDark = mounted && resolvedTheme === "dark";
+  const { isDark, setDark } = useDarkMode();
   const { pending, switchTo } = useSwitchLocale();
+  const confirmSignOut = useSignOut();
+
+  return (
+    <Drawer
+      open={open}
+      onClose={onClose}
+      placement="bottom"
+      size="auto"
+      closable={false}
+      rootClassName="md:hidden"
+      classNames={{ section: "rounded-t-2xl", body: "p-0!" }}
+    >
+      <div className="flex flex-col gap-4 px-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <span className="mx-auto h-1 w-10 rounded-full bg-border" aria-hidden />
+
+        <div className="flex items-center gap-3">
+          <UserAvatar src={avatarUrl} size={44} />
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{userName}</p>
+            <p className="text-xs text-muted-foreground">{t("common.account")}</p>
+          </div>
+        </div>
+
+        {isAdmin && (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-muted-foreground">{t("nav.groupAdmin")}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {ADMIN_ITEMS.map(({ key, href, icon: Icon }) => {
+                const active = pathname.startsWith(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={onClose}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-xs font-medium transition-colors active:bg-muted",
+                      active ? "border-primary bg-primary/8 text-primary" : "border-border text-foreground",
+                    )}
+                  >
+                    <Icon className="size-5" />
+                    {t(`nav.${key}`)}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="surface divide-y divide-border">
+          <label className="flex min-h-12 items-center gap-3 px-3">
+            <Moon className="size-4 text-muted-foreground" />
+            <span className="flex-1 text-sm">{t("common.darkMode")}</span>
+            <Switch checked={isDark} onChange={setDark} />
+          </label>
+          <div className="flex min-h-12 items-center gap-3 px-3 py-2">
+            <Languages className="size-4 text-muted-foreground" />
+            <span className="flex-1 text-sm">{t("common.language")}</span>
+            <Segmented
+              size="small"
+              value={locale}
+              disabled={pending}
+              onChange={(v) => v !== locale && switchTo(v as Locale)}
+              options={locales.map((l) => ({
+                value: l,
+                label: <span className="flex items-center gap-1.5 px-1"><LocaleFlag locale={l} />{l.toUpperCase()}</span>,
+                title: localeLabels[l],
+              }))}
+            />
+          </div>
+        </div>
+
+        <Button danger block size="large" icon={<LogOut className="size-4" />} onClick={confirmSignOut}>
+          {t("auth.signOut")}
+        </Button>
+      </div>
+    </Drawer>
+  );
+}
+
+function useDarkMode() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = useMounted() && resolvedTheme === "dark";
+  return { isDark, setDark: (dark: boolean) => setTheme(dark ? "dark" : "light") };
+}
+
+/**
+ * Hỏi rồi đăng xuất. Sau khi huỷ phiên thì tải lại cứng `/login`: modal xác nhận
+ * (sống ở root layout), menu và cache React Query của phiên cũ đều bị xoá.
+ */
+function useSignOut() {
+  const t = useTranslations("auth");
+  const confirm = useConfirm();
+  return () =>
+    confirm({
+      title: t("signOutConfirmTitle"),
+      content: t("signOutConfirmBody"),
+      okText: t("signOut"),
+      cancelText: t("cancel"),
+      onOk: async () => {
+        await signOut();
+        window.location.replace("/login");
+        // Giữ nút OK loading tới khi trang mới thay thế (không đóng modal sớm).
+        await new Promise(() => {});
+      },
+    });
+}
+
+/** Avatar + tên ở đáy sidebar (desktop) → menu: giao diện tối, ngôn ngữ, đăng xuất. */
+function AccountMenu({ compact, userName, avatarUrl }: { compact: boolean } & Account) {
+  const t = useTranslations();
+  const locale = useLocale() as Locale;
+  const { isDark, setDark } = useDarkMode();
+  const { pending, switchTo } = useSwitchLocale();
+  const confirmSignOut = useSignOut();
 
   const items: MenuProps["items"] = [
     {
@@ -243,26 +407,15 @@ function AccountMenu({
   ];
 
   const onClick: MenuProps["onClick"] = ({ key }) => {
-    if (key === "theme") setTheme(isDark ? "light" : "dark");
+    if (key === "theme") setDark(!isDark);
     else if (key.startsWith("lang:")) {
       const next = key.slice(5) as Locale;
       if (next !== locale) switchTo(next);
-    } else if (key === "signout")
-      confirm({
-        title: t("auth.signOutConfirmTitle"),
-        content: t("auth.signOutConfirmBody"),
-        okText: t("auth.signOut"),
-        cancelText: t("auth.cancel"),
-        onOk: () => signOut(),
-      });
+    } else if (key === "signout") confirmSignOut();
   };
 
   return (
-    <Dropdown
-      trigger={["click"]}
-      placement={compact ? "topLeft" : "top"}
-      menu={{ items, onClick }}
-    >
+    <Dropdown trigger={["click"]} placement={compact ? "topLeft" : "top"} menu={{ items, onClick }}>
       <button
         type="button"
         aria-label={t("common.account")}

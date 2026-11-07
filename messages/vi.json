@@ -147,7 +147,8 @@
     "services": "Dịch vụ",
     "toggleSidebar": "Đóng/mở thanh bên",
     "groupMain": "Vận hành",
-    "groupAdmin": "Quản trị"
+    "groupAdmin": "Quản trị",
+    "more": "Menu"
   },
   "theme": {
     "toggle": "Chuyển giao diện sáng/tối"

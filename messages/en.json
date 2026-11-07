@@ -147,7 +147,8 @@
     "services": "Services",
     "toggleSidebar": "Toggle sidebar",
     "groupMain": "Workspace",
-    "groupAdmin": "Admin"
+    "groupAdmin": "Admin",
+    "more": "Menu"
   },
   "theme": {
     "toggle": "Toggle theme"

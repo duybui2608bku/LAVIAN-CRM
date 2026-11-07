@@ -28,9 +28,18 @@ export async function signIn(input: {
   redirect("/");
 }
 
-/** Đăng xuất (dùng làm form action). */
+/**
+ * Huỷ phiên, KHÔNG redirect: client tự tải lại cứng `/login` để xoá sạch modal,
+ * menu và cache của phiên cũ (redirect trong action làm Promise không bao giờ
+ * resolve → modal xác nhận treo lại trên trang login).
+ */
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+}
+
+/** Đăng xuất dùng làm form action (trang `/banned`). */
+export async function signOutAndRedirect() {
+  await signOut();
   redirect("/login");
 }

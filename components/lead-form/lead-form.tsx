@@ -218,7 +218,7 @@ export function LeadForm({
         rules={[{ required: true, message: t("phoneInvalid") }]}
         normalize={normalizePhone}
       >
-        <Input type="text" autoComplete="tel" />
+        <Input type="text" inputMode="tel" autoComplete="tel" />
       </Form.Item>
       {staff.length > 0 && (
         <Form.Item name="staff_id" label={t("staff")}>
