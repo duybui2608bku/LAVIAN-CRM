@@ -53,6 +53,9 @@ const formatBill = (v: number | string | undefined) => (v === undefined || v ===
 const parseBill = (v: string | undefined) => sanitizeCurrencyInput(v ?? "") as unknown as number;
 const billInput = <InputNumber<number> className="w-full" min={0} precision={0} controls={false} placeholder="Rp"
   inputMode="numeric" formatter={formatBill} parser={parseBill} />;
+/** Nhóm nút chọn kéo giãn hết chiều ngang, các nút chia đều. */
+const FULL_GROUP = "flex! w-full flex-wrap gap-y-2";
+const FULL_OPTION = "flex-1 text-center whitespace-nowrap";
 
 const customerOptions = (customers: AppointmentCustomer[]) =>
   customers.map((c) => ({ value: c.id, label: `${c.full_name} · ${c.phone}` }));
@@ -170,8 +173,8 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
 
       {canClaim ? <p className="mb-4 text-sm text-muted-foreground">{t("claimHint")}</p> : <>
         <Form.Item name="service_detail" label={t("serviceDetail")}>
-          <Radio.Group optionType="button" buttonStyle="solid" className="flex! flex-wrap gap-y-2"
-            options={SERVICE_DETAILS.map((d) => ({ value: d, label: t(`detail_${d}`) }))} />
+          <Radio.Group optionType="button" buttonStyle="solid" className={FULL_GROUP}
+            options={SERVICE_DETAILS.map((d) => ({ value: d, label: t(`detail_${d}`), className: FULL_OPTION }))} />
         </Form.Item>
         <div className="grid grid-cols-2 gap-3">
           <Form.Item name="service_session" label={t("session")}
@@ -192,7 +195,8 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
           </Form.Item>
         </div>
         <Form.Item name="payment_method" label={t("payment")}>
-          <Radio.Group optionType="button" options={PAYMENT_METHODS.map((m) => ({ value: m, label: t(`pay_${m}`) }))} />
+          <Radio.Group optionType="button" className={FULL_GROUP}
+            options={PAYMENT_METHODS.map((m) => ({ value: m, label: t(`pay_${m}`), className: FULL_OPTION }))} />
         </Form.Item>
       </>}
 
@@ -209,7 +213,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   </FormDrawer>;
 }
 
-type CreateValues = { tour_date: string; customer_id: string; service_id: string; note?: string };
+type CreateValues = { tour_date: string; customer_id: string; service_id: string; bill_amount?: number | null; note?: string };
 
 /** CSKH tạo tour cơ bản: ngày, khách, dịch vụ, ghi chú → vào danh sách chờ nhận của KTV. */
 export function CreateTourDrawer({ open, onClose, services, customers }: {
@@ -240,6 +244,7 @@ export function CreateTourDrawer({ open, onClose, services, customers }: {
       <Form.Item name="service_id" label={t("service")} rules={[{ required: true, message: t("required") }]}>
         <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("chooseService")} options={serviceOptions(services, locale)} />
       </Form.Item>
+      <Form.Item name="bill_amount" label={t("bill")}>{billInput}</Form.Item>
       <Form.Item name="note" label={t("note")} className="mb-0">
         <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />
       </Form.Item>
