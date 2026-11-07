@@ -7,7 +7,7 @@ test("fixed stages and sources match the requested values", () => {
   assert.deepEqual(CUSTOMER_OPTIONS.filter((o) => o.kind === "stage").map((o) => o.value),
     ["new_lead", "consulting", "deposited", "booked", "visited", "returning", "lost"]);
   assert.deepEqual(CUSTOMER_OPTIONS.filter((o) => o.kind === "source").map((o) => o.value),
-    ["instagrams", "whatsapp", "referral", "walk_in", "smax", "other"]);
+    ["instagrams", "whatsapp", "referral", "walk_in", "other"]);
 });
 
 test("only Vietnamese and English are selectable", () => {

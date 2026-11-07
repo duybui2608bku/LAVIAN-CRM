@@ -35,6 +35,7 @@ import {
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
+import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
 import { EnumTag } from "@/components/common/enum-tag";
@@ -99,11 +100,13 @@ export function CustomersManager({
   staff,
   options,
   services,
+  appointments,
 }: {
   customers: Customer[];
   staff: Staff[];
   options: EnumOption[];
   services: Service[];
+  appointments: PipelineAppointment[];
 }) {
   const t = useTranslations("customers");
   const tc = useTranslations("common");
@@ -400,6 +403,13 @@ export function CustomersManager({
             </Button>
           </>
         }
+      />
+
+      <CustomerPipeline
+        customers={rowsData}
+        appointments={appointments}
+        from={filters.from}
+        to={filters.to}
       />
 
       {/* Thanh lọc: tìm + 2 lọc chính; lọc phụ gom vào nút "Bộ lọc". */}

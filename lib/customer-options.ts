@@ -12,7 +12,6 @@ const definitions: [EnumKind, string, string, string, string][] = [
   ["source", "whatsapp", "WhatsApp", "WhatsApp", "green"],
   ["source", "referral", "Giới thiệu", "Referral", "purple"],
   ["source", "walk_in", "Khách vãng lai", "Walk-in", "orange"],
-  ["source", "smax", "SMAX", "SMAX", "cyan"],
   ["source", "other", "Khác", "Other", "default"],
 ];
 
