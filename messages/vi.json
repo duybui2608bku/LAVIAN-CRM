@@ -411,5 +411,44 @@
     "status_DELETED": "Đã xoá",
     "status_ARCHIVED": "Đã lưu trữ",
     "status_UNKNOWN": "Không rõ"
+  },
+  "reports": {
+    "title": "Báo cáo",
+    "subtitle": "Từ quảng cáo đến doanh thu · {range}, so với {prev}",
+    "subtitleShort": "Từ quảng cáo đến doanh thu",
+    "refresh": "Tải lại",
+    "preset": {
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua",
+      "last7": "7 ngày",
+      "last30": "30 ngày",
+      "thisMonth": "Tháng này",
+      "lastMonth": "Tháng trước",
+      "custom": "Tuỳ chọn"
+    },
+    "metric": {
+      "spend": "Chi tiêu",
+      "messages": "Tin nhắn",
+      "costPerMessage": "Chi tiêu / Tin nhắn",
+      "data": "Data",
+      "costPerData": "Chi tiêu / Data",
+      "deposits": "Đặt cọc",
+      "bookings": "Đặt lịch",
+      "revenue": "Doanh thu"
+    },
+    "hint": {
+      "ofMessages": "{pct} tin nhắn",
+      "ofData": "{pct} data",
+      "roas": "ROAS {x}x"
+    },
+    "vsPrevious": "Kỳ trước: {value}",
+    "sourceError": "Một số nguồn dữ liệu bị lỗi — các ô liên quan hiện “—”.",
+    "funnel": "Phễu chuyển đổi",
+    "conversion": "{pct} từ bước trước",
+    "trend": "Theo ngày",
+    "noData": "Chưa có dữ liệu",
+    "daily": "Chi tiết từng ngày",
+    "date": "Ngày",
+    "total": "Tổng"
   }
 }

@@ -9,6 +9,7 @@ import { Button, Drawer, Dropdown, Layout, Menu, Segmented, Switch, type MenuPro
 import {
   Briefcase,
   CalendarDays,
+  ChartColumn,
   Check,
   ChevronsUpDown,
   Languages,
@@ -44,6 +45,7 @@ const ITEMS = [
 ] as const;
 
 const ADMIN_ITEMS = [
+  { key: "reports", href: "/reports", icon: ChartColumn },
   { key: "marketing", href: "/marketing", icon: Megaphone },
   { key: "users", href: "/users", icon: UserCog },
   { key: "services", href: "/services", icon: Briefcase },

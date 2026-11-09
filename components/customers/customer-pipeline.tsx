@@ -19,6 +19,7 @@ import {
 
 import { getAdMessages } from "@/app/(app)/customers/actions";
 import { matchesCustomerFilters } from "@/lib/customers";
+import { DEPOSITED_OR_LATER } from "@/lib/reports";
 import { cn } from "@/lib/utils";
 import type { Customer } from "@/types/customer";
 
@@ -28,8 +29,6 @@ export type PipelineAppointment = {
   checked_in: boolean;
 };
 
-// Từ "Đã đặt cọc" trở về sau trong phễu (lost/khách mới/đang tư vấn không tính).
-const DEPOSITED_OR_LATER = new Set(["deposited", "booked", "visited", "returning"]);
 
 type Tone = "info" | "warning" | "primary" | "success";
 const TONE: Record<Tone, string> = {
