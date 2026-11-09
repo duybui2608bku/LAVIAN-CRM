@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Hướng dẫn sử dụng Lavian CRM — Lịch hẹn &amp; Tour</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root {
+    --primary: #684fd4; --primary-soft: #efecfb; --ink: #1f1f24; --muted: #6b6b76;
+    --line: #e4e4e8; --bg-soft: #f7f7f9;
+    --gold: #d48806; --gold-bg: #fffbe6; --gold-bd: #ffe58f;
+    --blue: #0958d9; --blue-bg: #e6f4ff; --blue-bd: #91caff;
+    --green: #389e0d; --green-bg: #f6ffed; --green-bd: #b7eb8f;
+    --cyan: #08979c; --cyan-bg: #e6fffb; --cyan-bd: #87e8de;
+    --red: #cf1322;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; line-height: 1.55; color: var(--ink); background: #fff; }
+  h1, h2, h3 { line-height: 1.25; margin: 0; }
+  h2 { font-size: 17pt; color: var(--primary); margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 2px solid var(--primary-soft); }
+  h3 { font-size: 12.5pt; margin: 6mm 0 2.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  b, strong { font-weight: 600; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .muted { color: var(--muted); }
+  .small { font-size: 9pt; }
+  .avoid { break-inside: avoid; }
+
+  /* Cover */
+  .cover { height: 263mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover-top { padding-top: 30mm; }
+  .brand { display: inline-flex; align-items: center; gap: 3mm; font-weight: 700; color: var(--primary); font-size: 13pt; letter-spacing: .5px; }
+  .brand-dot { width: 9mm; height: 9mm; border-radius: 2.5mm; background: var(--primary); color: #fff; display: grid; place-items: center; font-size: 14pt; }
+  .cover h1 { font-size: 30pt; margin: 14mm 0 5mm; letter-spacing: -.5px; }
+  .cover .lead { font-size: 13pt; color: var(--muted); max-width: 140mm; }
+  .toc { border-top: 1px solid var(--line); padding-top: 6mm; }
+  .toc-row { display: flex; gap: 4mm; padding: 2.4mm 0; border-bottom: 1px dashed var(--line); font-size: 11pt; }
+  .toc-num { width: 8mm; color: var(--primary); font-weight: 700; }
+  .toc-who { margin-left: auto; color: var(--muted); font-size: 9.5pt; }
+
+  /* Callouts */
+  .note { border-left: 3px solid var(--primary); background: var(--primary-soft); padding: 3mm 4mm; border-radius: 0 2mm 2mm 0; margin: 3mm 0 4mm; }
+  .warn { border-left-color: var(--gold); background: var(--gold-bg); }
+  .note p:last-child, .note ul:last-child { margin-bottom: 0; }
+
+  /* Steps */
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0 0 4mm; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 10mm; margin-bottom: 2.6mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: .2mm; width: 6.5mm; height: 6.5mm; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700; font-size: 9pt; display: grid; place-items: center; }
+
+  /* Inline UI tokens */
+  .btn { display: inline-block; padding: .2mm 2.4mm; border-radius: 1.4mm; border: 1px solid var(--line); background: #fff; font-size: 9.5pt; font-weight: 600; white-space: nowrap; }
+  .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn.danger { color: var(--red); border-color: #ffa39e; }
+  .tag { display: inline-block; padding: 0 2mm; border-radius: 1.2mm; font-size: 8.8pt; border: 1px solid; white-space: nowrap; line-height: 1.6; }
+  .tag.gold { color: var(--gold); background: var(--gold-bg); border-color: var(--gold-bd); }
+  .tag.blue { color: var(--blue); background: var(--blue-bg); border-color: var(--blue-bd); }
+  .tag.green { color: var(--green); background: var(--green-bg); border-color: var(--green-bd); }
+  .tag.cyan { color: var(--cyan); background: var(--cyan-bg); border-color: var(--cyan-bd); }
+  .tag.gray { color: #555; background: #fafafa; border-color: #d9d9d9; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 1mm 0 4mm; font-size: 9.8pt; }
+  th, td { text-align: left; padding: 2mm 2.5mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 8.8pt; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 600; background: var(--bg-soft); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* Role cards */
+  .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; margin: 2mm 0 5mm; }
+  .role { border: 1px solid var(--line); border-radius: 2.5mm; padding: 3.5mm; }
+  .role h4 { margin: 0 0 1.5mm; font-size: 11pt; }
+  .role p { margin: 0; font-size: 9.5pt; color: var(--muted); }
+
+  /* Flow */
+  .flow { display: grid; grid-template-columns: 1fr 7mm 1fr 7mm 1fr; align-items: stretch; margin: 3mm 0 5mm; }
+  .flow-box { border: 1px solid var(--line); border-radius: 2.5mm; padding: 3mm; background: #fff; }
+  .flow-box .who { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; }
+  .flow-box .what { font-weight: 600; margin: 1mm 0 1.5mm; font-size: 10.5pt; }
+  .flow-box p { font-size: 9pt; color: var(--muted); margin: 1.5mm 0 0; line-height: 1.45; }
+  .arrow { display: grid; place-items: center; color: var(--primary); font-size: 14pt; font-weight: 700; }
+
+  /* Mock screens */
+  .two { display: grid; grid-template-columns: 1fr 64mm; gap: 7mm; align-items: start; }
+  .phone { width: 64mm; border: 2.2mm solid #26262c; border-radius: 7mm; background: #f5f5f7; overflow: hidden; font-size: 8.4pt; line-height: 1.4; }
+  .phone-bar { background: #fff; padding: 2mm 3mm; font-weight: 700; font-size: 10pt; border-bottom: 1px solid var(--line); }
+  .phone-body { padding: 2.5mm; display: flex; flex-direction: column; gap: 2mm; }
+  .phone-tabs { display: grid; grid-template-columns: repeat(4, 1fr); background: #fff; border-top: 1px solid var(--line); text-align: center; font-size: 7.2pt; color: var(--muted); padding: 1.6mm 0; }
+  .phone-tabs .on { color: var(--primary); font-weight: 700; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: #e9e9ee; border-radius: 1.6mm; padding: .6mm; }
+  .seg span { text-align: center; padding: 1mm; border-radius: 1.2mm; color: var(--muted); }
+  .seg .on { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 .3mm .8mm rgba(0,0,0,.08); }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 2mm; padding: 2.2mm; }
+  .card .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 2mm; }
+  .card .name { font-weight: 600; font-size: 9pt; }
+  .card .sub { color: var(--muted); font-size: 7.8pt; }
+  .card .bigbtn { margin-top: 1.8mm; background: var(--primary); color: #fff; text-align: center; border-radius: 1.4mm; padding: 1.6mm; font-weight: 600; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6mm; }
+  .stat { background: #fff; border: 1px solid var(--line); border-radius: 2mm; padding: 1.8mm 2.2mm; }
+  .stat .l { color: var(--muted); font-size: 7.4pt; }
+  .stat .v { font-weight: 700; font-size: 11pt; }
+  .stat.wide { grid-column: span 2; }
+  .field { margin-bottom: 1.8mm; }
+  .field .l { color: var(--muted); font-size: 7.6pt; margin-bottom: .6mm; }
+  .input { background: #fff; border: 1px solid var(--line); border-radius: 1.4mm; padding: 1.2mm 2mm; min-height: 6mm; }
+  .chips { display: flex; gap: 1mm; }
+  .chips span { flex: 1; text-align: center; border: 1px solid var(--line); background: #fff; border-radius: 1.2mm; padding: 1mm 0; font-size: 7.6pt; }
+  .chips .on { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .photos { display: flex; gap: 1.4mm; }
+  .photos span { width: 11mm; height: 11mm; border-radius: 1.4mm; background: linear-gradient(135deg, #d9d3f5, #b9aee9); }
+  .photos .add { background: #fff; border: 1px dashed #bbb; display: grid; place-items: center; color: var(--muted); font-size: 7pt; }
+  .callout-num { display: inline-grid; place-items: center; width: 4.2mm; height: 4.2mm; border-radius: 50%; background: #ff7a45; color: #fff; font-size: 7pt; font-weight: 700; vertical-align: middle; margin-left: 1mm; }
+  .legend .callout-num { margin: 0 1.5mm 0 0; }
+  .caption { text-align: center; font-size: 8.5pt; color: var(--muted); margin-top: 2mm; }
+
+  /* Desktop mock */
+  .desk { border: 1px solid var(--line); border-radius: 2.5mm; overflow: hidden; font-size: 8.4pt; margin: 2mm 0 2mm; }
+  .desk-head { display: flex; align-items: center; justify-content: space-between; padding: 2.4mm 3mm; border-bottom: 1px solid var(--line); }
+  .desk-head b { font-size: 11pt; }
+  .desk-tool { display: flex; gap: 2mm; padding: 2mm 3mm; background: var(--bg-soft); border-bottom: 1px solid var(--line); }
+  .desk-tool span { background: #fff; border: 1px solid var(--line); border-radius: 1.2mm; padding: .6mm 2.2mm; color: var(--muted); }
+  .desk table { margin: 0; font-size: 8.2pt; }
+  .desk th { font-size: 7.4pt; }
+  .desk td, .desk th { padding: 1.6mm 2.2mm; }
+
+  .faq dt { font-weight: 600; margin-top: 3mm; break-after: avoid; page-break-after: avoid; }
+  .faq dd { margin: 1mm 0 0 0; color: #3b3b44; }
+  .footer-note { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid var(--line); font-size: 8.8pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ============ BÌA ============ -->
+<section class="page cover">
+  <div class="cover-top">
+    <div class="brand"><span class="brand-dot">L</span> LAVIAN CRM</div>
+    <h1>Hướng dẫn sử dụng<br>Lịch hẹn &amp; Tour</h1>
+    <p class="lead">Tài liệu dành cho nhân viên Chăm sóc khách hàng (CSKH) và Kỹ thuật viên (KTV): đặt lịch hẹn cho khách, tạo tour, nhận tour và theo dõi tour của mình.</p>
+  </div>
+  <div class="toc">
+    <div class="toc-row"><span class="toc-num">1</span>Làm quen với app<span class="toc-who">Mọi người</span></div>
+    <div class="toc-row"><span class="toc-num">2</span>Lịch hẹn — dùng để làm gì và cách đặt lịch<span class="toc-who">CSKH</span></div>
+    <div class="toc-row"><span class="toc-num">3</span>Quy trình Tour từ đầu đến cuối<span class="toc-who">Mọi người</span></div>
+    <div class="toc-row"><span class="toc-num">4</span>Tạo tour<span class="toc-who">CSKH</span></div>
+    <div class="toc-row"><span class="toc-num">5</span>Nhận tour, điền thông tin, chụp ảnh<span class="toc-who">KTV</span></div>
+    <div class="toc-row"><span class="toc-num">6</span>KTV xem tour và thực thu của mình<span class="toc-who">KTV</span></div>
+    <div class="toc-row"><span class="toc-num">7</span>Phần của quản lý (admin) &amp; câu hỏi thường gặp<span class="toc-who">Tham khảo</span></div>
+  </div>
+</section>
+
+<!-- ============ 1. LÀM QUEN ============ -->
+<section class="page">
+  <h2>1. Làm quen với app</h2>
+
+  <h3>Đăng nhập</h3>
+  <p>Quản lý (admin) sẽ tạo tài khoản và gửi email + mật khẩu cho bạn — nhân viên <b>không tự đăng ký</b>. Mở app, nhập email và mật khẩu rồi bấm đăng nhập. Ô “Ghi nhớ đăng nhập” được tick sẵn để lần sau không phải gõ lại; nếu dùng máy chung, hãy bỏ tick.</p>
+
+  <h3>Mỗi người làm phần nào</h3>
+  <p>Admin gán <b>bộ phận</b> cho từng tài khoản. Bộ phận quyết định bạn thấy gì ở menu <b>Tour</b>:</p>
+  <div class="roles">
+    <div class="role"><h4>CSKH</h4><p>Đặt lịch hẹn cho khách. Tạo tour khi khách đến làm dịch vụ. Xem bảng tất cả tour trong tháng.</p></div>
+    <div class="role"><h4>Kỹ thuật viên</h4><p>Nhận tour, điền dịch vụ chi tiết, bill, chụp ảnh trước/sau. Xem tour và thực thu của mình theo tháng.</p></div>
+    <div class="role"><h4>Admin</h4><p>Kiểm tra và xác nhận tour, gán/đổi KTV, xuất Excel và in phiếu tour.</p></div>
+  </div>
+  <div class="note warn"><p><b>Không thấy đúng màn hình của mình?</b> (ví dụ KTV vào Tour nhưng không có tab “Chờ nhận”) — tài khoản chưa được gán bộ phận. Báo admin gán ở mục <b>Người dùng</b>.</p></div>
+
+  <h3>Menu</h3>
+  <ul>
+    <li><b>Trên máy tính:</b> menu nằm ở cột bên trái — <b>Khách hàng</b>, <b>Lịch hẹn</b>, <b>Tour</b>.</li>
+    <li><b>Trên điện thoại:</b> thanh tab ở đáy màn hình — <b>Khách hàng · Lịch hẹn · Tour · Menu</b>. Mục <b>Menu</b> chứa tài khoản, chế độ tối, đổi ngôn ngữ và <b>Đăng xuất</b>.</li>
+  </ul>
+
+  <h3>Cài app lên màn hình điện thoại (khuyên dùng cho KTV)</h3>
+  <p>App mở được như một ứng dụng riêng, không cần gõ địa chỉ mỗi lần:</p>
+  <ul>
+    <li><b>iPhone (Safari):</b> mở trang app → bấm nút <b>Chia sẻ</b> → <b>Thêm vào MH chính</b>.</li>
+    <li><b>Android (Chrome):</b> mở trang app → bấm <b>⋮</b> → <b>Thêm vào màn hình chính</b> (hoặc <b>Cài đặt ứng dụng</b>).</li>
+  </ul>
+
+  <h3>Mẹo dùng chung</h3>
+  <ul>
+    <li>Sau mỗi thao tác, app hiện thông báo nhỏ ở trên cùng: “Đã lưu…” (thành công) hoặc thông báo lỗi màu đỏ. Thấy lỗi thì đọc nội dung — thường app nói rõ lý do.</li>
+    <li>Các thao tác xoá luôn hỏi lại trước khi thực hiện.</li>
+    <li>Trên điện thoại, bảng dữ liệu tự chuyển thành dạng <b>danh sách thẻ</b> cho dễ đọc.</li>
+    <li>Khách hàng phải có sẵn trong menu <b>Khách hàng</b> thì mới chọn được khi đặt lịch hoặc tạo tour.</li>
+  </ul>
+</section>
+
+<!-- ============ 2. LỊCH HẸN ============ -->
+<section class="page">
+  <h2>2. Lịch hẹn</h2>
+
+  <h3>Lịch hẹn dùng để làm gì?</h3>
+  <p>Lịch hẹn là <b>sổ ghi lịch khách hẹn đến phòng khám</b>. Mỗi lịch hẹn cho biết:</p>
+  <ul>
+    <li><b>Ai</b> sẽ đến, <b>khi nào</b> đến (ngày giờ hẹn), làm <b>dịch vụ gì</b>, <b>CSKH nào</b> phụ trách,</li>
+    <li>Và quan trọng nhất: khách <b>đã đến hay chưa</b> (cột “Xác nhận tại phòng khám”).</li>
+  </ul>
+  <p>Nhờ đó cả team biết hôm nay có những khách nào, khách nào chưa đến để gọi nhắc, và báo cáo đếm được số lịch hẹn / số khách đã đến.</p>
+  <div class="note"><p><b>Lịch hẹn KHÔNG ghi tiền và KTV.</b> Bill, thanh toán, kỹ thuật viên, ảnh trước/sau đều nằm ở <b>Tour</b> (phần 3–6). Khi khách đến làm dịch vụ: đánh dấu <b>Đã đến</b> ở Lịch hẹn, rồi <b>tạo Tour</b> cho khách.</p></div>
+
+  <h3>Thêm lịch hẹn mới</h3>
+  <ol class="steps">
+    <li>Vào menu <b>Lịch hẹn</b> → bấm <span class="btn primary">Thêm lịch hẹn</span> ở góc trên phải. Một khung nhập liệu trượt ra từ bên phải.</li>
+    <li><b>Tên khách hàng</b> (bắt buộc): gõ tên hoặc số điện thoại để tìm, rồi chọn khách. Không thấy khách → tạo khách ở menu <b>Khách hàng</b> trước.</li>
+    <li><b>Ngày giờ hẹn</b> (bắt buộc): chọn ngày và giờ khách sẽ đến.</li>
+    <li><b>Xác nhận tại phòng khám</b>: để <span class="tag gray">Chưa đến</span>. Chỉ bật <span class="tag green">Đã đến</span> nếu khách đang có mặt.</li>
+    <li><b>Dịch vụ</b>: chọn một hoặc nhiều dịch vụ khách hẹn làm.</li>
+    <li><b>Chăm sóc khách hàng</b>: chọn nhân viên CSKH phụ trách (thường là chính bạn).</li>
+    <li><b>Ghi chú</b>: điều cần lưu ý (khách muốn gì, đã cọc chưa, đi cùng ai…).</li>
+    <li>Bấm <span class="btn primary">Thêm lịch hẹn</span> ở cuối khung để lưu.</li>
+  </ol>
+
+  <h3>Tìm và lọc lịch hẹn</h3>
+  <div class="desk avoid">
+    <div class="desk-head"><b>Lịch hẹn</b><span class="btn primary">Thêm lịch hẹn</span></div>
+    <div class="desk-tool"><span>🔍 Tìm tên hoặc số điện thoại…</span><span>Tất cả ngày</span><span>Hôm nay</span><span>Tất cả xác nhận ▾</span></div>
+    <table>
+      <tr><th>Tên khách hàng</th><th>Số điện thoại</th><th>Ngày giờ hẹn</th><th>Xác nhận</th><th>Dịch vụ</th><th>CSKH</th></tr>
+      <tr><td><b>Nguyễn Thị A</b></td><td>0812 3456 789</td><td>08/11/2026 09:30</td><td><span class="tag green">Đã đến</span></td><td><span class="tag" style="color:#531dab;background:#f9f0ff;border-color:#d3adf7">Mày</span></td><td>Linh</td></tr>
+      <tr><td><b>Trần B</b></td><td>0857 1122 334</td><td>08/11/2026 14:00</td><td><span class="tag gray">Chưa đến</span></td><td><span class="tag" style="color:#531dab;background:#f9f0ff;border-color:#d3adf7">Môi</span></td><td>Linh</td></tr>
+    </table>
+  </div>
+  <p class="caption">Minh hoạ màn hình Lịch hẹn (dữ liệu ví dụ)</p>
+  <p>Gõ tên / SĐT vào ô tìm kiếm; chọn ngày hoặc bấm <span class="btn">Hôm nay</span> để xem lịch trong ngày (xoá ngày để xem tất cả); lọc <i>Chưa đến</i> để ra danh sách khách cần gọi nhắc.</p>
+</section>
+
+<section class="page">
+  <h3 style="margin-top:0">Cập nhật lịch hẹn ngay trên bảng</h3>
+  <p>Không cần mở form — bấm thẳng vào ô cần sửa, chọn giá trị mới, app tự lưu:</p>
+  <table>
+    <tr><th style="width:32%">Muốn làm gì</th><th>Cách làm</th></tr>
+    <tr><td><b>Khách đã đến</b></td><td>Bấm vào <span class="tag gray">Chưa đến</span> ở cột <i>Xác nhận tại phòng khám</i> → chọn <b>Đã đến</b>. Bấm nhầm thì đổi lại <b>Chưa đến</b>.</td></tr>
+    <tr><td><b>Khách xin dời lịch</b></td><td>Bấm vào ngày giờ ở cột <i>Ngày giờ hẹn</i> → chọn ngày giờ mới.</td></tr>
+    <tr><td><b>Đổi / thêm dịch vụ</b></td><td>Bấm vào ô <i>Dịch vụ</i> → tick hoặc bỏ tick dịch vụ.</td></tr>
+    <tr><td><b>Đổi CSKH phụ trách</b></td><td>Bấm vào ô <i>Chăm sóc khách hàng</i> → chọn người khác.</td></tr>
+    <tr><td><b>Thêm ghi chú</b></td><td>Bấm vào ô <i>Ghi chú</i>, gõ nội dung, rồi <b>bấm ra ngoài ô</b> là lưu.</td></tr>
+    <tr><td><b>Xoá lịch hẹn</b> (tạo nhầm, khách huỷ hẳn)</td><td>Bấm nút <b>⋮</b> cuối dòng → <b>Xóa lịch hẹn</b> → xác nhận.</td></tr>
+  </table>
+
+  <div class="note"><p><b>Thói quen nên có mỗi ngày (CSKH):</b></p>
+    <ul>
+      <li>Đầu ngày: bấm <span class="btn">Hôm nay</span> + lọc <i>Chưa đến</i> → gọi nhắc khách.</li>
+      <li>Khách đến quầy: đổi sang <span class="tag green">Đã đến</span>, sau đó <b>tạo Tour</b> cho khách (phần 4).</li>
+      <li>Khách báo dời: sửa ngày giờ ngay, ghi lý do vào Ghi chú.</li>
+    </ul>
+  </div>
+
+  <h2 style="margin-top:9mm">3. Quy trình Tour từ đầu đến cuối</h2>
+  <p><b>Tour</b> là một lần khách làm dịch vụ thực tế tại phòng khám. Tour ghi lại KTV nào làm, làm dịch vụ chi tiết gì, bill bao nhiêu, thanh toán bằng gì, ảnh trước/sau — và từ đó tính <b>thực thu</b> (tiền tour) cho KTV.</p>
+
+  <div class="flow avoid">
+    <div class="flow-box"><div class="who">CSKH</div><div class="what">Tạo tour</div><span class="tag gold">Chờ nhận</span><p>Ngày, khách, dịch vụ, (bill), ghi chú.</p></div>
+    <div class="arrow">→</div>
+    <div class="flow-box"><div class="who">Kỹ thuật viên</div><div class="what">Nhận tour &amp; điền</div><span class="tag blue">Chưa xác nhận</span><p>Dịch vụ chi tiết, lần, bill, thanh toán, ảnh trước/sau.</p></div>
+    <div class="arrow">→</div>
+    <div class="flow-box"><div class="who">Admin</div><div class="what">Kiểm tra &amp; xác nhận</div><span class="tag green">Đã xác nhận</span><p>Tour bị khoá, tính vào thực thu đã xác nhận của KTV.</p></div>
+  </div>
+
+  <table>
+    <tr><th style="width:28%">Trạng thái</th><th>Ý nghĩa</th><th style="width:30%">Ai sửa được</th></tr>
+    <tr><td><span class="tag gold">Chờ nhận</span></td><td>Đã tạo, chưa có KTV nào nhận.</td><td>CSKH, admin</td></tr>
+    <tr><td><span class="tag blue">Chưa xác nhận</span></td><td>KTV đã nhận, đang/đã làm, chờ admin kiểm tra.</td><td>KTV đã nhận, CSKH, admin</td></tr>
+    <tr><td><span class="tag green">Đã xác nhận</span></td><td>Admin đã duyệt. Thông tin bị khoá.</td><td>Chỉ admin</td></tr>
+  </table>
+</section>
+
+<!-- ============ 4. TẠO TOUR ============ -->
+<section class="page">
+  <h2>4. Tạo tour (CSKH)</h2>
+  <p>Tạo tour khi khách đã đến và sắp làm dịch vụ — để KTV có tour mà nhận.</p>
+  <ol class="steps">
+    <li>Vào menu <b>Tour</b> → bấm <span class="btn primary">+ Tạo tour</span>.</li>
+    <li><b>Ngày</b>: mặc định là hôm nay, chỉ đổi nếu nhập bù cho ngày khác.</li>
+    <li><b>Khách hàng</b> (bắt buộc): gõ tên hoặc số điện thoại để tìm.</li>
+    <li><b>Dịch vụ</b> (bắt buộc): dịch vụ khách làm (ví dụ: mày, môi…).</li>
+    <li><b>Bill</b> (không bắt buộc): nếu đã biết số tiền khách trả thì nhập luôn, KTV không phải nhập lại.</li>
+    <li><b>Ghi chú</b>: thông tin KTV cần biết trước khi làm (khách nhạy cảm, yêu cầu riêng…). KTV đọc được ghi chú ngay trên thẻ chờ nhận.</li>
+    <li>Bấm <span class="btn primary">Tạo tour</span>. Tour xuất hiện ở tab <b>Chờ nhận</b> trên điện thoại của mọi KTV.</li>
+  </ol>
+
+  <h3>Xem, sửa, xoá tour</h3>
+  <div class="desk avoid">
+    <div class="desk-head"><b>Tour</b><span class="btn primary">+ Tạo tour</span></div>
+    <div class="desk-tool"><span>11/2026</span><span>🔍 Tìm khách / SĐT</span><span>Tất cả trạng thái ▾</span><span>Tất cả kỹ thuật viên ▾</span></div>
+    <table>
+      <tr><th>Ngày</th><th>Khách hàng</th><th>Dịch vụ</th><th>DV chi tiết</th><th>KTV</th><th>Ảnh</th><th style="text-align:right">Bill</th><th style="text-align:right">Thực thu</th><th>Trạng thái</th></tr>
+      <tr><td>08/11</td><td><b>Nguyễn Thị A</b></td><td>Mày</td><td><span class="tag cyan">New</span></td><td>Hà</td><td>🖼 4</td><td class="num">Rp 3.500.000</td><td class="num">Rp 245.000</td><td><span class="tag blue">Chưa xác nhận</span></td></tr>
+      <tr><td>08/11</td><td><b>Trần B</b></td><td>Môi</td><td>—</td><td>—</td><td>🖼 0</td><td class="num">—</td><td class="num">—</td><td><span class="tag gold">Chờ nhận</span></td></tr>
+    </table>
+  </div>
+  <p class="caption">Minh hoạ bảng Tour của CSKH (dữ liệu ví dụ)</p>
+  <ul>
+    <li><b>Lọc:</b> chọn tháng, tìm khách/SĐT, lọc theo trạng thái hoặc theo KTV. 4 ô số liệu phía trên cho biết số tour, số tour chờ nhận, chưa xác nhận và tổng thực thu.</li>
+    <li><b>Xem / sửa:</b> bấm vào một dòng để mở chi tiết. CSKH sửa được ngày, khách, dịch vụ, bill, thanh toán, ghi chú… khi tour <b>chưa được xác nhận</b>, rồi bấm <span class="btn primary">Lưu</span>.</li>
+    <li><b>Xem ảnh nhanh:</b> bấm vào biểu tượng ảnh + số lượng ở cột <i>Ảnh</i>.</li>
+    <li><b>Xoá:</b> nút <b>⋮</b> cuối dòng → <b>Xoá</b>. CSKH chỉ xoá được tour <b>do mình tạo</b> và <b>chưa có KTV nhận</b>. Tour đã có người nhận cần xoá → báo admin.</li>
+  </ul>
+  <div class="note warn"><p><b>Tránh tạo trùng:</b> trước khi tạo, gõ tên khách vào ô tìm kiếm xem hôm nay đã có tour cho khách đó chưa.</p></div>
+</section>
+
+<!-- ============ 5. NHẬN TOUR ============ -->
+<section class="page">
+  <h2>5. Nhận tour, điền thông tin, chụp ảnh (KTV)</h2>
+  <p>KTV dùng app trên <b>điện thoại</b>. Vào tab <b>Tour</b> ở đáy màn hình — màn hình có 2 tab: <b>Chờ nhận</b> và <b>Tour của tôi</b>.</p>
+
+  <div class="two">
+    <div>
+      <h3 style="margin-top:0">Bước 1 — Nhận tour</h3>
+      <ol class="steps">
+        <li>Mở tab <b>Chờ nhận</b>. Con số trong ngoặc là số tour đang chờ. Mỗi thẻ có tên khách, ngày, dịch vụ và ghi chú của CSKH.</li>
+        <li>Tìm đúng khách mình sắp làm → bấm <span class="btn primary">Nhận tour</span>.</li>
+        <li>App báo “Đã nhận tour”, tự chuyển sang <b>Tour của tôi</b> và mở luôn chi tiết tour để bạn điền tiếp.</li>
+      </ol>
+      <div class="note"><p>Nếu 2 người bấm nhận cùng lúc, chỉ <b>người bấm trước</b> nhận được. Người sau sẽ thấy thông báo “<b>Tour đã có người nhận</b>” — không cần làm gì thêm.</p></div>
+      <div class="note warn"><p><b>Nhận nhầm tour?</b> Mở tour đó → bấm <span class="btn danger">Trả tour</span> → xác nhận. Tour quay về danh sách Chờ nhận cho người khác. Chỉ trả được khi tour <b>chưa được admin xác nhận</b>.</p></div>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="phone-bar">Tour</div>
+        <div class="phone-body">
+          <div class="seg"><span class="on">Chờ nhận (2)</span><span>Tour của tôi</span></div>
+          <div class="card">
+            <div class="row"><div><div class="name">Trần B</div><div class="sub">08/11/2026 · Môi</div></div><span class="tag gold">Chờ nhận</span></div>
+            <div class="sub" style="margin-top:1mm">Khách hơi sợ đau, ủ tê kỹ.</div>
+            <div class="bigbtn">Nhận tour</div>
+          </div>
+          <div class="card">
+            <div class="row"><div><div class="name">Lê C</div><div class="sub">08/11/2026 · Mày</div></div><span class="tag gold">Chờ nhận</span></div>
+            <div class="bigbtn">Nhận tour</div>
+          </div>
+        </div>
+        <div class="phone-tabs"><span>Khách hàng</span><span>Lịch hẹn</span><span class="on">Tour</span><span>Menu</span></div>
+      </div>
+      <p class="caption">Tab Chờ nhận trên điện thoại</p>
+    </div>
+  </div>
+</section>
+
+<section class="page">
+  <div class="two">
+    <div>
+      <h3 style="margin-top:0">Bước 2 — Điền thông tin tour</h3>
+      <p>Trong chi tiết tour (mở bằng cách bấm vào thẻ ở <b>Tour của tôi</b>):</p>
+      <ol class="steps">
+        <li><b>Dịch vụ chi tiết</b> <span class="callout-num">1</span>: chọn một trong <b>Laser · Plasma · New · Debt · Retouch</b>.</li>
+        <li><b>Lần</b> <span class="callout-num">2</span>: bắt buộc với <b>Laser, Plasma, Retouch</b> (Lần 1 … Lần 20). Với New và Debt ô này tự khoá.</li>
+        <li><b>Tỷ lệ</b> tự hiện theo dịch vụ chi tiết + lần — không cần nhập.</li>
+        <li><b>Bill</b> <span class="callout-num">3</span>: số tiền khách trả (Rupiah), chỉ gõ số. Nếu CSKH đã nhập thì kiểm tra lại cho đúng.</li>
+        <li><b>Thực thu</b> tự tính = Bill × Tỷ lệ.</li>
+        <li><b>Thanh toán</b> <span class="callout-num">4</span>: <b>Tiền mặt · Chuyển khoản · Thẻ</b>.</li>
+        <li><b>Ghi chú</b>: thêm thông tin nếu cần.</li>
+        <li>Bấm <span class="btn primary">Lưu</span>.</li>
+      </ol>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="phone-bar">Trần B <span class="tag blue" style="font-size:7pt">Chưa xác nhận</span></div>
+        <div class="phone-body" style="background:#fff">
+          <div class="field"><div class="l">Dịch vụ chi tiết <span class="callout-num">1</span></div>
+            <div class="chips"><span>Laser</span><span>Plasma</span><span>New</span><span>Debt</span><span class="on">Retouch</span></div></div>
+          <div class="stats" style="gap:2mm">
+            <div class="field"><div class="l">Lần <span class="callout-num">2</span></div><div class="input">Lần 1 ▾</div></div>
+            <div class="field"><div class="l">Tỷ lệ</div><div class="input" style="border:0">3%</div></div>
+            <div class="field"><div class="l">Bill <span class="callout-num">3</span></div><div class="input">2.000.000</div></div>
+            <div class="field"><div class="l">Thực thu</div><div class="input" style="border:0;font-weight:700">Rp 60.000</div></div>
+          </div>
+          <div class="field"><div class="l">Thanh toán <span class="callout-num">4</span></div>
+            <div class="chips"><span class="on">Tiền mặt</span><span>Chuyển khoản</span><span>Thẻ</span></div></div>
+          <div class="field"><div class="l">Ảnh trước khi làm (2) <span class="callout-num">5</span></div>
+            <div class="photos"><span></span><span></span><span class="add">📷 Chụp</span></div></div>
+          <div class="field"><div class="l">Ảnh sau khi làm (0)</div>
+            <div class="photos"><span class="add">📷 Chụp</span></div></div>
+          <div class="field"><div class="l">Ảnh thêm / bill (1)</div>
+            <div class="photos"><span></span><span class="add">＋ Thêm</span></div></div>
+          <div class="chips" style="margin-top:1mm"><span style="color:var(--red);border-color:#ffa39e">Trả tour</span><span class="on">Lưu</span></div>
+        </div>
+      </div>
+      <p class="caption">Chi tiết tour của KTV</p>
+    </div>
+  </div>
+
+  <h3>Bảng tỷ lệ thực thu</h3>
+  <table class="avoid">
+    <tr><th>Dịch vụ chi tiết</th><th>Lần</th><th style="text-align:right">Tỷ lệ</th><th style="text-align:right">Ví dụ bill Rp 2.000.000</th></tr>
+    <tr><td>Laser (mày)</td><td>Mọi lần</td><td class="num">0%</td><td class="num">Rp 0</td></tr>
+    <tr><td>Plasma (môi)</td><td>Mọi lần</td><td class="num">0%</td><td class="num">Rp 0</td></tr>
+    <tr><td>New</td><td>—</td><td class="num">7%</td><td class="num">Rp 140.000</td></tr>
+    <tr><td>Debt</td><td>—</td><td class="num">7%</td><td class="num">Rp 140.000</td></tr>
+    <tr><td>Retouch</td><td>Lần 1</td><td class="num">3%</td><td class="num">Rp 60.000</td></tr>
+    <tr><td>Retouch</td><td>Lần 2 trở đi</td><td class="num">0%</td><td class="num">Rp 0</td></tr>
+  </table>
+</section>
+
+<section class="page">
+  <h3 style="margin-top:0">Bước 3 — Chụp ảnh <span class="callout-num">5</span></h3>
+  <p>Ở cuối chi tiết tour có 3 nhóm ảnh:</p>
+  <table>
+    <tr><th style="width:30%">Nhóm ảnh</th><th style="width:22%">Nút</th><th>Khi nào chụp</th></tr>
+    <tr><td><b>Ảnh trước khi làm</b></td><td>📷 Chụp</td><td>Trước khi bắt đầu — mở thẳng camera sau của điện thoại.</td></tr>
+    <tr><td><b>Ảnh sau khi làm</b></td><td>📷 Chụp</td><td>Ngay sau khi làm xong, cùng góc với ảnh trước.</td></tr>
+    <tr><td><b>Ảnh thêm / bill</b></td><td>＋ Thêm ảnh</td><td>Ảnh bill, ảnh chuyển khoản… chọn được <b>nhiều ảnh một lúc</b> từ thư viện.</td></tr>
+  </table>
+  <ul>
+    <li>Ảnh <b>tự lưu ngay</b> khi tải lên xong (thấy thông báo “Đã lưu ảnh”) — không cần bấm Lưu.</li>
+    <li>Chụp sai: bấm dấu <b>×</b> trên ảnh → xác nhận <b>Xoá</b>. Chỉ chụp được sau khi đã <b>nhận tour</b>; mỗi nhóm tối đa 30 ảnh.</li>
+  </ul>
+  <div class="note"><p><b>Trước khi làm xong một tour, kiểm tra đủ 4 thứ:</b> dịch vụ chi tiết (+ lần), bill, phương thức thanh toán, ảnh trước/sau. Admin <b>không xác nhận được</b> tour thiếu dịch vụ chi tiết hoặc bill — tour sẽ nằm mãi ở “Chưa xác nhận”.</p></div>
+
+  <!-- ============ 6. KTV XEM TOUR ============ -->
+  <h2 style="margin-top:6mm">6. KTV xem tour và thực thu của mình</h2>
+  <div class="two">
+    <div>
+      <p>Vào <b>Tour</b> → tab <b>Tour của tôi</b>. Màn hình chỉ hiện các tour <b>bạn đã nhận</b>, theo từng tháng.</p>
+      <ol class="steps">
+        <li><b>Chọn tháng</b> ở ô tháng trên cùng (mặc định tháng hiện tại).</li>
+        <li>Xem 3 ô số liệu:
+          <ul>
+            <li><b>Số tour</b> — tổng số tour bạn làm trong tháng.</li>
+            <li><b>Chưa xác nhận</b> — số tour admin chưa duyệt.</li>
+            <li><b>Thực thu</b> — tổng tiền tour của tháng; dòng nhỏ “<b>Đã xác nhận: …</b>” là phần admin đã duyệt.</li>
+          </ul>
+        </li>
+        <li>Xem danh sách thẻ: tên khách, ngày · dịch vụ, trạng thái, dịch vụ chi tiết, số ảnh và thực thu của từng tour.</li>
+        <li>Bấm vào thẻ để mở chi tiết, sửa (nếu chưa xác nhận). Bấm vào <b>biểu tượng ảnh</b> trên thẻ để xem nhanh ảnh trước / sau / thêm — bấm ảnh để phóng to, vuốt để xem tiếp.</li>
+      </ol>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="phone-bar">Tour</div>
+        <div class="phone-body">
+          <div class="seg"><span>Chờ nhận (0)</span><span class="on">Tour của tôi</span></div>
+          <div class="input" style="width:24mm">11/2026 📅</div>
+          <div class="stats">
+            <div class="stat"><div class="l">Số tour</div><div class="v">12</div></div>
+            <div class="stat"><div class="l">Chưa xác nhận</div><div class="v">3</div></div>
+            <div class="stat wide"><div class="l">Thực thu</div><div class="v">Rp 1.385.000</div><div class="l">Đã xác nhận: Rp 1.120.000</div></div>
+          </div>
+          <div class="card">
+            <div class="row"><div><div class="name">Nguyễn Thị A</div><div class="sub">08/11/2026 · Mày</div></div><span class="tag blue">Chưa xác nhận</span></div>
+            <div class="row" style="margin-top:1.4mm;align-items:center"><span><span class="tag cyan">New</span> 🖼 4</span><b>Rp 245.000</b></div>
+          </div>
+          <div class="card">
+            <div class="row"><div><div class="name">Phạm D</div><div class="sub">07/11/2026 · Môi</div></div><span class="tag blue">Chưa xác nhận</span></div>
+            <div class="row" style="margin-top:1.4mm;align-items:center"><span><span class="tag gray">Chưa chọn dịch vụ</span> 🖼 0</span><b>—</b></div>
+          </div>
+        </div>
+        <div class="phone-tabs"><span>Khách hàng</span><span>Lịch hẹn</span><span class="on">Tour</span><span>Menu</span></div>
+      </div>
+      <p class="caption">Tab Tour của tôi</p>
+    </div>
+  </div>
+</section>
+
+<section class="page">
+  <h3 style="margin-top:0">Đọc thẻ tour như thế nào</h3>
+  <table>
+    <tr><th style="width:38%">Thấy trên thẻ</th><th>Nghĩa là / cần làm gì</th></tr>
+    <tr><td><span class="tag gray">Chưa chọn dịch vụ</span></td><td>Bạn chưa chọn dịch vụ chi tiết → mở thẻ và điền ngay, nếu không tour không được tính tiền.</td></tr>
+    <tr><td>Thực thu hiện <b>—</b></td><td>Thiếu dịch vụ chi tiết, thiếu lần hoặc thiếu bill.</td></tr>
+    <tr><td>🖼 <b>0</b></td><td>Chưa có ảnh nào — nhớ chụp ảnh trước/sau.</td></tr>
+    <tr><td><span class="tag blue">Chưa xác nhận</span></td><td>Bạn còn sửa được. Chờ admin duyệt.</td></tr>
+    <tr><td><span class="tag green">Đã xác nhận</span></td><td>Tour đã chốt, chỉ xem — không sửa, không trả tour được. Sai thông tin → báo admin.</td></tr>
+  </table>
+
+  <div class="note"><p><b>Cuối tháng:</b> mở <b>Tour của tôi</b>, chọn tháng, đối chiếu <b>Số tour</b> và <b>Thực thu</b> với sổ sách của bạn. Nếu “Chưa xác nhận” vẫn còn, kiểm tra từng tour đã đủ dịch vụ chi tiết + bill chưa, rồi nhắc admin duyệt.</p></div>
+
+  <!-- ============ 7. ADMIN + FAQ ============ -->
+  <h2 style="margin-top:9mm">7. Phần của quản lý (admin)</h2>
+  <ul>
+    <li><b>Xác nhận tour:</b> mở tour (hoặc nút <b>⋮</b> cuối dòng) → <span class="btn">✓ Xác nhận</span>. Tour phải có <b>KTV, dịch vụ chi tiết và bill</b>. Bấm nhầm → mở tour → <span class="btn">Bỏ xác nhận</span>.</li>
+    <li><b>Gán / đổi KTV:</b> trong chi tiết tour, ô <b>Kỹ thuật viên</b> (dùng khi KTV quên nhận tour hoặc nhận nhầm người).</li>
+    <li><b>Gom theo nhân viên</b>, <span class="btn">Xuất Excel</span> và <span class="btn">Phiếu tour (PDF)</span>: xuất theo các dòng đang lọc trong tháng — mỗi KTV một trang phiếu có chỗ ký.</li>
+    <li>Admin sửa và xoá được mọi tour, kể cả tour đã xác nhận.</li>
+  </ul>
+
+  <h2 style="margin-top:9mm">Câu hỏi thường gặp</h2>
+  <dl class="faq">
+    <dt>Không tìm thấy khách khi đặt lịch / tạo tour?</dt>
+    <dd>Khách chưa có trong hệ thống. Vào menu <b>Khách hàng</b> tạo khách trước, rồi quay lại. Thử tìm bằng số điện thoại thay vì tên.</dd>
+    <dt>Báo lỗi “Tour đã có người nhận”.</dt>
+    <dd>Một KTV khác đã nhận trước bạn vài giây. Mở lại tab <b>Tour</b> (hoặc tải lại trang) để cập nhật danh sách rồi nhận tour khác.</dd>
+    <dt>Báo lỗi “Tour đã xác nhận — chỉ admin được sửa”.</dt>
+    <dd>Tour đã được duyệt và khoá. Liên hệ admin để sửa hoặc bỏ xác nhận.</dd>
+    <dt>Báo lỗi “Cần có KTV, dịch vụ chi tiết và bill trước khi xác nhận”.</dt>
+    <dd>KTV phụ trách cần mở tour điền đủ dịch vụ chi tiết và bill, bấm Lưu, rồi admin xác nhận lại.</dd>
+    <dt>KTV không thấy tab “Chờ nhận”, hoặc báo “Chỉ kỹ thuật viên được nhận tour”.</dt>
+    <dd>Tài khoản chưa được gán bộ phận <b>Kỹ thuật viên</b>. Báo admin gán ở mục Người dùng.</dd>
+    <dt>Bấm “Chụp” nhưng không mở camera.</dt>
+    <dd>Cho phép trình duyệt / app truy cập camera trong cài đặt điện thoại. Vẫn không được thì chụp bằng camera thường rồi thêm ảnh qua nhóm <b>Ảnh thêm / bill</b>.</dd>
+    <dt>Lịch hẹn và Tour khác nhau thế nào?</dt>
+    <dd><b>Lịch hẹn</b> = khách hẹn khi nào đến, đã đến chưa. <b>Tour</b> = lần làm dịch vụ thực tế: ai làm, bill, ảnh, tiền tour. Một khách đến làm → có 1 lịch hẹn (Đã đến) và 1 tour.</dd>
+  </dl>
+
+  <p class="footer-note">Lavian CRM · Hướng dẫn Lịch hẹn &amp; Tour · Cập nhật 07/11/2026. Hình minh hoạ dùng dữ liệu ví dụ, màn hình thật có thể khác đôi chút.</p>
+</section>
+
+</body>
+</html>
