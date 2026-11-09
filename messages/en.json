@@ -411,5 +411,44 @@
     "status_DELETED": "Deleted",
     "status_ARCHIVED": "Archived",
     "status_UNKNOWN": "Unknown"
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "From ads to revenue · {range}, vs {prev}",
+    "subtitleShort": "From ads to revenue",
+    "refresh": "Reload",
+    "preset": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "last7": "7 days",
+      "last30": "30 days",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "custom": "Custom"
+    },
+    "metric": {
+      "spend": "Spend",
+      "messages": "Messages",
+      "costPerMessage": "Cost / Message",
+      "data": "Data",
+      "costPerData": "Cost / Data",
+      "deposits": "Deposits",
+      "bookings": "Bookings",
+      "revenue": "Revenue"
+    },
+    "hint": {
+      "ofMessages": "{pct} of messages",
+      "ofData": "{pct} of data",
+      "roas": "ROAS {x}x"
+    },
+    "vsPrevious": "Previous period: {value}",
+    "sourceError": "Some data sources failed — affected figures show “—”.",
+    "funnel": "Conversion funnel",
+    "conversion": "{pct} from previous step",
+    "trend": "By day",
+    "noData": "No data yet",
+    "daily": "Daily breakdown",
+    "date": "Date",
+    "total": "Total"
   }
 }

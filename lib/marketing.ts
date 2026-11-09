@@ -114,6 +114,65 @@ export async function fetchFbAds(
   );
 }
 
+export type FbDaily = { spend: number; messages: number };
+
+type FbDailyRes = {
+  data?: {
+    date_start?: string;
+    spend?: string;
+    account_currency?: string;
+    actions?: { action_type?: string; value?: string }[];
+  }[];
+  paging?: { next?: string };
+  error?: { message?: string };
+};
+
+/** Spend + tin nhắn THEO NGÀY (`time_increment=1`), cộng các tài khoản ads.
+ *  Ngày không chạy ads không có trong map (= 0). */
+export async function fetchFbAdsDaily(
+  from: string,
+  to: string,
+): Promise<{ days: Map<string, FbDaily>; currency: string | null }> {
+  const token = process.env.FB_TOKEN;
+  if (!token) throw new Error("Thiếu FB_TOKEN.");
+  const time_range = JSON.stringify({ since: from, until: to });
+  const days = new Map<string, FbDaily>();
+  let currency: string | null = null;
+
+  const perAccount = await Promise.all(
+    FB_AD_ACCOUNTS.map(async (act) => {
+      const qs = new URLSearchParams({
+        fields: "spend,actions,account_currency",
+        time_range,
+        time_increment: "1",
+        limit: "500",
+        access_token: token,
+      });
+      const out: NonNullable<FbDailyRes["data"]> = [];
+      let url: string | undefined = `${FB_API}/${act}/insights?${qs}`;
+      while (url) {
+        const json: FbDailyRes = await fbGet(url);
+        out.push(...(json.data ?? []));
+        url = json.paging?.next;
+      }
+      return out;
+    }),
+  );
+
+  for (const row of perAccount.flat()) {
+    if (!row.date_start) continue;
+    // ponytail: giả định các tài khoản cùng currency (giống fetchFbAds).
+    currency ??= row.account_currency ?? null;
+    const cur = days.get(row.date_start) ?? { spend: 0, messages: 0 };
+    cur.spend += Number(row.spend ?? 0);
+    cur.messages += Number(
+      row.actions?.find((a) => a.action_type === FB_MESSAGE_ACTION)?.value ?? 0,
+    );
+    days.set(row.date_start, cur);
+  }
+  return { days, currency };
+}
+
 export interface FbCampaign {
   id: string;
   name: string;

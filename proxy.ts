@@ -95,6 +95,7 @@ export async function proxy(request: NextRequest) {
   // Route quản trị chỉ dành cho admin.
   const isAdminRoute =
     path.startsWith("/marketing") ||
+    path.startsWith("/reports") ||
     path.startsWith("/users") ||
     path.startsWith("/enums") ||
     path.startsWith("/services");

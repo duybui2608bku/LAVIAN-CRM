@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lavian CRM User Guide — Appointments &amp; Tours</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root {
+    --primary: #684fd4; --primary-soft: #efecfb; --ink: #1f1f24; --muted: #6b6b76;
+    --line: #e4e4e8; --bg-soft: #f7f7f9;
+    --gold: #d48806; --gold-bg: #fffbe6; --gold-bd: #ffe58f;
+    --blue: #0958d9; --blue-bg: #e6f4ff; --blue-bd: #91caff;
+    --green: #389e0d; --green-bg: #f6ffed; --green-bd: #b7eb8f;
+    --cyan: #08979c; --cyan-bg: #e6fffb; --cyan-bd: #87e8de;
+    --red: #cf1322;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; line-height: 1.55; color: var(--ink); background: #fff; }
+  h1, h2, h3 { line-height: 1.25; margin: 0; }
+  h2 { font-size: 17pt; color: var(--primary); margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 2px solid var(--primary-soft); }
+  h3 { font-size: 12.5pt; margin: 6mm 0 2.5mm; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  b, strong { font-weight: 600; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .muted { color: var(--muted); }
+  .small { font-size: 9pt; }
+  .avoid { break-inside: avoid; }
+
+  /* Cover */
+  .cover { height: 263mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover-top { padding-top: 30mm; }
+  .brand { display: inline-flex; align-items: center; gap: 3mm; font-weight: 700; color: var(--primary); font-size: 13pt; letter-spacing: .5px; }
+  .brand-dot { width: 9mm; height: 9mm; border-radius: 2.5mm; background: var(--primary); color: #fff; display: grid; place-items: center; font-size: 14pt; }
+  .cover h1 { font-size: 30pt; margin: 14mm 0 5mm; letter-spacing: -.5px; }
+  .cover .lead { font-size: 13pt; color: var(--muted); max-width: 140mm; }
+  .toc { border-top: 1px solid var(--line); padding-top: 6mm; }
+  .toc-row { display: flex; gap: 4mm; padding: 2.4mm 0; border-bottom: 1px dashed var(--line); font-size: 11pt; }
+  .toc-num { width: 8mm; color: var(--primary); font-weight: 700; }
+  .toc-who { margin-left: auto; color: var(--muted); font-size: 9.5pt; }
+
+  /* Callouts */
+  .note { border-left: 3px solid var(--primary); background: var(--primary-soft); padding: 3mm 4mm; border-radius: 0 2mm 2mm 0; margin: 3mm 0 4mm; }
+  .warn { border-left-color: var(--gold); background: var(--gold-bg); }
+  .note p:last-child, .note ul:last-child { margin-bottom: 0; }
+
+  /* Steps */
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0 0 4mm; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 10mm; margin-bottom: 2.6mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: .2mm; width: 6.5mm; height: 6.5mm; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700; font-size: 9pt; display: grid; place-items: center; }
+
+  /* Inline UI tokens */
+  .btn { display: inline-block; padding: .2mm 2.4mm; border-radius: 1.4mm; border: 1px solid var(--line); background: #fff; font-size: 9.5pt; font-weight: 600; white-space: nowrap; }
+  .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn.danger { color: var(--red); border-color: #ffa39e; }
+  .tag { display: inline-block; padding: 0 2mm; border-radius: 1.2mm; font-size: 8.8pt; border: 1px solid; white-space: nowrap; line-height: 1.6; }
+  .tag.gold { color: var(--gold); background: var(--gold-bg); border-color: var(--gold-bd); }
+  .tag.blue { color: var(--blue); background: var(--blue-bg); border-color: var(--blue-bd); }
+  .tag.green { color: var(--green); background: var(--green-bg); border-color: var(--green-bd); }
+  .tag.cyan { color: var(--cyan); background: var(--cyan-bg); border-color: var(--cyan-bd); }
+  .tag.gray { color: #555; background: #fafafa; border-color: #d9d9d9; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 1mm 0 4mm; font-size: 9.8pt; }
+  th, td { text-align: left; padding: 2mm 2.5mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 8.8pt; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 600; background: var(--bg-soft); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* Role cards */
+  .roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; margin: 2mm 0 5mm; }
+  .role { border: 1px solid var(--line); border-radius: 2.5mm; padding: 3.5mm; }
+  .role h4 { margin: 0 0 1.5mm; font-size: 11pt; }
+  .role p { margin: 0; font-size: 9.5pt; color: var(--muted); }
+
+  /* Flow */
+  .flow { display: grid; grid-template-columns: 1fr 7mm 1fr 7mm 1fr; align-items: stretch; margin: 3mm 0 5mm; }
+  .flow-box { border: 1px solid var(--line); border-radius: 2.5mm; padding: 3mm; background: #fff; }
+  .flow-box .who { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 600; }
+  .flow-box .what { font-weight: 600; margin: 1mm 0 1.5mm; font-size: 10.5pt; }
+  .flow-box p { font-size: 9pt; color: var(--muted); margin: 1.5mm 0 0; line-height: 1.45; }
+  .arrow { display: grid; place-items: center; color: var(--primary); font-size: 14pt; font-weight: 700; }
+
+  /* Mock screens */
+  .two { display: grid; grid-template-columns: 1fr 64mm; gap: 7mm; align-items: start; }
+  .phone { width: 64mm; border: 2.2mm solid #26262c; border-radius: 7mm; background: #f5f5f7; overflow: hidden; font-size: 8.4pt; line-height: 1.4; }
+  .phone-bar { background: #fff; padding: 2mm 3mm; font-weight: 700; font-size: 10pt; border-bottom: 1px solid var(--line); }
+  .phone-body { padding: 2.5mm; display: flex; flex-direction: column; gap: 2mm; }
+  .phone-tabs { display: grid; grid-template-columns: repeat(4, 1fr); background: #fff; border-top: 1px solid var(--line); text-align: center; font-size: 7.2pt; color: var(--muted); padding: 1.6mm 0; }
+  .phone-tabs .on { color: var(--primary); font-weight: 700; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: #e9e9ee; border-radius: 1.6mm; padding: .6mm; }
+  .seg span { text-align: center; padding: 1mm; border-radius: 1.2mm; color: var(--muted); }
+  .seg .on { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 .3mm .8mm rgba(0,0,0,.08); }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 2mm; padding: 2.2mm; }
+  .card .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 2mm; }
+  .card .name { font-weight: 600; font-size: 9pt; }
+  .card .sub { color: var(--muted); font-size: 7.8pt; }
+  .card .bigbtn { margin-top: 1.8mm; background: var(--primary); color: #fff; text-align: center; border-radius: 1.4mm; padding: 1.6mm; font-weight: 600; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6mm; }
+  .stat { background: #fff; border: 1px solid var(--line); border-radius: 2mm; padding: 1.8mm 2.2mm; }
+  .stat .l { color: var(--muted); font-size: 7.4pt; }
+  .stat .v { font-weight: 700; font-size: 11pt; }
+  .stat.wide { grid-column: span 2; }
+  .field { margin-bottom: 1.8mm; }
+  .field .l { color: var(--muted); font-size: 7.6pt; margin-bottom: .6mm; }
+  .input { background: #fff; border: 1px solid var(--line); border-radius: 1.4mm; padding: 1.2mm 2mm; min-height: 6mm; }
+  .chips { display: flex; gap: 1mm; }
+  .chips span { flex: 1; text-align: center; border: 1px solid var(--line); background: #fff; border-radius: 1.2mm; padding: 1mm 0; font-size: 7.6pt; }
+  .chips .on { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .photos { display: flex; gap: 1.4mm; }
+  .photos span { width: 11mm; height: 11mm; border-radius: 1.4mm; background: linear-gradient(135deg, #d9d3f5, #b9aee9); }
+  .photos .add { background: #fff; border: 1px dashed #bbb; display: grid; place-items: center; color: var(--muted); font-size: 7pt; }
+  .callout-num { display: inline-grid; place-items: center; width: 4.2mm; height: 4.2mm; border-radius: 50%; background: #ff7a45; color: #fff; font-size: 7pt; font-weight: 700; vertical-align: middle; margin-left: 1mm; }
+  .legend .callout-num { margin: 0 1.5mm 0 0; }
+  .caption { text-align: center; font-size: 8.5pt; color: var(--muted); margin-top: 2mm; }
+
+  /* Desktop mock */
+  .desk { border: 1px solid var(--line); border-radius: 2.5mm; overflow: hidden; font-size: 8.4pt; margin: 2mm 0 2mm; }
+  .desk-head { display: flex; align-items: center; justify-content: space-between; padding: 2.4mm 3mm; border-bottom: 1px solid var(--line); }
+  .desk-head b { font-size: 11pt; }
+  .desk-tool { display: flex; gap: 2mm; padding: 2mm 3mm; background: var(--bg-soft); border-bottom: 1px solid var(--line); }
+  .desk-tool span { background: #fff; border: 1px solid var(--line); border-radius: 1.2mm; padding: .6mm 2.2mm; color: var(--muted); }
+  .desk table { margin: 0; font-size: 8.2pt; }
+  .desk th { font-size: 7.4pt; }
+  .desk td, .desk th { padding: 1.6mm 2.2mm; }
+
+  .faq dt { font-weight: 600; margin-top: 3mm; break-after: avoid; page-break-after: avoid; }
+  .faq dd { margin: 1mm 0 0 0; color: #3b3b44; }
+  .footer-note { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid var(--line); font-size: 8.8pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="page cover">
+  <div class="cover-top">
+    <div class="brand"><span class="brand-dot">L</span> LAVIAN CRM</div>
+    <h1>User guide<br>Appointments &amp; Tours</h1>
+    <p class="lead">For Customer Care (CC) staff and Technicians: booking appointments for customers, creating tours, taking tours and tracking your own tours.</p>
+  </div>
+  <div class="toc">
+    <div class="toc-row"><span class="toc-num">1</span>Getting started<span class="toc-who">Everyone</span></div>
+    <div class="toc-row"><span class="toc-num">2</span>Appointments — what they are for and how to book<span class="toc-who">Customer Care</span></div>
+    <div class="toc-row"><span class="toc-num">3</span>The tour workflow from start to finish<span class="toc-who">Everyone</span></div>
+    <div class="toc-row"><span class="toc-num">4</span>Creating a tour<span class="toc-who">Customer Care</span></div>
+    <div class="toc-row"><span class="toc-num">5</span>Taking a tour, filling in details, taking photos<span class="toc-who">Technician</span></div>
+    <div class="toc-row"><span class="toc-num">6</span>Viewing your tours and earnings<span class="toc-who">Technician</span></div>
+    <div class="toc-row"><span class="toc-num">7</span>Admin tasks &amp; FAQ<span class="toc-who">Reference</span></div>
+  </div>
+</section>
+
+<!-- ============ 1. GETTING STARTED ============ -->
+<section class="page">
+  <h2>1. Getting started</h2>
+
+  <h3>Signing in</h3>
+  <p>An admin creates your account and gives you an email and password — staff <b>cannot sign up on their own</b>. Open the app, enter your email and password and sign in. <b>Remember me</b> is ticked by default so you don't have to type them again next time; untick it on a shared device.</p>
+
+  <h3>Language</h3>
+  <p>The app is available in Vietnamese and English. To switch: on a computer, open the account menu at the bottom of the left sidebar; on a phone, tap <b>Menu</b> in the bottom tab bar → <b>Language</b> → <b>English</b>. This guide uses the English labels.</p>
+
+  <h3>Who does what</h3>
+  <p>The admin assigns a <b>department</b> to every account. Your department decides what you see in <b>Tours</b>:</p>
+  <div class="roles">
+    <div class="role"><h4>Customer Care</h4><p>Books appointments. Creates a tour when a customer comes in for a treatment. Sees the table of all tours in the month.</p></div>
+    <div class="role"><h4>Technician</h4><p>Takes tours, fills in the service detail and bill, takes before/after photos. Views their own tours and earnings by month.</p></div>
+    <div class="role"><h4>Admin</h4><p>Reviews and confirms tours, assigns/changes technicians, exports Excel and prints tour slips.</p></div>
+  </div>
+  <div class="note warn"><p><b>Not seeing the right screen?</b> (e.g. a technician opens Tours but there is no “Waiting” tab) — your account has no department yet. Ask the admin to set it under <b>Users</b>.</p></div>
+
+  <h3>Navigation</h3>
+  <ul>
+    <li><b>On a computer:</b> the menu is in the left sidebar — <b>Customers</b>, <b>Appointments</b>, <b>Tours</b>.</li>
+    <li><b>On a phone:</b> the tab bar at the bottom — <b>Customers · Appointments · Tours · Menu</b>. <b>Menu</b> holds your account, dark mode, language and <b>Sign out</b>.</li>
+  </ul>
+
+  <h3>Install the app on your phone (recommended for technicians)</h3>
+  <ul>
+    <li><b>iPhone (Safari):</b> open the app → tap <b>Share</b> → <b>Add to Home Screen</b>.</li>
+    <li><b>Android (Chrome):</b> open the app → tap <b>⋮</b> → <b>Add to Home screen</b> (or <b>Install app</b>).</li>
+  </ul>
+
+  <h3>General tips</h3>
+  <ul>
+    <li>After each action a small message appears at the top: e.g. “Saved” (success) or a red error message. If you see an error, read it — it usually says exactly what is wrong.</li>
+    <li>Deleting always asks for confirmation first.</li>
+    <li>On a phone, tables automatically switch to a <b>card list</b> that is easier to read.</li>
+    <li>A customer must already exist under <b>Customers</b> before you can pick them for an appointment or a tour.</li>
+  </ul>
+</section>
+
+<!-- ============ 2. APPOINTMENTS ============ -->
+<section class="page">
+  <h2>2. Appointments</h2>
+
+  <h3>What are appointments for?</h3>
+  <p>Appointments are the <b>log of when customers are scheduled to visit the clinic</b>. Each appointment tells you:</p>
+  <ul>
+    <li><b>Who</b> is coming, <b>when</b> (date &amp; time), for <b>which service</b>, and <b>which Customer Care</b> staff is in charge,</li>
+    <li>And most importantly: whether the customer <b>has arrived</b> (the “Clinic confirmation” column).</li>
+  </ul>
+  <p>This way the whole team knows who is coming today, who hasn't arrived yet and needs a reminder call, and reports can count appointments and arrivals.</p>
+  <div class="note"><p><b>Appointments do NOT record money or technicians.</b> The bill, payment, technician and before/after photos all live in <b>Tours</b> (sections 3–6). When a customer comes in for a treatment: mark them <b>Arrived</b> in Appointments, then <b>create a Tour</b> for them.</p></div>
+
+  <h3>Add a new appointment</h3>
+  <ol class="steps">
+    <li>Go to <b>Appointments</b> → click <span class="btn primary">Add appointment</span> at the top right. A form slides in from the right.</li>
+    <li><b>Customer name</b> (required): type a name or phone number to search, then pick the customer. Not found → create the customer under <b>Customers</b> first.</li>
+    <li><b>Appointment date &amp; time</b> (required): when the customer will come.</li>
+    <li><b>Clinic confirmation</b>: leave it at <span class="tag gray">Not arrived</span>. Only switch to <span class="tag green">Arrived</span> if the customer is already here.</li>
+    <li><b>Services</b>: pick one or more services the customer is booked for.</li>
+    <li><b>Customer care</b>: the CC staff in charge (usually you).</li>
+    <li><b>Note</b>: anything to remember (what the customer wants, deposit paid, who they come with…).</li>
+    <li>Click <span class="btn primary">Add appointment</span> at the bottom of the form to save.</li>
+  </ol>
+
+  <h3>Find and filter appointments</h3>
+  <div class="desk avoid">
+    <div class="desk-head"><b>Appointments</b><span class="btn primary">Add appointment</span></div>
+    <div class="desk-tool"><span>🔍 Search name or phone…</span><span>All dates</span><span>Today</span><span>All confirmations ▾</span></div>
+    <table>
+      <tr><th>Customer name</th><th>Phone</th><th>Date &amp; time</th><th>Confirmation</th><th>Services</th><th>Customer care</th></tr>
+      <tr><td><b>Customer A</b></td><td>0812 3456 789</td><td>08/11/2026 09:30</td><td><span class="tag green">Arrived</span></td><td><span class="tag" style="color:#531dab;background:#f9f0ff;border-color:#d3adf7">Brows</span></td><td>Linh</td></tr>
+      <tr><td><b>Customer B</b></td><td>0857 1122 334</td><td>08/11/2026 14:00</td><td><span class="tag gray">Not arrived</span></td><td><span class="tag" style="color:#531dab;background:#f9f0ff;border-color:#d3adf7">Lips</span></td><td>Linh</td></tr>
+    </table>
+  </div>
+  <p class="caption">Appointments screen (sample data)</p>
+  <p>Type a name / phone in the search box; pick a date or click <span class="btn">Today</span> to see that day (clear the date to see all); filter by <i>Not arrived</i> to get the list of customers to call.</p>
+</section>
+
+<section class="page">
+  <h3 style="margin-top:0">Update appointments right in the table</h3>
+  <p>No need to open a form — click the cell, pick the new value and it saves automatically:</p>
+  <table>
+    <tr><th style="width:32%">To do this</th><th>Do this</th></tr>
+    <tr><td><b>Customer has arrived</b></td><td>Click <span class="tag gray">Not arrived</span> in the <i>Clinic confirmation</i> column → choose <b>Arrived</b>. Clicked by mistake? Switch it back to <b>Not arrived</b>.</td></tr>
+    <tr><td><b>Customer reschedules</b></td><td>Click the date in the <i>Date &amp; time</i> column → pick the new date and time.</td></tr>
+    <tr><td><b>Change / add services</b></td><td>Click the <i>Services</i> cell → tick or untick services.</td></tr>
+    <tr><td><b>Change the CC in charge</b></td><td>Click the <i>Customer care</i> cell → choose someone else.</td></tr>
+    <tr><td><b>Add a note</b></td><td>Click the <i>Note</i> cell, type, then <b>click outside the cell</b> to save.</td></tr>
+    <tr><td><b>Delete an appointment</b> (created by mistake, customer cancelled)</td><td>Click <b>⋮</b> at the end of the row → <b>Delete appointment</b> → confirm.</td></tr>
+  </table>
+
+  <div class="note"><p><b>Daily routine (Customer Care):</b></p>
+    <ul>
+      <li>Start of day: click <span class="btn">Today</span> + filter <i>Not arrived</i> → call to remind customers.</li>
+      <li>Customer at the desk: switch to <span class="tag green">Arrived</span>, then <b>create a Tour</b> for them (section 4).</li>
+      <li>Customer reschedules: change the date &amp; time right away and write the reason in Note.</li>
+    </ul>
+  </div>
+
+  <h2 style="margin-top:6mm">3. The tour workflow from start to finish</h2>
+  <p>A <b>tour</b> is one actual treatment at the clinic: which technician did it, service detail, bill, payment method and before/after photos — from which the technician's <b>received</b> amount (commission) is calculated.</p>
+
+  <div class="flow avoid">
+    <div class="flow-box"><div class="who">Customer Care</div><div class="what">Create tour</div><span class="tag gold">Waiting</span><p>Date, customer, service, (bill), note.</p></div>
+    <div class="arrow">→</div>
+    <div class="flow-box"><div class="who">Technician</div><div class="what">Take &amp; fill in</div><span class="tag blue">Unconfirmed</span><p>Service detail, session, bill, payment, before/after photos.</p></div>
+    <div class="arrow">→</div>
+    <div class="flow-box"><div class="who">Admin</div><div class="what">Review &amp; confirm</div><span class="tag green">Confirmed</span><p>The tour is locked and counts toward the technician's confirmed earnings.</p></div>
+  </div>
+
+  <table>
+    <tr><th style="width:28%">Status</th><th>Meaning</th><th style="width:30%">Who can edit</th></tr>
+    <tr><td><span class="tag gold">Waiting</span></td><td>Created, no technician has taken it yet.</td><td>Customer Care, admin</td></tr>
+    <tr><td><span class="tag blue">Unconfirmed</span></td><td>Taken by a technician; waiting for admin review.</td><td>Its technician, Customer Care, admin</td></tr>
+    <tr><td><span class="tag green">Confirmed</span></td><td>Approved by admin. Details are locked.</td><td>Admin only</td></tr>
+  </table>
+</section>
+
+<!-- ============ 4. CREATE TOUR ============ -->
+<section class="page">
+  <h2>4. Creating a tour (Customer Care)</h2>
+  <p>Create a tour when the customer has arrived and is about to be treated — so a technician can take it.</p>
+  <ol class="steps">
+    <li>Go to <b>Tours</b> → click <span class="btn primary">+ New tour</span>.</li>
+    <li><b>Date</b>: today by default; only change it when entering a tour for another day.</li>
+    <li><b>Customer</b> (required): type a name or phone number to search.</li>
+    <li><b>Service</b> (required): the service the customer is getting (e.g. brows, lips…).</li>
+    <li><b>Bill</b> (optional): if you already know how much the customer pays, enter it now so the technician doesn't have to.</li>
+    <li><b>Note</b>: what the technician should know beforehand (sensitive customer, special request…). Technicians can read it right on the waiting card.</li>
+    <li>Click <span class="btn primary">New tour</span>. The tour appears in the <b>Waiting</b> tab on every technician's phone.</li>
+  </ol>
+
+  <h3>View, edit, delete tours</h3>
+  <div class="desk avoid">
+    <div class="desk-head"><b>Tours</b><span class="btn primary">+ New tour</span></div>
+    <div class="desk-tool"><span>11/2026</span><span>🔍 Search customer / phone</span><span>All statuses ▾</span><span>All technicians ▾</span></div>
+    <table>
+      <tr><th>Date</th><th>Customer</th><th>Service</th><th>Detail</th><th>Technician</th><th>Photos</th><th style="text-align:right">Bill</th><th style="text-align:right">Received</th><th>Status</th></tr>
+      <tr><td>08/11</td><td><b>Customer A</b></td><td>Brows</td><td><span class="tag cyan">New</span></td><td>Ha</td><td>🖼 4</td><td class="num">Rp 3.500.000</td><td class="num">Rp 245.000</td><td><span class="tag blue">Unconfirmed</span></td></tr>
+      <tr><td>08/11</td><td><b>Customer B</b></td><td>Lips</td><td>—</td><td>—</td><td>🖼 0</td><td class="num">—</td><td class="num">—</td><td><span class="tag gold">Waiting</span></td></tr>
+    </table>
+  </div>
+  <p class="caption">Customer Care tour table (sample data)</p>
+  <ul>
+    <li><b>Filter:</b> pick a month, search customer/phone, filter by status or technician. The 4 figures above the table show the number of tours, waiting, unconfirmed and the total received.</li>
+    <li><b>View / edit:</b> click a row to open the details. Customer Care can change the date, customer, service, bill, payment, note… while the tour is <b>not yet confirmed</b>, then click <span class="btn primary">Save</span>.</li>
+    <li><b>Quick photo view:</b> click the photo icon + count in the <i>Photos</i> column.</li>
+    <li><b>Delete:</b> <b>⋮</b> at the end of the row → <b>Delete</b>. Customer Care can only delete tours <b>they created</b> that <b>no technician has taken</b>. To delete a taken tour, ask the admin.</li>
+  </ul>
+  <div class="note warn"><p><b>Avoid duplicates:</b> before creating, search for the customer's name to check whether they already have a tour today.</p></div>
+</section>
+
+<!-- ============ 5. TAKE TOUR ============ -->
+<section class="page">
+  <h2>5. Taking a tour, filling in details, taking photos (Technician)</h2>
+  <p>Technicians use the app on their <b>phone</b>. Open the <b>Tours</b> tab at the bottom — it has 2 tabs: <b>Waiting</b> and <b>My tours</b>.</p>
+
+  <div class="two">
+    <div>
+      <h3 style="margin-top:0">Step 1 — Take the tour</h3>
+      <ol class="steps">
+        <li>Open the <b>Waiting</b> tab. The number in brackets is how many tours are waiting. Each card shows the customer, date, service and the CC's note.</li>
+        <li>Find the customer you are about to treat → tap <span class="btn primary">Take tour</span>.</li>
+        <li>The app shows “Tour taken”, switches to <b>My tours</b> and opens the tour so you can continue filling it in.</li>
+      </ol>
+      <div class="note"><p>If two people tap at the same time, only the <b>first one</b> gets the tour. The other sees “<b>This tour was already taken</b>” — nothing else to do.</p></div>
+      <div class="note warn"><p><b>Took the wrong tour?</b> Open it → tap <span class="btn danger">Return tour</span> → confirm. It goes back to the Waiting list for someone else. You can only return a tour that the admin <b>has not confirmed</b> yet.</p></div>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="phone-bar">Tours</div>
+        <div class="phone-body">
+          <div class="seg"><span class="on">Waiting (2)</span><span>My tours</span></div>
+          <div class="card">
+            <div class="row"><div><div class="name">Customer B</div><div class="sub">08/11/2026 · Lips</div></div><span class="tag gold">Waiting</span></div>
+            <div class="sub" style="margin-top:1mm">Sensitive to pain, numb well.</div>
+            <div class="bigbtn">Take tour</div>
+          </div>
+          <div class="card">
+            <div class="row"><div><div class="name">Customer C</div><div class="sub">08/11/2026 · Brows</div></div><span class="tag gold">Waiting</span></div>
+            <div class="bigbtn">Take tour</div>
+          </div>
+        </div>
+        <div class="phone-tabs"><span>Customers</span><span>Appts</span><span class="on">Tours</span><span>Menu</span></div>
+      </div>
+      <p class="caption">Waiting tab on a phone</p>
+    </div>
+  </div>
+</section>
+
+<section class="page">
+  <div class="two">
+    <div>
+      <h3 style="margin-top:0">Step 2 — Fill in the tour</h3>
+      <p>In the tour details (open it by tapping its card in <b>My tours</b>):</p>
+      <ol class="steps">
+        <li><b>Service detail</b> <span class="callout-num">1</span>: one of <b>Laser · Plasma · New · Debt · Retouch</b>.</li>
+        <li><b>Session</b> <span class="callout-num">2</span>: required for <b>Laser, Plasma, Retouch</b> (Session 1 … Session 20). Locked for New and Debt.</li>
+        <li><b>Rate</b> appears automatically from the service detail + session — nothing to enter.</li>
+        <li><b>Bill</b> <span class="callout-num">3</span>: what the customer paid (Rupiah), numbers only. If Customer Care already entered it, double-check it.</li>
+        <li><b>Received</b> is calculated automatically = Bill × Rate.</li>
+        <li><b>Payment</b> <span class="callout-num">4</span>: <b>Cash · Bank transfer · Card</b>.</li>
+        <li><b>Note</b>: add anything useful.</li>
+        <li>Tap <span class="btn primary">Save</span>.</li>
+      </ol>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="phone-bar">Customer B <span class="tag blue" style="font-size:7pt">Unconfirmed</span></div>
+        <div class="phone-body" style="background:#fff">
+          <div class="field"><div class="l">Service detail <span class="callout-num">1</span></div>
+            <div class="chips"><span>Laser</span><span>Plasma</span><span>New</span><span>Debt</span><span class="on">Retouch</span></div></div>
+          <div class="stats" style="gap:2mm">
+            <div class="field"><div class="l">Session <span class="callout-num">2</span></div><div class="input">Session 1 ▾</div></div>
+            <div class="field"><div class="l">Rate</div><div class="input" style="border:0">3%</div></div>
+            <div class="field"><div class="l">Bill <span class="callout-num">3</span></div><div class="input">2.000.000</div></div>
+            <div class="field"><div class="l">Received</div><div class="input" style="border:0;font-weight:700">Rp 60.000</div></div>
+          </div>
+          <div class="field"><div class="l">Payment <span class="callout-num">4</span></div>
+            <div class="chips"><span class="on">Cash</span><span>Bank transfer</span><span>Card</span></div></div>
+          <div class="field"><div class="l">Before photos (2) <span class="callout-num">5</span></div>
+            <div class="photos"><span></span><span></span><span class="add">📷 Take</span></div></div>
+          <div class="field"><div class="l">After photos (0)</div>
+            <div class="photos"><span class="add">📷 Take</span></div></div>
+          <div class="field"><div class="l">Extra photos / bill (1)</div>
+            <div class="photos"><span></span><span class="add">＋ Add</span></div></div>
+          <div class="chips" style="margin-top:1mm"><span style="color:var(--red);border-color:#ffa39e">Return tour</span><span class="on">Save</span></div>
+        </div>
+      </div>
+      <p class="caption">Tour details (technician)</p>
+    </div>
+  </div>
+
+  <h3>Received-amount rates</h3>
+  <table class="avoid">
+    <tr><th>Service detail</th><th>Session</th><th style="text-align:right">Rate</th><th style="text-align:right">Example: bill Rp 2.000.000</th></tr>
+    <tr><td>Laser (brows)</td><td>Any</td><td class="num">0%</td><td class="num">Rp 0</td></tr>
+    <tr><td>Plasma (lips)</td><td>Any</td><td class="num">0%</td><td class="num">Rp 0</td></tr>
+    <tr><td>New</td><td>—</td><td class="num">7%</td><td class="num">Rp 140.000</td></tr>
+    <tr><td>Debt</td><td>—</td><td class="num">7%</td><td class="num">Rp 140.000</td></tr>
+    <tr><td>Retouch</td><td>Session 1</td><td class="num">3%</td><td class="num">Rp 60.000</td></tr>
+    <tr><td>Retouch</td><td>Session 2 and later</td><td class="num">0%</td><td class="num">Rp 0</td></tr>
+  </table>
+</section>
+
+<section class="page">
+  <h3 style="margin-top:0">Step 3 — Take photos <span class="callout-num">5</span></h3>
+  <p>At the bottom of the tour details there are 3 photo groups:</p>
+  <table>
+    <tr><th style="width:30%">Photo group</th><th style="width:22%">Button</th><th>When</th></tr>
+    <tr><td><b>Before photos</b></td><td>📷 Take photo</td><td>Before you start — opens the back camera.</td></tr>
+    <tr><td><b>After photos</b></td><td>📷 Take photo</td><td>Right after finishing, same angle as before.</td></tr>
+    <tr><td><b>Extra photos / bill</b></td><td>＋ Add photo</td><td>Bill, transfer screenshot — <b>several at once</b> from the gallery.</td></tr>
+  </table>
+  <ul>
+    <li>Photos <b>save automatically</b> once uploaded (you'll see “Photo saved”) — no need to tap Save.</li>
+    <li>Wrong photo: tap the <b>×</b> on it → confirm <b>Delete</b>. Max 30 photos per group.</li>
+  </ul>
+  <div class="note"><p><b>Before finishing a tour, check these 4 things:</b> service detail (+ session), bill, payment method, before/after photos. The admin <b>cannot confirm</b> a tour without a service detail or bill — it will stay “Unconfirmed”.</p></div>
+
+  <!-- ============ 6. MY TOURS ============ -->
+  <h2 style="margin-top:6mm">6. Viewing your tours and earnings (Technician)</h2>
+  <div class="two">
+    <div>
+      <p>Go to <b>Tours</b> → <b>My tours</b> tab. It only shows tours <b>you have taken</b>, month by month.</p>
+      <ol class="steps">
+        <li><b>Pick the month</b> in the month box at the top (current month by default).</li>
+        <li>Check the 3 figures:
+          <ul>
+            <li><b>Tours</b> — how many tours you did this month.</li>
+            <li><b>Unconfirmed</b> — tours the admin hasn't approved yet.</li>
+            <li><b>Received</b> — your total for the month; the small line “<b>Confirmed: …</b>” is the part already approved.</li>
+          </ul>
+        </li>
+        <li>Browse the cards: customer, date · service, status, service detail, photo count and received amount for each tour.</li>
+        <li>Tap a card to open and edit it (if not confirmed). Tap the <b>photo icon</b> on a card to quickly view before / after / extra photos — tap a photo to enlarge, swipe to see the next one.</li>
+      </ol>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="phone-bar">Tours</div>
+        <div class="phone-body">
+          <div class="seg"><span>Waiting (0)</span><span class="on">My tours</span></div>
+          <div class="input" style="width:24mm">11/2026 📅</div>
+          <div class="stats">
+            <div class="stat"><div class="l">Tours</div><div class="v">12</div></div>
+            <div class="stat"><div class="l">Unconfirmed</div><div class="v">3</div></div>
+            <div class="stat wide"><div class="l">Received</div><div class="v">Rp 1.385.000</div><div class="l">Confirmed: Rp 1.120.000</div></div>
+          </div>
+          <div class="card">
+            <div class="row"><div><div class="name">Customer A</div><div class="sub">08/11/2026 · Brows</div></div><span class="tag blue">Unconfirmed</span></div>
+            <div class="row" style="margin-top:1.4mm;align-items:center"><span><span class="tag cyan">New</span> 🖼 4</span><b>Rp 245.000</b></div>
+          </div>
+          <div class="card">
+            <div class="row"><div><div class="name">Customer D</div><div class="sub">07/11/2026 · Lips</div></div><span class="tag blue">Unconfirmed</span></div>
+            <div class="row" style="margin-top:1.4mm;align-items:center"><span><span class="tag gray">No service detail</span> 🖼 0</span><b>—</b></div>
+          </div>
+        </div>
+        <div class="phone-tabs"><span>Customers</span><span>Appts</span><span class="on">Tours</span><span>Menu</span></div>
+      </div>
+      <p class="caption">My tours tab</p>
+    </div>
+  </div>
+</section>
+
+<section class="page">
+  <h3 style="margin-top:0">How to read a tour card</h3>
+  <table>
+    <tr><th style="width:38%">On the card</th><th>Meaning / what to do</th></tr>
+    <tr><td><span class="tag gray">No service detail</span></td><td>You haven't picked the service detail → open the card and fill it in now, otherwise the tour earns nothing.</td></tr>
+    <tr><td>Received shows <b>—</b></td><td>Missing service detail, session or bill.</td></tr>
+    <tr><td>🖼 <b>0</b></td><td>No photos yet — remember the before/after photos.</td></tr>
+    <tr><td><span class="tag blue">Unconfirmed</span></td><td>You can still edit it. Waiting for admin approval.</td></tr>
+    <tr><td><span class="tag green">Confirmed</span></td><td>Finalised, view only — can't be edited or returned. If something is wrong, tell the admin.</td></tr>
+  </table>
+
+  <div class="note"><p><b>End of month:</b> open <b>My tours</b>, pick the month and compare <b>Tours</b> and <b>Received</b> with your own records. If there are still “Unconfirmed” tours, check each one has a service detail + bill, then remind the admin to approve them.</p></div>
+
+  <!-- ============ 7. ADMIN + FAQ ============ -->
+  <h2 style="margin-top:9mm">7. Admin tasks</h2>
+  <ul>
+    <li><b>Confirm a tour:</b> open the tour (or <b>⋮</b> at the end of the row) → <span class="btn">✓ Confirm</span>. The tour needs a <b>technician, service detail and bill</b>. Confirmed by mistake → open the tour → <span class="btn">Unconfirm</span>.</li>
+    <li><b>Assign / change technician:</b> the <b>Technician</b> field in the tour details (when a technician forgot to take the tour, or the wrong person took it).</li>
+    <li><b>Group by technician</b>, <span class="btn">Export Excel</span> and <span class="btn">Tour slip (PDF)</span>: export the currently filtered rows of the month — one slip page per technician with a signature area.</li>
+    <li>Admins can edit and delete any tour, including confirmed ones.</li>
+  </ul>
+
+  <h2 style="margin-top:9mm">FAQ</h2>
+  <dl class="faq">
+    <dt>Can't find the customer when booking / creating a tour?</dt>
+    <dd>The customer isn't in the system yet. Create them under <b>Customers</b> first, then come back. Try searching by phone number instead of name.</dd>
+    <dt>Error: “This tour was already taken”.</dt>
+    <dd>Another technician took it a few seconds before you. Reopen the <b>Tours</b> tab (or reload the page) to refresh the list and take another tour.</dd>
+    <dt>Error: “Tour is confirmed — only admins can edit”.</dt>
+    <dd>The tour has been approved and locked. Ask the admin to edit it or unconfirm it.</dd>
+    <dt>Error: “Technician, service detail and bill are required before confirming”.</dt>
+    <dd>The technician in charge needs to open the tour, fill in the service detail and bill, tap Save, then the admin confirms again.</dd>
+    <dt>A technician has no “Waiting” tab, or sees “Only technicians can take tours”.</dt>
+    <dd>The account isn't set to the <b>Technician</b> department. Ask the admin to set it under Users.</dd>
+    <dt>Tapping “Take photo” doesn't open the camera.</dt>
+    <dd>Allow the browser / app to use the camera in your phone settings. If it still doesn't work, take the photo with the normal camera and add it through <b>Extra photos / bill</b>.</dd>
+    <dt>What's the difference between an Appointment and a Tour?</dt>
+    <dd>An <b>Appointment</b> = when the customer is scheduled to come and whether they've arrived. A <b>Tour</b> = the actual treatment: who did it, bill, photos, commission. A customer who comes in for treatment → 1 appointment (Arrived) and 1 tour.</dd>
+  </dl>
+
+  <p class="footer-note">Lavian CRM · Appointments &amp; Tours guide · Updated 07/11/2026. Illustrations use sample data; the real screens may differ slightly.</p>
+</section>
+
+</body>
+</html>
