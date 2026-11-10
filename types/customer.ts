@@ -65,6 +65,8 @@ export interface Customer {
   picture: string | null; // URL avatar khách (SMAX customer.picture)
   tags: SmaxTag[];
   thread: SmaxThread | null;
+  /** Nguyên `data` event SMAX lúc gửi form — chỉ có ở DB, /customers không nạp. */
+  smax_data?: Record<string, unknown> | null;
   source: string | null;
   stage: string;
   lost_reason: string | null;
