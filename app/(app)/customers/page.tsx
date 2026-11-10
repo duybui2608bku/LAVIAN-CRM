@@ -40,7 +40,9 @@ export default async function CustomersPage() {
 
   type Row = Customer & { customer_services: { service_id: string }[] | null };
   const customers = (((customersRes.data as Row[]) ?? []).map(
-    ({ customer_services, ...c }) => ({
+    // smax_data (payload SMAX to) không gửi xuống client.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    ({ customer_services, smax_data, ...c }) => ({
       ...c,
       service_ids: (customer_services ?? []).map((r) => r.service_id),
     }),
