@@ -19,6 +19,16 @@ export function serviceName(
   return s.name_vi;
 }
 
+/**
+ * Số WhatsApp của Lavian đã nhận tin, rút gọn "WA-<2 số cuối>".
+ * Lấy từ page id trong link hội thoại SMAX: `.../chats/waw<số>?tid=...`.
+ * Không phải hội thoại WhatsApp → null.
+ */
+export function waNumber(link: string | null | undefined): string | null {
+  const m = link?.match(/\/chats\/waw(\d+)/);
+  return m ? `WA-${m[1].slice(-2)}` : null;
+}
+
 export interface CustomerFilters {
   search?: string;
   stage?: string;
