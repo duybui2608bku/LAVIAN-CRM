@@ -39,6 +39,12 @@ const schema = z.object({
     })
     .nullable()
     .catch(null),
+  // Nguyên `data` của event __SM_FORM_CUSTOMER — giới hạn ~200KB, hỏng thì bỏ qua.
+  smax_data: z
+    .record(z.string(), z.unknown())
+    .refine((v) => JSON.stringify(v).length <= 200_000)
+    .nullable()
+    .catch(null),
 });
 
 export type LeadInput = z.input<typeof schema>;
@@ -95,6 +101,7 @@ export async function submitLead(
       picture: d.picture || null,
       tags: d.tags,
       thread: d.thread,
+      smax_data: d.smax_data,
       stage: CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === d.stage) ? d.stage : "new_lead",
       staff_id: d.staff_id || null,
       first_contact: new Date().toLocaleDateString("en-CA", {

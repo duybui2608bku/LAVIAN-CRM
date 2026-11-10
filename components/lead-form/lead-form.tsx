@@ -27,7 +27,7 @@ const requestCustomer = (integrationId: string) =>
 
 type SmaxMeta = Pick<
   LeadInput,
-  "social_name" | "picture" | "tags" | "thread"
+  "social_name" | "picture" | "tags" | "thread" | "smax_data"
 >;
 
 const EMPTY_META: SmaxMeta = {
@@ -35,6 +35,7 @@ const EMPTY_META: SmaxMeta = {
   picture: "",
   tags: [],
   thread: null,
+  smax_data: null,
 };
 
 type Values = {
@@ -103,6 +104,7 @@ export function LeadForm({
         picture: c.picture ? String(c.picture) : "",
         tags: Array.isArray(c.tags) ? c.tags : [],
         thread: msg.data?.thread ?? null,
+        smax_data: msg.data && typeof msg.data === "object" ? msg.data : null,
       };
 
       setSmaxMeta((prev) =>
