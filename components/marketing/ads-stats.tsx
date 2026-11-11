@@ -4,7 +4,7 @@ import * as React from "react";
 import { Switch, Table, Tag, type TableColumnType } from "antd";
 
 import { StatCard } from "@/components/common/stat-card";
-import { RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
@@ -67,21 +67,15 @@ export function AdsStatsView() {
   const count = (n: number | null) => (n == null ? null : n.toLocaleString(locale));
   const e = stats?.errors;
   const s = stats;
-  const cards: { key: string; value: string | null; error?: string }[] = [
-    { key: "spend", value: money(s?.spend ?? null), error: e?.fb },
-    { key: "messages", value: count(s?.messages ?? null), error: e?.fb },
-    {
-      key: "costPerMessage",
-      value: money(ratio(s?.spend ?? null, s?.messages ?? null)),
-      error: e?.fb,
-    },
-    { key: "leads", value: count(s?.leads ?? null), error: e?.smax },
-    {
-      key: "costPerLead",
-      value: money(ratio(s?.spend ?? null, s?.leads ?? null)),
-      error: e?.fb ?? e?.smax,
-    },
+  const cards: { key: string; value: string | null }[] = [
+    { key: "spend", value: money(s?.spend ?? null) },
+    { key: "messages", value: count(s?.messages ?? null) },
+    { key: "costPerMessage", value: money(ratio(s?.spend ?? null, s?.messages ?? null)) },
+    { key: "leads", value: count(s?.leads ?? null) },
+    { key: "costPerLead", value: money(ratio(s?.spend ?? null, s?.leads ?? null)) },
   ];
+  // Lỗi từng nguồn hiện 1 lần ở đầu trang (trước đây lặp lại dưới nhiều card).
+  const errorLines = [...new Set([stats?.error, e?.fb, e?.smax].filter(Boolean))] as string[];
 
   // Bật/tắt chiến dịch: FB nhận xong thì vá trạng thái tại chỗ, không tải lại cả trang.
   const [toggling, setToggling] = React.useState<string | null>(null);
@@ -243,7 +237,19 @@ export function AdsStatsView() {
         }
       />
 
-      {stats?.error && <p className="text-sm text-destructive">{stats.error}</p>}
+      {errorLines.length > 0 && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+        >
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <div className="min-w-0 space-y-0.5 break-words">
+            {errorLines.map((m) => (
+              <p key={m}>{m}</p>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div
         className={cn(
@@ -257,61 +263,87 @@ export function AdsStatsView() {
             label={t(card.key)}
             value={card.value ?? "—"}
             loading={!stats}
-            hint={card.error}
-            tone="destructive"
           />
         ))}
       </div>
 
       {byWa.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-base font-semibold">{t("byWa")}</h2>
+          <SectionTitle>{t("byWa")}</SectionTitle>
+          {/* Luôn 1 hàng: N cột bằng nhau; chữ co giãn theo bề rộng ô (container query). */}
           <div
             className={cn(
-              "grid grid-cols-2 gap-3 transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-5",
+              "surface grid divide-x divide-border overflow-hidden transition-opacity duration-200",
               pending && "opacity-60",
             )}
+            style={{ gridTemplateColumns: `repeat(${byWa.length}, minmax(0, 1fr))` }}
           >
             {byWa.map((g) => (
-              <StatCard
+              <div
                 key={g.wa ?? "none"}
-                label={
-                  g.wa ? (
-                    <Tag color={waColor(g.wa)} className="me-0">
-                      {g.wa}
-                    </Tag>
-                  ) : (
-                    t("waUnknown")
-                  )
-                }
-                value={t("waMessages", { count: g.messages.toLocaleString(locale) })}
-              />
+                className="@container flex min-w-0 flex-col items-center gap-1 px-1 py-3 text-center"
+              >
+                {g.wa ? (
+                  <Tag
+                    color={waColor(g.wa)}
+                    className="me-0 max-w-full truncate px-1 text-[clamp(10px,10cqi,12px)] @min-[5.5rem]:px-2"
+                  >
+                    <span className="hidden @min-[5.5rem]:inline">WA-</span>
+                    {g.wa.slice(3)}
+                  </Tag>
+                ) : (
+                  <span className="max-w-full truncate text-[clamp(10px,10cqi,12px)] leading-[22px] text-muted-foreground">
+                    {t("waUnknown")}
+                  </span>
+                )}
+                <span
+                  className={cn(
+                    "font-semibold leading-none tracking-tight tabular-nums",
+                    !g.wa && "text-muted-foreground",
+                  )}
+                  style={{ fontSize: "clamp(0.95rem, 24cqi, 1.75rem)" }}
+                >
+                  {g.messages.toLocaleString(locale)}
+                </span>
+                <span className="hidden text-xs text-muted-foreground @min-[5.5rem]:block">
+                  {t("waMessagesLabel")}
+                </span>
+              </div>
             ))}
           </div>
         </section>
       )}
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold">{t("campaigns")}</h2>
+        <SectionTitle>{t("campaigns")}</SectionTitle>
         <div className="surface overflow-hidden">
-        <Table
-          rowKey="id"
-          columns={columns}
-          dataSource={campaigns}
-          loading={!stats || pending}
-          pagination={{
-            defaultPageSize: 20,
-            showSizeChanger: true,
-            pageSizeOptions: [20, 50, 100],
-            showTotal: (total, [from, to]) =>
-              t("totalCampaigns", { from, to, total }),
-          }}
-          scroll={{ x: 1340 }}
-          size="middle"
-          locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
-        />
+          <Table
+            rowKey="id"
+            columns={columns}
+            dataSource={campaigns}
+            loading={!stats || pending}
+            pagination={{
+              defaultPageSize: 20,
+              showSizeChanger: true,
+              pageSizeOptions: [20, 50, 100],
+              showTotal: (total, [from, to]) =>
+                t("totalCampaigns", { from, to, total }),
+            }}
+            scroll={{ x: 1350 }}
+            size="middle"
+            locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
+          />
         </div>
       </section>
     </>
+  );
+}
+
+/** Tiêu đề phần: nhỏ, chữ hoa, màu phụ — để số liệu nổi bật hơn tiêu đề. */
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {children}
+    </h2>
   );
 }

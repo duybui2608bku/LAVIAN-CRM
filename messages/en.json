@@ -401,7 +401,7 @@
     "colWa": "WA",
     "byWa": "Messages by WA number",
     "waUnknown": "No WA tag",
-    "waMessages": "{count} messages",
+    "waMessagesLabel": "messages",
     "confirmPause": "Pause this campaign?",
     "confirmActivate": "Activate this campaign?",
     "statusUpdated": "Campaign status updated",
