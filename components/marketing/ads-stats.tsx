@@ -285,12 +285,6 @@ export function AdsStatsView() {
                   )
                 }
                 value={t("waMessages", { count: g.messages.toLocaleString(locale) })}
-                hint={t("waHint", {
-                  spend: money(g.spend) ?? "—",
-                  cost: money(ratio(g.spend, g.messages)) ?? "—",
-                  active: g.active,
-                  total: g.campaigns,
-                })}
               />
             ))}
           </div>

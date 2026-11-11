@@ -46,23 +46,17 @@ export interface WaSummary {
   /** "WA-xxxx", hoặc null = chiến dịch chưa đặt tên theo quy ước. */
   wa: string | null;
   messages: number;
-  spend: number;
-  campaigns: number;
-  active: number;
 }
 
-/** Gộp số liệu chiến dịch theo số WA; nhiều tin nhắn nhất lên đầu, nhóm chưa gắn WA cuối cùng. */
+/** Gộp số tin nhắn của chiến dịch theo số WA; nhiều tin nhắn nhất lên đầu, nhóm chưa gắn WA cuối cùng. */
 export function summarizeByWa(
-  campaigns: { name: string; status: string; messages: number; spend: number }[],
+  campaigns: { name: string; messages: number }[],
 ): WaSummary[] {
   const groups = new Map<string | null, WaSummary>();
   for (const c of campaigns) {
     const wa = campaignWa(c.name);
-    const g = groups.get(wa) ?? { wa, messages: 0, spend: 0, campaigns: 0, active: 0 };
+    const g = groups.get(wa) ?? { wa, messages: 0 };
     g.messages += c.messages;
-    g.spend += c.spend;
-    g.campaigns += 1;
-    if (c.status === "ACTIVE") g.active += 1;
     groups.set(wa, g);
   }
   return [...groups.values()].sort(

@@ -28,14 +28,14 @@ test("waColor: cùng số cùng màu, các số đã biết khác màu nhau", ()
 
 test("summarizeByWa: gộp theo số, nhiều tin nhắn trước, chưa gắn WA cuối", () => {
   const rows = summarizeByWa([
-    { name: "WA3455 - A", status: "ACTIVE", messages: 10, spend: 100 },
-    { name: "WA4943 - B", status: "ACTIVE", messages: 30, spend: 50 },
-    { name: "WA3455 - C", status: "PAUSED", messages: 25, spend: 70 },
-    { name: "IG only", status: "ACTIVE", messages: 99, spend: 1 },
+    { name: "WA3455 - A", messages: 10 },
+    { name: "WA4943 - B", messages: 30 },
+    { name: "WA3455 - C", messages: 25 },
+    { name: "IG only", messages: 99 },
   ]);
   assert.deepEqual(rows, [
-    { wa: "WA-3455", messages: 35, spend: 170, campaigns: 2, active: 1 },
-    { wa: "WA-4943", messages: 30, spend: 50, campaigns: 1, active: 1 },
-    { wa: null, messages: 99, spend: 1, campaigns: 1, active: 1 },
+    { wa: "WA-3455", messages: 35 },
+    { wa: "WA-4943", messages: 30 },
+    { wa: null, messages: 99 },
   ]);
 });
