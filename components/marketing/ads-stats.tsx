@@ -15,6 +15,7 @@ import {
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { PageHeader } from "@/components/layout/page";
+import { campaignWa } from "@/lib/customers";
 import { formatISODate } from "@/lib/date";
 import { toast } from "@/lib/toast";
 import type { FbCampaign } from "@/lib/marketing";
@@ -142,6 +143,15 @@ export function AdsStatsView() {
       dataIndex: "name",
       width: 320,
       ellipsis: { showTitle: true },
+    },
+    {
+      key: "wa",
+      title: t("colWa"),
+      width: 100,
+      render: (_, r) => {
+        const wa = campaignWa(r.name);
+        return wa ? <Tag className="me-0">{wa}</Tag> : <span className="text-muted-foreground">—</span>;
+      },
     },
     {
       key: "account",

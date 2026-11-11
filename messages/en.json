@@ -398,6 +398,7 @@
     "colStatus": "Status",
     "colName": "Campaign name",
     "colAccount": "Ad account",
+    "colWa": "WA",
     "confirmPause": "Pause this campaign?",
     "confirmActivate": "Activate this campaign?",
     "statusUpdated": "Campaign status updated",

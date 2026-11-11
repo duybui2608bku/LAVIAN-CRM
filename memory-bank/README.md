@@ -53,6 +53,12 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-11 — Cột "WA" trên bảng chiến dịch `/marketing`
+- **Thay đổi:** Cột "Số WA / WA" sau Tên chiến dịch, tag `WA-<4 số>` tách từ tên chiến dịch theo quy ước `WA<4 số cuối>` (vd `WA3455 - TONG HOP` → `WA-3455`) qua `campaignWa()` (`lib/customers.ts`, cạnh `waNumber`). Không khớp (kể cả tên cũ 2 số "WA55") → "—".
+- **Vì sao theo tên:** Đã dò Meta Graph API (2 token: ads của agency + Page token Lavian): `promoted_object` của ad set chỉ có `page_id`, không có `whatsapp_phone_number`; Insights không có field/breakdown nào chứa số; Page `whatsapp_number` rỗng; `destination_spec.message_destination.template_id` không đọc được; số trong CTA bài viết chỉ có ở 5/20 ads và lệch với thiết lập → user chốt dùng quy ước tên. SMAX nối WhatsApp kiểu `whatsappweb` nên khách WA không có `ad_id`.
+- **File ảnh hưởng:** `lib/customers{,.test}.ts`, `components/marketing/ads-stats.tsx`, `messages/{vi,en}.json` (`marketing.colWa`).
+- **Còn dở / ghi chú:** Không đổi DB. Test 11/11, tsc/eslint sạch. Chưa xem trên trình duyệt (cần đăng nhập; `FB_TOKEN` trong `.env.local` vẫn hỏng nên bảng chiến dịch trống). Team cần đổi tên chiến dịch sang `WA<4 số>`. Số WA đã biết: 6281918453455 (…3455), 6285281304943 (…4943, CHƯA có trong `SMAX_WHATSAPP_PAGE_PIDS`), 6281111858630/…8631.
+
 ### 2026-11-11 — Cột "WA Number" trên `/customers`: đổi sang 4 số cuối
 - **Thay đổi:** Cột "Số WA / WA Number" (sau Nguồn, thêm ở PR #22 ngày 2026-11-10) nay hiện `WA-<4 số cuối>` (vd `WA-8631`) thay vì 2 số. Số lấy từ page id trong `thread.link` SMAX (`.../chats/waw<số>?tid=...`) qua `waNumber()`; `tid` là số của khách. Không phải WhatsApp → "—".
 - **File ảnh hưởng:** `lib/customers{,.test}.ts`, `memory-bank/README.md`.

@@ -29,6 +29,16 @@ export function waNumber(link: string | null | undefined): string | null {
   return m ? `WA-${m[1].slice(-4)}` : null;
 }
 
+/**
+ * Số WA của chiến dịch FB theo quy ước tên: chứa "WA<4 số cuối>" (vd
+ * "WA3455 - TONG HOP") → "WA-3455", cùng định dạng waNumber. Không có → null.
+ * (Meta API không trả số WhatsApp đã thiết lập cho chiến dịch.)
+ */
+export function campaignWa(name: string): string | null {
+  const m = name.match(/\bWA(\d{4})(?!\d)/i);
+  return m ? `WA-${m[1]}` : null;
+}
+
 export interface CustomerFilters {
   search?: string;
   stage?: string;
