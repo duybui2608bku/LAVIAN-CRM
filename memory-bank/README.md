@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-11 — Làm gọn trang `/marketing` + hàng WA luôn 1 hàng
+- **Thay đổi:** "Tin nhắn theo số WA" thành 1 khung `surface` chia N cột bằng nhau (`gridTemplateColumns: repeat(N, minmax(0,1fr))`, vạch ngăn `divide-x`) → luôn 1 hàng dù nhiều số. Mỗi ô là `@container`: số tin nhắn `font-size: clamp(0.95rem, 24cqi, 1.75rem)`; ô hẹp hơn ~5.5rem thì tag chỉ hiện 4 số (ẩn "WA-") và ẩn nhãn "tin nhắn". Lỗi FB/SMAX/chung gộp thành 1 khung cảnh báo đầu trang (trước lặp dưới 3–4 StatCard). Tiêu đề phần dùng `SectionTitle` (chữ nhỏ, in hoa, màu phụ). Sửa thụt lề bảng. Key dịch: `waMessages` → `waMessagesLabel` ("tin nhắn"/"messages").
+- **File ảnh hưởng:** `components/marketing/ads-stats.tsx`, `messages/{vi,en}.json`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch. **Chưa xem trên trình duyệt** (user chọn bỏ qua; trang cần đăng nhập, không có tài khoản test). `.env.local` đã khôi phục về bản gốc (FB_TOKEN vẫn hỏng). Container query dùng cú pháp Tailwind v4 (`@container`, `@min-[5.5rem]:`).
+
 ### 2026-11-11 — Card "Tin nhắn theo số WA": chỉ còn số tin nhắn
 - **Thay đổi:** Theo yêu cầu, bỏ dòng phụ "chi tiêu · chi phí/tin · x/y camp đang chạy" dưới mỗi card WA ở `/marketing`; card chỉ còn tag WA + "{n} tin nhắn". `summarizeByWa` gọn lại chỉ gộp `messages`; bỏ key `marketing.waHint`.
 - **File ảnh hưởng:** `components/marketing/ads-stats.tsx`, `lib/wa{,.test}.ts`, `messages/{vi,en}.json`, `memory-bank/README.md`.

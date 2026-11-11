@@ -401,7 +401,7 @@
     "colWa": "Số WA",
     "byWa": "Tin nhắn theo số WA",
     "waUnknown": "Chưa gắn WA",
-    "waMessages": "{count} tin nhắn",
+    "waMessagesLabel": "tin nhắn",
     "confirmPause": "Tạm dừng chiến dịch này?",
     "confirmActivate": "Bật chiến dịch này?",
     "statusUpdated": "Đã cập nhật trạng thái chiến dịch",
