@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-11 — Card "Tin nhắn theo số WA": chỉ còn số tin nhắn
+- **Thay đổi:** Theo yêu cầu, bỏ dòng phụ "chi tiêu · chi phí/tin · x/y camp đang chạy" dưới mỗi card WA ở `/marketing`; card chỉ còn tag WA + "{n} tin nhắn". `summarizeByWa` gọn lại chỉ gộp `messages`; bỏ key `marketing.waHint`.
+- **File ảnh hưởng:** `components/marketing/ads-stats.tsx`, `lib/wa{,.test}.ts`, `messages/{vi,en}.json`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** Test 34/34, tsc/eslint sạch. Chưa xem trên trình duyệt (cần đăng nhập).
+
 ### 2026-11-11 — Tag WA nhiều màu + thống kê "Tin nhắn theo số WA" ở `/marketing`
 - **Thay đổi:** Gom helper WA vào `lib/wa.ts` (`waNumber`, `campaignWa` chuyển từ `lib/customers.ts`; thêm `waColor` = màu preset antd theo `số % 11` → cùng số cùng màu ở cả /customers lẫn /marketing; thêm `summarizeByWa`). Trang Marketing: hàng card "Tin nhắn theo số WA" (trên bảng chiến dịch) — mỗi số WA: số tin nhắn FB, chi tiêu, chi phí/tin, số camp đang chạy/tổng, theo khoảng ngày đang chọn (mặc định hôm nay); nhóm "Chưa gắn WA" để cuối. Cột WA có bộ lọc theo số. Tính phía client từ `campaigns` sẵn có, không gọi thêm API.
 - **File ảnh hưởng:** `lib/wa{,.test}.ts` (mới), `lib/customers{,.test}.ts`, `components/marketing/ads-stats.tsx`, `components/customers/customers-manager.tsx`, `messages/{vi,en}.json` (`marketing.byWa/waUnknown/waMessages/waHint`).

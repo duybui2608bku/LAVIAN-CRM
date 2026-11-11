@@ -402,7 +402,6 @@
     "byWa": "Messages by WA number",
     "waUnknown": "No WA tag",
     "waMessages": "{count} messages",
-    "waHint": "{spend} · {cost}/msg · {active}/{total} campaigns running",
     "confirmPause": "Pause this campaign?",
     "confirmActivate": "Activate this campaign?",
     "statusUpdated": "Campaign status updated",
