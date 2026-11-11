@@ -118,10 +118,10 @@ test("serviceName theo locale, fallback vi", () => {
   assert.equal(serviceName(svc, "id"), "Chăm sóc da");
 });
 
-test("waNumber: 2 số cuối của page WhatsApp trong link SMAX", () => {
+test("waNumber: 4 số cuối của page WhatsApp trong link SMAX", () => {
   assert.equal(
     waNumber("https://smax.ai/bizs/x/chats/waw6281111858631?tid=waw6281287391544@s.whatsapp.net"),
-    "WA-31",
+    "WA-8631",
   );
   assert.equal(waNumber("https://smax.ai/bizs/x/chats/ig17841474444790127?tid=ig1"), null);
   assert.equal(waNumber(null), null);

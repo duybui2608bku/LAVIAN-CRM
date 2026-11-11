@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-11 — Cột "WA Number" trên `/customers`: đổi sang 4 số cuối
+- **Thay đổi:** Cột "Số WA / WA Number" (sau Nguồn, thêm ở PR #22 ngày 2026-11-10) nay hiện `WA-<4 số cuối>` (vd `WA-8631`) thay vì 2 số. Số lấy từ page id trong `thread.link` SMAX (`.../chats/waw<số>?tid=...`) qua `waNumber()`; `tid` là số của khách. Không phải WhatsApp → "—".
+- **File ảnh hưởng:** `lib/customers{,.test}.ts`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** Không đổi DB. Test 10/10, tsc sạch. Chưa xem trên trình duyệt (lần trước dev server chết do máy hết bộ nhớ ảo). Khách WhatsApp duy nhất trong DB nhắn vào page `waw6281918453455` (→ WA-3455), page này KHÔNG có trong `SMAX_WHATSAPP_PAGE_PIDS` (`lib/marketing.ts`) → báo cáo WhatsApp leads có thể thiếu.
+
 ### 2026-11-10 — Lưu nguyên payload SMAX vào `customers.smax_data`
 - **Thay đổi:** Cột mới `customers.smax_data jsonb` (nullable) lưu nguyên `data` của event `__SM_FORM_CUSTOMER` (customer, thread, …) mỗi lần Gửi/Cập nhật ở `/lead-form` (cập nhật = ghi đè bằng payload mới nhất). Server zod `.catch(null)` + giới hạn ~200KB nên payload hỏng không chặn lead. Các cột nhỏ (social_name/picture/tags/thread) giữ nguyên. Trang `/customers` vẫn `select("*")` nhưng bỏ `smax_data` trước khi gửi xuống client.
 - **File ảnh hưởng:** `supabase/migrations/20261110090000_customers_smax_data.sql` (mới), `app/lead-form/actions.ts`, `components/lead-form/lead-form.tsx`, `types/customer.ts`, `app/(app)/customers/page.tsx`.
