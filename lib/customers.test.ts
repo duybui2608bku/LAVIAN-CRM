@@ -1,7 +1,7 @@
 // Self-check: `node --test lib/customers.test.ts` (Node ≥ 23).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { campaignWa, matchesCustomerFilters, optionLabel, serviceName, waNumber } from "./customers.ts";
+import { matchesCustomerFilters, optionLabel, serviceName } from "./customers.ts";
 import type { Customer, EnumOption } from "../types/customer.ts";
 import type { Service } from "../types/service.ts";
 
@@ -116,21 +116,4 @@ test("serviceName theo locale, fallback vi", () => {
   assert.equal(serviceName(svc, "vi"), "Chăm sóc da");
   assert.equal(serviceName(svc, "en"), "Skin care");
   assert.equal(serviceName(svc, "id"), "Chăm sóc da");
-});
-
-test("waNumber: 4 số cuối của page WhatsApp trong link SMAX", () => {
-  assert.equal(
-    waNumber("https://smax.ai/bizs/x/chats/waw6281111858631?tid=waw6281287391544@s.whatsapp.net"),
-    "WA-8631",
-  );
-  assert.equal(waNumber("https://smax.ai/bizs/x/chats/ig17841474444790127?tid=ig1"), null);
-  assert.equal(waNumber(null), null);
-});
-
-test("campaignWa: WA<4 số> trong tên chiến dịch", () => {
-  assert.equal(campaignWa("WA3455 - TONG HOP - 11/11"), "WA-3455");
-  assert.equal(campaignWa("HOTGIRL - wa4943 - 9/11"), "WA-4943");
-  assert.equal(campaignWa("WA55 - TONG HOP"), null); // tên cũ 2 số
-  assert.equal(campaignWa("WA12345 - sai"), null);
-  assert.equal(campaignWa("IG + WA - Testing content"), null);
 });

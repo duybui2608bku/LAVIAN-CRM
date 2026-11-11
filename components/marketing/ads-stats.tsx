@@ -15,11 +15,11 @@ import {
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { PageHeader } from "@/components/layout/page";
-import { campaignWa } from "@/lib/customers";
 import { formatISODate } from "@/lib/date";
 import { toast } from "@/lib/toast";
 import type { FbCampaign } from "@/lib/marketing";
 import { cn } from "@/lib/utils";
+import { campaignWa, summarizeByWa, waColor } from "@/lib/wa";
 
 /** Chia an toàn: thiếu số hoặc mẫu 0 → null ("—"). */
 const ratio = (a: number | null, b: number | null) =>
@@ -104,6 +104,8 @@ export function AdsStatsView() {
   };
   const campaigns = stats?.campaigns ?? [];
   const accounts = [...new Set(campaigns.map((c) => c.accountName))];
+  // Tin nhắn theo số WA (theo tên chiến dịch) trong khoảng ngày đang chọn.
+  const byWa = summarizeByWa(campaigns);
 
   const statusLabel = (status: string) =>
     t.has(`status_${status}`) ? t(`status_${status}`) : status;
@@ -147,11 +149,19 @@ export function AdsStatsView() {
     {
       key: "wa",
       title: t("colWa"),
-      width: 100,
+      width: 110,
       render: (_, r) => {
         const wa = campaignWa(r.name);
-        return wa ? <Tag className="me-0">{wa}</Tag> : <span className="text-muted-foreground">—</span>;
+        return wa ? (
+          <Tag color={waColor(wa)} className="me-0">
+            {wa}
+          </Tag>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        );
       },
+      filters: byWa.map((g) => ({ text: g.wa ?? t("waUnknown"), value: g.wa ?? "" })),
+      onFilter: (value, r) => (campaignWa(r.name) ?? "") === value,
     },
     {
       key: "account",
@@ -252,6 +262,40 @@ export function AdsStatsView() {
           />
         ))}
       </div>
+
+      {byWa.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-base font-semibold">{t("byWa")}</h2>
+          <div
+            className={cn(
+              "grid grid-cols-2 gap-3 transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-5",
+              pending && "opacity-60",
+            )}
+          >
+            {byWa.map((g) => (
+              <StatCard
+                key={g.wa ?? "none"}
+                label={
+                  g.wa ? (
+                    <Tag color={waColor(g.wa)} className="me-0">
+                      {g.wa}
+                    </Tag>
+                  ) : (
+                    t("waUnknown")
+                  )
+                }
+                value={t("waMessages", { count: g.messages.toLocaleString(locale) })}
+                hint={t("waHint", {
+                  spend: money(g.spend) ?? "—",
+                  cost: money(ratio(g.spend, g.messages)) ?? "—",
+                  active: g.active,
+                  total: g.campaigns,
+                })}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="space-y-2">
         <h2 className="text-base font-semibold">{t("campaigns")}</h2>
