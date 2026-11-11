@@ -44,9 +44,10 @@ import { MultiSelect } from "@/components/common/multi-select";
 import { RowActions } from "@/components/common/row-actions";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { matchesCustomerFilters, optionLabel, serviceName, waNumber } from "@/lib/customers";
+import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
 import { normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
+import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
 
@@ -288,7 +289,7 @@ export function CustomersManager({
       width: 100,
       render: (_, c) => {
         const wa = waNumber(c.thread?.link);
-        return wa ? <Tag className="me-0">{wa}</Tag> : DASH;
+        return wa ? <Tag color={waColor(wa)} className="me-0">{wa}</Tag> : DASH;
       },
     },
     {

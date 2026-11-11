@@ -19,26 +19,6 @@ export function serviceName(
   return s.name_vi;
 }
 
-/**
- * Số WhatsApp của Lavian đã nhận tin, rút gọn "WA-<4 số cuối>".
- * Lấy từ page id trong link hội thoại SMAX: `.../chats/waw<số>?tid=...`.
- * Không phải hội thoại WhatsApp → null.
- */
-export function waNumber(link: string | null | undefined): string | null {
-  const m = link?.match(/\/chats\/waw(\d+)/);
-  return m ? `WA-${m[1].slice(-4)}` : null;
-}
-
-/**
- * Số WA của chiến dịch FB theo quy ước tên: chứa "WA<4 số cuối>" (vd
- * "WA3455 - TONG HOP") → "WA-3455", cùng định dạng waNumber. Không có → null.
- * (Meta API không trả số WhatsApp đã thiết lập cho chiến dịch.)
- */
-export function campaignWa(name: string): string | null {
-  const m = name.match(/\bWA(\d{4})(?!\d)/i);
-  return m ? `WA-${m[1]}` : null;
-}
-
 export interface CustomerFilters {
   search?: string;
   stage?: string;

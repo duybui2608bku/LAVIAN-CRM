@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-11 — Tag WA nhiều màu + thống kê "Tin nhắn theo số WA" ở `/marketing`
+- **Thay đổi:** Gom helper WA vào `lib/wa.ts` (`waNumber`, `campaignWa` chuyển từ `lib/customers.ts`; thêm `waColor` = màu preset antd theo `số % 11` → cùng số cùng màu ở cả /customers lẫn /marketing; thêm `summarizeByWa`). Trang Marketing: hàng card "Tin nhắn theo số WA" (trên bảng chiến dịch) — mỗi số WA: số tin nhắn FB, chi tiêu, chi phí/tin, số camp đang chạy/tổng, theo khoảng ngày đang chọn (mặc định hôm nay); nhóm "Chưa gắn WA" để cuối. Cột WA có bộ lọc theo số. Tính phía client từ `campaigns` sẵn có, không gọi thêm API.
+- **File ảnh hưởng:** `lib/wa{,.test}.ts` (mới), `lib/customers{,.test}.ts`, `components/marketing/ads-stats.tsx`, `components/customers/customers-manager.tsx`, `messages/{vi,en}.json` (`marketing.byWa/waUnknown/waMessages/waHint`).
+- **Còn dở / ghi chú:** Không đổi DB. Test 34/34, tsc/eslint sạch. Chưa xem trên trình duyệt (cần đăng nhập; `FB_TOKEN` dev hỏng). "Tin nhắn" = action FB `FB_MESSAGE_ACTION` của chiến dịch (không phải số hội thoại SMAX). Chỉ đúng khi tên camp theo `WA<4 số>`.
+
 ### 2026-11-11 — Cột "WA" trên bảng chiến dịch `/marketing`
 - **Thay đổi:** Cột "Số WA / WA" sau Tên chiến dịch, tag `WA-<4 số>` tách từ tên chiến dịch theo quy ước `WA<4 số cuối>` (vd `WA3455 - TONG HOP` → `WA-3455`) qua `campaignWa()` (`lib/customers.ts`, cạnh `waNumber`). Không khớp (kể cả tên cũ 2 số "WA55") → "—".
 - **Vì sao theo tên:** Đã dò Meta Graph API (2 token: ads của agency + Page token Lavian): `promoted_object` của ad set chỉ có `page_id`, không có `whatsapp_phone_number`; Insights không có field/breakdown nào chứa số; Page `whatsapp_number` rỗng; `destination_spec.message_destination.template_id` không đọc được; số trong CTA bài viết chỉ có ở 5/20 ads và lệch với thiết lập → user chốt dùng quy ước tên. SMAX nối WhatsApp kiểu `whatsappweb` nên khách WA không có `ad_id`.
