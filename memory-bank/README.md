@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — /customers: bỏ popover "Bộ lọc", hiện thẳng bộ lọc
+- **Thay đổi:** Sau khi ẩn Sales/KTV chỉ còn CSKH, Dịch vụ, Khoảng ngày → đưa ra thẳng thanh lọc (cạnh Tìm, Giai đoạn, Nguồn), bỏ nút "Bộ lọc" + popover + badge. Nút "Xoá bộ lọc" đếm mọi lọc đang bật. Bỏ import `Popover`, `ListFilter`.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt (thanh lọc tự xuống dòng khi hẹp; mobile mỗi ô 1 hàng).
+
 ### 2026-11-12 — Chuẩn hoá SĐT khách dạng Indonesia 0xxx-xxxx-xxxx
 - **Thay đổi:** `lib/phone.ts#formatPhone`: bỏ ký tự lạ, đầu `62` → `0`, thiếu `0` thì thêm, chỉ áp dụng đầu số di động 081/082/083/085/087/088/089 dài 10–13 số; nhóm 4-4-còn lại (12 số `0812-1214-1243`, 13 số `0811-1011-23558`, 11 số `0811-9727-970`, 10 số `0856-933-186`). Số khác giữ nguyên. Áp dụng khi LƯU: `clean()` trong customers actions, zod `submitLead`, onFinish drawer khách, prefill SĐT từ SMAX ở lead form. Ô nhập vẫn dùng `normalizePhone` (chỉ bỏ "+") khi gõ. Tìm kiếm: `matchesNameOrPhone` (`lib/customers.ts`) so theo chữ số → gõ `081212`/`+62812` vẫn khớp; dùng ở /customers, /appointments, /tour.
 - **Migration:** `20261112100000_format_customer_phone_id.sql` — format lại toàn bộ `customers.phone` (xem trước: 43/43 số đổi được).

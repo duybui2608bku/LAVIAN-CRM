@@ -8,7 +8,6 @@ import {
   Form,
   Input,
   Modal,
-  Popover,
   Tag,
   Tooltip,
   type TableProps,
@@ -16,7 +15,6 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import {
   Info,
-  ListFilter,
   Pencil,
   RefreshCw,
   Search,
@@ -371,12 +369,10 @@ export function CustomersManager({
   ];
 
   const editing = target && target !== "new" ? target : null;
-  // Số lọc đang bật (khoảng ngày tính 1) — lọc phụ hiện badge trên nút "Bộ lọc".
-  const extraCount =
-    [filters.staffId, filters.serviceId].filter(Boolean)
-      .length + (filters.from || filters.to ? 1 : 0);
+  // Số lọc đang bật (khoảng ngày tính 1) — có lọc thì hiện nút "Xoá bộ lọc".
   const activeCount =
-    extraCount + [filters.search, filters.stage, filters.source].filter(Boolean).length;
+    [filters.search, filters.stage, filters.source, filters.staffId, filters.serviceId].filter(Boolean)
+      .length + (filters.from || filters.to ? 1 : 0);
 
   return (
     <Page>
@@ -409,7 +405,7 @@ export function CustomersManager({
         to={filters.to}
       />
 
-      {/* Thanh lọc: tìm + 2 lọc chính; lọc phụ gom vào nút "Bộ lọc". */}
+      {/* Thanh lọc: hiện thẳng mọi bộ lọc (ít trường, không cần gom vào popover). */}
       <PageToolbar>
         <Input
           allowClear
@@ -435,43 +431,27 @@ export function CustomersManager({
           placeholder={t("allSource")}
           ariaLabel={t("colSource")}
         />
-        <Popover
-          trigger="click"
-          placement="bottomLeft"
-          content={
-            <div className="flex w-64 flex-col gap-2">
-              {(
-                [
-                  ["staffId", "allStaff", "colStaff", deptOptions(staff, "customer_care")],
-                  ["serviceId", "allServices", "colServices", serviceOptions()],
-                ] as const
-              ).map(([key, placeholder, label, opts]) => (
-                <ClearableSelect
-                  key={key}
-                  value={filters[key]}
-                  onChange={(v) => setFilter(key, v)}
-                  options={opts}
-                  placeholder={t(placeholder)}
-                  ariaLabel={t(label)}
-                />
-              ))}
-              <DateRangePicker
-                from={filters.from}
-                to={filters.to}
-                onChange={(r) => setFilters((f) => ({ ...f, ...r }))}
-              />
-            </div>
-          }
-        >
-          <Button icon={<ListFilter className="size-4" />}>
-            {tc("filters")}
-            {extraCount > 0 && (
-              <span className="rounded-full bg-primary px-1.5 text-xs leading-5 text-primary-foreground tabular-nums">
-                {extraCount}
-              </span>
-            )}
-          </Button>
-        </Popover>
+        <ClearableSelect
+          className="min-w-36"
+          value={filters.staffId}
+          onChange={(v) => setFilter("staffId", v)}
+          options={deptOptions(staff, "customer_care")}
+          placeholder={t("allStaff")}
+          ariaLabel={t("colStaff")}
+        />
+        <ClearableSelect
+          className="min-w-40"
+          value={filters.serviceId}
+          onChange={(v) => setFilter("serviceId", v)}
+          options={serviceOptions()}
+          placeholder={t("allServices")}
+          ariaLabel={t("colServices")}
+        />
+        <DateRangePicker
+          from={filters.from}
+          to={filters.to}
+          onChange={(r) => setFilters((f) => ({ ...f, ...r }))}
+        />
         {activeCount > 0 && (
           <Button type="text" icon={<X className="size-4" />} onClick={() => setFilters(EMPTY_FILTERS)}>
             {tc("clearFilters")}
