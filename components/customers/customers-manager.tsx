@@ -37,18 +37,16 @@ import { CustomerPipeline, type PipelineAppointment } from "@/components/custome
 import { FormDrawer } from "@/components/common/form-drawer";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
 import { EnumTag } from "@/components/common/enum-tag";
-import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
-import { MultiSelect } from "@/components/common/multi-select";
+import { InlineSelect } from "@/components/common/inline-select";
 import { RowActions } from "@/components/common/row-actions";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { createdAgeBucket, matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
+import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
 import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
-import type { Service } from "@/types/service";
 
 type Staff = StaffRef & { department?: string | null };
 
@@ -71,7 +69,6 @@ type Filters = {
   stage: string;
   source: string;
   staffId: string;
-  serviceId: string;
   from: string;
   to: string;
 };
@@ -81,7 +78,6 @@ const EMPTY_FILTERS: Filters = {
   stage: "",
   source: "",
   staffId: "",
-  serviceId: "",
   from: "",
   to: "",
 };
@@ -91,20 +87,17 @@ type Patch = {
   staff_id?: string | null;
   sales_id?: string | null;
   technician_id?: string | null;
-  service_ids?: string[];
 };
 
 export function CustomersManager({
   customers,
   staff,
   options,
-  services,
   appointments,
 }: {
   customers: Customer[];
   staff: Staff[];
   options: EnumOption[];
-  services: Service[];
   appointments: PipelineAppointment[];
 }) {
   const t = useTranslations("customers");
@@ -164,23 +157,6 @@ export function CustomersManager({
     setPage(1);
   }
 
-  // Tag tên dịch vụ đã gắn (theo locale, fallback vi); trống → "—".
-  const serviceTags = (ids: string[]) => {
-    if (!ids?.length) return DASH;
-    return (
-      <div className="flex max-w-56 flex-wrap gap-1">
-        {ids.map((id) => {
-          const s = services.find((x) => x.id === id);
-          return s ? (
-            <Tag key={id} className="me-0">
-              {serviceName(s, locale)}
-            </Tag>
-          ) : null;
-        })}
-      </div>
-    );
-  };
-
   const askDelete = (c: Customer) =>
     confirm({
       title: t("deleteConfirm"),
@@ -218,11 +194,6 @@ export function CustomersManager({
   // Option dạng tag (icon + màu) cho select sửa nhanh trên bảng — khớp ô hiển thị.
   const tagOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
     kindOptions(kind, current).map((o) => ({ value: o.value, label: tagFor(kind, o.value) }));
-  // Option dịch vụ: active + dịch vụ đang gắn (kể cả inactive, để bỏ được).
-  const serviceOptions = (current: string[] = []): SelectOption[] =>
-    services
-      .filter((s) => s.is_active || current.includes(s.id))
-      .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
 
   const columns: TableProps<Customer>["columns"] = [
     {
@@ -308,20 +279,6 @@ export function CustomersManager({
           DASH
         ),
     },
-    {
-      title: t("colServices"),
-      dataIndex: "service_ids",
-      width: 200,
-      render: (_, c) => (
-        <InlineMultiSelect
-          value={c.service_ids}
-          options={serviceOptions(c.service_ids)}
-          display={serviceTags(c.service_ids)}
-          ariaLabel={t("colServices")}
-          onSave={(v) => patchField(c.id, { service_ids: v })}
-        />
-      ),
-    },
     ...(
       [
         // Sales, Kỹ thuật viên: ẩn khỏi trang (dữ liệu vẫn giữ; KTV tự điền khi nhận tour).
@@ -401,7 +358,7 @@ export function CustomersManager({
   const editing = target && target !== "new" ? target : null;
   // Số lọc đang bật (khoảng ngày tính 1) — có lọc thì hiện nút "Xoá bộ lọc".
   const activeCount =
-    [filters.search, filters.stage, filters.source, filters.staffId, filters.serviceId].filter(Boolean)
+    [filters.search, filters.stage, filters.source, filters.staffId].filter(Boolean)
       .length + (filters.from || filters.to ? 1 : 0);
 
   return (
@@ -469,14 +426,6 @@ export function CustomersManager({
           placeholder={t("allStaff")}
           ariaLabel={t("colStaff")}
         />
-        <ClearableSelect
-          className="min-w-40"
-          value={filters.serviceId}
-          onChange={(v) => setFilter("serviceId", v)}
-          options={serviceOptions()}
-          placeholder={t("allServices")}
-          ariaLabel={t("colServices")}
-        />
         <DateRangePicker
           from={filters.from}
           to={filters.to}
@@ -502,7 +451,6 @@ export function CustomersManager({
         editing={editing}
         staff={staff}
         options={options}
-        services={services}
         onClose={() => setTarget(null)}
       />
 
@@ -620,7 +568,6 @@ type Values = {
   staff_id?: string;
   lost_reason?: string;
   first_contact?: string;
-  service_ids?: string[];
 };
 
 function CustomerDialog({
@@ -628,14 +575,12 @@ function CustomerDialog({
   editing,
   staff,
   options,
-  services,
   onClose,
 }: {
   open: boolean;
   editing: Customer | null;
   staff: Staff[];
   options: EnumOption[];
-  services: Service[];
   onClose: () => void;
 }) {
   const t = useTranslations("customers");
@@ -651,11 +596,6 @@ function CustomerDialog({
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }));
 
-  // Option dịch vụ: active + dịch vụ khách đang gắn (kể cả inactive, để bỏ được).
-  const serviceOpts: SelectOption[] = services
-    .filter((s) => s.is_active || editing?.service_ids.includes(s.id))
-    .map((s) => ({ value: s.id, label: serviceName(s, locale) }));
-
   const onFinish = (v: Values) =>
     start(async () => {
       const input: CustomerInput = {
@@ -669,7 +609,6 @@ function CustomerDialog({
         sales_id: editing?.sales_id ?? null,
         technician_id: editing?.technician_id ?? null,
         first_contact: v.first_contact || null,
-        service_ids: v.service_ids ?? [],
       };
       const res = editing
         ? await updateCustomer(editing.id, input)
@@ -707,7 +646,6 @@ function CustomerDialog({
           staff_id: editing?.staff_id ?? "",
           lost_reason: editing?.lost_reason ?? "",
           first_contact: editing?.first_contact?.slice(0, 10) ?? "",
-          service_ids: editing?.service_ids ?? [],
         }}
       >
         <Form.Item name="full_name" label={t("colName")} rules={required}>
@@ -745,15 +683,6 @@ function CustomerDialog({
         <Form.Item name="first_contact" label={t("colFirstContact")}>
           <DatePicker placeholder={t("pickDate")} />
         </Form.Item>
-        {serviceOpts.length > 0 && (
-          <Form.Item name="service_ids" label={t("colServices")}>
-            <MultiSelect
-              options={serviceOpts}
-              placeholder={t("pickServices")}
-              ariaLabel={t("colServices")}
-            />
-          </Form.Item>
-        )}
       </Form>
     </FormDrawer>
   );

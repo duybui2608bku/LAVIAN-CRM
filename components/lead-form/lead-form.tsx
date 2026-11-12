@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button, Form, Input, Result } from "antd";
+import { Alert, Button, Form, Input, InputNumber, Result } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import { Bug } from "lucide-react";
 
@@ -15,6 +15,8 @@ import {
 } from "@/app/lead-form/actions";
 import { EnumTag } from "@/components/common/enum-tag";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
 import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
@@ -44,6 +46,7 @@ type Values = {
   phone: string;
   staff_id: string;
   stage: string;
+  deposit_amount: number | null;
   note: string;
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
@@ -53,17 +56,22 @@ const DEFAULTS: Values = {
   phone: "",
   staff_id: "",
   stage: "new_lead",
+  deposit_amount: null,
   note: "",
   website: "",
 };
 
+const formatIdr = (v: number | string | undefined) =>
+  v === undefined || v === "" ? "" : Number(v).toLocaleString("id-ID");
+const parseIdr = (v: string | undefined) =>
+  sanitizeCurrencyInput(v ?? "") as unknown as number;
 
 
 export function LeadForm({
   staff,
   stages,
 }: {
-  staff: { id: string; user_name: string }[];
+  staff: StaffRef[];
   stages: EnumOption[];
 }) {
   const t = useTranslations("leadForm");
@@ -83,6 +91,7 @@ export function LeadForm({
   );
 
   const [form] = Form.useForm<Values>();
+  const isDeposited = Form.useWatch("stage", form) === "deposited";
 
   const smaxIdRef = useRef<string | null>(null);
   const [smaxMeta, setSmaxMeta] = useState<SmaxMeta>(EMPTY_META);
@@ -130,6 +139,7 @@ export function LeadForm({
             if (found) {
               if (!form.isFieldTouched("stage")) form.setFieldValue("stage", found.stage);
               if (!form.isFieldTouched("staff_id")) form.setFieldValue("staff_id", found.staff_id);
+              if (!form.isFieldTouched("deposit_amount")) form.setFieldValue("deposit_amount", found.deposit_amount);
             }
           })
           .catch(() => {
@@ -149,7 +159,7 @@ export function LeadForm({
         }
       } else if (id !== prev) {
         // Đổi sang khách khác: reset luôn giai đoạn/CSKH của khách trước.
-        form.resetFields(["stage", "staff_id"]);
+        form.resetFields(["stage", "staff_id", "deposit_amount"]);
         form.setFieldsValue({
           full_name: c.name ? String(c.name) : "",
           phone: phone ? formatPhone(String(phone)) : "",
@@ -186,9 +196,16 @@ export function LeadForm({
     }), () => {}); // thiếu dữ liệu: antd đã hiện lỗi dưới từng ô
 
   // CSKH hiện tại có thể đã nghỉ/khác bộ phận → vẫn hiện tên thay vì uuid.
-  const staffOptions = staff.map((s) => ({ value: s.id, label: s.user_name }));
+  const staffOptions = staff.map((s) => ({ value: s.id, label: staffLabel(s) }));
   if (existing?.staff_id && !staff.some((s) => s.id === existing.staff_id)) {
-    staffOptions.push({ value: existing.staff_id, label: existing.staff_name || "—" });
+    staffOptions.push({
+      value: existing.staff_id,
+      label: staffLabel({
+        id: existing.staff_id,
+        user_name: existing.staff_name,
+        avatar_url: existing.staff_avatar,
+      }),
+    });
   }
 
   if (done) {
@@ -244,13 +261,31 @@ export function LeadForm({
         </Form.Item>
       )}
       {stages.length > 0 && (
-        <Form.Item name="stage" label={t("stage")}>
-          <ClearableSelect
-            clearable={false}
-            options={stages.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }))}
-            ariaLabel={t("stage")}
-          />
-        </Form.Item>
+        <div className="grid grid-cols-2 gap-3">
+          <Form.Item name="stage" label={t("stage")}>
+            <ClearableSelect
+              className="w-full"
+              clearable={false}
+              options={stages.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }))}
+              ariaLabel={t("stage")}
+            />
+          </Form.Item>
+          {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
+          <Form.Item name="deposit_amount" label={t("deposit")}>
+            <InputNumber<number>
+              className="w-full"
+              min={0}
+              precision={0}
+              controls={false}
+              inputMode="numeric"
+              placeholder="0"
+              suffix={IDR_CURRENCY}
+              formatter={formatIdr}
+              parser={parseIdr}
+              disabled={!isDeposited}
+            />
+          </Form.Item>
+        </div>
       )}
       <Form.Item
         name="note"

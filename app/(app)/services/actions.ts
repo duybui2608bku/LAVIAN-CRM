@@ -38,22 +38,12 @@ export async function updateService(
   }
 }
 
-/** Xóa cứng — nhưng chặn nếu còn khách hàng đang gắn dịch vụ này (pattern deleteOption). */
+/** Xóa cứng — nhưng chặn nếu dịch vụ đã dùng trong lịch hẹn/tour (pattern deleteOption). */
 export async function deleteService(id: string): Promise<Result> {
   try {
     const supabase = await createClient();
 
-    // Đếm MỌI dòng nối (kể cả khách/lịch đã soft-delete) — khớp hành vi FK restrict.
-    const { count, error: cErr } = await supabase
-      .from("customer_services")
-      .select("customer_id", { count: "exact", head: true })
-      .eq("service_id", id);
-    if (cErr) throw cErr;
-    if ((count ?? 0) > 0) {
-      return {
-        error: `Đang có ${count} khách hàng gắn dịch vụ này — hãy tắt "Kích hoạt" thay vì xóa.`,
-      };
-    }
+    // Đếm cả lịch đã soft-delete — giữ được tên dịch vụ cho dữ liệu cũ.
     const { count: appointments, error: appointmentError } = await supabase
       .from("clinic_appointments").select("id", { count: "exact", head: true })
       .contains("service_ids", [id]);

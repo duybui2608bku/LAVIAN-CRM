@@ -20,7 +20,7 @@ export default async function LeadFormPage() {
   const [{ data: staff }] = await Promise.all([
     admin
       .from("profiles")
-      .select("id, user_name")
+      .select("id, user_name, avatar_url")
       .eq("status", "active")
       .eq("department", "customer_care")
       .neq("user_name", "")

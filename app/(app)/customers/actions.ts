@@ -38,37 +38,11 @@ function clean(input: CustomerInput) {
   };
 }
 
-// Đồng bộ bảng nối customer_services theo danh sách gửi lên (delete-all-insert).
-// ponytail: 2 lệnh không transaction — lỗi giữa chừng chỉ mất tag, sửa lại qua dialog;
-//           nâng cấp RPC khi thành vấn đề.
-async function syncServices(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  customerId: string,
-  serviceIds: string[] | undefined,
-) {
-  if (serviceIds === undefined) return; // không gửi -> giữ nguyên
-  const { error } = await supabase
-    .from("customer_services")
-    .delete()
-    .eq("customer_id", customerId);
-  if (error) throw error;
-  if (serviceIds.length === 0) return;
-  const { error: insErr } = await supabase.from("customer_services").insert(
-    serviceIds.map((service_id) => ({ customer_id: customerId, service_id })),
-  );
-  if (insErr) throw insErr;
-}
-
 export async function createCustomer(input: CustomerInput): Promise<Result> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("customers")
-      .insert(clean(input))
-      .select("id")
-      .single();
+    const { error } = await supabase.from("customers").insert(clean(input));
     if (error) throw error;
-    await syncServices(supabase, data.id, input.service_ids);
     revalidatePath("/customers");
     return {};
   } catch (e) {
@@ -87,7 +61,6 @@ export async function updateCustomer(
       .update(clean(input))
       .eq("id", id);
     if (error) throw error;
-    await syncServices(supabase, id, input.service_ids);
     revalidatePath("/customers");
     return {};
   } catch (e) {
@@ -95,7 +68,7 @@ export async function updateCustomer(
   }
 }
 
-/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/staff_id/sales_id/technician_id/service_ids. */
+/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/staff_id/sales_id/technician_id. */
 export async function patchCustomer(
   id: string,
   patch: {
@@ -103,7 +76,6 @@ export async function patchCustomer(
     staff_id?: string | null;
     sales_id?: string | null;
     technician_id?: string | null;
-    service_ids?: string[];
   },
 ): Promise<Result> {
   try {
@@ -119,17 +91,13 @@ export async function patchCustomer(
     if (patch.sales_id !== undefined) data.sales_id = patch.sales_id || null;
     if (patch.technician_id !== undefined)
       data.technician_id = patch.technician_id || null;
-    if (Object.keys(data).length === 0 && patch.service_ids === undefined)
-      return {};
+    if (Object.keys(data).length === 0) return {};
     const supabase = await createClient();
-    if (Object.keys(data).length > 0) {
-      const { error } = await supabase
-        .from("customers")
-        .update(data)
-        .eq("id", id);
-      if (error) throw error;
-    }
-    await syncServices(supabase, id, patch.service_ids);
+    const { error } = await supabase
+      .from("customers")
+      .update(data)
+      .eq("id", id);
+    if (error) throw error;
     revalidatePath("/customers");
     return {};
   } catch (e) {
