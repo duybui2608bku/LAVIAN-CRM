@@ -21,7 +21,6 @@ const base: Customer = {
   technician_id: "tech-1",
   first_contact: null,
   notes: [],
-  service_ids: [],
   created_at: "2026-07-05T10:00:00.000Z",
   updated_at: "2026-07-05T10:00:00.000Z",
   deleted_at: null,
@@ -60,13 +59,6 @@ test("lọc theo Sales", () => {
     matchesCustomerFilters({ ...base, sales_id: null }, { salesId: "sales-1" }),
     false,
   );
-});
-
-test("lọc theo dịch vụ đã gắn", () => {
-  const withSvc = { ...base, service_ids: ["s1", "s2"] };
-  assert.equal(matchesCustomerFilters(withSvc, { serviceId: "s1" }), true);
-  assert.equal(matchesCustomerFilters(withSvc, { serviceId: "s9" }), false);
-  assert.equal(matchesCustomerFilters(base, { serviceId: "s1" }), false);
 });
 
 test("khoảng ngày created_at (bao gồm biên)", () => {
