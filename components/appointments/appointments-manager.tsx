@@ -11,12 +11,12 @@ import { DataTable } from "@/components/common/data-table";
 import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { RowActions } from "@/components/common/row-actions";
-import { SourceIcon } from "@/components/common/source-icon";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { matchesNameOrPhone, serviceName } from "@/lib/customers";
+import { waColor } from "@/lib/wa";
 import { toast } from "@/lib/toast";
 import type { Appointment, AppointmentCustomer, AppointmentPatch } from "@/types/appointment";
 import type { Service } from "@/types/service";
@@ -72,7 +72,10 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     { title: t("name"), width: 180, fixed: "left", render: (_, row) =>
       <span className="font-medium">{customerMap.get(row.customer_id)?.full_name}</span> },
     { title: t("phone"), width: 160, render: (_, row) => customerMap.get(row.customer_id)?.phone },
-    { title: t("source"), width: 80, render: (_, row) => <SourceIcon source={customerMap.get(row.customer_id)?.source} /> },
+    { title: t("wa"), width: 100, render: (_, row) => {
+      const wa = customerMap.get(row.customer_id)?.wa;
+      return wa ? <Tag color={waColor(wa)} className="me-0">{wa}</Tag> : <span className="text-muted-foreground">—</span>;
+    } },
     { title: t("date"), width: 220, sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
       render: (_, row) => <AppointmentDate inline value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
@@ -90,7 +93,10 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       onSave={(service_ids) => save(row.id, { service_ids })} /> },
     { title: t("staff"), width: 170, render: (_, row) => <InlineSelect value={row.staff_id ?? ""}
       ariaLabel={t("staff")} noneLabel={t("choose")}
-      display={staff.find((s) => s.id === row.staff_id)?.user_name ?? t("choose")}
+      display={(() => {
+        const member = staff.find((s) => s.id === row.staff_id);
+        return member ? staffLabel(member) : <span className="text-muted-foreground">{t("choose")}</span>;
+      })()}
       options={staffOptions(staff, row.staff_id)}
       onSave={(value) => save(row.id, { staff_id: value || null })} /> },
     { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note}
@@ -109,8 +115,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   ];
 
   return <Page>
-    <PageHeader title={t("title")} actions={<Button type="primary" icon={<CalendarPlus className="size-4" />}
-      onClick={() => setCreating(true)}>{t("create")}</Button>} />
+    <PageHeader title={t("title")} />
     <PageToolbar>
       <Input value={search} allowClear className="w-full sm:max-w-64" placeholder={t("search")}
         aria-label={t("search")} prefix={<Search className="size-4" />} onChange={(e) => { setSearch(e.target.value); resetPage(); }} />
@@ -119,6 +124,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <Select value={arrival} aria-label={t("confirmation")} className="min-w-40" onChange={(v) => { setArrival(v); resetPage(); }}
         options={[{ value: "all", label: t("allArrivals") }, { value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
+      <Button type="primary" icon={<CalendarPlus className="size-4" />}
+        onClick={() => setCreating(true)}>{t("create")}</Button>
     </PageToolbar>
     <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1640 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
