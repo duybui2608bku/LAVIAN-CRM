@@ -96,18 +96,21 @@ export async function submitLead(
       picture: d.picture || null,
       tags: d.tags,
       thread: d.thread,
-      smax_data: d.smax_data,
+      // Payload hỏng/thiếu → null: không ghi đè smax_data đang có khi cập nhật.
+      ...(d.smax_data ? { smax_data: d.smax_data } : {}),
       stage: CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === d.stage) ? d.stage : "new_lead",
       staff_id: d.staff_id || null,
-      first_contact: new Date().toLocaleDateString("en-CA", {
-        timeZone: "Asia/Ho_Chi_Minh",
-      }),
     };
 
     if (mode === "create") {
-      const { error } = await supabase
-        .from("customers")
-        .insert({ ...customer, notes });
+      const { error } = await supabase.from("customers").insert({
+        ...customer,
+        notes,
+        // Chỉ đặt lúc tạo — cập nhật giữ ngày liên hệ đầu tiên.
+        first_contact: new Date().toLocaleDateString("en-CA", {
+          timeZone: "Asia/Ho_Chi_Minh",
+        }),
+      });
       if (error) throw error;
     } else {
       const { data: current, error: readError } = await supabase
