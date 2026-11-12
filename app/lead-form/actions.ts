@@ -49,18 +49,35 @@ const schema = z.object({
 export type LeadInput = z.input<typeof schema>;
 export type LeadMode = "create" | "update";
 
-export async function checkLeadCustomer(customerId: string): Promise<boolean> {
+export type LeadCustomer = {
+  stage: string;
+  staff_id: string;
+  staff_name: string;
+};
+
+// Khách đã có trong CRM → trả giai đoạn + CSKH hiện tại để form fill sẵn,
+// tránh bấm Cập nhật đè giá trị mặc định lên dữ liệu đã đổi ở CRM.
+export async function checkLeadCustomer(
+  customerId: string,
+): Promise<LeadCustomer | null> {
   const id = z.string().trim().min(1).max(200).safeParse(customerId);
-  if (!id.success) return false;
+  if (!id.success) return null;
 
   const { data, error } = await createAdminClient()
     .from("customers")
-    .select("id")
+    .select("stage, staff_id, staff:profiles!staff_id(user_name)")
     .eq("smax_customer_id", id.data)
     .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
-  return data !== null;
+  if (!data) return null;
+  return {
+    stage: data.stage ?? "new_lead",
+    staff_id: data.staff_id ?? "",
+    // Quan hệ nhiều-1 nên PostgREST trả object (type suy ra mảng do client không typed).
+    staff_name:
+      (data.staff as unknown as { user_name: string } | null)?.user_name ?? "",
+  };
 }
 
 export async function submitLead(
@@ -78,7 +95,7 @@ export async function submitLead(
   try {
     const supabase = createAdminClient();
     const existing = d.customer_id
-      ? await checkLeadCustomer(d.customer_id)
+      ? (await checkLeadCustomer(d.customer_id)) !== null
       : false;
     if (mode === "create" && existing) {
       return { error: "Khách hàng đã tồn tại. Chỉ được cập nhật thông tin." };

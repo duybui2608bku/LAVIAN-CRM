@@ -369,7 +369,6 @@
   },
   "leadForm": {
     "title": "Book a consultation",
-    "subtitle": "Leave your info and we'll get back to you shortly.",
     "name": "Full name",
     "nameRequired": "Please enter your name",
     "phone": "Phone number",

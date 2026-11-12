@@ -9,6 +9,7 @@ import { Bug } from "lucide-react";
 import {
   checkLeadCustomer,
   submitLead,
+  type LeadCustomer,
   type LeadInput,
   type LeadMode,
 } from "@/app/lead-form/actions";
@@ -74,7 +75,8 @@ export function LeadForm({
   const [eventLog, setEventLog] = useState("");
   const [showLog, setShowLog] = useState(false);
   const [customerId, setCustomerId] = useState("");
-  const [existing, setExisting] = useState(false);
+  // Khách đã có trong CRM (giai đoạn + CSKH hiện tại) hoặc null.
+  const [existing, setExisting] = useState<LeadCustomer | null>(null);
   const [checkingCustomer, setCheckingCustomer] = useState(false);
   const [embedded] = useState(
     () => typeof window !== "undefined" && window.parent !== window,
@@ -117,15 +119,21 @@ export function LeadForm({
       if (id === prev) {
         // Poll cùng một khách: không query DB lại và không đụng dữ liệu đang nhập.
       } else if (!id) {
-        setExisting(false);
+        setExisting(null);
       } else {
         setCheckingCustomer(true);
         void checkLeadCustomer(id)
           .then((found) => {
-            if (smaxIdRef.current === id) setExisting(found);
+            if (smaxIdRef.current !== id) return;
+            setExisting(found);
+            // Fill giá trị hiện tại trong CRM — bỏ qua ô người dùng đã tự chọn.
+            if (found) {
+              if (!form.isFieldTouched("stage")) form.setFieldValue("stage", found.stage);
+              if (!form.isFieldTouched("staff_id")) form.setFieldValue("staff_id", found.staff_id);
+            }
           })
           .catch(() => {
-            if (smaxIdRef.current === id) setExisting(false);
+            if (smaxIdRef.current === id) setExisting(null);
           })
           .finally(() => {
             if (smaxIdRef.current === id) setCheckingCustomer(false);
@@ -140,6 +148,8 @@ export function LeadForm({
           form.setFieldValue("phone", formatPhone(String(phone)));
         }
       } else if (id !== prev) {
+        // Đổi sang khách khác: reset luôn giai đoạn/CSKH của khách trước.
+        form.resetFields(["stage", "staff_id"]);
         form.setFieldsValue({
           full_name: c.name ? String(c.name) : "",
           phone: phone ? formatPhone(String(phone)) : "",
@@ -175,6 +185,12 @@ export function LeadForm({
       setDone(true);
     }), () => {}); // thiếu dữ liệu: antd đã hiện lỗi dưới từng ô
 
+  // CSKH hiện tại có thể đã nghỉ/khác bộ phận → vẫn hiện tên thay vì uuid.
+  const staffOptions = staff.map((s) => ({ value: s.id, label: s.user_name }));
+  if (existing?.staff_id && !staff.some((s) => s.id === existing.staff_id)) {
+    staffOptions.push({ value: existing.staff_id, label: existing.staff_name || "—" });
+  }
+
   if (done) {
     return (
       <Result
@@ -199,7 +215,7 @@ export function LeadForm({
   }
 
   return (
-    <Form form={form} layout="vertical" requiredMark={false} initialValues={DEFAULTS}>
+    <Form form={form} layout="vertical" size="large" requiredMark={false} initialValues={DEFAULTS}>
       {existing && (
         <Alert type="warning" showIcon className="mb-4" title={t("existingCustomer")} />
       )}
@@ -221,7 +237,7 @@ export function LeadForm({
       {staff.length > 0 && (
         <Form.Item name="staff_id" label={t("staff")}>
           <ClearableSelect
-            options={staff.map((s) => ({ value: s.id, label: s.user_name }))}
+            options={staffOptions}
             placeholder={t("noteOptional")}
             ariaLabel={t("staff")}
           />
@@ -264,7 +280,7 @@ export function LeadForm({
           type="primary"
           className="flex-1"
           loading={pending}
-          disabled={checkingCustomer || existing}
+          disabled={checkingCustomer || !!existing}
           onClick={onSubmit("create")}
         >
           {t("submit")}

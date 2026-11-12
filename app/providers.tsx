@@ -1,6 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 
@@ -20,6 +21,9 @@ export function Providers({
   hints: UiHints;
   children: React.ReactNode;
 }) {
+  // /lead-form (iframe SMAX) luôn sáng, không có nút đổi theme. forcedTheme không
+  // ghi đè lựa chọn đã lưu của người dùng CRM.
+  const forcedTheme = usePathname().startsWith("/lead-form") ? "light" : undefined;
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -34,9 +38,10 @@ export function Providers({
       defaultTheme="light"
       enableSystem={false}
       disableTransitionOnChange
+      forcedTheme={forcedTheme}
     >
       <UiHintContext value={hints}>
-        <AntdProvider locale={locale} hints={hints}>
+        <AntdProvider locale={locale} hints={forcedTheme ? { ...hints, dark: false } : hints}>
           <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         </AntdProvider>
       </UiHintContext>

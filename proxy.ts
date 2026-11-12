@@ -15,13 +15,10 @@ const PUBLIC_PATHS = [...AUTH_PAGES, "/lead-form"];
 const STAFF_PATHS = ["/customers", "/services"];
 
 export async function proxy(request: NextRequest) {
-  // /lead-form hướng tới khách quốc tế: chưa chọn ngôn ngữ thì mặc định tiếng Anh.
+  // /lead-form hướng tới khách quốc tế: luôn tiếng Anh (form không có switcher).
   // Chỉ override cookie trên request (SSR đọc "en"), không ghi cookie thật —
-  // khách chọn tay qua switcher mới ghi (i18n/actions.ts setLocale).
-  if (
-    request.nextUrl.pathname.startsWith("/lead-form") &&
-    !request.cookies.has(LOCALE_COOKIE)
-  ) {
+  // không ảnh hưởng ngôn ngữ người dùng đã chọn ở CRM.
+  if (request.nextUrl.pathname.startsWith("/lead-form")) {
     request.cookies.set(LOCALE_COOKIE, "en");
   }
 

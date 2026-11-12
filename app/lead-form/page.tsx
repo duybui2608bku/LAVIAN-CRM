@@ -1,19 +1,12 @@
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 
-import { LanguageSwitcher } from "@/components/common/language-switcher";
-import { ThemeToggle } from "@/components/common/theme-toggle";
 import { LeadForm } from "@/components/lead-form/lead-form";
-import { Logo } from "@/components/layout/logo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 
 // Trang public (không cần đăng nhập) — nhúng iframe vào SMAX hoặc mở trực tiếp.
-
-// Khách chưa từng chọn theme → mặc định light. Script nằm sau script của
-// next-themes trong body nên gỡ được class dark trước khi vẽ; ghi vào
-// localStorage "theme" để next-themes hydrate đúng và ThemeToggle hoạt động.
-const forceLightDefault = `try{if(!localStorage.theme){localStorage.theme="light";document.documentElement.classList.remove("dark");document.documentElement.style.colorScheme="light"}}catch(e){}`;
+// Luôn tiếng Anh (proxy.ts) + giao diện sáng (forcedTheme ở app/providers.tsx).
 
 export async function generateMetadata() {
   const t = await getTranslations("leadForm");
@@ -21,7 +14,6 @@ export async function generateMetadata() {
 }
 
 export default async function LeadFormPage() {
-  const t = await getTranslations("leadForm");
   // Trang anonymous nên đọc profiles/enum_options bằng admin client
   // (RLS chỉ cho authenticated).
   const admin = createAdminClient();
@@ -36,18 +28,8 @@ export default async function LeadFormPage() {
   ]);
 
   return (
-    <main className="relative flex min-h-svh items-center justify-center p-4">
-      <script dangerouslySetInnerHTML={{ __html: forceLightDefault }} />
-      <div className="absolute top-3 right-3 flex items-center gap-1">
-        <ThemeToggle />
-        <LanguageSwitcher />
-      </div>
-      <div className="w-full max-w-sm space-y-6">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <Logo className="size-10" />
-          <h1 className="text-xl font-semibold tracking-tight">{t("title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
-        </div>
+    <main className="flex min-h-svh justify-center p-4">
+      <div className="w-full max-w-lg">
         {/* useSearchParams trong LeadForm cần Suspense boundary */}
         <Suspense>
           <LeadForm
