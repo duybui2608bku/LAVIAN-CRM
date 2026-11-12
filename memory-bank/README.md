@@ -53,6 +53,16 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Form SMAX: gọn giao diện, luôn tiếng Anh + sáng
+- **Thay đổi:** `/lead-form` bỏ logo, tiêu đề "Book a consultation", dòng subtitle, nút đổi ngôn ngữ + đổi theme (và script `forceLightDefault`). Form `size="large"`, khung `max-w-lg`, đặt sát trên (không căn giữa dọc). Proxy luôn override locale `en` cho `/lead-form` (chỉ trên request, không ghi cookie). Theme: `Providers` dùng `usePathname` → `forcedTheme="light"` cho `/lead-form`; `AntdProvider` ưu tiên `forcedTheme` (next-themes 0.4.6 không đổi `resolvedTheme` khi forced) và không ghi cookie theme khi bị ép → không đè lựa chọn sáng/tối của người dùng CRM. Xoá key `leadForm.subtitle` (en/vi).
+- **File ảnh hưởng:** `app/lead-form/page.tsx`, `components/lead-form/lead-form.tsx`, `proxy.ts`, `app/providers.tsx`, `components/common/antd-provider.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt (máy ít RAM, chưa bật dev). `leadForm.title` vẫn dùng cho `<title>` tab.
+
+### 2026-11-12 — Form SMAX: fill giai đoạn + CSKH hiện tại của khách đã có
+- **Thay đổi:** `checkLeadCustomer` trả `{stage, staff_id, staff_name} | null` (thay vì boolean, embed `profiles!staff_id`). Form SMAX khi gặp khách đã có trong CRM fill sẵn Giai đoạn + CSKH hiện tại (bỏ qua ô người dùng đã chạm) → bấm Cập nhật không còn đè `new_lead`/trống lên giá trị đã đổi ở CRM. Đổi sang khách khác trong SMAX thì reset 2 ô này. CSKH hiện tại không nằm trong danh sách active/customer_care vẫn hiện tên (thêm option tạm).
+- **File ảnh hưởng:** `app/lead-form/actions.ts`, `components/lead-form/lead-form.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa test trong iframe SMAX thật. Action public nay lộ giai đoạn + tên CSKH theo `smax_customer_id` (trước chỉ lộ có/không) — chấp nhận được vì id SMAX khó đoán.
+
 ### 2026-11-12 — /appointments: cột Nguồn → cột Số WA
 - **Thay đổi:** Bỏ cột Nguồn (SourceIcon), thay bằng cột "Số WA" (tag `WA-xxxx` màu `waColor`, không có → "—"), cùng kiểu /customers. Page server select thêm `customers.thread`, rút `wa = waNumber(thread.link)` rồi bỏ `thread` trước khi gửi client; `AppointmentCustomer.wa?` là field dẫn xuất. i18n `appointments.source` đổi thành `appointments.wa` (vi "Số WA", en "WA number").
 - **File ảnh hưởng:** `app/(app)/appointments/page.tsx`, `components/appointments/appointments-manager.tsx`, `types/appointment.ts`, `messages/{vi,en}.json`, `memory-bank/README.md`.

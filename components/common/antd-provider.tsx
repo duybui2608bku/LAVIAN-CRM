@@ -126,7 +126,9 @@ export function AntdProvider({
   hints: UiHints;
   children: React.ReactNode;
 }) {
-  const { resolvedTheme } = useTheme();
+  // forcedTheme (vd /lead-form) không đổi resolvedTheme của next-themes → ưu tiên nó.
+  const { resolvedTheme: stored, forcedTheme } = useTheme();
+  const resolvedTheme = forcedTheme ?? stored;
   // Trước mount dùng gợi ý từ cookie (server và lượt hydrate cùng giá trị → không lệch,
   // không nháy sáng); sau mount theo next-themes.
   const mounted = useMounted();
@@ -137,11 +139,13 @@ export function AntdProvider({
   useEffect(() => {
     if (!resolvedTheme) return;
     const isDark = resolvedTheme === "dark";
-    document.cookie = `${THEME_COOKIE}=${isDark ? "dark" : "light"}; path=/; max-age=31536000; samesite=lax`;
+    // Theme ép buộc không phải lựa chọn của người dùng → không ghi cookie.
+    if (!forcedTheme)
+      document.cookie = `${THEME_COOKIE}=${isDark ? "dark" : "light"}; path=/; max-age=31536000; samesite=lax`;
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
       m.setAttribute("content", isDark ? THEME_BG.dark : THEME_BG.light);
     });
-  }, [resolvedTheme]);
+  }, [resolvedTheme, forcedTheme]);
 
   const themeConfig = useMemo(() => buildTheme(dark, touch), [dark, touch]);
   dayjs.locale(locale);
