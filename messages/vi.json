@@ -4,7 +4,7 @@
     "create": "Thêm lịch hẹn",
     "name": "Tên khách hàng",
     "phone": "Số điện thoại",
-    "source": "Source",
+    "wa": "Số WA",
     "date": "Ngày giờ hẹn",
     "confirmation": "Xác nhận tại phòng khám",
     "services": "Dịch vụ",
@@ -177,7 +177,13 @@
     "loginTitle": "Đăng nhập",
     "loginSubtitle": "Đăng nhập vào LAVIAN CRM",
     "bannedTitle": "Tài khoản bị khoá",
-    "bannedBody": "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên."
+    "bannedBody": "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên.",
+    "myProfile": "Hồ sơ của tôi",
+    "displayName": "Tên hiển thị",
+    "avatar": "Ảnh đại diện",
+    "nameRequired": "Vui lòng nhập tên",
+    "save": "Lưu",
+    "profileSaved": "Đã cập nhật hồ sơ"
   },
   "users": {
     "title": "Người dùng",
@@ -217,7 +223,10 @@
     "resetSubmit": "Cập nhật",
     "resetOk": "Đã đặt lại mật khẩu",
     "cancel": "Huỷ",
-    "emailInvalid": "Email không hợp lệ"
+    "emailInvalid": "Email không hợp lệ",
+    "allRole": "Tất cả vai trò",
+    "allDepartment": "Tất cả bộ phận",
+    "noDepartment": "Chưa gán bộ phận"
   },
   "enums": {
     "title": "Danh mục (Enum)",

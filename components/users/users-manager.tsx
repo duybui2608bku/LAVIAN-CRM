@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Button, Form, Input, Modal, Tag, type TableProps } from "antd";
+import { Avatar, Button, Form, Input, Modal, Tag, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
-import { Ban, KeyRound, Search, ShieldCheck, UserPlus } from "lucide-react";
+import { Ban, KeyRound, Search, ShieldCheck, User, UserPlus } from "lucide-react";
 
 import {
   createUser,
@@ -23,6 +23,7 @@ import { toast } from "@/lib/toast";
 import type { Profile, UserDepartment } from "@/types/user";
 
 const DEPARTMENTS: UserDepartment[] = ["customer_care", "technician", "sales"];
+const NO_DEPT = "none"; // giá trị lọc "Chưa gán bộ phận"
 
 export function UsersManager({
   profiles,
@@ -33,6 +34,8 @@ export function UsersManager({
 }) {
   const t = useTranslations("users");
   const [query, setQuery] = useState("");
+  const [role, setRole] = useState(""); // "" = tất cả
+  const [department, setDepartment] = useState(""); // "" = tất cả, NO_DEPT = chưa gán
   const [createOpen, setCreateOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<Profile | null>(null);
   const [, start] = useTransition();
@@ -46,13 +49,15 @@ export function UsersManager({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
     return rows.filter(
       (p) =>
-        p.user_name.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q),
+        (!q ||
+          p.user_name.toLowerCase().includes(q) ||
+          p.email.toLowerCase().includes(q)) &&
+        (!role || p.role === role) &&
+        (!department || (p.department ?? NO_DEPT) === department),
     );
-  }, [rows, query]);
+  }, [rows, query, role, department]);
 
   const departmentOptions = DEPARTMENTS.map((d) => ({
     value: d,
@@ -87,7 +92,19 @@ export function UsersManager({
     {
       title: t("colName"),
       dataIndex: "user_name",
-      render: (v: string) => <span className="font-medium">{v || "—"}</span>,
+      render: (v: string, p) => (
+        <span className="flex items-center gap-2">
+          {/* Không có ảnh → icon người thay vì ảnh mặc định. */}
+          <Avatar
+            size={28}
+            src={p.avatar_url || undefined}
+            icon={<User className="size-4" />}
+            className="shrink-0"
+            alt=""
+          />
+          <span className="truncate font-medium">{v || "—"}</span>
+        </span>
+      ),
     },
     { title: t("colEmail"), dataIndex: "email" },
     {
@@ -168,18 +185,7 @@ export function UsersManager({
 
   return (
     <Page>
-      <PageHeader
-        title={t("title")}
-        actions={
-          <Button
-            type="primary"
-            icon={<UserPlus className="size-4" />}
-            onClick={() => setCreateOpen(true)}
-          >
-            {t("create")}
-          </Button>
-        }
-      />
+      <PageHeader title={t("title")} />
 
       <PageToolbar>
         <Input
@@ -190,6 +196,29 @@ export function UsersManager({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        <ClearableSelect
+          className="min-w-32"
+          value={role}
+          onChange={setRole}
+          options={(["admin", "user"] as const).map((r) => ({ value: r, label: t(`role_${r}`) }))}
+          placeholder={t("allRole")}
+          ariaLabel={t("colRole")}
+        />
+        <ClearableSelect
+          className="min-w-44"
+          value={department}
+          onChange={setDepartment}
+          options={[...departmentOptions, { value: NO_DEPT, label: t("noDepartment") }]}
+          placeholder={t("allDepartment")}
+          ariaLabel={t("colDepartment")}
+        />
+        <Button
+          type="primary"
+          icon={<UserPlus className="size-4" />}
+          onClick={() => setCreateOpen(true)}
+        >
+          {t("create")}
+        </Button>
       </PageToolbar>
 
       <DataTable columns={columns} dataSource={filtered} pageSize={0} empty={t("empty")} />

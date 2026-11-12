@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeError } from "@/lib/errors";
 import type { ServiceInput } from "@/types/service";
@@ -11,7 +10,6 @@ type Result = { error?: string };
 
 export async function createService(input: ServiceInput): Promise<Result> {
   try {
-    await requireAdmin();
     const supabase = await createClient();
     const { error } = await supabase.from("services").insert(input);
     if (error) throw error;
@@ -27,7 +25,6 @@ export async function updateService(
   input: ServiceInput,
 ): Promise<Result> {
   try {
-    await requireAdmin();
     const supabase = await createClient();
     const { error } = await supabase
       .from("services")
@@ -44,7 +41,6 @@ export async function updateService(
 /** Xóa cứng — nhưng chặn nếu còn khách hàng đang gắn dịch vụ này (pattern deleteOption). */
 export async function deleteService(id: string): Promise<Result> {
   try {
-    await requireAdmin();
     const supabase = await createClient();
 
     // Đếm MỌI dòng nối (kể cả khách/lịch đã soft-delete) — khớp hành vi FK restrict.

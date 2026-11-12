@@ -20,6 +20,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   UserCog,
+  UserPen,
   Users,
   Wallet,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import { useSwitchLocale } from "@/components/common/language-switcher";
 import { LocaleFlag } from "@/components/common/locale-flag";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Logo } from "@/components/layout/logo";
+import { ProfileDialog } from "@/components/layout/profile-dialog";
 import { useMounted } from "@/hooks/use-mounted";
 import { localeLabels, locales, type Locale } from "@/i18n/config";
 import { signOut } from "@/lib/actions/auth";
@@ -50,6 +52,9 @@ const ADMIN_ITEMS = [
   { key: "users", href: "/users", icon: UserCog },
   { key: "services", href: "/services", icon: Briefcase },
 ] as const;
+
+// Staff (role ≠ admin) chỉ thấy 2 mục này — proxy.ts chặn các route còn lại.
+const STAFF_ITEMS = [ITEMS[0], ADMIN_ITEMS[3]] as const;
 
 type NavItem = (typeof ITEMS)[number] | (typeof ADMIN_ITEMS)[number];
 
@@ -75,13 +80,15 @@ export function AppShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const openProfile = () => setProfileOpen(true);
 
   const toggle = () => {
     setCollapsed(!collapsed);
     document.cookie = `${COLLAPSE_COOKIE}=${collapsed}; path=/; max-age=31536000`;
   };
 
-  const all: readonly NavItem[] = isAdmin ? [...ITEMS, ...ADMIN_ITEMS] : ITEMS;
+  const all: readonly NavItem[] = isAdmin ? [...ITEMS, ...ADMIN_ITEMS] : STAFF_ITEMS;
   const selected = all.find((i) => pathname.startsWith(i.href))?.href ?? pathname;
   const toMenu = (items: readonly NavItem[]) =>
     items.map(({ key, href, icon: Icon }) => ({
@@ -91,7 +98,7 @@ export function AppShell({
     }));
 
   const menuItems = (compact: boolean): MenuProps["items"] => {
-    if (!isAdmin) return toMenu(ITEMS);
+    if (!isAdmin) return toMenu(STAFF_ITEMS);
     // Thu gọn: tiêu đề nhóm không đọc được → thay bằng vạch ngăn.
     if (compact) return [...toMenu(ITEMS), { type: "divider" }, ...toMenu(ADMIN_ITEMS)];
     return [
@@ -133,7 +140,12 @@ export function AppShell({
             className="min-h-0 flex-1 overflow-y-auto border-0! py-2"
           />
           <div className={collapsed ? "flex flex-col items-center gap-1 p-2" : "flex items-center gap-1 p-2"}>
-            <AccountMenu compact={collapsed} userName={userName} avatarUrl={avatarUrl} />
+            <AccountMenu
+              compact={collapsed}
+              userName={userName}
+              avatarUrl={avatarUrl}
+              onProfile={openProfile}
+            />
             <Button
               type="text"
               aria-label={t("nav.toggleSidebar")}
@@ -171,8 +183,9 @@ export function AppShell({
       </Layout>
 
       <BottomTabs
+        items={isAdmin ? ITEMS : STAFF_ITEMS}
         pathname={pathname}
-        menuActive={sheetOpen || ADMIN_ITEMS.some((i) => pathname.startsWith(i.href))}
+        menuActive={sheetOpen || (isAdmin && ADMIN_ITEMS.some((i) => pathname.startsWith(i.href)))}
         onMenu={() => setSheetOpen(true)}
       />
       <MenuSheet
@@ -182,17 +195,26 @@ export function AppShell({
         pathname={pathname}
         userName={userName}
         avatarUrl={avatarUrl}
+        onProfile={openProfile}
+      />
+      <ProfileDialog
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        userName={userName}
+        avatarUrl={avatarUrl}
       />
     </Layout>
   );
 }
 
-/** Thanh tab dưới (chỉ điện thoại): 3 trang chính + Menu. Chạm bằng ngón cái. */
+/** Thanh tab dưới (chỉ điện thoại): các trang chính + Menu. Chạm bằng ngón cái. */
 function BottomTabs({
+  items,
   pathname,
   menuActive,
   onMenu,
 }: {
+  items: readonly NavItem[];
   pathname: string;
   menuActive: boolean;
   onMenu: () => void;
@@ -223,7 +245,7 @@ function BottomTabs({
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
       <div className="flex h-16 items-stretch">
-        {ITEMS.map(({ key, href, icon }) => {
+        {items.map(({ key, href, icon }) => {
           const active = !menuActive && pathname.startsWith(href);
           return (
             <Link key={href} href={href} aria-current={active ? "page" : undefined} className={cls(active)}>
@@ -247,11 +269,13 @@ function MenuSheet({
   pathname,
   userName,
   avatarUrl,
+  onProfile,
 }: {
   open: boolean;
   onClose: () => void;
   isAdmin: boolean;
   pathname: string;
+  onProfile: () => void;
 } & Account) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
@@ -306,6 +330,17 @@ function MenuSheet({
         )}
 
         <div className="surface divide-y divide-border">
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onProfile();
+            }}
+            className="flex min-h-12 w-full items-center gap-3 px-3 text-left active:bg-muted"
+          >
+            <UserPen className="size-4 text-muted-foreground" />
+            <span className="flex-1 text-sm">{t("auth.myProfile")}</span>
+          </button>
           <label className="flex min-h-12 items-center gap-3 px-3">
             <Moon className="size-4 text-muted-foreground" />
             <span className="flex-1 text-sm">{t("common.darkMode")}</span>
@@ -365,7 +400,12 @@ function useSignOut() {
 }
 
 /** Avatar + tên ở đáy sidebar (desktop) → menu: giao diện tối, ngôn ngữ, đăng xuất. */
-function AccountMenu({ compact, userName, avatarUrl }: { compact: boolean } & Account) {
+function AccountMenu({
+  compact,
+  userName,
+  avatarUrl,
+  onProfile,
+}: { compact: boolean; onProfile: () => void } & Account) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const { isDark, setDark } = useDarkMode();
@@ -373,6 +413,11 @@ function AccountMenu({ compact, userName, avatarUrl }: { compact: boolean } & Ac
   const confirmSignOut = useSignOut();
 
   const items: MenuProps["items"] = [
+    {
+      key: "profile",
+      icon: <UserPen className="size-4" />,
+      label: t("auth.myProfile"),
+    },
     {
       key: "theme",
       icon: <Moon className="size-4" />,
@@ -409,7 +454,8 @@ function AccountMenu({ compact, userName, avatarUrl }: { compact: boolean } & Ac
   ];
 
   const onClick: MenuProps["onClick"] = ({ key }) => {
-    if (key === "theme") setDark(!isDark);
+    if (key === "profile") onProfile();
+    else if (key === "theme") setDark(!isDark);
     else if (key.startsWith("lang:")) {
       const next = key.slice(5) as Locale;
       if (next !== locale) switchTo(next);

@@ -11,6 +11,8 @@ const AUTH_PAGES = ["/login", "/banned"];
 // Route công khai (không cần đăng nhập) — /lead-form nhúng iframe SMAX,
 // người đã đăng nhập vẫn mở được (không redirect như trang auth).
 const PUBLIC_PATHS = [...AUTH_PAGES, "/lead-form"];
+// Route staff được vào — khớp STAFF_ITEMS ở components/layout/app-shell.tsx.
+const STAFF_PATHS = ["/customers", "/services"];
 
 export async function proxy(request: NextRequest) {
   // /lead-form hướng tới khách quốc tế: chưa chọn ngôn ngữ thì mặc định tiếng Anh.
@@ -92,15 +94,13 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // Route quản trị chỉ dành cho admin.
-  const isAdminRoute =
-    path.startsWith("/marketing") ||
-    path.startsWith("/reports") ||
-    path.startsWith("/users") ||
-    path.startsWith("/enums") ||
-    path.startsWith("/services");
-  if (isAdminRoute && profile?.role !== "admin") {
-    return redirectTo("/");
+  // Staff (không phải admin) chỉ vào được /customers và /services (xem); còn lại về /customers.
+  // "/" tự redirect sang /customers nên cho qua.
+  const isStaffRoute =
+    path === "/" ||
+    STAFF_PATHS.some((p) => path === p || path.startsWith(p + "/"));
+  if (profile?.role !== "admin" && !isStaffRoute) {
+    return redirectTo("/customers");
   }
 
   return response;
