@@ -299,6 +299,8 @@
     "createOk": "Đã thêm"
   },
   "customers": {
+    "paymentConfirm": "Xác nhận thanh toán",
+    "uploadImage": "Tải ảnh lên",
     "pipeline": {
       "dataGroup": "Data",
       "appointmentGroup": "Lịch hẹn",
@@ -367,6 +369,10 @@
     "openThread": "Mở hội thoại"
   },
   "leadForm": {
+    "paymentConfirm": "Xác nhận thanh toán",
+    "uploadImage": "Tải ảnh lên",
+    "tabCustomer": "Thông tin khách hàng",
+    "tabAppointment": "Lịch hẹn",
     "title": "Đăng ký tư vấn",
     "name": "Họ và tên",
     "nameRequired": "Vui lòng nhập họ tên",

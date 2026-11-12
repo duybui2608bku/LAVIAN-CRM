@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button, Form, Input, InputNumber, Result } from "antd";
+import { Alert, Button, Form, Input, InputNumber, Result, Segmented } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import { Bug } from "lucide-react";
 
@@ -14,7 +14,9 @@ import {
   type LeadMode,
 } from "@/app/lead-form/actions";
 import { EnumTag } from "@/components/common/enum-tag";
+import { LeadAppointmentForm, type LeadService } from "@/components/lead-form/lead-appointment-form";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { ImageUpload } from "@/components/common/image-upload";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
@@ -47,6 +49,7 @@ type Values = {
   staff_id: string;
   stage: string;
   deposit_amount: number | null;
+  payment_confirm_url: string | null;
   note: string;
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
@@ -57,6 +60,7 @@ const DEFAULTS: Values = {
   staff_id: "",
   stage: "new_lead",
   deposit_amount: null,
+  payment_confirm_url: null,
   note: "",
   website: "",
 };
@@ -67,12 +71,16 @@ const parseIdr = (v: string | undefined) =>
   sanitizeCurrencyInput(v ?? "") as unknown as number;
 
 
+type Tab = "customer" | "appointment";
+
 export function LeadForm({
   staff,
   stages,
+  services,
 }: {
   staff: StaffRef[];
   stages: EnumOption[];
+  services: LeadService[];
 }) {
   const t = useTranslations("leadForm");
   const locale = useLocale();
@@ -86,6 +94,7 @@ export function LeadForm({
   // Khách đã có trong CRM (giai đoạn + CSKH hiện tại) hoặc null.
   const [existing, setExisting] = useState<LeadCustomer | null>(null);
   const [checkingCustomer, setCheckingCustomer] = useState(false);
+  const [tab, setTab] = useState<Tab>("customer");
   const [embedded] = useState(
     () => typeof window !== "undefined" && window.parent !== window,
   );
@@ -140,6 +149,7 @@ export function LeadForm({
               if (!form.isFieldTouched("stage")) form.setFieldValue("stage", found.stage);
               if (!form.isFieldTouched("staff_id")) form.setFieldValue("staff_id", found.staff_id);
               if (!form.isFieldTouched("deposit_amount")) form.setFieldValue("deposit_amount", found.deposit_amount);
+              if (!form.isFieldTouched("payment_confirm_url")) form.setFieldValue("payment_confirm_url", found.payment_confirm_url);
             }
           })
           .catch(() => {
@@ -159,7 +169,7 @@ export function LeadForm({
         }
       } else if (id !== prev) {
         // Đổi sang khách khác: reset luôn giai đoạn/CSKH của khách trước.
-        form.resetFields(["stage", "staff_id", "deposit_amount"]);
+        form.resetFields(["stage", "staff_id", "deposit_amount", "payment_confirm_url"]);
         form.setFieldsValue({
           full_name: c.name ? String(c.name) : "",
           phone: phone ? formatPhone(String(phone)) : "",
@@ -208,6 +218,10 @@ export function LeadForm({
     });
   }
 
+  // Tab Lịch hẹn chỉ mở khi khách đã có trong CRM; đổi sang khách chưa có → về tab Khách hàng.
+  const appointmentEnabled = !!existing && !checkingCustomer;
+  const activeTab: Tab = appointmentEnabled ? tab : "customer";
+
   if (done) {
     return (
       <Result
@@ -232,106 +246,134 @@ export function LeadForm({
   }
 
   return (
-    <Form form={form} layout="vertical" size="large" requiredMark={false} initialValues={DEFAULTS}>
+    <div className="flex flex-col gap-4">
+      <Segmented<Tab>
+        block
+        size="large"
+        value={activeTab}
+        onChange={setTab}
+        options={[
+          { value: "customer", label: t("tabCustomer") },
+          { value: "appointment", label: t("tabAppointment"), disabled: !appointmentEnabled },
+        ]}
+      />
+      {/* 2 tab chỉ ẩn (không unmount) để giữ dữ liệu đang nhập khi chuyển tab. */}
       {existing && (
-        <Alert type="warning" showIcon className="mb-4" title={t("existingCustomer")} />
-      )}
-      <Form.Item
-        name="full_name"
-        label={t("name")}
-        rules={[{ required: true, whitespace: true, max: 120, message: t("nameRequired") }]}
-      >
-        <Input autoFocus />
-      </Form.Item>
-      <Form.Item
-        name="phone"
-        label={t("phone")}
-        rules={[{ required: true, message: t("phoneInvalid") }]}
-        normalize={normalizePhone}
-      >
-        <Input type="text" inputMode="tel" autoComplete="tel" />
-      </Form.Item>
-      {staff.length > 0 && (
-        <Form.Item name="staff_id" label={t("staff")}>
-          <ClearableSelect
-            options={staffOptions}
-            placeholder={t("noteOptional")}
-            ariaLabel={t("staff")}
+        <div className={activeTab === "appointment" ? undefined : "hidden"}>
+          <LeadAppointmentForm
+            key={customerId}
+            smaxCustomerId={customerId}
+            defaultStaffId={existing.staff_id}
+            staffOptions={staffOptions}
+            services={services}
           />
-        </Form.Item>
-      )}
-      {stages.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
-          <Form.Item name="stage" label={t("stage")}>
-            <ClearableSelect
-              className="w-full"
-              clearable={false}
-              options={stages.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }))}
-              ariaLabel={t("stage")}
-            />
-          </Form.Item>
-          {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
-          <Form.Item name="deposit_amount" label={t("deposit")}>
-            <InputNumber<number>
-              className="w-full"
-              min={0}
-              precision={0}
-              controls={false}
-              inputMode="numeric"
-              placeholder="0"
-              suffix={IDR_CURRENCY}
-              formatter={formatIdr}
-              parser={parseIdr}
-              disabled={!isDeposited}
-            />
-          </Form.Item>
         </div>
       )}
-      <Form.Item
-        name="note"
-        label={t("note")}
-        rules={[{ max: 1000, message: t("noteTooLong") }]}
-      >
-        <Input.TextArea rows={3} placeholder={t("noteOptional")} />
-      </Form.Item>
-      {embedded && showLog && (
-        <Form.Item label={t("log")}>
-          <Input.TextArea rows={4} readOnly value={eventLog} />
-        </Form.Item>
-      )}
-      <Form.Item name="website" hidden>
-        <Input tabIndex={-1} autoComplete="off" aria-hidden="true" />
-      </Form.Item>
-
-      <div className="flex gap-2">
-        {embedded && (
-          <Button
-            aria-label={t("log")}
-            icon={<Bug className="size-4" />}
-            onClick={() => setShowLog((v) => !v)}
-          />
-        )}
-        <Button
-          type="primary"
-          className="flex-1"
-          loading={pending}
-          disabled={checkingCustomer || !!existing}
-          onClick={onSubmit("create")}
-        >
-          {t("submit")}
-        </Button>
+      <Form form={form} layout="vertical" size="large" requiredMark={false} initialValues={DEFAULTS}
+        className={activeTab === "customer" ? undefined : "hidden"}>
         {existing && (
+          <Alert type="warning" showIcon className="mb-4" title={t("existingCustomer")} />
+        )}
+        <Form.Item
+          name="full_name"
+          label={t("name")}
+          rules={[{ required: true, whitespace: true, max: 120, message: t("nameRequired") }]}
+        >
+          <Input autoFocus />
+        </Form.Item>
+        <Form.Item
+          name="phone"
+          label={t("phone")}
+          rules={[{ required: true, message: t("phoneInvalid") }]}
+          normalize={normalizePhone}
+        >
+          <Input type="text" inputMode="tel" autoComplete="tel" />
+        </Form.Item>
+        {staff.length > 0 && (
+          <Form.Item name="staff_id" label={t("staff")}>
+            <ClearableSelect
+              options={staffOptions}
+              placeholder={t("noteOptional")}
+              ariaLabel={t("staff")}
+            />
+          </Form.Item>
+        )}
+        {stages.length > 0 && (
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="stage" label={t("stage")}>
+              <ClearableSelect
+                className="w-full"
+                clearable={false}
+                options={stages.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }))}
+                ariaLabel={t("stage")}
+              />
+            </Form.Item>
+            {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
+            <Form.Item name="deposit_amount" label={t("deposit")}>
+              <InputNumber<number>
+                className="w-full"
+                min={0}
+                precision={0}
+                controls={false}
+                inputMode="numeric"
+                placeholder="0"
+                suffix={IDR_CURRENCY}
+                formatter={formatIdr}
+                parser={parseIdr}
+                disabled={!isDeposited}
+              />
+            </Form.Item>
+          </div>
+        )}
+        <Form.Item name="payment_confirm_url" label={t("paymentConfirm")}>
+          <ImageUpload label={t("uploadImage")} />
+        </Form.Item>
+        <Form.Item
+          name="note"
+          label={t("note")}
+          rules={[{ max: 1000, message: t("noteTooLong") }]}
+        >
+          <Input.TextArea rows={3} placeholder={t("noteOptional")} />
+        </Form.Item>
+        {embedded && showLog && (
+          <Form.Item label={t("log")}>
+            <Input.TextArea rows={4} readOnly value={eventLog} />
+          </Form.Item>
+        )}
+        <Form.Item name="website" hidden>
+          <Input tabIndex={-1} autoComplete="off" aria-hidden="true" />
+        </Form.Item>
+
+        <div className="flex gap-2">
+          {embedded && (
+            <Button
+              aria-label={t("log")}
+              icon={<Bug className="size-4" />}
+              onClick={() => setShowLog((v) => !v)}
+            />
+          )}
           <Button
             type="primary"
             className="flex-1"
             loading={pending}
-            disabled={checkingCustomer}
-            onClick={onSubmit("update")}
+            disabled={checkingCustomer || !!existing}
+            onClick={onSubmit("create")}
           >
-            {t("update")}
+            {t("submit")}
           </Button>
-        )}
-      </div>
-    </Form>
+          {existing && (
+            <Button
+              type="primary"
+              className="flex-1"
+              loading={pending}
+              disabled={checkingCustomer}
+              onClick={onSubmit("update")}
+            >
+              {t("update")}
+            </Button>
+          )}
+        </div>
+      </Form>
+    </div>
   );
 }

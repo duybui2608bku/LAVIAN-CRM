@@ -6,7 +6,7 @@ import { CUSTOMER_OPTIONS, instagramUsername } from "@/lib/customer-options";
 
 const CUSTOMER_LIST_FIELDS =
   "id, smax_customer_id, full_name, phone, social_name, picture, thread, source, stage, lost_reason, " +
-  "staff_id, sales_id, technician_id, first_contact, notes, created_at, updated_at, deleted_at, deposit_amount, " +
+  "staff_id, sales_id, technician_id, first_contact, notes, created_at, updated_at, deleted_at, deposit_amount, payment_confirm_url, " +
   "instagram_username:smax_data->customer->instagram->>username";
 
 // Mọi user đăng nhập đều xem được (RLS customers cho authenticated). Proxy đã gác login.

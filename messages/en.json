@@ -299,6 +299,8 @@
     "createOk": "Added"
   },
   "customers": {
+    "paymentConfirm": "Payment confirm",
+    "uploadImage": "Upload image",
     "pipeline": {
       "dataGroup": "Data",
       "appointmentGroup": "Appointments",
@@ -367,6 +369,10 @@
     "createOk": "Customer added"
   },
   "leadForm": {
+    "paymentConfirm": "Payment confirm",
+    "uploadImage": "Upload image",
+    "tabCustomer": "Customer info",
+    "tabAppointment": "Appointment",
     "title": "Book a consultation",
     "name": "Full name",
     "nameRequired": "Please enter your name",

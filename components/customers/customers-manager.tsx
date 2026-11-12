@@ -35,6 +35,7 @@ import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
 import { FormDrawer } from "@/components/common/form-drawer";
+import { ImageUpload } from "@/components/common/image-upload";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
 import { EnumTag } from "@/components/common/enum-tag";
 import { InlineSelect } from "@/components/common/inline-select";
@@ -568,6 +569,7 @@ type Values = {
   staff_id?: string;
   lost_reason?: string;
   first_contact?: string;
+  payment_confirm_url?: string | null;
 };
 
 function CustomerDialog({
@@ -609,6 +611,7 @@ function CustomerDialog({
         sales_id: editing?.sales_id ?? null,
         technician_id: editing?.technician_id ?? null,
         first_contact: v.first_contact || null,
+        payment_confirm_url: v.payment_confirm_url || null,
       };
       const res = editing
         ? await updateCustomer(editing.id, input)
@@ -646,6 +649,7 @@ function CustomerDialog({
           staff_id: editing?.staff_id ?? "",
           lost_reason: editing?.lost_reason ?? "",
           first_contact: editing?.first_contact?.slice(0, 10) ?? "",
+          payment_confirm_url: editing?.payment_confirm_url ?? null,
         }}
       >
         <Form.Item name="full_name" label={t("colName")} rules={required}>
@@ -682,6 +686,9 @@ function CustomerDialog({
         </Form.Item>
         <Form.Item name="first_contact" label={t("colFirstContact")}>
           <DatePicker placeholder={t("pickDate")} />
+        </Form.Item>
+        <Form.Item name="payment_confirm_url" label={t("paymentConfirm")} className="mb-0">
+          <ImageUpload label={t("uploadImage")} />
         </Form.Item>
       </Form>
     </FormDrawer>

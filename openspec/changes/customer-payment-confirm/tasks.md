@@ -1,0 +1,4 @@
+- [x] 1. Migration cột `customers.payment_confirm_url`
+- [x] 2. Drawer `/customers` + `clean()` + select page
+- [x] 3. Form SMAX: ô ảnh, fill khi khách đã có, ghi khi submit/update
+- [x] 4. i18n en/vi, tsc + eslint
