@@ -300,7 +300,7 @@
   },
   "customers": {
     "paymentConfirm": "Xác nhận thanh toán",
-    "uploadImage": "Tải ảnh lên",
+    "uploadImage": "Double-click chọn file · Click + Ctrl+V dán ảnh",
     "pipeline": {
       "dataGroup": "Data",
       "appointmentGroup": "Lịch hẹn",
@@ -369,8 +369,10 @@
     "openThread": "Mở hội thoại"
   },
   "leadForm": {
+    "history": "Lịch sử lịch hẹn",
+    "historyEmpty": "Chưa có lịch hẹn",
     "paymentConfirm": "Xác nhận thanh toán",
-    "uploadImage": "Tải ảnh lên",
+    "uploadImage": "Double-click chọn file · Click + Ctrl+V dán ảnh",
     "tabCustomer": "Thông tin khách hàng",
     "tabAppointment": "Lịch hẹn",
     "title": "Đăng ký tư vấn",

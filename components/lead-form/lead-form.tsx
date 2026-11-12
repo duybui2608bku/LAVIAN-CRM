@@ -326,7 +326,7 @@ export function LeadForm({
           </div>
         )}
         <Form.Item name="payment_confirm_url" label={t("paymentConfirm")}>
-          <ImageUpload label={t("uploadImage")} />
+          <ImageUpload paste label={t("uploadImage")} />
         </Form.Item>
         <Form.Item
           name="note"

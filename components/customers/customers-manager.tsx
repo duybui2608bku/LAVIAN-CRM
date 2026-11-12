@@ -688,7 +688,7 @@ function CustomerDialog({
           <DatePicker placeholder={t("pickDate")} />
         </Form.Item>
         <Form.Item name="payment_confirm_url" label={t("paymentConfirm")} className="mb-0">
-          <ImageUpload label={t("uploadImage")} />
+          <ImageUpload paste label={t("uploadImage")} />
         </Form.Item>
       </Form>
     </FormDrawer>

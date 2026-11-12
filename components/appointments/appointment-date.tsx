@@ -7,11 +7,12 @@ import { useTranslations } from "next-intl";
 import { useIsTouch } from "@/hooks/use-is-mobile";
 
 /** Confirm date and time together; changing the day alone never writes a booking. */
-export function AppointmentDate({ value, disabled, inline, onSave }: {
+export function AppointmentDate({ value, disabled, inline, className, onSave }: {
   value?: string | null;
   disabled?: boolean;
   /** Ô bảng: hiện như chữ thường, bấm vào mới mở picker để sửa. */
   inline?: boolean;
+  className?: string;
   onSave: (iso: string) => void;
 }) {
   const t = useTranslations("appointments");
@@ -29,7 +30,7 @@ export function AppointmentDate({ value, disabled, inline, onSave }: {
     variant={inline ? "borderless" : undefined}
     suffixIcon={inline ? null : undefined}
     size={inline ? "small" : undefined}
-    className={inline ? "-mx-2 w-40 cursor-pointer" : "w-48"}
+    className={inline ? "-mx-2 w-40 cursor-pointer" : className ?? "w-48"}
     onChange={(date) => {
       const iso = date?.second(0).millisecond(0).toISOString();
       if (iso && iso !== value) onSave(iso);

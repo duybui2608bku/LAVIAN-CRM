@@ -27,8 +27,8 @@ export default async function LeadFormPage() {
       .order("user_name"),
     admin
       .from("services")
-      .select("id, name_vi, name_en, name_id")
-      .eq("is_active", true)
+      // Cả dịch vụ đã tắt: lịch sử lịch hẹn cũ vẫn hiện đúng tên.
+      .select("id, name_vi, name_en, name_id, is_active")
       .order("sort_order"),
   ]);
 

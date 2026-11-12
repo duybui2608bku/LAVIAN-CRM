@@ -300,7 +300,7 @@
   },
   "customers": {
     "paymentConfirm": "Payment confirm",
-    "uploadImage": "Upload image",
+    "uploadImage": "Double-click to choose · Click + Ctrl+V to paste",
     "pipeline": {
       "dataGroup": "Data",
       "appointmentGroup": "Appointments",
@@ -369,8 +369,10 @@
     "createOk": "Customer added"
   },
   "leadForm": {
+    "history": "Appointment history",
+    "historyEmpty": "No appointments yet",
     "paymentConfirm": "Payment confirm",
-    "uploadImage": "Upload image",
+    "uploadImage": "Double-click to choose · Click + Ctrl+V to paste",
     "tabCustomer": "Customer info",
     "tabAppointment": "Appointment",
     "title": "Book a consultation",
