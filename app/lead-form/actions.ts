@@ -1,7 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
+import { appointmentPatchSchema } from "@/lib/appointments";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOMER_OPTIONS, leadSource } from "@/lib/customer-options";
@@ -18,6 +21,8 @@ const schema = z.object({
   // Tiền cọc (IDR, số nguyên) — chỉ lưu khi giai đoạn là "deposited".
   deposit_amount: z.number().int().min(0).max(1e12).nullable().catch(null),
   website: z.string(),
+  // Ảnh xác nhận thanh toán (null = xoá). Hỏng/thiếu → undefined: không đụng giá trị cũ.
+  payment_confirm_url: z.url().max(2000).nullable().optional().catch(undefined),
   social_name: z.string().trim().max(200).catch(""),
   picture: z.string().trim().max(2000).catch(""),
   tags: z
@@ -57,6 +62,7 @@ export type LeadCustomer = {
   staff_name: string;
   staff_avatar: string | null;
   deposit_amount: number | null;
+  payment_confirm_url: string | null;
 };
 
 // Khách đã có trong CRM → trả giai đoạn + CSKH hiện tại để form fill sẵn,
@@ -69,7 +75,7 @@ export async function checkLeadCustomer(
 
   const { data, error } = await createAdminClient()
     .from("customers")
-    .select("stage, staff_id, deposit_amount, staff:profiles!staff_id(user_name, avatar_url)")
+    .select("stage, staff_id, deposit_amount, payment_confirm_url, staff:profiles!staff_id(user_name, avatar_url)")
     .eq("smax_customer_id", id.data)
     .is("deleted_at", null)
     .maybeSingle();
@@ -86,6 +92,7 @@ export async function checkLeadCustomer(
     staff_avatar: staff?.avatar_url ?? null,
     // numeric về dạng string qua PostgREST.
     deposit_amount: data.deposit_amount == null ? null : Number(data.deposit_amount),
+    payment_confirm_url: data.payment_confirm_url ?? null,
   };
 }
 
@@ -133,6 +140,9 @@ export async function submitLead(
       ...(stage === "deposited" && d.deposit_amount != null
         ? { deposit_amount: d.deposit_amount }
         : {}),
+      ...(d.payment_confirm_url !== undefined
+        ? { payment_confirm_url: d.payment_confirm_url }
+        : {}),
     };
 
     if (mode === "create") {
@@ -166,6 +176,73 @@ export async function submitLead(
     }
     return {};
   } catch (e) {
+    return { error: normalizeError(e).message };
+  }
+}
+
+const appointmentSchema = appointmentPatchSchema.safeExtend({
+  scheduled_at: z.iso.datetime({ offset: true }),
+});
+
+export type LeadAppointmentInput = {
+  scheduled_at: string;
+  service_ids?: string[];
+  staff_id?: string | null;
+  note?: string;
+};
+
+// Tạo lịch hẹn cho khách đang mở trong SMAX (trang public → admin client).
+// Không chọn khách (lấy theo smax_customer_id), luôn "chưa đến" (checked_in = false).
+export async function createLeadAppointment(
+  smaxCustomerId: string,
+  input: LeadAppointmentInput,
+): Promise<{ error?: string }> {
+  try {
+    const smaxId = z.string().trim().min(1).max(200).parse(smaxCustomerId);
+    const d = appointmentSchema.parse({ ...input, staff_id: input.staff_id || null });
+    const db = createAdminClient();
+
+    const { data: customer, error: customerError } = await db
+      .from("customers")
+      .select("id, staff_id")
+      .eq("smax_customer_id", smaxId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (customerError) throw customerError;
+    if (!customer) return { error: "Khách hàng chưa có trong CRM." };
+
+    const serviceIds = d.service_ids ?? [];
+    await Promise.all([
+      d.staff_id
+        ? db.from("profiles").select("id").eq("id", d.staff_id).eq("status", "active")
+            .eq("department", "customer_care").single()
+            .then(({ error }) => { if (error) throw error; })
+        : null,
+      serviceIds.length
+        ? db.from("services").select("id").in("id", serviceIds)
+            .then(({ data, error }) => {
+              if (error) throw error;
+              if (data?.length !== serviceIds.length) throw new Error("Invalid services");
+            })
+        : null,
+    ]);
+
+    const { error } = await db.from("clinic_appointments").insert({
+      customer_id: customer.id,
+      scheduled_at: d.scheduled_at,
+      checked_in: false,
+      service_ids: serviceIds,
+      // Không chọn CSKH → lấy CSKH đang phụ trách khách.
+      staff_id: d.staff_id || customer.staff_id || null,
+      note: d.note ?? "",
+    });
+    if (error) throw error;
+    revalidatePath("/appointments");
+    return {};
+  } catch (e) {
+    if (e && typeof e === "object" && "code" in e && e.code === "23505") {
+      return { error: (await getTranslations("appointments"))("duplicate") };
+    }
     return { error: normalizeError(e).message };
   }
 }

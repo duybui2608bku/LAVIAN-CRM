@@ -35,6 +35,7 @@ function clean(input: CustomerInput) {
     sales_id: nz(input.sales_id),
     technician_id: nz(input.technician_id),
     first_contact: nz(input.first_contact),
+    payment_confirm_url: nz(input.payment_confirm_url),
   };
 }
 

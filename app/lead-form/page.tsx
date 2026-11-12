@@ -17,7 +17,7 @@ export default async function LeadFormPage() {
   // Trang anonymous nên đọc profiles/enum_options bằng admin client
   // (RLS chỉ cho authenticated).
   const admin = createAdminClient();
-  const [{ data: staff }] = await Promise.all([
+  const [{ data: staff }, { data: services }] = await Promise.all([
     admin
       .from("profiles")
       .select("id, user_name, avatar_url")
@@ -25,6 +25,11 @@ export default async function LeadFormPage() {
       .eq("department", "customer_care")
       .neq("user_name", "")
       .order("user_name"),
+    admin
+      .from("services")
+      .select("id, name_vi, name_en, name_id")
+      .eq("is_active", true)
+      .order("sort_order"),
   ]);
 
   return (
@@ -34,6 +39,7 @@ export default async function LeadFormPage() {
         <Suspense>
           <LeadForm
             staff={staff ?? []}
+            services={services ?? []}
             stages={CUSTOMER_OPTIONS.filter((o) => o.kind === "stage")}
           />
         </Suspense>

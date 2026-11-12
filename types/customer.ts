@@ -51,6 +51,7 @@ export interface CustomerInput {
   sales_id?: string | null;
   technician_id?: string | null;
   first_contact?: string | null; // "YYYY-MM-DD"
+  payment_confirm_url?: string | null; // ảnh xác nhận thanh toán
 }
 
 /** Khách hàng — ánh xạ bảng `public.customers`. */
@@ -75,6 +76,7 @@ export interface Customer {
   sales_id: string | null; // nhân viên Sales phụ trách (profiles)
   technician_id: string | null; // kỹ thuật viên làm dịch vụ (profiles)
   first_contact: string | null;
+  payment_confirm_url: string | null; // ảnh xác nhận thanh toán
   notes: CustomerNote[];
   created_at: string;
   updated_at: string;
