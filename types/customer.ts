@@ -61,7 +61,8 @@ export interface Customer {
   phone: string;
   social_name: string | null; // tên hiển thị MXH (SMAX name_original)
   picture: string | null; // URL avatar khách (SMAX customer.picture)
-  tags: SmaxTag[];
+  /** Chỉ có ở DB / lead-form — /customers không nạp. */
+  tags?: SmaxTag[];
   thread: SmaxThread | null;
   /** Nguyên `data` event SMAX lúc gửi form — chỉ có ở DB, /customers không nạp. */
   smax_data?: Record<string, unknown> | null;

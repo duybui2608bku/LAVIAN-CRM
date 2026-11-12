@@ -17,10 +17,8 @@ export function leadSource(threadLink: string | null | undefined): "whatsapp" | 
   return threadLink && /\/chats\/waw\d/.test(threadLink) ? "whatsapp" : "instagrams";
 }
 
-/** Username IG từ payload SMAX (`customer.instagram.username`); chỉ nhận ký tự hợp lệ của IG. */
-export function instagramUsername(smaxData: unknown): string | null {
-  const u = (smaxData as { customer?: { instagram?: { username?: unknown } } } | null)
-    ?.customer?.instagram?.username;
+/** Username IG (rút từ `smax_data->customer->instagram->>username`); chỉ nhận ký tự hợp lệ của IG. */
+export function instagramUsername(u: unknown): string | null {
   return typeof u === "string" && /^[A-Za-z0-9._]{1,30}$/.test(u) ? u : null;
 }
 

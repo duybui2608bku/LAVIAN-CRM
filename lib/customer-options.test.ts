@@ -16,10 +16,10 @@ test("source: WA thread → whatsapp, otherwise instagrams", () => {
   assert.equal(leadSource(null), "instagrams");
 });
 
-test("instagram username from SMAX payload", () => {
-  assert.equal(instagramUsername({ customer: { instagram: { username: "ariana.s_1" } } }), "ariana.s_1");
-  assert.equal(instagramUsername({ customer: { instagram: { username: "x/../y" } } }), null);
-  assert.equal(instagramUsername({ customer: {} }), null);
+test("instagram username: only valid IG characters", () => {
+  assert.equal(instagramUsername("ariana.s_1"), "ariana.s_1");
+  assert.equal(instagramUsername("x/../y"), null);
+  assert.equal(instagramUsername(undefined), null);
   assert.equal(instagramUsername(null), null);
 });
 
