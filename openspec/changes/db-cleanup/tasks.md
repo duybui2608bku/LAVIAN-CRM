@@ -2,10 +2,10 @@
 
 - [x] 1.1 Khảo sát bảng/cột/policy/index thật + advisor, đối chiếu code
 - [x] 1.2 Migration `20261112130000_db_cleanup.sql` (drop + index FK + gộp RLS)
-- [x] 1.3 Chạy migration (trừ drop `deposit_currency` — chờ deploy code)
+- [x] 1.3 Chạy migration trên Lavian
 - [x] 1.4 Chạy lại advisor performance/security
 - [x] 1.5 `20261112140000_harden_functions.sql`: siết EXECUTE function SECURITY DEFINER + search_path `set_updated_at`
-- [ ] 1.6 Sau deploy: `alter table public.customers drop column if exists deposit_currency;`
+- [x] 1.6 Drop `customers.deposit_currency` sau khi PR #37 deploy production
 
 ## 2. Code
 
