@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Lead form: Cập nhật không đè first_contact / smax_data
+- **Thay đổi:** Kiểm tra "smax_data lúc có lúc không": không phải lỗi lưu — chỉ khách Gửi/Cập nhật qua `/lead-form` sau 10-11 mới có; khách cũ null tới khi được Cập nhật lại. Sửa `submitLead`: `first_contact` chỉ đặt khi tạo (trước đây Cập nhật ghi đè thành hôm nay); `smax_data` chỉ ghi khi payload hợp lệ (không đè null lên data cũ).
+- **File ảnh hưởng:** `app/lead-form/actions.ts`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa thử trong iframe SMAX thật. Không migration. `first_contact` của khách đã bị đè trước đây (vd 2 khách tạo 09-11 thành 11-11) không tự khôi phục.
+
 ### 2026-11-12 — Cột Instagram (username) ở trang Khách hàng
 - **Thay đổi:** `/customers` thêm cột "Instagram" sau "Số WA": hiện `smax_data.customer.instagram.username`, bấm mở `https://www.instagram.com/<username>` tab mới; không có → "—". Page server rút username bằng `instagramUsername()` (`lib/customer-options.ts`, chỉ nhận `[A-Za-z0-9._]{1,30}`) rồi vẫn bỏ `smax_data` trước khi gửi client. `Customer.instagram_username?` là field dẫn xuất, không phải cột DB.
 - **File ảnh hưởng:** `app/(app)/customers/page.tsx`, `types/customer.ts`, `lib/customer-options{,.test}.ts`, `components/customers/customers-manager.tsx`, `messages/{vi,en}.json` (`customers.colInstagram`), `memory-bank/README.md`.
