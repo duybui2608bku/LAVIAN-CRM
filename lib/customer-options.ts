@@ -10,10 +10,12 @@ const definitions: [EnumKind, string, string, string, string][] = [
   ["stage", "lost", "Đã mất", "Lost", "red"],
   ["source", "instagrams", "Instagram", "Instagram", "magenta"],
   ["source", "whatsapp", "WhatsApp", "WhatsApp", "green"],
-  ["source", "referral", "Giới thiệu", "Referral", "purple"],
-  ["source", "walk_in", "Khách vãng lai", "Walk-in", "orange"],
-  ["source", "other", "Khác", "Other", "default"],
 ];
+
+/** Nguồn khách: có hội thoại WhatsApp (link SMAX `/chats/waw…`) → WA, còn lại mặc định Instagram. */
+export function leadSource(threadLink: string | null | undefined): "whatsapp" | "instagrams" {
+  return threadLink && /\/chats\/waw\d/.test(threadLink) ? "whatsapp" : "instagrams";
+}
 
 export const CUSTOMER_OPTIONS: EnumOption[] = definitions.map(
   ([kind, value, label_vi, label_en, color], sort_order) => ({

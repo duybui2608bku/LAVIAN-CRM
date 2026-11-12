@@ -42,6 +42,7 @@ import { EnumTag } from "@/components/common/enum-tag";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
 import { MultiSelect } from "@/components/common/multi-select";
 import { RowActions } from "@/components/common/row-actions";
+import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
@@ -271,15 +272,14 @@ export function CustomersManager({
     {
       title: t("colSource"),
       dataIndex: "source",
-      width: 140,
+      width: 80,
       render: (_, c) => (
         <InlineSelect
           value={c.source ?? ""}
-          display={tagFor("source", c.source)}
-          options={tagOptions("source", c.source)}
-          noneLabel={t("noneOption")}
+          display={<SourceIcon source={c.source} />}
+          options={SOURCE_OPTIONS}
           ariaLabel={t("colSource")}
-          onSave={(v) => patchField(c.id, { source: v || null })}
+          onSave={(v) => patchField(c.id, { source: v })}
         />
       ),
     },
@@ -444,7 +444,7 @@ export function CustomersManager({
           className="min-w-36"
           value={filters.source}
           onChange={(v) => setFilter("source", v)}
-          options={kindOptions("source")}
+          options={SOURCE_OPTIONS}
           placeholder={t("allSource")}
           ariaLabel={t("colSource")}
         />
@@ -712,7 +712,7 @@ function CustomerDialog({
           phone: editing?.phone ?? "",
           social_name: editing?.social_name ?? "",
           stage: editing?.stage ?? "new_lead",
-          source: editing?.source ?? "",
+          source: editing?.source ?? "instagrams",
           staff_id: editing?.staff_id ?? "",
           sales_id: editing?.sales_id ?? "",
           technician_id: editing?.technician_id ?? "",
@@ -738,11 +738,7 @@ function CustomerDialog({
           />
         </Form.Item>
         <Form.Item name="source" label={t("colSource")}>
-          <ClearableSelect
-            options={selectOptions("source", editing?.source)}
-            placeholder={t("noneOption")}
-            ariaLabel={t("colSource")}
-          />
+          <ClearableSelect clearable={false} options={SOURCE_OPTIONS} ariaLabel={t("colSource")} />
         </Form.Item>
         {stage === "lost" && (
           <Form.Item name="lost_reason" label={t("colLostReason")}>

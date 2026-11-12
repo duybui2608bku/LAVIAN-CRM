@@ -14,6 +14,8 @@ import {
 } from "@/app/lead-form/actions";
 import { EnumTag } from "@/components/common/enum-tag";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { SOURCE_OPTIONS } from "@/components/common/source-icon";
+import { leadSource } from "@/lib/customer-options";
 import { optionLabel } from "@/lib/customers";
 import { normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
@@ -43,16 +45,17 @@ type Values = {
   phone: string;
   staff_id: string;
   stage: string;
-  source?: string; // không mặc định — người dùng bắt buộc chọn
+  source: string; // mặc định Instagram; hội thoại WhatsApp → tự chọn WhatsApp
   note: string;
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
 
-const DEFAULTS: Omit<Values, "source"> = {
+const DEFAULTS: Values = {
   full_name: "",
   phone: "",
   staff_id: "",
   stage: "new_lead",
+  source: "instagrams",
   note: "",
   website: "",
 };
@@ -62,11 +65,9 @@ const DEFAULTS: Omit<Values, "source"> = {
 export function LeadForm({
   staff,
   stages,
-  sources,
 }: {
   staff: { id: string; user_name: string }[];
   stages: EnumOption[];
-  sources: EnumOption[];
 }) {
   const t = useTranslations("leadForm");
   const locale = useLocale();
@@ -135,6 +136,9 @@ export function LeadForm({
           });
       }
 
+      // Lần đầu / đổi khách: nguồn theo hội thoại — WhatsApp thì WA, còn lại IG.
+      if (id !== prev) form.setFieldValue("source", leadSource(meta.thread?.link));
+
       if (prev === null) {
         if (c.name && !form.getFieldValue("full_name")) {
           form.setFieldValue("full_name", String(c.name));
@@ -167,7 +171,6 @@ export function LeadForm({
         {
           ...values,
           customer_id: customerId,
-          source: values.source ?? "",
           ...smaxMeta,
         },
         mode,
@@ -231,17 +234,8 @@ export function LeadForm({
           />
         </Form.Item>
       )}
-      <Form.Item
-        name="source"
-        label={t("source")}
-        rules={[{ required: true, message: t("sourceRequired") }]}
-      >
-        <ClearableSelect
-          clearable={false}
-          placeholder={t("sourcePlaceholder")}
-          options={sources.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }))}
-          ariaLabel={t("source")}
-        />
+      <Form.Item name="source" label={t("source")}>
+        <ClearableSelect clearable={false} options={SOURCE_OPTIONS} ariaLabel={t("source")} />
       </Form.Item>
       {stages.length > 0 && (
         <Form.Item name="stage" label={t("stage")}>
