@@ -94,7 +94,7 @@ export function AppShell({
     items.map(({ key, href, icon: Icon }) => ({
       key: href,
       icon: <Icon className="size-4" />,
-      label: <Link href={href}>{t(`nav.${key}`)}</Link>,
+      label: <Link href={href} prefetch={false}>{t(`nav.${key}`)}</Link>,
     }));
 
   const menuItems = (compact: boolean): MenuProps["items"] => {
@@ -128,7 +128,7 @@ export function AppShell({
         className="sticky! top-0 h-svh border-r border-border max-md:hidden!"
       >
         <div className="flex h-full flex-col">
-          <Link href="/customers" className="flex h-14 shrink-0 items-center gap-2.5 px-4">
+          <Link href="/customers" prefetch={false} className="flex h-14 shrink-0 items-center gap-2.5 px-4">
             {logo}
             {!collapsed && brand}
           </Link>
@@ -161,7 +161,7 @@ export function AppShell({
         {/* Điện thoại: thanh trên kiểu app — logo + tên, avatar mở Menu. */}
         <header className="sticky top-0 z-30 border-b border-border bg-card/90 pt-[env(safe-area-inset-top)] backdrop-blur md:hidden">
           <div className="flex h-13 items-center gap-2.5 px-4">
-            <Link href="/customers" className="flex min-w-0 items-center gap-2.5">
+            <Link href="/customers" prefetch={false} className="flex min-w-0 items-center gap-2.5">
               {logo}
               {brand}
             </Link>
@@ -248,7 +248,7 @@ function BottomTabs({
         {items.map(({ key, href, icon }) => {
           const active = !menuActive && pathname.startsWith(href);
           return (
-            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={cls(active)}>
+            <Link key={href} href={href} prefetch={false} aria-current={active ? "page" : undefined} className={cls(active)}>
               {tab(active, icon, t(key))}
             </Link>
           );
@@ -314,6 +314,7 @@ function MenuSheet({
                   <Link
                     key={href}
                     href={href}
+                    prefetch={false}
                     onClick={onClose}
                     className={cn(
                       "flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-xs font-medium transition-colors active:bg-muted",
