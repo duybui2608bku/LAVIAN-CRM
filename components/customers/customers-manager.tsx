@@ -292,6 +292,23 @@ export function CustomersManager({
       },
     },
     {
+      title: t("colInstagram"),
+      key: "instagram_username",
+      width: 160,
+      render: (_, c) =>
+        c.instagram_username ? (
+          <a
+            href={`https://www.instagram.com/${c.instagram_username}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {c.instagram_username}
+          </a>
+        ) : (
+          DASH
+        ),
+    },
+    {
       title: t("colServices"),
       dataIndex: "service_ids",
       width: 200,

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CustomersManager } from "@/components/customers/customers-manager";
 import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
 import type { Customer, EnumOption } from "@/types/customer";
-import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
+import { CUSTOMER_OPTIONS, instagramUsername } from "@/lib/customer-options";
 import type { Service } from "@/types/service";
 
 // Mọi user đăng nhập đều xem được (RLS customers cho authenticated). Proxy đã gác login.
@@ -40,11 +40,11 @@ export default async function CustomersPage() {
 
   type Row = Customer & { customer_services: { service_id: string }[] | null };
   const customers = (((customersRes.data as Row[]) ?? []).map(
-    // smax_data (payload SMAX to) không gửi xuống client.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // smax_data (payload SMAX to) không gửi xuống client — chỉ rút username IG.
     ({ customer_services, smax_data, ...c }) => ({
       ...c,
       service_ids: (customer_services ?? []).map((r) => r.service_id),
+      instagram_username: instagramUsername(smax_data),
     }),
   ) as Customer[]);
 

@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Cột Instagram (username) ở trang Khách hàng
+- **Thay đổi:** `/customers` thêm cột "Instagram" sau "Số WA": hiện `smax_data.customer.instagram.username`, bấm mở `https://www.instagram.com/<username>` tab mới; không có → "—". Page server rút username bằng `instagramUsername()` (`lib/customer-options.ts`, chỉ nhận `[A-Za-z0-9._]{1,30}`) rồi vẫn bỏ `smax_data` trước khi gửi client. `Customer.instagram_username?` là field dẫn xuất, không phải cột DB.
+- **File ảnh hưởng:** `app/(app)/customers/page.tsx`, `types/customer.ts`, `lib/customer-options{,.test}.ts`, `components/customers/customers-manager.tsx`, `messages/{vi,en}.json` (`customers.colInstagram`), `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch, chưa xem trên trình duyệt. Hiện 7/42 khách có username (khách tạo trước khi lưu `smax_data` hoặc khách WA sẽ hiện "—"). Không cần migration.
+
 ### 2026-11-12 — Cột "Ngày tạo" thành tag màu theo độ mới
 - **Thay đổi:** `/customers` cột Ngày tạo hiện tag `DD-MM` (tooltip `DD-MM-YYYY`), màu theo số ngày từ ngày tạo tới hôm nay (`createdAgeBucket` trong `lib/customers.ts`, tính theo ngày lịch giờ máy): hôm nay = green, ≤3 ngày = cyan, ≤7 = blue, ≤14 = purple, cũ hơn (≥15 ngày, gồm 1 tháng trở đi) = default xám.
 - **File ảnh hưởng:** `lib/customers.ts`, `lib/customers.test.ts`, `components/customers/customers-manager.tsx`, `memory-bank/README.md`.

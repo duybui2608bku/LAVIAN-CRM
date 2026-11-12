@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CUSTOMER_OPTIONS, leadSource } from "./customer-options.ts";
+import { CUSTOMER_OPTIONS, instagramUsername, leadSource } from "./customer-options.ts";
 import { isLocale, locales } from "../i18n/config.ts";
 
 test("fixed stages and sources match the requested values", () => {
@@ -14,6 +14,13 @@ test("source: WA thread → whatsapp, otherwise instagrams", () => {
   assert.equal(leadSource("https://smax.ai/chats/waw84901234567?tid=1"), "whatsapp");
   assert.equal(leadSource("https://smax.ai/chats/ig123?tid=1"), "instagrams");
   assert.equal(leadSource(null), "instagrams");
+});
+
+test("instagram username from SMAX payload", () => {
+  assert.equal(instagramUsername({ customer: { instagram: { username: "ariana.s_1" } } }), "ariana.s_1");
+  assert.equal(instagramUsername({ customer: { instagram: { username: "x/../y" } } }), null);
+  assert.equal(instagramUsername({ customer: {} }), null);
+  assert.equal(instagramUsername(null), null);
 });
 
 test("only Vietnamese and English are selectable", () => {

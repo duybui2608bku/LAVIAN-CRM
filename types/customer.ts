@@ -66,6 +66,8 @@ export interface Customer {
   thread: SmaxThread | null;
   /** Nguyên `data` event SMAX lúc gửi form — chỉ có ở DB, /customers không nạp. */
   smax_data?: Record<string, unknown> | null;
+  /** Rút từ smax_data.customer.instagram.username lúc nạp /customers (không phải cột DB). */
+  instagram_username?: string | null;
   source: string | null;
   stage: string;
   lost_reason: string | null;

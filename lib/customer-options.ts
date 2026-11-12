@@ -17,6 +17,13 @@ export function leadSource(threadLink: string | null | undefined): "whatsapp" | 
   return threadLink && /\/chats\/waw\d/.test(threadLink) ? "whatsapp" : "instagrams";
 }
 
+/** Username IG từ payload SMAX (`customer.instagram.username`); chỉ nhận ký tự hợp lệ của IG. */
+export function instagramUsername(smaxData: unknown): string | null {
+  const u = (smaxData as { customer?: { instagram?: { username?: unknown } } } | null)
+    ?.customer?.instagram?.username;
+  return typeof u === "string" && /^[A-Za-z0-9._]{1,30}$/.test(u) ? u : null;
+}
+
 export const CUSTOMER_OPTIONS: EnumOption[] = definitions.map(
   ([kind, value, label_vi, label_en, color], sort_order) => ({
     id: `${kind}-${value}`, kind, value, label_vi, label_en,
