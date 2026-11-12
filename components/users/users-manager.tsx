@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Avatar, Button, Form, Input, Modal, Tag, type TableProps } from "antd";
+import { Avatar, Button, Form, Input, Modal, Tag, Tooltip, Upload, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
-import { Ban, KeyRound, Search, ShieldCheck, User, UserPlus } from "lucide-react";
+import { Ban, Camera, KeyRound, Loader2, Search, ShieldCheck, User, UserPlus } from "lucide-react";
 
 import {
   createUser,
   resetPassword,
+  setUserAvatar,
   setUserDepartment,
   setUserStatus,
 } from "@/app/(app)/users/actions";
@@ -17,8 +18,9 @@ import { DataTable } from "@/components/common/data-table";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { InlineSelect } from "@/components/common/inline-select";
 import { RowActions } from "@/components/common/row-actions";
-import { ImageUpload } from "@/components/common/image-upload";
+import { ImageUpload, uploadImage } from "@/components/common/image-upload";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
+import { normalizeError } from "@/lib/errors";
 import { toast } from "@/lib/toast";
 import type { Profile, UserDepartment } from "@/types/user";
 
@@ -40,11 +42,11 @@ export function UsersManager({
   const [resetTarget, setResetTarget] = useState<Profile | null>(null);
   const [, start] = useTransition();
   const confirm = useConfirm();
-  // Đổi phòng ban hiện ngay; server trả về thì React tự đồng bộ (lỗi → quay lại).
+  // Đổi phòng ban/avatar hiện ngay; server trả về thì React tự đồng bộ (lỗi → quay lại).
   const [rows, patchRow] = useOptimistic(
     profiles,
-    (state: Profile[], p: { id: string; department: UserDepartment | null }) =>
-      state.map((r) => (r.id === p.id ? { ...r, department: p.department } : r)),
+    (state: Profile[], p: Pick<Profile, "id"> & Partial<Profile>) =>
+      state.map((r) => (r.id === p.id ? { ...r, ...p } : r)),
   );
 
   const filtered = useMemo(() => {
@@ -78,6 +80,17 @@ export function UsersManager({
       toast.success(t("departmentOk"));
     });
 
+  const changeAvatar = (p: Profile, avatar_url: string) =>
+    start(async () => {
+      patchRow({ id: p.id, avatar_url });
+      const res = await setUserAvatar(p.id, avatar_url);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(t("avatarOk"));
+    });
+
   const toggleBan = async (p: Profile) => {
     const next = p.status === "banned" ? "active" : "banned";
     const res = await setUserStatus(p.id, next);
@@ -94,13 +107,10 @@ export function UsersManager({
       dataIndex: "user_name",
       render: (v: string, p) => (
         <span className="flex items-center gap-2">
-          {/* Không có ảnh → icon người thay vì ảnh mặc định. */}
-          <Avatar
-            size={28}
-            src={p.avatar_url || undefined}
-            icon={<User className="size-4" />}
-            className="shrink-0"
-            alt=""
+          <EditableAvatar
+            src={p.avatar_url}
+            hint={t("changeAvatar")}
+            onUploaded={(url) => changeAvatar(p, url)}
           />
           <span className="truncate font-medium">{v || "—"}</span>
         </span>
@@ -229,6 +239,58 @@ export function UsersManager({
         onClose={() => setResetTarget(null)}
       />
     </Page>
+  );
+}
+
+/** Avatar bấm được: chọn ảnh → upload → onUploaded(url). */
+function EditableAvatar({
+  src,
+  hint,
+  onUploaded,
+}: {
+  src: string | null;
+  hint: string;
+  onUploaded: (url: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const onFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) return toast.error("Vui lòng chọn tệp ảnh.");
+    if (file.size > 10 * 1024 * 1024) return toast.error("Ảnh vượt quá 10MB.");
+    setBusy(true);
+    try {
+      onUploaded(await uploadImage(file));
+    } catch (err) {
+      toast.error(normalizeError(err).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Tooltip title={hint}>
+      <Upload
+        accept="image/*"
+        showUploadList={false}
+        disabled={busy}
+        beforeUpload={(file) => {
+          void onFile(file);
+          return false; // tự upload, không để antd POST
+        }}
+      >
+        <span aria-label={hint} className="group relative flex shrink-0 cursor-pointer rounded-full">
+          {/* Không có ảnh → icon người thay vì ảnh mặc định. */}
+          <Avatar size={28} src={src || undefined} icon={<User className="size-4" />} alt="" />
+          <span
+            className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white transition-opacity ${
+              busy ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            }`}
+          >
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Camera className="size-3.5" />}
+          </span>
+        </span>
+      </Upload>
+    </Tooltip>
   );
 }
 

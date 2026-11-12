@@ -197,6 +197,8 @@
     "dept_technician": "Kỹ Thuật Viên",
     "dept_sales": "Sales",
     "departmentOk": "Đã cập nhật bộ phận",
+    "avatarOk": "Đã cập nhật ảnh đại diện",
+    "changeAvatar": "Bấm để đổi ảnh đại diện",
     "clearDepartment": "Bỏ bộ phận",
     "colStatus": "Trạng thái",
     "colCreated": "Ngày tạo",
