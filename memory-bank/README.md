@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Lead form: ngày giờ + CSKH 1 hàng, lịch sử lịch hẹn, dán ảnh Payment confirm
+- **Thay đổi:** Tab Appointment: Ngày giờ + CSKH chung 1 hàng (`grid-cols-2`, `AppointmentDate` thêm prop `className`); dưới form có **Lịch sử lịch hẹn** (action public `listLeadAppointments(smaxCustomerId)` — embed `customers!inner` lọc theo `smax_customer_id` + `profiles!staff_id`, mới nhất trước, tối đa 50; tạo lịch xong tự tải lại). Page lead-form tải cả dịch vụ đã tắt (select chỉ hiện dịch vụ đang bật; lịch sử hiện đúng tên). `ImageUpload` bỏ antd `Upload`, dùng `<input type=file>` ẩn + prop mới `paste`: **click 1 lần = chọn ô (viền primary) rồi Ctrl+V dán ảnh, double-click = mở chọn file**; mặc định (avatar) vẫn click 1 lần mở file. Bật `paste` ở Payment confirm (drawer `/customers` + lead form). i18n `leadForm.history/historyEmpty`, đổi chữ `uploadImage` (en/vi).
+- **File ảnh hưởng:** `components/common/image-upload.tsx`, `components/appointments/appointment-date.tsx`, `components/lead-form/{lead-form,lead-appointment-form}.tsx`, `app/lead-form/{actions.ts,page.tsx}`, `components/customers/customers-manager.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch; query lịch sử đã thử thật trên Lavian (chỉ đọc). Chưa xem trên trình duyệt. Action public lộ lịch sử lịch hẹn theo `smax_customer_id` (cùng mức các action lead-form khác).
+
 ### 2026-11-12 — Payment confirm (1 ảnh) cho khách hàng
 - **Thay đổi:** Cột mới `customers.payment_confirm_url` (URL ảnh, null = chưa có). `/customers`: drawer tạo/sửa thêm ô `ImageUpload` "Xác nhận thanh toán" (cuối form), `clean()` ghi cột, page select thêm cột. Form SMAX (tab Customer info): ô ảnh trước Ghi chú; khách đã có → fill ảnh hiện tại (nếu ô chưa chạm), đổi khách → reset; Submit/Update ghi URL (null = xoá, URL hỏng → bỏ qua không đụng giá trị cũ). Upload qua `/api/upload` có sẵn. i18n `customers.paymentConfirm/uploadImage`, `leadForm.paymentConfirm/uploadImage` (en/vi). OpenSpec: `openspec/changes/customer-payment-confirm`.
 - **Migration:** `20261112150000_customer_payment_confirm.sql` — **phải chạy TRƯỚC khi deploy code** (page `/customers` + lead form select cột mới, thiếu cột là lỗi).

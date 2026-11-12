@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Spin, Upload } from "antd";
+import { useRef, useState } from "react";
+import { Button, Spin } from "antd";
 import { ImagePlus, X } from "lucide-react";
 
 import { normalizeError } from "@/lib/errors";
@@ -37,9 +37,14 @@ export interface ImageUploadProps {
   className?: string;
   /** Nhãn hiển thị khi chưa có ảnh. */
   label?: string;
+  /**
+   * Chế độ dán ảnh: click 1 lần = chọn ô (focus) rồi Ctrl+V để dán ảnh từ clipboard,
+   * double-click = mở hộp chọn file. Mặc định (false): click 1 lần mở hộp chọn file.
+   */
+  paste?: boolean;
 }
 
-/** Ô vuông upload 1 ảnh (antd Upload, tự gửi file — không dùng action mặc định). */
+/** Ô vuông upload 1 ảnh: chọn file, hoặc dán từ clipboard khi bật `paste`. */
 export function ImageUpload({
   value,
   onChange,
@@ -47,8 +52,11 @@ export function ImageUpload({
   disabled,
   className,
   label = "Tải ảnh lên",
+  paste = false,
 }: ImageUploadProps) {
   const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const locked = disabled || busy;
 
   const onFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -69,55 +77,90 @@ export function ImageUpload({
     }
   };
 
+  const pick = () => {
+    if (!locked) inputRef.current?.click();
+  };
+
+  const onPaste = (e: React.ClipboardEvent) => {
+    if (locked) return;
+    const file = Array.from(e.clipboardData.files).find((f) => f.type.startsWith("image/"));
+    if (!file) return;
+    e.preventDefault();
+    void onFile(file);
+  };
+
   const remove = (e: React.MouseEvent) => {
-    e.stopPropagation(); // chặn mở lại file picker
+    e.stopPropagation();
     if (!value || busy) return;
     void removeImage(value); // best-effort dọn ảnh Supabase cũ (URL ngoài bucket tự bỏ qua)
     onChange?.(null);
   };
 
   return (
-    <Upload
-      accept="image/*"
-      showUploadList={false}
-      disabled={disabled || busy}
-      beforeUpload={(file) => {
-        void onFile(file);
-        return false; // tự upload, không để antd POST
-      }}
-    >
-      <Spin spinning={busy}>
-        <div
-          className={cn(
-            "group relative flex aspect-square w-32 items-center justify-center overflow-hidden rounded border border-dashed border-border bg-muted/40 text-muted-foreground transition-colors",
-            !disabled && "cursor-pointer hover:border-primary hover:text-primary",
-            disabled && "cursor-not-allowed opacity-60",
-            className,
-          )}
-        >
-          {value ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={value} alt="" className="size-full object-cover" />
-              {!disabled && (
-                <Button
-                  size="small"
-                  shape="circle"
-                  aria-label="Xóa ảnh"
-                  icon={<X className="size-3.5" />}
-                  onClick={remove}
-                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                />
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center gap-1 px-2 text-center">
-              <ImagePlus className="size-6" />
-              <span className="text-xs">{label}</span>
-            </div>
-          )}
-        </div>
-      </Spin>
-    </Upload>
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = ""; // chọn lại đúng file cũ vẫn kích hoạt onChange
+          if (file) void onFile(file);
+        }}
+      />
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-label={label}
+        aria-disabled={disabled}
+        onClick={paste ? undefined : pick}
+        onDoubleClick={paste ? pick : undefined}
+        onPaste={paste ? onPaste : undefined}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            pick();
+          }
+        }}
+        className={cn(
+          "group relative flex aspect-square w-32 items-center justify-center overflow-hidden rounded border border-dashed border-border bg-muted/40 text-muted-foreground outline-none transition-colors",
+          !disabled && "cursor-pointer hover:border-primary hover:text-primary",
+          // Chế độ dán: ô đang chọn viền liền + màu primary để biết Ctrl+V sẽ vào đây.
+          !disabled && "focus-visible:border-primary",
+          paste && !disabled && "focus:border-solid focus:border-primary focus:text-primary",
+          disabled && "cursor-not-allowed opacity-60",
+          className,
+        )}
+      >
+        {busy && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+            <Spin />
+          </div>
+        )}
+        {value ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={value} alt="" className="size-full object-cover" draggable={false} />
+            {!disabled && (
+              <Button
+                size="small"
+                shape="circle"
+                aria-label="Xóa ảnh"
+                icon={<X className="size-3.5" />}
+                onClick={remove}
+                onDoubleClick={(e) => e.stopPropagation()}
+                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+              />
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-1 px-2 text-center">
+            <ImagePlus className="size-6" />
+            <span className="text-xs">{label}</span>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

@@ -246,3 +246,54 @@ export async function createLeadAppointment(
     return { error: normalizeError(e).message };
   }
 }
+
+export type LeadAppointment = {
+  id: string;
+  scheduled_at: string;
+  checked_in: boolean;
+  service_ids: string[];
+  staff_name: string;
+  staff_avatar: string | null;
+  note: string;
+};
+
+// Lịch sử lịch hẹn của khách đang mở trong SMAX (mới nhất trước) — hiện dưới tab Appointment.
+export async function listLeadAppointments(
+  smaxCustomerId: string,
+): Promise<LeadAppointment[]> {
+  const id = z.string().trim().min(1).max(200).safeParse(smaxCustomerId);
+  if (!id.success) return [];
+
+  const { data, error } = await createAdminClient()
+    .from("clinic_appointments")
+    .select(
+      "id, scheduled_at, checked_in, service_ids, note, " +
+        "customer:customers!inner(smax_customer_id), staff:profiles!staff_id(user_name, avatar_url)",
+    )
+    .eq("customer.smax_customer_id", id.data)
+    .is("customer.deleted_at", null)
+    .is("deleted_at", null)
+    .order("scheduled_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const r = row as unknown as {
+      id: string;
+      scheduled_at: string;
+      checked_in: boolean;
+      service_ids: string[] | null;
+      note: string | null;
+      staff: { user_name: string; avatar_url: string | null } | null;
+    };
+    return {
+      id: r.id,
+      scheduled_at: r.scheduled_at,
+      checked_in: r.checked_in,
+      service_ids: r.service_ids ?? [],
+      staff_name: r.staff?.user_name ?? "",
+      staff_avatar: r.staff?.avatar_url ?? null,
+      note: r.note ?? "",
+    };
+  });
+}
