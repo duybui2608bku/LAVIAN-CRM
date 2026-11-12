@@ -69,8 +69,6 @@ type Filters = {
   stage: string;
   source: string;
   staffId: string;
-  salesId: string;
-  technicianId: string;
   serviceId: string;
   from: string;
   to: string;
@@ -81,8 +79,6 @@ const EMPTY_FILTERS: Filters = {
   stage: "",
   source: "",
   staffId: "",
-  salesId: "",
-  technicianId: "",
   serviceId: "",
   from: "",
   to: "",
@@ -300,9 +296,8 @@ export function CustomersManager({
     },
     ...(
       [
+        // Sales, Kỹ thuật viên: ẩn khỏi trang (dữ liệu vẫn giữ; KTV tự điền khi nhận tour).
         ["staff_id", "colStaff", "customer_care"],
-        ["sales_id", "colSales", "sales"],
-        ["technician_id", "colTechnician", "technician"],
       ] as const
     ).map(([field, label, dept]) => ({
       title: t(label),
@@ -378,7 +373,7 @@ export function CustomersManager({
   const editing = target && target !== "new" ? target : null;
   // Số lọc đang bật (khoảng ngày tính 1) — lọc phụ hiện badge trên nút "Bộ lọc".
   const extraCount =
-    [filters.staffId, filters.salesId, filters.technicianId, filters.serviceId].filter(Boolean)
+    [filters.staffId, filters.serviceId].filter(Boolean)
       .length + (filters.from || filters.to ? 1 : 0);
   const activeCount =
     extraCount + [filters.search, filters.stage, filters.source].filter(Boolean).length;
@@ -448,8 +443,6 @@ export function CustomersManager({
               {(
                 [
                   ["staffId", "allStaff", "colStaff", deptOptions(staff, "customer_care")],
-                  ["salesId", "allSales", "colSales", deptOptions(staff, "sales")],
-                  ["technicianId", "allTechnician", "colTechnician", deptOptions(staff, "technician")],
                   ["serviceId", "allServices", "colServices", serviceOptions()],
                 ] as const
               ).map(([key, placeholder, label, opts]) => (
@@ -615,8 +608,6 @@ type Values = {
   social_name?: string;
   stage: string;
   staff_id?: string;
-  sales_id?: string;
-  technician_id?: string;
   lost_reason?: string;
   first_contact?: string;
   service_ids?: string[];
@@ -664,8 +655,9 @@ function CustomerDialog({
         stage: v.stage,
         lost_reason: v.lost_reason || null,
         staff_id: v.staff_id || null,
-        sales_id: v.sales_id || null,
-        technician_id: v.technician_id || null,
+        // Sales/KTV đã ẩn khỏi form → giữ nguyên giá trị đang có.
+        sales_id: editing?.sales_id ?? null,
+        technician_id: editing?.technician_id ?? null,
         first_contact: v.first_contact || null,
         service_ids: v.service_ids ?? [],
       };
@@ -703,8 +695,6 @@ function CustomerDialog({
           social_name: editing?.social_name ?? "",
           stage: editing?.stage ?? "new_lead",
           staff_id: editing?.staff_id ?? "",
-          sales_id: editing?.sales_id ?? "",
-          technician_id: editing?.technician_id ?? "",
           lost_reason: editing?.lost_reason ?? "",
           first_contact: editing?.first_contact?.slice(0, 10) ?? "",
           service_ids: editing?.service_ids ?? [],
@@ -740,20 +730,6 @@ function CustomerDialog({
             options={deptOptions(staff, "customer_care", editing?.staff_id)}
             placeholder={t("noneOption")}
             ariaLabel={t("colStaff")}
-          />
-        </Form.Item>
-        <Form.Item name="sales_id" label={t("colSales")}>
-          <ClearableSelect
-            options={deptOptions(staff, "sales", editing?.sales_id)}
-            placeholder={t("noneOption")}
-            ariaLabel={t("colSales")}
-          />
-        </Form.Item>
-        <Form.Item name="technician_id" label={t("colTechnician")}>
-          <ClearableSelect
-            options={deptOptions(staff, "technician", editing?.technician_id)}
-            placeholder={t("noneOption")}
-            ariaLabel={t("colTechnician")}
           />
         </Form.Item>
         <Form.Item name="first_contact" label={t("colFirstContact")}>

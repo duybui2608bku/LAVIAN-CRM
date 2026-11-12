@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Ẩn Sales, Kỹ thuật viên ở trang Khách hàng
+- **Thay đổi:** `/customers` bỏ cột Sales + Kỹ thuật viên, bỏ 2 bộ lọc tương ứng (popover lọc thêm), bỏ 2 ô trong drawer thêm/sửa. Chỉ ẩn UI — cột DB `sales_id`/`technician_id` giữ nguyên; drawer gửi lại `editing.sales_id/technician_id` để sửa khách không xoá dữ liệu cũ. KTV vẫn tự điền qua trigger khi nhận tour.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch, chưa xem trên trình duyệt. Muốn hiện lại: thêm lại entry trong mảng cột / bộ lọc / Form.Item.
+
 ### 2026-11-12 — Người phụ trách lịch hẹn / tour lấy theo khách hàng
 - **Bối cảnh:** Staff/Sales/Technician ở `customers`, `clinic_appointments.staff_id`, `tours.technician_id` lưu riêng, không đồng bộ. User chọn "lấy theo khách hàng".
 - **Thay đổi:** Tạo lịch hẹn: chọn khách → ô CSKH tự điền `customers.staff_id` (vẫn đổi được); server `createAppointment` fallback CSKH của khách nếu để trống. `AppointmentCustomer` thêm `staff_id?`, page `/appointments` select thêm `staff_id`. Tour: trigger `tours_fill_customer_technician` (security definer) — KTV nhận/được gán tour → điền `customers.technician_id` nếu khách chưa có KTV; backfill dữ liệu cũ.
