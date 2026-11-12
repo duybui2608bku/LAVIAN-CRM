@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Cột "Ngày tạo" thành tag màu theo độ mới
+- **Thay đổi:** `/customers` cột Ngày tạo hiện tag `DD-MM` (tooltip `DD-MM-YYYY`), màu theo số ngày từ ngày tạo tới hôm nay (`createdAgeBucket` trong `lib/customers.ts`, tính theo ngày lịch giờ máy): hôm nay = green, ≤3 ngày = cyan, ≤7 = blue, ≤14 = purple, cũ hơn (≥15 ngày, gồm 1 tháng trở đi) = default xám.
+- **File ảnh hưởng:** `lib/customers.ts`, `lib/customers.test.ts`, `components/customers/customers-manager.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch, chưa xem trên trình duyệt. **PR #28 đã merge lúc 02:04 12-11 nhưng chỉ tới commit "nút đầu trang sang trái"** — 6 commit sau (nguồn chỉ xem, phụ trách theo khách, ẩn Sales/KTV, format SĐT, bộ lọc thẳng) + commit này CHƯA vào `main`, cần PR mới.
+
 ### 2026-11-12 — /customers: bỏ popover "Bộ lọc", hiện thẳng bộ lọc
 - **Thay đổi:** Sau khi ẩn Sales/KTV chỉ còn CSKH, Dịch vụ, Khoảng ngày → đưa ra thẳng thanh lọc (cạnh Tìm, Giai đoạn, Nguồn), bỏ nút "Bộ lọc" + popover + badge. Nút "Xoá bộ lọc" đếm mọi lọc đang bật. Bỏ import `Popover`, `ListFilter`.
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `memory-bank/README.md`.

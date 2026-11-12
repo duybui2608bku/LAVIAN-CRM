@@ -43,7 +43,7 @@ import { RowActions } from "@/components/common/row-actions";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
+import { createdAgeBucket, matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
 import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
@@ -61,6 +61,10 @@ const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
     .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
 const DASH = <span className="text-muted-foreground">—</span>;
+
+// Màu tag Ngày tạo theo độ mới: hôm nay / ≤3 / ≤7 / ≤14 ngày / cũ hơn.
+const AGE_COLORS = ["green", "cyan", "blue", "purple", "default"] as const;
+const pad = (n: number) => String(n).padStart(2, "0");
 
 type Filters = {
   search: string;
@@ -224,9 +228,18 @@ export function CustomersManager({
     {
       title: t("colCreated"),
       dataIndex: "created_at",
-      render: (v: string) => (
-        <span className="text-muted-foreground">{new Date(v).toLocaleDateString()}</span>
-      ),
+      render: (v: string) => {
+        const d = new Date(v);
+        return (
+          <Tag
+            color={AGE_COLORS[createdAgeBucket(v)]}
+            title={`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`}
+            className="me-0 tabular-nums"
+          >
+            {`${pad(d.getDate())}-${pad(d.getMonth() + 1)}`}
+          </Tag>
+        );
+      },
     },
     {
       title: t("colName"),

@@ -32,6 +32,20 @@ export function matchesNameOrPhone(name: string, phone: string, query: string): 
   return qd.length >= 3 && digits(phone).includes(qd);
 }
 
+/**
+ * Nhóm "độ mới" theo số ngày (lịch, giờ máy) từ ngày tạo tới hôm nay:
+ * 0 = hôm nay, 1 = trong 3 ngày, 2 = trong 7 ngày, 3 = trong 14 ngày, 4 = cũ hơn.
+ */
+export function createdAgeBucket(createdAt: string, now: Date = new Date()): 0 | 1 | 2 | 3 | 4 {
+  const day = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000;
+  const age = day(now) - day(new Date(createdAt));
+  if (age <= 0) return 0;
+  if (age <= 3) return 1;
+  if (age <= 7) return 2;
+  if (age <= 14) return 3;
+  return 4;
+}
+
 export interface CustomerFilters {
   search?: string;
   stage?: string;
