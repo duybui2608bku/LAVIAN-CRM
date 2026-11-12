@@ -60,7 +60,7 @@ function buildTheme(dark: boolean, touch: boolean): ThemeConfig {
       borderRadiusSM: 6,
       borderRadiusLG: 12,
       fontSize: 14,
-      fontFamily: "var(--font-inter), system-ui, sans-serif",
+      fontFamily: "var(--font-system)",
       fontFamilyCode: "var(--font-geist-mono), monospace",
       // Cảm ứng: control 40px cho dễ chạm (antd tự suy ra padding/size).
       controlHeight: touch ? 40 : 34,

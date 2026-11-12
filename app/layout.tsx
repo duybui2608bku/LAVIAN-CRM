@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { cookies, headers } from "next/headers";
@@ -10,11 +10,6 @@ import "./globals.css";
 import type { Locale } from "@/i18n/config";
 import { THEME_BG, THEME_COOKIE, type UiHints } from "@/lib/ui-hints";
 import { Providers } from "./providers";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin", "vietnamese"],
-});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -65,7 +60,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <NextTopLoader color="var(--primary)" height={2} showSpinner={false} />
