@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { IDR_CURRENCY } from "@/lib/currency";
 import { CUSTOMER_OPTIONS, leadSource } from "@/lib/customer-options";
 import { formatPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
@@ -15,6 +16,8 @@ const schema = z.object({
   note: z.string().trim().max(1000),
   staff_id: z.uuid().or(z.literal("")),
   stage: z.string(),
+  // Tiền cọc (IDR, số nguyên) — chỉ lưu khi giai đoạn là "deposited".
+  deposit_amount: z.number().int().min(0).max(1e12).nullable().catch(null),
   website: z.string(),
   social_name: z.string().trim().max(200).catch(""),
   picture: z.string().trim().max(2000).catch(""),
@@ -53,6 +56,8 @@ export type LeadCustomer = {
   stage: string;
   staff_id: string;
   staff_name: string;
+  staff_avatar: string | null;
+  deposit_amount: number | null;
 };
 
 // Khách đã có trong CRM → trả giai đoạn + CSKH hiện tại để form fill sẵn,
@@ -65,18 +70,23 @@ export async function checkLeadCustomer(
 
   const { data, error } = await createAdminClient()
     .from("customers")
-    .select("stage, staff_id, staff:profiles!staff_id(user_name)")
+    .select("stage, staff_id, deposit_amount, staff:profiles!staff_id(user_name, avatar_url)")
     .eq("smax_customer_id", id.data)
     .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  // Quan hệ nhiều-1 nên PostgREST trả object (type suy ra mảng do client không typed).
+  const staff = data.staff as unknown as
+    | { user_name: string; avatar_url: string | null }
+    | null;
   return {
     stage: data.stage ?? "new_lead",
     staff_id: data.staff_id ?? "",
-    // Quan hệ nhiều-1 nên PostgREST trả object (type suy ra mảng do client không typed).
-    staff_name:
-      (data.staff as unknown as { user_name: string } | null)?.user_name ?? "",
+    staff_name: staff?.user_name ?? "",
+    staff_avatar: staff?.avatar_url ?? null,
+    // numeric về dạng string qua PostgREST.
+    deposit_amount: data.deposit_amount == null ? null : Number(data.deposit_amount),
   };
 }
 
@@ -104,6 +114,9 @@ export async function submitLead(
       return { error: "Khách hàng chưa tồn tại. Hãy dùng nút Submit." };
     }
 
+    const stage = CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === d.stage)
+      ? d.stage
+      : "new_lead";
     const customer = {
       full_name: d.full_name,
       phone: d.phone,
@@ -115,8 +128,12 @@ export async function submitLead(
       thread: d.thread,
       // Payload hỏng/thiếu → null: không ghi đè smax_data đang có khi cập nhật.
       ...(d.smax_data ? { smax_data: d.smax_data } : {}),
-      stage: CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === d.stage) ? d.stage : "new_lead",
+      stage,
       staff_id: d.staff_id || null,
+      // Chỉ ghi khi đang ở "deposited" và có nhập — còn lại giữ tiền cọc cũ trong CRM.
+      ...(stage === "deposited" && d.deposit_amount != null
+        ? { deposit_amount: d.deposit_amount, deposit_currency: IDR_CURRENCY }
+        : {}),
     };
 
     if (mode === "create") {
