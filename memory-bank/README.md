@@ -53,6 +53,12 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Người phụ trách lịch hẹn / tour lấy theo khách hàng
+- **Bối cảnh:** Staff/Sales/Technician ở `customers`, `clinic_appointments.staff_id`, `tours.technician_id` lưu riêng, không đồng bộ. User chọn "lấy theo khách hàng".
+- **Thay đổi:** Tạo lịch hẹn: chọn khách → ô CSKH tự điền `customers.staff_id` (vẫn đổi được); server `createAppointment` fallback CSKH của khách nếu để trống. `AppointmentCustomer` thêm `staff_id?`, page `/appointments` select thêm `staff_id`. Tour: trigger `tours_fill_customer_technician` (security definer) — KTV nhận/được gán tour → điền `customers.technician_id` nếu khách chưa có KTV; backfill dữ liệu cũ.
+- **File ảnh hưởng:** `types/appointment.ts`, `app/(app)/appointments/{page,actions}.ts(x)`, `components/appointments/appointments-manager.tsx`, `supabase/migrations/20261112090000_tour_technician_to_customer.sql`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch. **Migration `20261112090000` CHƯA chạy** (auto mode chặn apply lên production) — cần user chạy tay hoặc cho phép. Không đổi lịch hẹn cũ (giữ CSKH đã lưu).
+
 ### 2026-11-12 — Nguồn khách chỉ xem, không cho chọn
 - **Thay đổi:** Nguồn tự tính từ số WA, bỏ hết chỗ chọn: cột Nguồn ở `/customers` chỉ hiện `SourceIcon` (bỏ InlineSelect), drawer thêm/sửa khách bỏ ô Nguồn, lead form bỏ ô Nguồn. Server: `submitLead` ghi `source = leadSource(thread.link)`; `CustomerInput` bỏ `source`, `clean()`/`patchCustomer` không nhận source (tạo tay → default DB `'instagrams'`, sửa không đụng). Bộ lọc theo nguồn vẫn giữ.
 - **File ảnh hưởng:** `types/customer.ts`, `app/(app)/customers/actions.ts`, `app/lead-form/actions.ts`, `components/customers/customers-manager.tsx`, `components/lead-form/lead-form.tsx`, `memory-bank/README.md`.

@@ -158,6 +158,8 @@ function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, cu
   const locale = useLocale();
   const [form] = Form.useForm<CreateValues>();
   const [pending, start] = useTransition();
+  const staffId = Form.useWatch("staff_id", form);
+  const customerStaff = (id?: string) => customers.find((c) => c.id === id)?.staff_id ?? undefined;
 
   const onFinish = ({ customer_id, ...values }: CreateValues) => start(async () => {
     try {
@@ -170,7 +172,11 @@ function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, cu
   return <FormDrawer open={open} onClose={onClose} title={t("create")} submitText={t("create")}
     pending={pending} onSubmit={() => form.submit()}>
     <Form form={form} layout="vertical" requiredMark={false} disabled={pending} onFinish={onFinish}
-      initialValues={{ customer_id: initialCustomer || undefined, checked_in: false }}>
+      // Chọn khách → CSKH tự điền theo khách (vẫn đổi được).
+      onValuesChange={(changed: Partial<CreateValues>) => {
+        if ("customer_id" in changed) form.setFieldValue("staff_id", customerStaff(changed.customer_id));
+      }}
+      initialValues={{ customer_id: initialCustomer || undefined, staff_id: customerStaff(initialCustomer), checked_in: false }}>
       <Form.Item name="customer_id" label={t("name")} rules={[{ required: true, message: t("chooseCustomer") }]}>
         <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("chooseCustomer")}
           options={customers.map((c) => ({ value: c.id, label: `${c.full_name} · ${c.phone}` }))} />
@@ -187,7 +193,7 @@ function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, cu
       </Form.Item>
       <Form.Item name="staff_id" label={t("staff")}>
         <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("choose")}
-          options={staffOptions(staff)} />
+          options={staffOptions(staff, staffId)} />
       </Form.Item>
       <Form.Item name="note" label={t("note")} className="mb-0">
         <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />
