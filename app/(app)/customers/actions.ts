@@ -18,18 +18,17 @@ async function stampNote(text: string): Promise<CustomerNote> {
   return { text, at: new Date().toISOString(), by: profile?.user_name ?? null };
 }
 
+// Không gửi source: nguồn tự tính từ số WA (lead form), tạo tay → default DB 'instagrams'.
 // "" -> null; lost_reason chỉ giữ khi stage = 'lost'. KHÔNG đụng cột notes
 // (create dựa default '[]' của DB; note quản lý riêng qua addCustomerNote).
 function clean(input: CustomerInput) {
   const nz = (v?: string | null) => (v && v.trim() !== "" ? v.trim() : null);
-  if (!CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === input.stage) ||
-      (input.source && !CUSTOMER_OPTIONS.some((o) => o.kind === "source" && o.value === input.source)))
-    throw new Error("Giai đoạn hoặc nguồn không hợp lệ.");
+  if (!CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === input.stage))
+    throw new Error("Giai đoạn không hợp lệ.");
   return {
     full_name: input.full_name.trim(),
     phone: normalizePhone(input.phone),
     social_name: nz(input.social_name),
-    source: nz(input.source),
     stage: input.stage,
     lost_reason: input.stage === "lost" ? nz(input.lost_reason) : null,
     staff_id: nz(input.staff_id),
@@ -96,12 +95,11 @@ export async function updateCustomer(
   }
 }
 
-/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/source/staff_id/sales_id/technician_id/service_ids. */
+/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/staff_id/sales_id/technician_id/service_ids. */
 export async function patchCustomer(
   id: string,
   patch: {
     stage?: string;
-    source?: string | null;
     staff_id?: string | null;
     sales_id?: string | null;
     technician_id?: string | null;
@@ -109,18 +107,14 @@ export async function patchCustomer(
   },
 ): Promise<Result> {
   try {
-    for (const kind of ["stage", "source"] as const) {
-      const value = patch[kind];
-      if (value && !CUSTOMER_OPTIONS.some((o) => o.kind === kind && o.value === value))
-        throw new Error("Giai đoạn hoặc nguồn không hợp lệ.");
-    }
+    if (patch.stage && !CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === patch.stage))
+      throw new Error("Giai đoạn không hợp lệ.");
     const data: Record<string, string | null> = {};
     if (patch.stage !== undefined) {
       data.stage = patch.stage;
       // Đồng nhất với clean(): rời khỏi 'lost' thì xóa lý do.
       if (patch.stage !== "lost") data.lost_reason = null;
     }
-    if (patch.source !== undefined) data.source = patch.source || null;
     if (patch.staff_id !== undefined) data.staff_id = patch.staff_id || null;
     if (patch.sales_id !== undefined) data.sales_id = patch.sales_id || null;
     if (patch.technician_id !== undefined)

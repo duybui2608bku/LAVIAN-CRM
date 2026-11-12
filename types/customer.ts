@@ -45,7 +45,6 @@ export interface CustomerInput {
   full_name: string;
   phone: string;
   social_name?: string | null;
-  source?: string | null;
   stage: string;
   lost_reason?: string | null;
   staff_id?: string | null;

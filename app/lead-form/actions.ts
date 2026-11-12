@@ -16,7 +16,6 @@ const schema = z.object({
   staff_id: z.uuid().or(z.literal("")),
   stage: z.string(),
   website: z.string(),
-  source: z.string(),
   social_name: z.string().trim().max(200).catch(""),
   picture: z.string().trim().max(2000).catch(""),
   tags: z
@@ -72,9 +71,6 @@ export async function submitLead(
   if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
   const d = parsed.data;
   if (d.website) return {};
-  // Hội thoại WhatsApp → luôn WA; còn lại theo lựa chọn (mặc định IG).
-  const source =
-    leadSource(d.thread?.link) === "whatsapp" || d.source === "whatsapp" ? "whatsapp" : "instagrams";
   const notes: CustomerNote[] = d.note
     ? [{ text: d.note, at: new Date().toISOString(), by: "Form SMAX" }]
     : [];
@@ -95,7 +91,7 @@ export async function submitLead(
       full_name: d.full_name,
       phone: d.phone,
       smax_customer_id: d.customer_id || null,
-      source,
+      source: leadSource(d.thread?.link), // tự tính: hội thoại WA → WA, còn lại IG
       social_name: d.social_name || null,
       picture: d.picture || null,
       tags: d.tags,

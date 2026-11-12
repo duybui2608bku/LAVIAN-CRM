@@ -90,7 +90,6 @@ const EMPTY_FILTERS: Filters = {
 
 type Patch = {
   stage?: string;
-  source?: string | null;
   staff_id?: string | null;
   sales_id?: string | null;
   technician_id?: string | null;
@@ -273,15 +272,8 @@ export function CustomersManager({
       title: t("colSource"),
       dataIndex: "source",
       width: 80,
-      render: (_, c) => (
-        <InlineSelect
-          value={c.source ?? ""}
-          display={<SourceIcon source={c.source} />}
-          options={SOURCE_OPTIONS}
-          ariaLabel={t("colSource")}
-          onSave={(v) => patchField(c.id, { source: v })}
-        />
-      ),
+      // Chỉ xem — nguồn tự tính từ số WA của hội thoại (WA / còn lại IG).
+      render: (_, c) => <SourceIcon source={c.source} />,
     },
     {
       title: t("colWaNumber"),
@@ -622,7 +614,6 @@ type Values = {
   phone: string;
   social_name?: string;
   stage: string;
-  source?: string;
   staff_id?: string;
   sales_id?: string;
   technician_id?: string;
@@ -670,7 +661,6 @@ function CustomerDialog({
         full_name: v.full_name.trim(),
         phone: normalizePhone(v.phone),
         social_name: v.social_name || null,
-        source: v.source || null,
         stage: v.stage,
         lost_reason: v.lost_reason || null,
         staff_id: v.staff_id || null,
@@ -712,7 +702,6 @@ function CustomerDialog({
           phone: editing?.phone ?? "",
           social_name: editing?.social_name ?? "",
           stage: editing?.stage ?? "new_lead",
-          source: editing?.source ?? "instagrams",
           staff_id: editing?.staff_id ?? "",
           sales_id: editing?.sales_id ?? "",
           technician_id: editing?.technician_id ?? "",
@@ -736,9 +725,6 @@ function CustomerDialog({
             options={selectOptions("stage", editing?.stage)}
             ariaLabel={t("colStage")}
           />
-        </Form.Item>
-        <Form.Item name="source" label={t("colSource")}>
-          <ClearableSelect clearable={false} options={SOURCE_OPTIONS} ariaLabel={t("colSource")} />
         </Form.Item>
         {stage === "lost" && (
           <Form.Item name="lost_reason" label={t("colLostReason")}>

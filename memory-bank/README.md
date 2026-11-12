@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Nguồn khách chỉ xem, không cho chọn
+- **Thay đổi:** Nguồn tự tính từ số WA, bỏ hết chỗ chọn: cột Nguồn ở `/customers` chỉ hiện `SourceIcon` (bỏ InlineSelect), drawer thêm/sửa khách bỏ ô Nguồn, lead form bỏ ô Nguồn. Server: `submitLead` ghi `source = leadSource(thread.link)`; `CustomerInput` bỏ `source`, `clean()`/`patchCustomer` không nhận source (tạo tay → default DB `'instagrams'`, sửa không đụng). Bộ lọc theo nguồn vẫn giữ.
+- **File ảnh hưởng:** `types/customer.ts`, `app/(app)/customers/actions.ts`, `app/lead-form/actions.ts`, `components/customers/customers-manager.tsx`, `components/lead-form/lead-form.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch, chưa xem trên trình duyệt. Push thêm vào PR #28.
+
 ### 2026-11-12 — Nút thao tác đầu trang chuyển sang bên trái
 - **Thay đổi:** `PageHeader` bỏ `sm:justify-between`, thêm `sm:gap-4` → nhóm `actions` (vd. Làm mới, + Khách hàng mới) nằm ngay sau tiêu đề bên trái, áp dụng mọi trang (sếp yêu cầu). Mobile giữ nguyên (xếp dọc, nút full width).
 - **File ảnh hưởng:** `components/layout/page.tsx`, `memory-bank/README.md`.
