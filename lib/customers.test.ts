@@ -1,7 +1,7 @@
 // Self-check: `node --test lib/customers.test.ts` (Node ≥ 23).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { matchesCustomerFilters, optionLabel, serviceName } from "./customers.ts";
+import { createdAgeBucket, matchesCustomerFilters, matchesNameOrPhone, optionLabel, serviceName } from "./customers.ts";
 import type { Customer, EnumOption } from "../types/customer.ts";
 import type { Service } from "../types/service.ts";
 
@@ -116,4 +116,25 @@ test("serviceName theo locale, fallback vi", () => {
   assert.equal(serviceName(svc, "vi"), "Chăm sóc da");
   assert.equal(serviceName(svc, "en"), "Skin care");
   assert.equal(serviceName(svc, "id"), "Chăm sóc da");
+});
+
+test("tìm SĐT không phụ thuộc dấu '-' và đầu 62", () => {
+  const m = matchesNameOrPhone;
+  assert.equal(m("An", "0812-1214-1243", "081212"), true);
+  assert.equal(m("An", "0812-1214-1243", "+62 812 1214"), true);
+  assert.equal(m("An", "0812-1214-1243", "an"), true);
+  assert.equal(m("An", "0812-1214-1243", "0899"), false);
+});
+
+test("createdAgeBucket: hôm nay / ≤3 / ≤7 / ≤14 / cũ hơn", () => {
+  const now = new Date(2026, 10, 12, 9, 0);
+  const at = (d: number, h = 12) => new Date(2026, 10, d, h).toISOString();
+  assert.equal(createdAgeBucket(at(12, 0), now), 0);
+  assert.equal(createdAgeBucket(at(11, 23), now), 1);
+  assert.equal(createdAgeBucket(at(9), now), 1);
+  assert.equal(createdAgeBucket(at(8), now), 2);
+  assert.equal(createdAgeBucket(at(5), now), 2);
+  assert.equal(createdAgeBucket(at(4), now), 3);
+  assert.equal(createdAgeBucket(at(-2), now), 3); // 29-10 → 14 ngày
+  assert.equal(createdAgeBucket(at(-3), now), 4);
 });

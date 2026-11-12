@@ -54,12 +54,14 @@ export async function createAppointment(
     const db = await client();
     await validateReferences(db, patch);
     const { data: customer, error: customerError } = await db.from("customers")
-      .select("customer_services(service_id)").eq("id", customerId).is("deleted_at", null).single();
+      .select("staff_id, customer_services(service_id)").eq("id", customerId).is("deleted_at", null).single();
     if (customerError) throw customerError;
     // Không chọn dịch vụ → lấy dịch vụ đang gắn trên khách.
     const serviceIds = patch.service_ids ?? (customer.customer_services ?? []).map((s: { service_id: string }) => s.service_id);
     const { error } = await db.from("clinic_appointments").insert({
       customer_id: customerId, ...patch, service_ids: serviceIds,
+      // Không chọn CSKH → lấy CSKH đang phụ trách khách.
+      staff_id: patch.staff_id || customer.staff_id || null,
     });
     if (error) throw error;
     refresh();

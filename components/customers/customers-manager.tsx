@@ -8,7 +8,6 @@ import {
   Form,
   Input,
   Modal,
-  Popover,
   Tag,
   Tooltip,
   type TableProps,
@@ -16,7 +15,6 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import {
   Info,
-  ListFilter,
   Pencil,
   RefreshCw,
   Search,
@@ -45,8 +43,8 @@ import { RowActions } from "@/components/common/row-actions";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
-import { normalizePhone } from "@/lib/phone";
+import { createdAgeBucket, matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
+import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
@@ -64,13 +62,15 @@ const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
 
 const DASH = <span className="text-muted-foreground">—</span>;
 
+// Màu tag Ngày tạo theo độ mới: hôm nay / ≤3 / ≤7 / ≤14 ngày / cũ hơn.
+const AGE_COLORS = ["green", "cyan", "blue", "purple", "default"] as const;
+const pad = (n: number) => String(n).padStart(2, "0");
+
 type Filters = {
   search: string;
   stage: string;
   source: string;
   staffId: string;
-  salesId: string;
-  technicianId: string;
   serviceId: string;
   from: string;
   to: string;
@@ -81,8 +81,6 @@ const EMPTY_FILTERS: Filters = {
   stage: "",
   source: "",
   staffId: "",
-  salesId: "",
-  technicianId: "",
   serviceId: "",
   from: "",
   to: "",
@@ -90,7 +88,6 @@ const EMPTY_FILTERS: Filters = {
 
 type Patch = {
   stage?: string;
-  source?: string | null;
   staff_id?: string | null;
   sales_id?: string | null;
   technician_id?: string | null;
@@ -231,9 +228,18 @@ export function CustomersManager({
     {
       title: t("colCreated"),
       dataIndex: "created_at",
-      render: (v: string) => (
-        <span className="text-muted-foreground">{new Date(v).toLocaleDateString()}</span>
-      ),
+      render: (v: string) => {
+        const d = new Date(v);
+        return (
+          <Tag
+            color={AGE_COLORS[createdAgeBucket(v)]}
+            title={`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`}
+            className="me-0 tabular-nums"
+          >
+            {`${pad(d.getDate())}-${pad(d.getMonth() + 1)}`}
+          </Tag>
+        );
+      },
     },
     {
       title: t("colName"),
@@ -273,15 +279,8 @@ export function CustomersManager({
       title: t("colSource"),
       dataIndex: "source",
       width: 80,
-      render: (_, c) => (
-        <InlineSelect
-          value={c.source ?? ""}
-          display={<SourceIcon source={c.source} />}
-          options={SOURCE_OPTIONS}
-          ariaLabel={t("colSource")}
-          onSave={(v) => patchField(c.id, { source: v })}
-        />
-      ),
+      // Chỉ xem — nguồn tự tính từ số WA của hội thoại (WA / còn lại IG).
+      render: (_, c) => <SourceIcon source={c.source} />,
     },
     {
       title: t("colWaNumber"),
@@ -308,9 +307,8 @@ export function CustomersManager({
     },
     ...(
       [
+        // Sales, Kỹ thuật viên: ẩn khỏi trang (dữ liệu vẫn giữ; KTV tự điền khi nhận tour).
         ["staff_id", "colStaff", "customer_care"],
-        ["sales_id", "colSales", "sales"],
-        ["technician_id", "colTechnician", "technician"],
       ] as const
     ).map(([field, label, dept]) => ({
       title: t(label),
@@ -384,12 +382,10 @@ export function CustomersManager({
   ];
 
   const editing = target && target !== "new" ? target : null;
-  // Số lọc đang bật (khoảng ngày tính 1) — lọc phụ hiện badge trên nút "Bộ lọc".
-  const extraCount =
-    [filters.staffId, filters.salesId, filters.technicianId, filters.serviceId].filter(Boolean)
-      .length + (filters.from || filters.to ? 1 : 0);
+  // Số lọc đang bật (khoảng ngày tính 1) — có lọc thì hiện nút "Xoá bộ lọc".
   const activeCount =
-    extraCount + [filters.search, filters.stage, filters.source].filter(Boolean).length;
+    [filters.search, filters.stage, filters.source, filters.staffId, filters.serviceId].filter(Boolean)
+      .length + (filters.from || filters.to ? 1 : 0);
 
   return (
     <Page>
@@ -422,7 +418,7 @@ export function CustomersManager({
         to={filters.to}
       />
 
-      {/* Thanh lọc: tìm + 2 lọc chính; lọc phụ gom vào nút "Bộ lọc". */}
+      {/* Thanh lọc: hiện thẳng mọi bộ lọc (ít trường, không cần gom vào popover). */}
       <PageToolbar>
         <Input
           allowClear
@@ -448,45 +444,27 @@ export function CustomersManager({
           placeholder={t("allSource")}
           ariaLabel={t("colSource")}
         />
-        <Popover
-          trigger="click"
-          placement="bottomLeft"
-          content={
-            <div className="flex w-64 flex-col gap-2">
-              {(
-                [
-                  ["staffId", "allStaff", "colStaff", deptOptions(staff, "customer_care")],
-                  ["salesId", "allSales", "colSales", deptOptions(staff, "sales")],
-                  ["technicianId", "allTechnician", "colTechnician", deptOptions(staff, "technician")],
-                  ["serviceId", "allServices", "colServices", serviceOptions()],
-                ] as const
-              ).map(([key, placeholder, label, opts]) => (
-                <ClearableSelect
-                  key={key}
-                  value={filters[key]}
-                  onChange={(v) => setFilter(key, v)}
-                  options={opts}
-                  placeholder={t(placeholder)}
-                  ariaLabel={t(label)}
-                />
-              ))}
-              <DateRangePicker
-                from={filters.from}
-                to={filters.to}
-                onChange={(r) => setFilters((f) => ({ ...f, ...r }))}
-              />
-            </div>
-          }
-        >
-          <Button icon={<ListFilter className="size-4" />}>
-            {tc("filters")}
-            {extraCount > 0 && (
-              <span className="rounded-full bg-primary px-1.5 text-xs leading-5 text-primary-foreground tabular-nums">
-                {extraCount}
-              </span>
-            )}
-          </Button>
-        </Popover>
+        <ClearableSelect
+          className="min-w-36"
+          value={filters.staffId}
+          onChange={(v) => setFilter("staffId", v)}
+          options={deptOptions(staff, "customer_care")}
+          placeholder={t("allStaff")}
+          ariaLabel={t("colStaff")}
+        />
+        <ClearableSelect
+          className="min-w-40"
+          value={filters.serviceId}
+          onChange={(v) => setFilter("serviceId", v)}
+          options={serviceOptions()}
+          placeholder={t("allServices")}
+          ariaLabel={t("colServices")}
+        />
+        <DateRangePicker
+          from={filters.from}
+          to={filters.to}
+          onChange={(r) => setFilters((f) => ({ ...f, ...r }))}
+        />
         {activeCount > 0 && (
           <Button type="text" icon={<X className="size-4" />} onClick={() => setFilters(EMPTY_FILTERS)}>
             {tc("clearFilters")}
@@ -622,10 +600,7 @@ type Values = {
   phone: string;
   social_name?: string;
   stage: string;
-  source?: string;
   staff_id?: string;
-  sales_id?: string;
-  technician_id?: string;
   lost_reason?: string;
   first_contact?: string;
   service_ids?: string[];
@@ -668,14 +643,14 @@ function CustomerDialog({
     start(async () => {
       const input: CustomerInput = {
         full_name: v.full_name.trim(),
-        phone: normalizePhone(v.phone),
+        phone: formatPhone(v.phone),
         social_name: v.social_name || null,
-        source: v.source || null,
         stage: v.stage,
         lost_reason: v.lost_reason || null,
         staff_id: v.staff_id || null,
-        sales_id: v.sales_id || null,
-        technician_id: v.technician_id || null,
+        // Sales/KTV đã ẩn khỏi form → giữ nguyên giá trị đang có.
+        sales_id: editing?.sales_id ?? null,
+        technician_id: editing?.technician_id ?? null,
         first_contact: v.first_contact || null,
         service_ids: v.service_ids ?? [],
       };
@@ -712,10 +687,7 @@ function CustomerDialog({
           phone: editing?.phone ?? "",
           social_name: editing?.social_name ?? "",
           stage: editing?.stage ?? "new_lead",
-          source: editing?.source ?? "instagrams",
           staff_id: editing?.staff_id ?? "",
-          sales_id: editing?.sales_id ?? "",
-          technician_id: editing?.technician_id ?? "",
           lost_reason: editing?.lost_reason ?? "",
           first_contact: editing?.first_contact?.slice(0, 10) ?? "",
           service_ids: editing?.service_ids ?? [],
@@ -737,9 +709,6 @@ function CustomerDialog({
             ariaLabel={t("colStage")}
           />
         </Form.Item>
-        <Form.Item name="source" label={t("colSource")}>
-          <ClearableSelect clearable={false} options={SOURCE_OPTIONS} ariaLabel={t("colSource")} />
-        </Form.Item>
         {stage === "lost" && (
           <Form.Item name="lost_reason" label={t("colLostReason")}>
             <ClearableSelect
@@ -754,20 +723,6 @@ function CustomerDialog({
             options={deptOptions(staff, "customer_care", editing?.staff_id)}
             placeholder={t("noneOption")}
             ariaLabel={t("colStaff")}
-          />
-        </Form.Item>
-        <Form.Item name="sales_id" label={t("colSales")}>
-          <ClearableSelect
-            options={deptOptions(staff, "sales", editing?.sales_id)}
-            placeholder={t("noneOption")}
-            ariaLabel={t("colSales")}
-          />
-        </Form.Item>
-        <Form.Item name="technician_id" label={t("colTechnician")}>
-          <ClearableSelect
-            options={deptOptions(staff, "technician", editing?.technician_id)}
-            placeholder={t("noneOption")}
-            ariaLabel={t("colTechnician")}
           />
         </Form.Item>
         <Form.Item name="first_contact" label={t("colFirstContact")}>

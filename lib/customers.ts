@@ -19,6 +19,33 @@ export function serviceName(
   return s.name_vi;
 }
 
+/**
+ * Tìm theo tên hoặc SĐT. SĐT so theo chữ số (bỏ "-", "62" đầu = "0") nên gõ
+ * "081212" hay "+62812" vẫn khớp "0812-1214-1243".
+ */
+export function matchesNameOrPhone(name: string, phone: string, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (`${name} ${phone}`.toLowerCase().includes(q)) return true;
+  const digits = (v: string) => v.replace(/\D/g, "").replace(/^62/, "0");
+  const qd = digits(q);
+  return qd.length >= 3 && digits(phone).includes(qd);
+}
+
+/**
+ * Nhóm "độ mới" theo số ngày (lịch, giờ máy) từ ngày tạo tới hôm nay:
+ * 0 = hôm nay, 1 = trong 3 ngày, 2 = trong 7 ngày, 3 = trong 14 ngày, 4 = cũ hơn.
+ */
+export function createdAgeBucket(createdAt: string, now: Date = new Date()): 0 | 1 | 2 | 3 | 4 {
+  const day = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000;
+  const age = day(now) - day(new Date(createdAt));
+  if (age <= 0) return 0;
+  if (age <= 3) return 1;
+  if (age <= 7) return 2;
+  if (age <= 14) return 3;
+  return 4;
+}
+
 export interface CustomerFilters {
   search?: string;
   stage?: string;
@@ -40,11 +67,7 @@ export function matchesCustomerFilters(
   c: Customer,
   f: CustomerFilters,
 ): boolean {
-  const q = (f.search ?? "").trim().toLowerCase();
-  if (q) {
-    const hay = `${c.full_name} ${c.phone}`.toLowerCase();
-    if (!hay.includes(q)) return false;
-  }
+  if (!matchesNameOrPhone(c.full_name, c.phone, f.search ?? "")) return false;
   if (f.stage && c.stage !== f.stage) return false;
   if (f.source && c.source !== f.source) return false;
   if (f.staffId && c.staff_id !== f.staffId) return false;

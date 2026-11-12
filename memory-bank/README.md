@@ -53,6 +53,38 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Cột "Ngày tạo" thành tag màu theo độ mới
+- **Thay đổi:** `/customers` cột Ngày tạo hiện tag `DD-MM` (tooltip `DD-MM-YYYY`), màu theo số ngày từ ngày tạo tới hôm nay (`createdAgeBucket` trong `lib/customers.ts`, tính theo ngày lịch giờ máy): hôm nay = green, ≤3 ngày = cyan, ≤7 = blue, ≤14 = purple, cũ hơn (≥15 ngày, gồm 1 tháng trở đi) = default xám.
+- **File ảnh hưởng:** `lib/customers.ts`, `lib/customers.test.ts`, `components/customers/customers-manager.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch, chưa xem trên trình duyệt. **PR #28 đã merge lúc 02:04 12-11 nhưng chỉ tới commit "nút đầu trang sang trái"** — 6 commit sau (nguồn chỉ xem, phụ trách theo khách, ẩn Sales/KTV, format SĐT, bộ lọc thẳng) + commit này CHƯA vào `main`, cần PR mới.
+
+### 2026-11-12 — /customers: bỏ popover "Bộ lọc", hiện thẳng bộ lọc
+- **Thay đổi:** Sau khi ẩn Sales/KTV chỉ còn CSKH, Dịch vụ, Khoảng ngày → đưa ra thẳng thanh lọc (cạnh Tìm, Giai đoạn, Nguồn), bỏ nút "Bộ lọc" + popover + badge. Nút "Xoá bộ lọc" đếm mọi lọc đang bật. Bỏ import `Popover`, `ListFilter`.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt (thanh lọc tự xuống dòng khi hẹp; mobile mỗi ô 1 hàng).
+
+### 2026-11-12 — Chuẩn hoá SĐT khách dạng Indonesia 0xxx-xxxx-xxxx
+- **Thay đổi:** `lib/phone.ts#formatPhone`: bỏ ký tự lạ, đầu `62` → `0`, thiếu `0` thì thêm, chỉ áp dụng đầu số di động 081/082/083/085/087/088/089 dài 10–13 số; nhóm 4-4-còn lại (12 số `0812-1214-1243`, 13 số `0811-1011-23558`, 11 số `0811-9727-970`, 10 số `0856-933-186`). Số khác giữ nguyên. Áp dụng khi LƯU: `clean()` trong customers actions, zod `submitLead`, onFinish drawer khách, prefill SĐT từ SMAX ở lead form. Ô nhập vẫn dùng `normalizePhone` (chỉ bỏ "+") khi gõ. Tìm kiếm: `matchesNameOrPhone` (`lib/customers.ts`) so theo chữ số → gõ `081212`/`+62812` vẫn khớp; dùng ở /customers, /appointments, /tour.
+- **Migration:** `20261112100000_format_customer_phone_id.sql` — format lại toàn bộ `customers.phone` (xem trước: 43/43 số đổi được).
+- **File ảnh hưởng:** `lib/phone.ts`, `lib/phone.test.ts`, `lib/customers.ts`, `lib/customers.test.ts`, `app/(app)/customers/actions.ts`, `app/lead-form/actions.ts`, `components/customers/customers-manager.tsx`, `components/lead-form/lead-form.tsx`, `components/appointments/appointments-manager.tsx`, `components/tour/tour-view.tsx`, `supabase/migrations/20261112100000_format_customer_phone_id.sql`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test (38) sạch. Migration **đã chạy** trên project Lavian (user cho phép): 43/43 SĐT đúng dạng `08xx-xxxx-xxxx`.
+
+### 2026-11-12 — Ẩn Sales, Kỹ thuật viên ở trang Khách hàng
+- **Thay đổi:** `/customers` bỏ cột Sales + Kỹ thuật viên, bỏ 2 bộ lọc tương ứng (popover lọc thêm), bỏ 2 ô trong drawer thêm/sửa. Chỉ ẩn UI — cột DB `sales_id`/`technician_id` giữ nguyên; drawer gửi lại `editing.sales_id/technician_id` để sửa khách không xoá dữ liệu cũ. KTV vẫn tự điền qua trigger khi nhận tour.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch, chưa xem trên trình duyệt. Muốn hiện lại: thêm lại entry trong mảng cột / bộ lọc / Form.Item.
+
+### 2026-11-12 — Người phụ trách lịch hẹn / tour lấy theo khách hàng
+- **Bối cảnh:** Staff/Sales/Technician ở `customers`, `clinic_appointments.staff_id`, `tours.technician_id` lưu riêng, không đồng bộ. User chọn "lấy theo khách hàng".
+- **Thay đổi:** Tạo lịch hẹn: chọn khách → ô CSKH tự điền `customers.staff_id` (vẫn đổi được); server `createAppointment` fallback CSKH của khách nếu để trống. `AppointmentCustomer` thêm `staff_id?`, page `/appointments` select thêm `staff_id`. Tour: trigger `tours_fill_customer_technician` (security definer) — KTV nhận/được gán tour → điền `customers.technician_id` nếu khách chưa có KTV; backfill dữ liệu cũ.
+- **File ảnh hưởng:** `types/appointment.ts`, `app/(app)/appointments/{page,actions}.ts(x)`, `components/appointments/appointments-manager.tsx`, `supabase/migrations/20261112090000_tour_technician_to_customer.sql`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch. Migration `20261112090000` **đã chạy** trên project Lavian (user cho phép) — trigger có cho INSERT + UPDATE, 0 khách thiếu KTV so với tour. Không đổi lịch hẹn cũ (giữ CSKH đã lưu).
+
+### 2026-11-12 — Nguồn khách chỉ xem, không cho chọn
+- **Thay đổi:** Nguồn tự tính từ số WA, bỏ hết chỗ chọn: cột Nguồn ở `/customers` chỉ hiện `SourceIcon` (bỏ InlineSelect), drawer thêm/sửa khách bỏ ô Nguồn, lead form bỏ ô Nguồn. Server: `submitLead` ghi `source = leadSource(thread.link)`; `CustomerInput` bỏ `source`, `clean()`/`patchCustomer` không nhận source (tạo tay → default DB `'instagrams'`, sửa không đụng). Bộ lọc theo nguồn vẫn giữ.
+- **File ảnh hưởng:** `types/customer.ts`, `app/(app)/customers/actions.ts`, `app/lead-form/actions.ts`, `components/customers/customers-manager.tsx`, `components/lead-form/lead-form.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch, chưa xem trên trình duyệt. Push thêm vào PR #28.
+
 ### 2026-11-12 — Nút thao tác đầu trang chuyển sang bên trái
 - **Thay đổi:** `PageHeader` bỏ `sm:justify-between`, thêm `sm:gap-4` → nhóm `actions` (vd. Làm mới, + Khách hàng mới) nằm ngay sau tiêu đề bên trái, áp dụng mọi trang (sếp yêu cầu). Mobile giữ nguyên (xếp dọc, nút full width).
 - **File ảnh hưởng:** `components/layout/page.tsx`, `memory-bank/README.md`.

@@ -14,10 +14,8 @@ import {
 } from "@/app/lead-form/actions";
 import { EnumTag } from "@/components/common/enum-tag";
 import { ClearableSelect } from "@/components/common/clearable-select";
-import { SOURCE_OPTIONS } from "@/components/common/source-icon";
-import { leadSource } from "@/lib/customer-options";
 import { optionLabel } from "@/lib/customers";
-import { normalizePhone } from "@/lib/phone";
+import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import type { EnumOption } from "@/types/customer";
 
@@ -45,7 +43,6 @@ type Values = {
   phone: string;
   staff_id: string;
   stage: string;
-  source: string; // mặc định Instagram; hội thoại WhatsApp → tự chọn WhatsApp
   note: string;
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
@@ -55,7 +52,6 @@ const DEFAULTS: Values = {
   phone: "",
   staff_id: "",
   stage: "new_lead",
-  source: "instagrams",
   note: "",
   website: "",
 };
@@ -136,20 +132,17 @@ export function LeadForm({
           });
       }
 
-      // Lần đầu / đổi khách: nguồn theo hội thoại — WhatsApp thì WA, còn lại IG.
-      if (id !== prev) form.setFieldValue("source", leadSource(meta.thread?.link));
-
       if (prev === null) {
         if (c.name && !form.getFieldValue("full_name")) {
           form.setFieldValue("full_name", String(c.name));
         }
         if (phone && !form.getFieldValue("phone")) {
-          form.setFieldValue("phone", normalizePhone(String(phone)));
+          form.setFieldValue("phone", formatPhone(String(phone)));
         }
       } else if (id !== prev) {
         form.setFieldsValue({
           full_name: c.name ? String(c.name) : "",
-          phone: phone ? normalizePhone(String(phone)) : "",
+          phone: phone ? formatPhone(String(phone)) : "",
         });
       }
     };
@@ -166,7 +159,7 @@ export function LeadForm({
 
   const onSubmit = (mode: LeadMode) => () =>
     void form.validateFields().then((raw) => start(async () => {
-      const values = { ...raw, full_name: raw.full_name.trim(), phone: normalizePhone(raw.phone) };
+      const values = { ...raw, full_name: raw.full_name.trim(), phone: formatPhone(raw.phone) };
       const res = await submitLead(
         {
           ...values,
@@ -234,9 +227,6 @@ export function LeadForm({
           />
         </Form.Item>
       )}
-      <Form.Item name="source" label={t("source")}>
-        <ClearableSelect clearable={false} options={SOURCE_OPTIONS} ariaLabel={t("source")} />
-      </Form.Item>
       {stages.length > 0 && (
         <Form.Item name="stage" label={t("stage")}>
           <ClearableSelect

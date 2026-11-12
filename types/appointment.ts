@@ -14,6 +14,7 @@ export type AppointmentCustomer = {
   full_name: string;
   phone: string;
   source: string | null;
+  staff_id?: string | null; // CSKH của khách — mặc định cho lịch hẹn mới
 };
 
 export type AppointmentPatch = Partial<Pick<Appointment,
