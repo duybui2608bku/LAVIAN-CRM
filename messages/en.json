@@ -4,7 +4,7 @@
     "create": "Add appointment",
     "name": "Customer name",
     "phone": "Phone",
-    "source": "Source",
+    "wa": "WA number",
     "date": "Appointment date & time",
     "confirmation": "Clinic confirmation",
     "services": "Services",
@@ -177,7 +177,13 @@
     "loginTitle": "Sign in",
     "loginSubtitle": "Sign in to LAVIAN CRM",
     "bannedTitle": "Account locked",
-    "bannedBody": "Your account has been locked. Please contact an administrator."
+    "bannedBody": "Your account has been locked. Please contact an administrator.",
+    "myProfile": "My profile",
+    "displayName": "Display name",
+    "avatar": "Avatar",
+    "nameRequired": "Name is required",
+    "save": "Save",
+    "profileSaved": "Profile updated"
   },
   "users": {
     "title": "Users",
@@ -217,7 +223,10 @@
     "resetSubmit": "Update",
     "resetOk": "Password reset",
     "cancel": "Cancel",
-    "emailInvalid": "Invalid email"
+    "emailInvalid": "Invalid email",
+    "allRole": "All roles",
+    "allDepartment": "All departments",
+    "noDepartment": "No department"
   },
   "enums": {
     "title": "Categories (Enum)",
