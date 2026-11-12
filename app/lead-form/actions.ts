@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
+import { CUSTOMER_OPTIONS, leadSource } from "@/lib/customer-options";
 import { normalizePhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
 
@@ -72,10 +72,9 @@ export async function submitLead(
   if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
   const d = parsed.data;
   if (d.website) return {};
-  // Nguồn do người dùng chọn — bắt buộc, phải nằm trong danh mục.
-  if (!CUSTOMER_OPTIONS.some((o) => o.kind === "source" && o.value === d.source)) {
-    return { error: "Vui lòng chọn nguồn" };
-  }
+  // Hội thoại WhatsApp → luôn WA; còn lại theo lựa chọn (mặc định IG).
+  const source =
+    leadSource(d.thread?.link) === "whatsapp" || d.source === "whatsapp" ? "whatsapp" : "instagrams";
   const notes: CustomerNote[] = d.note
     ? [{ text: d.note, at: new Date().toISOString(), by: "Form SMAX" }]
     : [];
@@ -96,7 +95,7 @@ export async function submitLead(
       full_name: d.full_name,
       phone: d.phone,
       smax_customer_id: d.customer_id || null,
-      source: d.source,
+      source,
       social_name: d.social_name || null,
       picture: d.picture || null,
       tags: d.tags,

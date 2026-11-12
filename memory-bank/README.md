@@ -53,6 +53,22 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Nút thao tác đầu trang chuyển sang bên trái
+- **Thay đổi:** `PageHeader` bỏ `sm:justify-between`, thêm `sm:gap-4` → nhóm `actions` (vd. Làm mới, + Khách hàng mới) nằm ngay sau tiêu đề bên trái, áp dụng mọi trang (sếp yêu cầu). Mobile giữ nguyên (xếp dọc, nút full width).
+- **File ảnh hưởng:** `components/layout/page.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** Chưa xem trên trình duyệt (hạn chế bật dev server vì máy ít RAM).
+
+### 2026-11-11 — Nguồn khách chỉ còn WhatsApp / Instagram, hiển thị bằng icon
+- **Thay đổi:** `CUSTOMER_OPTIONS` chỉ còn `instagrams` + `whatsapp` (bỏ referral/walk_in/other). Thêm `leadSource(threadLink)` (`lib/customer-options.ts`): link SMAX `/chats/waw<số>` → `whatsapp`, còn lại `instagrams`. Component mới `SourceIcon` + `SOURCE_OPTIONS` (`components/common/source-icon.tsx`, SVG brand từ simple-icons CC0, màu #25D366 / #E4405F) — nguồn chỉ hiện ICON ở bảng khách hàng (sửa inline, không còn "bỏ chọn"), bộ lọc, drawer (mặc định IG), bảng lịch hẹn, lead form. Lead form: mặc định IG, nhận khách SMAX có hội thoại WA thì tự chọn WA; server `submitLead` ép WA nếu thread là WA. Bỏ key i18n `leadForm.sourcePlaceholder/sourceRequired`.
+- **Migration:** `20261111090000_source_only_wa_ig.sql` — đổi source khách theo thread (WA/IG), đồng bộ `appointments.source`, ẩn option nguồn khác, default cột `customers.source = 'instagrams'`. **Đã chạy** trên project Lavian (`fghnzykhcbvkfyxqehcd`) qua Supabase MCP ngày 2026-11-11: 6 khách IG→WA, 1 khách WA→IG (hội thoại là IG); sau đó 27 IG / 16 WA, 0 lệch.
+- **File ảnh hưởng:** `lib/customer-options.ts`, `lib/customer-options.test.ts`, `components/common/source-icon.tsx`, `components/customers/customers-manager.tsx`, `components/appointments/appointments-manager.tsx`, `components/lead-form/lead-form.tsx`, `app/lead-form/{page,actions}.ts(x)`, `messages/{vi,en}.json`, `supabase/migrations/20261111090000_source_only_wa_ig.sql`.
+- **Còn dở / ghi chú:** tsc/eslint/test sạch. Chưa xem trên trình duyệt (user báo dev server tốn RAM). Trang `/enums` vẫn cho admin thêm nguồn mới nhưng UI nguồn giờ đọc từ danh sách cố định (2 nguồn).
+
+### 2026-11-11 — Đổi font sang font hệ thống (bỏ Inter)
+- **Thay đổi:** Bỏ webfont `Inter` (`next/font/google`). Thêm biến `--font-system: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif` trong `:root`; `--font-sans` của Tailwind và `fontFamily` token antd đều trỏ về `var(--font-system)`. Cỡ gốc giữ 14px. Mono vẫn Geist Mono.
+- **File ảnh hưởng:** `app/layout.tsx`, `app/globals.css`, `components/common/antd-provider.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** Đã xem `/login` trên trình duyệt: html/body/button/input/h1 đều ra stack font hệ thống. Lưu ý: sau khi sửa `globals.css` lúc server tắt, Turbopack phục vụ CSS cũ → phải xoá `.next` rồi chạy lại. Dev server từng crash OOM 1 lần (môi trường, không do code).
+
 ### 2026-11-11 — Làm gọn trang `/marketing` + hàng WA luôn 1 hàng
 - **Thay đổi:** "Tin nhắn theo số WA" thành 1 khung `surface` chia N cột bằng nhau (`gridTemplateColumns: repeat(N, minmax(0,1fr))`, vạch ngăn `divide-x`) → luôn 1 hàng dù nhiều số. Mỗi ô là `@container`: số tin nhắn `font-size: clamp(0.95rem, 24cqi, 1.75rem)`; ô hẹp hơn ~5.5rem thì tag chỉ hiện 4 số (ẩn "WA-") và ẩn nhãn "tin nhắn". Lỗi FB/SMAX/chung gộp thành 1 khung cảnh báo đầu trang (trước lặp dưới 3–4 StatCard). Tiêu đề phần dùng `SectionTitle` (chữ nhỏ, in hoa, màu phụ). Sửa thụt lề bảng. Key dịch: `waMessages` → `waMessagesLabel` ("tin nhắn"/"messages").
 - **File ảnh hưởng:** `components/marketing/ads-stats.tsx`, `messages/{vi,en}.json`, `memory-bank/README.md`.

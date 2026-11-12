@@ -1,13 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CUSTOMER_OPTIONS } from "./customer-options.ts";
+import { CUSTOMER_OPTIONS, leadSource } from "./customer-options.ts";
 import { isLocale, locales } from "../i18n/config.ts";
 
 test("fixed stages and sources match the requested values", () => {
   assert.deepEqual(CUSTOMER_OPTIONS.filter((o) => o.kind === "stage").map((o) => o.value),
     ["new_lead", "consulting", "deposited", "booked", "visited", "returning", "lost"]);
   assert.deepEqual(CUSTOMER_OPTIONS.filter((o) => o.kind === "source").map((o) => o.value),
-    ["instagrams", "whatsapp", "referral", "walk_in", "other"]);
+    ["instagrams", "whatsapp"]);
+});
+
+test("source: WA thread → whatsapp, otherwise instagrams", () => {
+  assert.equal(leadSource("https://smax.ai/chats/waw84901234567?tid=1"), "whatsapp");
+  assert.equal(leadSource("https://smax.ai/chats/ig123?tid=1"), "instagrams");
+  assert.equal(leadSource(null), "instagrams");
 });
 
 test("only Vietnamese and English are selectable", () => {

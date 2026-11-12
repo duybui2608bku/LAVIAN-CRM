@@ -11,13 +11,12 @@ import { DataTable } from "@/components/common/data-table";
 import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { RowActions } from "@/components/common/row-actions";
-import { EnumTag } from "@/components/common/enum-tag";
+import { SourceIcon } from "@/components/common/source-icon";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
-import { optionLabel, serviceName } from "@/lib/customers";
+import { serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import type { Appointment, AppointmentCustomer, AppointmentPatch } from "@/types/appointment";
 import type { Service } from "@/types/service";
@@ -61,10 +60,6 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   });
 
   const customerMap = new Map(customers.map((customer) => [customer.id, customer]));
-  const sourceTag = (source: string | null) => {
-    const option = CUSTOMER_OPTIONS.find((o) => o.kind === "source" && o.value === source);
-    return source ? <EnumTag label={option ? optionLabel(option, locale) : source} color={option?.color} /> : "—";
-  };
   const filtered = rows.filter((row) => {
     const customer = customerMap.get(row.customer_id);
     return customer && (!customerFilter || row.customer_id === customerFilter)
@@ -77,7 +72,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     { title: t("name"), width: 180, fixed: "left", render: (_, row) =>
       <span className="font-medium">{customerMap.get(row.customer_id)?.full_name}</span> },
     { title: t("phone"), width: 160, render: (_, row) => customerMap.get(row.customer_id)?.phone },
-    { title: t("source"), width: 140, render: (_, row) => sourceTag(customerMap.get(row.customer_id)?.source ?? null) },
+    { title: t("source"), width: 80, render: (_, row) => <SourceIcon source={customerMap.get(row.customer_id)?.source} /> },
     { title: t("date"), width: 220, sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
       render: (_, row) => <AppointmentDate inline value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect

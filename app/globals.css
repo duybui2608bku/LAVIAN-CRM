@@ -11,7 +11,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-system);
   --font-mono: var(--font-geist-mono);
   --color-card: var(--card);
   --color-primary: var(--primary);
@@ -31,6 +31,9 @@
 }
 
 :root {
+  /* Font hệ thống: không tải webfont, mỗi OS dùng font gốc (Segoe UI / San Francisco / Roboto). */
+  --font-system: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   --background: #f7f7f9;
   --foreground: #18181b;
   --card: #ffffff;

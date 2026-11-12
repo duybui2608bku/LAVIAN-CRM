@@ -366,8 +366,6 @@
     "phoneInvalid": "Invalid phone number",
     "staff": "Consultant",
     "source": "Source",
-    "sourcePlaceholder": "Select a source",
-    "sourceRequired": "Please select a source",
     "stage": "Stage",
     "note": "Note",
     "noteOptional": "Optional",
