@@ -20,7 +20,7 @@ export function Page({
   );
 }
 
-/** Tiêu đề trang + nút thao tác. Trang con không tự viết `<h1>`. */
+/** Tiêu đề trang + nút thao tác (nằm bên trái, ngay sau tiêu đề). Trang con không tự viết `<h1>`. */
 export function PageHeader({
   title,
   description,
@@ -31,7 +31,7 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="min-w-0">
         {/* Thẻ thuần (không Typography.Title): file này render cả ở Server
             Component, nơi không "chấm" vào export client của antd được. */}
