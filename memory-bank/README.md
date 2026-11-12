@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — /users: admin bấm avatar để đổi ảnh
+- **Thay đổi:** Cột Tên ở bảng `/users`: avatar bấm được (`EditableAvatar` trong `users-manager.tsx` — antd `Upload` bọc `Avatar`, hover hiện icon máy ảnh, tooltip "Bấm để đổi ảnh đại diện", spinner khi đang tải). Chọn ảnh → `uploadImage` (/api/upload) → Server Action mới `setUserAvatar(id, url)` (`requireAdmin`, cập nhật `profiles.avatar_url`, `revalidatePath("/", "layout")` vì avatar hiện ở shell + các bảng nhân viên). Bảng cập nhật ngay qua `useOptimistic` (reducer gộp patch tổng quát thay vì chỉ `department`). Key i18n mới `users.avatarOk`, `users.changeAvatar` (en/vi). Không đổi DB.
+- **File ảnh hưởng:** `app/(app)/users/actions.ts`, `components/users/users-manager.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt (máy ít RAM, chưa bật dev). Chỉ đổi ảnh, chưa có nút xoá avatar từ bảng (ảnh cũ không dọn — upload qua CDN ngoài).
+
 ### 2026-11-12 — Form SMAX: gọn giao diện, luôn tiếng Anh + sáng
 - **Thay đổi:** `/lead-form` bỏ logo, tiêu đề "Book a consultation", dòng subtitle, nút đổi ngôn ngữ + đổi theme (và script `forceLightDefault`). Form `size="large"`, khung `max-w-lg`, đặt sát trên (không căn giữa dọc). Proxy luôn override locale `en` cho `/lead-form` (chỉ trên request, không ghi cookie). Theme: `Providers` dùng `usePathname` → `forcedTheme="light"` cho `/lead-form`; `AntdProvider` ưu tiên `forcedTheme` (next-themes 0.4.6 không đổi `resolvedTheme` khi forced) và không ghi cookie theme khi bị ép → không đè lựa chọn sáng/tối của người dùng CRM. Xoá key `leadForm.subtitle` (en/vi).
 - **File ảnh hưởng:** `app/lead-form/page.tsx`, `components/lead-form/lead-form.tsx`, `proxy.ts`, `app/providers.tsx`, `components/common/antd-provider.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.

@@ -197,6 +197,8 @@
     "dept_technician": "Technician",
     "dept_sales": "Sales",
     "departmentOk": "Department updated",
+    "avatarOk": "Avatar updated",
+    "changeAvatar": "Click to change avatar",
     "clearDepartment": "Clear department",
     "colStatus": "Status",
     "colCreated": "Created",

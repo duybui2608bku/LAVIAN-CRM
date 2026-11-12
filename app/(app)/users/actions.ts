@@ -97,6 +97,27 @@ export async function setUserDepartment(
   }
 }
 
+/** Admin đổi avatar user (click avatar ở bảng /users). */
+export async function setUserAvatar(
+  id: string,
+  avatar_url: string,
+): Promise<Result> {
+  try {
+    await requireAdmin();
+    const { error } = await createAdminClient()
+      .from("profiles")
+      .update({ avatar_url })
+      .eq("id", id);
+    if (error) throw error;
+
+    // Avatar hiện ở shell + mọi bảng có cột nhân viên.
+    revalidatePath("/", "layout");
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e).message };
+  }
+}
+
 /** Admin đặt lại mật khẩu cho user. */
 export async function resetPassword(
   id: string,
