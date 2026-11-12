@@ -46,7 +46,7 @@ import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { matchesCustomerFilters, optionLabel, serviceName } from "@/lib/customers";
-import { normalizePhone } from "@/lib/phone";
+import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
@@ -650,7 +650,7 @@ function CustomerDialog({
     start(async () => {
       const input: CustomerInput = {
         full_name: v.full_name.trim(),
-        phone: normalizePhone(v.phone),
+        phone: formatPhone(v.phone),
         social_name: v.social_name || null,
         stage: v.stage,
         lost_reason: v.lost_reason || null,

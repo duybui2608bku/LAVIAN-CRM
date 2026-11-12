@@ -1,7 +1,7 @@
 "use server";
 
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
-import { normalizePhone } from "@/lib/phone";
+import { formatPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
@@ -27,7 +27,7 @@ function clean(input: CustomerInput) {
     throw new Error("Giai đoạn không hợp lệ.");
   return {
     full_name: input.full_name.trim(),
-    phone: normalizePhone(input.phone),
+    phone: formatPhone(input.phone),
     social_name: nz(input.social_name),
     stage: input.stage,
     lost_reason: input.stage === "lost" ? nz(input.lost_reason) : null,

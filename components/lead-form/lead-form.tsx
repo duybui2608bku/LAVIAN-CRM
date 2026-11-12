@@ -15,7 +15,7 @@ import {
 import { EnumTag } from "@/components/common/enum-tag";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { optionLabel } from "@/lib/customers";
-import { normalizePhone } from "@/lib/phone";
+import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import type { EnumOption } from "@/types/customer";
 
@@ -137,12 +137,12 @@ export function LeadForm({
           form.setFieldValue("full_name", String(c.name));
         }
         if (phone && !form.getFieldValue("phone")) {
-          form.setFieldValue("phone", normalizePhone(String(phone)));
+          form.setFieldValue("phone", formatPhone(String(phone)));
         }
       } else if (id !== prev) {
         form.setFieldsValue({
           full_name: c.name ? String(c.name) : "",
-          phone: phone ? normalizePhone(String(phone)) : "",
+          phone: phone ? formatPhone(String(phone)) : "",
         });
       }
     };
@@ -159,7 +159,7 @@ export function LeadForm({
 
   const onSubmit = (mode: LeadMode) => () =>
     void form.validateFields().then((raw) => start(async () => {
-      const values = { ...raw, full_name: raw.full_name.trim(), phone: normalizePhone(raw.phone) };
+      const values = { ...raw, full_name: raw.full_name.trim(), phone: formatPhone(raw.phone) };
       const res = await submitLead(
         {
           ...values,

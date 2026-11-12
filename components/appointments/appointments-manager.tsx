@@ -16,7 +16,7 @@ import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-sele
 import { useConfirm } from "@/components/common/confirm-action";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { serviceName } from "@/lib/customers";
+import { matchesNameOrPhone, serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import type { Appointment, AppointmentCustomer, AppointmentPatch } from "@/types/appointment";
 import type { Service } from "@/types/service";
@@ -65,7 +65,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     return customer && (!customerFilter || row.customer_id === customerFilter)
       && (!date || dayjs(row.scheduled_at).format("YYYY-MM-DD") === date)
       && (arrival === "all" || row.checked_in === (arrival === "arrived"))
-      && `${customer.full_name} ${customer.phone}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase());
+      && matchesNameOrPhone(customer.full_name, customer.phone, search);
   });
   const resetPage = () => setPage(1);
   const columns: TableProps<Appointment>["columns"] = [

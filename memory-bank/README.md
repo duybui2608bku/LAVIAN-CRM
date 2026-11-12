@@ -53,6 +53,12 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-12 — Chuẩn hoá SĐT khách dạng Indonesia 0xxx-xxxx-xxxx
+- **Thay đổi:** `lib/phone.ts#formatPhone`: bỏ ký tự lạ, đầu `62` → `0`, thiếu `0` thì thêm, chỉ áp dụng đầu số di động 081/082/083/085/087/088/089 dài 10–13 số; nhóm 4-4-còn lại (12 số `0812-1214-1243`, 13 số `0811-1011-23558`, 11 số `0811-9727-970`, 10 số `0856-933-186`). Số khác giữ nguyên. Áp dụng khi LƯU: `clean()` trong customers actions, zod `submitLead`, onFinish drawer khách, prefill SĐT từ SMAX ở lead form. Ô nhập vẫn dùng `normalizePhone` (chỉ bỏ "+") khi gõ. Tìm kiếm: `matchesNameOrPhone` (`lib/customers.ts`) so theo chữ số → gõ `081212`/`+62812` vẫn khớp; dùng ở /customers, /appointments, /tour.
+- **Migration:** `20261112100000_format_customer_phone_id.sql` — format lại toàn bộ `customers.phone` (xem trước: 43/43 số đổi được).
+- **File ảnh hưởng:** `lib/phone.ts`, `lib/phone.test.ts`, `lib/customers.ts`, `lib/customers.test.ts`, `app/(app)/customers/actions.ts`, `app/lead-form/actions.ts`, `components/customers/customers-manager.tsx`, `components/lead-form/lead-form.tsx`, `components/appointments/appointments-manager.tsx`, `components/tour/tour-view.tsx`, `supabase/migrations/20261112100000_format_customer_phone_id.sql`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint/test (38) sạch. Migration **đã chạy** trên project Lavian (user cho phép): 43/43 SĐT đúng dạng `08xx-xxxx-xxxx`.
+
 ### 2026-11-12 — Ẩn Sales, Kỹ thuật viên ở trang Khách hàng
 - **Thay đổi:** `/customers` bỏ cột Sales + Kỹ thuật viên, bỏ 2 bộ lọc tương ứng (popover lọc thêm), bỏ 2 ô trong drawer thêm/sửa. Chỉ ẩn UI — cột DB `sales_id`/`technician_id` giữ nguyên; drawer gửi lại `editing.sales_id/technician_id` để sửa khách không xoá dữ liệu cũ. KTV vẫn tự điền qua trigger khi nhận tour.
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `memory-bank/README.md`.

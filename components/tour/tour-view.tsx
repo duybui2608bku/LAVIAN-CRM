@@ -18,7 +18,7 @@ import { groupByTechnician, toItem, type TourItem } from "@/components/tour/tour
 import { PhotoCountButton, TourPhotosModal } from "@/components/tour/tour-photos";
 import { TourSlips } from "@/components/tour/tour-slips";
 import { formatRupiah } from "@/lib/currency";
-import { serviceName } from "@/lib/customers";
+import { matchesNameOrPhone, serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import { tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
@@ -163,10 +163,9 @@ function TourTable({ me, month, tours, services, staff, customers, onOpen, onPho
   const technicians = staff.filter((s) => s.department === "technician");
 
   const all = tours.map(toItem);
-  const q = search.trim().toLocaleLowerCase();
   const items = all.filter((r) => (status === ALL || tourStatus(r) === status)
     && (technician === ALL || r.technician_id === technician)
-    && (!q || `${r.customer?.full_name ?? ""} ${r.customer?.phone ?? ""}`.toLocaleLowerCase().includes(q)));
+    && matchesNameOrPhone(r.customer?.full_name ?? "", r.customer?.phone ?? "", search));
   const groups = me.isAdmin ? groupByTechnician(items, staff) : [];
   const count = (s: TourStatus) => all.filter((r) => tourStatus(r) === s).length;
   const total = items.reduce((n, r) => n + (r.amount ?? 0), 0);

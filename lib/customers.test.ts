@@ -1,7 +1,7 @@
 // Self-check: `node --test lib/customers.test.ts` (Node ≥ 23).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { matchesCustomerFilters, optionLabel, serviceName } from "./customers.ts";
+import { matchesCustomerFilters, matchesNameOrPhone, optionLabel, serviceName } from "./customers.ts";
 import type { Customer, EnumOption } from "../types/customer.ts";
 import type { Service } from "../types/service.ts";
 
@@ -116,4 +116,12 @@ test("serviceName theo locale, fallback vi", () => {
   assert.equal(serviceName(svc, "vi"), "Chăm sóc da");
   assert.equal(serviceName(svc, "en"), "Skin care");
   assert.equal(serviceName(svc, "id"), "Chăm sóc da");
+});
+
+test("tìm SĐT không phụ thuộc dấu '-' và đầu 62", () => {
+  const m = matchesNameOrPhone;
+  assert.equal(m("An", "0812-1214-1243", "081212"), true);
+  assert.equal(m("An", "0812-1214-1243", "+62 812 1214"), true);
+  assert.equal(m("An", "0812-1214-1243", "an"), true);
+  assert.equal(m("An", "0812-1214-1243", "0899"), false);
 });
