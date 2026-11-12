@@ -11,7 +11,7 @@ export default async function AppointmentsPage({ searchParams }: {
   const [appointments, customers, staff, services, params] = await Promise.all([
     db.from("clinic_appointments").select("id,customer_id,scheduled_at,checked_in,service_ids,staff_id,note")
       .is("deleted_at", null).order("scheduled_at"),
-    db.from("customers").select("id,full_name,phone,source,staff_id,thread").is("deleted_at", null).order("full_name"),
+    db.from("customers").select("id,full_name,phone,source,staff_id,wa_link:thread->>link").is("deleted_at", null).order("full_name"),
     db.from("profiles").select("id,user_name,avatar_url,status,department").order("user_name"),
     db.from("services").select("*").order("sort_order"),
     searchParams,
@@ -21,9 +21,9 @@ export default async function AppointmentsPage({ searchParams }: {
   }
   return <AppointmentsManager
     appointments={(appointments.data ?? []) as Appointment[]}
-    // Chỉ gửi "WA-xxxx" xuống client, bỏ thread (có nội dung tin nhắn).
-    customers={(customers.data ?? []).map(({ thread, ...c }) => ({
-      ...c, wa: waNumber((thread as { link?: string } | null)?.link),
+    // Chỉ lấy link hội thoại (không kéo nội dung tin nhắn), gửi xuống client dạng "WA-xxxx".
+    customers={(customers.data ?? []).map(({ wa_link, ...c }) => ({
+      ...c, wa: waNumber(wa_link as string | null),
     })) as AppointmentCustomer[]}
     staff={(staff.data ?? []) as AppointmentStaff[]}
     services={(services.data ?? []) as Service[]}

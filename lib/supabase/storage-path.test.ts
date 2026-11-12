@@ -1,7 +1,7 @@
 // Self-check: `node --test lib/supabase/storage-path.test.ts` (Node ≥ 23).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { fileExt, objectPathFromPublicUrl } from "./storage-path.ts";
+import { objectPathFromPublicUrl } from "./storage-path.ts";
 
 const base = "https://x.supabase.co/storage/v1/object/public/images/";
 
@@ -25,8 +25,3 @@ test("khác tên bucket -> null", () => {
   assert.equal(objectPathFromPublicUrl(base + "uid/a.png", "avatars"), null);
 });
 
-test("đuôi file: theo tên rồi fallback mime", () => {
-  assert.equal(fileExt("anh.PNG", "image/png"), "png");
-  assert.equal(fileExt("khong-duoi", "image/webp"), "webp");
-  assert.equal(fileExt("", ""), "bin");
-});

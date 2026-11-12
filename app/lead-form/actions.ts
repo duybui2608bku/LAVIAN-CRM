@@ -4,7 +4,6 @@ import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { IDR_CURRENCY } from "@/lib/currency";
 import { CUSTOMER_OPTIONS, leadSource } from "@/lib/customer-options";
 import { formatPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
@@ -132,7 +131,7 @@ export async function submitLead(
       staff_id: d.staff_id || null,
       // Chỉ ghi khi đang ở "deposited" và có nhập — còn lại giữ tiền cọc cũ trong CRM.
       ...(stage === "deposited" && d.deposit_amount != null
-        ? { deposit_amount: d.deposit_amount, deposit_currency: IDR_CURRENCY }
+        ? { deposit_amount: d.deposit_amount }
         : {}),
     };
 

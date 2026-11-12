@@ -18,9 +18,3 @@ export function objectPathFromPublicUrl(
   return path || null;
 }
 
-/** Đuôi file an toàn (chỉ chữ/số) lấy từ tên file, fallback theo mime type. */
-export function fileExt(name: string, mime: string): string {
-  const fromName = name.includes(".") ? name.split(".").pop()! : "";
-  const ext = (fromName || mime.split("/")[1] || "bin").toLowerCase();
-  return ext.replace(/[^a-z0-9]/g, "") || "bin";
-}

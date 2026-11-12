@@ -4,13 +4,19 @@ import type { PipelineAppointment } from "@/components/customers/customer-pipeli
 import type { Customer, EnumOption } from "@/types/customer";
 import { CUSTOMER_OPTIONS, instagramUsername } from "@/lib/customer-options";
 
+const CUSTOMER_LIST_FIELDS =
+  "id, smax_customer_id, full_name, phone, social_name, picture, thread, source, stage, lost_reason, " +
+  "staff_id, sales_id, technician_id, first_contact, notes, created_at, updated_at, deleted_at, deposit_amount, " +
+  "instagram_username:smax_data->customer->instagram->>username";
+
 // Mọi user đăng nhập đều xem được (RLS customers cho authenticated). Proxy đã gác login.
 export default async function CustomersPage() {
   const supabase = await createClient();
   const [customersRes, staffRes, optionsRes, appointmentsRes] = await Promise.all([
     supabase
       .from("customers")
-      .select("*")
+      // Không tải smax_data/tags (jsonb lớn, trang không dùng) — chỉ rút username IG bằng JSON path.
+      .select(CUSTOMER_LIST_FIELDS)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     supabase
@@ -31,13 +37,10 @@ export default async function CustomersPage() {
       .is("deleted_at", null),
   ]);
 
-  const customers = (((customersRes.data as Customer[]) ?? []).map(
-    // smax_data (payload SMAX to) không gửi xuống client — chỉ rút username IG.
-    ({ smax_data, ...c }) => ({
-      ...c,
-      instagram_username: instagramUsername(smax_data),
-    }),
-  ) as Customer[]);
+  const customers = ((customersRes.data ?? []) as unknown as Customer[]).map((c) => ({
+    ...c,
+    instagram_username: instagramUsername(c.instagram_username),
+  }));
 
   return (
     <CustomersManager
