@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-13 — /customers: bỏ nút Tải lại ở header
+- **Thay đổi:** Bỏ nút icon Tải lại (`router.refresh()`) cạnh tiêu đề "Khách hàng"; header chỉ còn nút "+ Khách hàng mới". Xoá key i18n `reload` (en/vi, không còn ai dùng), import `useRouter`/`RefreshCw`.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt. Dữ liệu vẫn tự cập nhật sau mỗi thao tác nhờ `revalidatePath`; muốn tải lại dữ liệu người khác sửa thì F5.
+
 ### 2026-11-13 — Log thay đổi lịch hẹn + drawer lịch hẹn ở /customers
 - **Thay đổi:** Bảng mới `clinic_appointment_logs` (appointment_id, customer_id, action `create|update|delete`, `changes` jsonb `{field:{old,new}}`, actor_id = `auth.uid()`, created_at), ghi bằng trigger `clinic_appointments_log` (AFTER INSERT/UPDATE, function `log_clinic_appointment_change` security definer, search_path=''). Theo dõi `scheduled_at/checked_in/service_ids/staff_id/note`; set `deleted_at` → `delete`; update không đổi trường nào → không log. Admin client (Form SMAX) → actor null → UI "Form SMAX". RLS chỉ SELECT cho profile active, client không ghi được. Không backfill lịch cũ. Server action `getCustomerAppointments(customerId)` (lịch chưa xoá + 200 log mới nhất + tên dịch vụ). Cột Lịch hẹn ở `/customers` thêm nút icon History → `AppointmentHistoryDrawer` (danh sách lịch hẹn dạng thẻ + Timeline lịch sử: giờ, người + avatar, hành động, từng trường cũ (gạch) → mới). i18n `customers.viewAppointments` + `customers.apptHistory.*` (en/vi). OpenSpec: `openspec/changes/appointment-change-log`.
 - **Migration:** `20261113090000_clinic_appointment_logs.sql` — **phải chạy TRƯỚC khi deploy code** (drawer đọc bảng mới, thiếu bảng → drawer báo lỗi).
