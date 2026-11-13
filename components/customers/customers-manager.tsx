@@ -421,20 +421,7 @@ export function CustomersManager({
 
   return (
     <Page>
-      <PageHeader
-        title={t("title")}
-        actions={
-          <>
-            <Button
-              type="primary"
-              icon={<UserPlus className="size-4" />}
-              onClick={() => setTarget("new")}
-            >
-              {t("create")}
-            </Button>
-          </>
-        }
-      />
+      <PageHeader title={t("title")} />
 
       <CustomerPipeline
         customers={rowsData}
@@ -445,6 +432,9 @@ export function CustomersManager({
 
       {/* Thanh lọc: hiện thẳng mọi bộ lọc (ít trường, không cần gom vào popover). */}
       <PageToolbar>
+        <Button type="primary" icon={<UserPlus className="size-4" />} onClick={() => setTarget("new")}>
+          {t("create")}
+        </Button>
         <Input
           allowClear
           className="w-full sm:max-w-64"
