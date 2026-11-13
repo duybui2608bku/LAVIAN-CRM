@@ -18,6 +18,20 @@ export type AppointmentCustomer = {
   wa?: string | null; // "WA-xxxx" rút từ thread SMAX (dẫn xuất, không phải cột DB)
 };
 
-export type AppointmentPatch = Partial<Pick<Appointment,
+/** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`). */
+export type AppointmentLogField = "scheduled_at" | "checked_in" | "service_ids" | "staff_id" | "note";
+
+/** 1 dòng `clinic_appointment_logs` — actor_id null = ghi qua admin client (Form SMAX). */
+export interface AppointmentLog {
+  id: string;
+  appointment_id: string;
+  action: "create" | "update" | "delete";
+  changes: Partial<Record<AppointmentLogField, { old: unknown; new: unknown }>>;
+  actor_id: string | null;
+  created_at: string;
+  appointment: { scheduled_at: string } | null;
+}
+
+export type AppointmentPatch =Partial<Pick<Appointment,
   "scheduled_at" | "checked_in" | "service_ids" | "staff_id" | "note"
 >>;

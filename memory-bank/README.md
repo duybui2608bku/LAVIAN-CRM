@@ -50,6 +50,27 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-13 — Log thay đổi lịch hẹn + drawer lịch hẹn ở /customers
+- **Thay đổi:** Bảng mới `clinic_appointment_logs` (appointment_id, customer_id, action `create|update|delete`, `changes` jsonb `{field:{old,new}}`, actor_id = `auth.uid()`, created_at), ghi bằng trigger `clinic_appointments_log` (AFTER INSERT/UPDATE, function `log_clinic_appointment_change` security definer, search_path=''). Theo dõi `scheduled_at/checked_in/service_ids/staff_id/note`; set `deleted_at` → `delete`; update không đổi trường nào → không log. Admin client (Form SMAX) → actor null → UI "Form SMAX". RLS chỉ SELECT cho profile active, client không ghi được. Không backfill lịch cũ. Server action `getCustomerAppointments(customerId)` (lịch chưa xoá + 200 log mới nhất + tên dịch vụ). Cột Lịch hẹn ở `/customers` thêm nút icon History → `AppointmentHistoryDrawer` (danh sách lịch hẹn dạng thẻ + Timeline lịch sử: giờ, người + avatar, hành động, từng trường cũ (gạch) → mới). i18n `customers.viewAppointments` + `customers.apptHistory.*` (en/vi). OpenSpec: `openspec/changes/appointment-change-log`.
+- **Migration:** `20261113090000_clinic_appointment_logs.sql` — **phải chạy TRƯỚC khi deploy code** (drawer đọc bảng mới, thiếu bảng → drawer báo lỗi).
+- **File ảnh hưởng:** `supabase/migrations/20261113090000_clinic_appointment_logs.sql`, `app/(app)/customers/actions.ts`, `components/customers/{customers-manager,appointment-history-drawer}.tsx`, `types/appointment.ts`, `messages/{en,vi}.json`, `openspec/changes/appointment-change-log/*`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt. **Migration ĐÃ CHẠY trên Lavian (2026-11-13, MCP `apply_migration` tên `clinic_appointment_logs`, user cho phép)** — đã xác nhận: bảng 0 dòng, trigger `clinic_appointments_log` có, policy chỉ SELECT, authenticated chỉ SELECT, anon không quyền. Trigger chưa được thử bằng thao tác ghi thật (chưa sửa lịch nào). Log của `/appointments` gắn đúng người vì dùng client của user.
+
+### 2026-11-13 — /customers pipeline: Booked trước Deposited
+- **Thay đổi:** Đổi thứ tự 2 thẻ pipeline: Tin nhắn → Data → **Booked → Deposited** → Visited (trước là Deposited → Booked). Chỉ đổi vị trí trong mảng `dataCards`, cách đếm giữ nguyên. Thẻ Deposited hiện thêm tổng tiền cọc: `7 - 300,000 IDR` (cộng `deposit_amount` của các khách được đếm, format `en-US` theo yêu cầu; field `extra` trên `Card`).
+- **File ảnh hưởng:** `components/customers/customer-pipeline.tsx`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt.
+
+### 2026-11-13 — /customers: cột Lịch hẹn gần nhất
+- **Thay đổi:** Thêm cột "Lịch hẹn"/"Appointment" sau cột Tiền cọc: tag `DD-MM HH:mm` (tooltip `DD-MM-YYYY HH:mm`). Chọn lịch **sắp tới sớm nhất**; không có lịch sắp tới → lịch **đã qua mới nhất**. Màu: sắp tới = blue, đã qua + đã đến = green, đã qua chưa đến = default; không có lịch → "—". Tính client từ `appointments` (clinic_appointments chưa xoá) mà page đã nạp cho pipeline — không thêm query. i18n `customers.colAppointment` (en/vi).
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt. Giờ hiển thị theo múi giờ máy người xem (giống cột Ngày tạo). Cột chỉ xem, không bấm mở lịch hẹn.
+
+### 2026-11-13 — /customers: cột Tiền cọc cạnh Giai đoạn
+- **Thay đổi:** Thêm cột "Tiền cọc"/"Deposit" ngay sau cột Giai đoạn, hiện `customers.deposit_amount` bằng `formatRupiah` (căn phải, `tabular-nums`); null/0 → "—". Chỉ xem (nhập tiền cọc vẫn ở form SMAX). Page đã select sẵn cột; thêm `deposit_amount` vào type `Customer`. i18n `customers.colDeposit` (en/vi). Không đổi DB.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `types/customer.ts`, `messages/{en,vi}.json`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt (máy ít RAM, chưa bật dev). Drawer tạo/sửa khách chưa có ô sửa tiền cọc.
+
 ### 2026-11-12 — Lead form: ngày giờ + CSKH 1 hàng, lịch sử lịch hẹn, dán ảnh Payment confirm
 - **Thay đổi:** Tab Appointment: Ngày giờ + CSKH chung 1 hàng (`grid-cols-2`, `AppointmentDate` thêm prop `className`); dưới form có **Lịch sử lịch hẹn** (action public `listLeadAppointments(smaxCustomerId)` — embed `customers!inner` lọc theo `smax_customer_id` + `profiles!staff_id`, mới nhất trước, tối đa 50; tạo lịch xong tự tải lại). Page lead-form tải cả dịch vụ đã tắt (select chỉ hiện dịch vụ đang bật; lịch sử hiện đúng tên). `ImageUpload` bỏ antd `Upload`, dùng `<input type=file>` ẩn + prop mới `paste`: **click 1 lần = chọn ô (viền primary) rồi Ctrl+V dán ảnh, double-click = mở chọn file**; mặc định (avatar) vẫn click 1 lần mở file. Bật `paste` ở Payment confirm (drawer `/customers` + lead form). i18n `leadForm.history/historyEmpty`, đổi chữ `uploadImage` (en/vi).
 - **File ảnh hưởng:** `components/common/image-upload.tsx`, `components/appointments/appointment-date.tsx`, `components/lead-form/{lead-form,lead-appointment-form}.tsx`, `app/lead-form/{actions.ts,page.tsx}`, `components/customers/customers-manager.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.

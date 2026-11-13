@@ -8,9 +8,50 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { fetchFbAds } from "@/lib/marketing";
+import type { Appointment, AppointmentLog } from "@/types/appointment";
 import type { CustomerInput, CustomerNote } from "@/types/customer";
+import type { Service } from "@/types/service";
 
 type Result = { error?: string };
+
+export type CustomerAppointmentsData = {
+  appointments: Appointment[];
+  logs: AppointmentLog[];
+  services: Pick<Service, "id" | "name_vi" | "name_en" | "name_id">[];
+};
+
+// Drawer cột Lịch hẹn: toàn bộ lịch chưa xoá + log thay đổi (mới nhất trước) của 1 khách.
+export async function getCustomerAppointments(
+  customerId: string,
+): Promise<CustomerAppointmentsData & { error?: string }> {
+  try {
+    const supabase = await createClient();
+    const [appts, logs, services] = await Promise.all([
+      supabase
+        .from("clinic_appointments")
+        .select("id, customer_id, scheduled_at, checked_in, service_ids, staff_id, note")
+        .eq("customer_id", customerId)
+        .is("deleted_at", null)
+        .order("scheduled_at", { ascending: false }),
+      supabase
+        .from("clinic_appointment_logs")
+        .select("id, appointment_id, action, changes, actor_id, created_at, appointment:clinic_appointments(scheduled_at)")
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase.from("services").select("id, name_vi, name_en, name_id"),
+    ]);
+    const error = appts.error ?? logs.error ?? services.error;
+    if (error) throw error;
+    return {
+      appointments: (appts.data ?? []) as Appointment[],
+      logs: (logs.data ?? []) as unknown as AppointmentLog[],
+      services: services.data ?? [],
+    };
+  } catch (e) {
+    return { appointments: [], logs: [], services: [], error: normalizeError(e).message };
+  }
+}
 
 // Note mới do server stamp thời điểm + người ghi (không tin client).
 async function stampNote(text: string): Promise<CustomerNote> {

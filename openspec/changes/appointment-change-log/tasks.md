@@ -1,0 +1,6 @@
+- [x] 1. Migration bảng `clinic_appointment_logs` + trigger + RLS
+- [x] 2. Server action `getCustomerAppointments`
+- [x] 3. Nút ở cột Lịch hẹn + drawer (danh sách lịch hẹn + lịch sử thay đổi)
+- [x] 4. i18n en/vi, tsc + eslint
+- [x] 5. Chạy migration trên Lavian (2026-11-13)
+- [ ] 6. Thử trigger bằng thao tác thật (tạo/sửa/xoá lịch, Form SMAX)

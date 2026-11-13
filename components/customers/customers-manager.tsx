@@ -12,8 +12,10 @@ import {
   Tooltip,
   type TableProps,
 } from "antd";
+import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  History,
   Info,
   Pencil,
   RefreshCw,
@@ -33,6 +35,7 @@ import {
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
+import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { ImageUpload } from "@/components/common/image-upload";
@@ -43,6 +46,7 @@ import { RowActions } from "@/components/common/row-actions";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
+import { formatRupiah } from "@/lib/currency";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
 import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
@@ -114,6 +118,7 @@ export function CustomersManager({
   const [target, setTarget] = useState<Customer | "new" | null>(null);
   // Lưu id (không giữ object) để modal ghi chú tự nhận note mới sau revalidate.
   const [notesFor, setNotesFor] = useState<string | null>(null);
+  const [apptFor, setApptFor] = useState<Customer | null>(null);
   const [page, setPage] = useState(1);
 
   // Sửa inline hiện ngay, không chờ server. React tự trả về dữ liệu server khi
@@ -145,6 +150,22 @@ export function CustomersManager({
   // Avatar người ghi note — note chỉ lưu tên snapshot nên tra theo user_name.
   const staffAvatarByName = (name: string | null | undefined) =>
     name ? staff.find((s) => s.user_name === name)?.avatar_url : undefined;
+
+  // Lịch hẹn gần nhất mỗi khách: lịch sắp tới sớm nhất; không có thì lịch đã qua mới nhất.
+  const [now] = useState(() => Date.now());
+  const nearestAppt = useMemo(() => {
+    // Khoảng cách tới "bây giờ"; lịch đã qua cộng thêm số rất lớn để luôn xếp sau lịch sắp tới.
+    const rank = (a: PipelineAppointment) => {
+      const diff = Date.parse(a.scheduled_at) - now;
+      return diff >= 0 ? diff : Number.MAX_SAFE_INTEGER / 2 - diff;
+    };
+    const map = new Map<string, PipelineAppointment>();
+    for (const a of appointments) {
+      const cur = map.get(a.customer_id);
+      if (!cur || rank(a) < rank(cur)) map.set(a.customer_id, a);
+    }
+    return map;
+  }, [appointments, now]);
 
   const filtered = useMemo(
     () => rowsData.filter((c) => matchesCustomerFilters(c, filters)),
@@ -246,6 +267,45 @@ export function CustomersManager({
           onSave={(v) => patchField(c.id, { stage: v })}
         />
       ),
+    },
+    {
+      title: t("colDeposit"),
+      dataIndex: "deposit_amount",
+      width: 140,
+      align: "right",
+      render: (v: number | null) =>
+        v ? <span className="tabular-nums">{formatRupiah(Number(v))}</span> : DASH,
+    },
+    {
+      title: t("colAppointment"),
+      key: "appointment",
+      width: 170,
+      render: (_, c) => {
+        const a = nearestAppt.get(c.id);
+        const d = a && dayjs(a.scheduled_at);
+        // Sắp tới = xanh dương; đã qua: đã đến = xanh lá, chưa đến = xám.
+        const color = !a ? undefined : Date.parse(a.scheduled_at) >= now ? "blue" : a.checked_in ? "green" : "default";
+        return (
+          <div className="flex items-center gap-1">
+            {d ? (
+              <Tag color={color} title={d.format("DD-MM-YYYY HH:mm")} className="me-0 tabular-nums">
+                {d.format("DD-MM HH:mm")}
+              </Tag>
+            ) : (
+              DASH
+            )}
+            {/* Mở drawer: toàn bộ lịch hẹn + lịch sử thay đổi. */}
+            <Button
+              type="text"
+              size="small"
+              aria-label={t("viewAppointments")}
+              title={t("viewAppointments")}
+              icon={<History className="size-4" />}
+              onClick={() => setApptFor(c)}
+            />
+          </div>
+        );
+      },
     },
     {
       title: t("colSource"),
@@ -461,6 +521,8 @@ export function CustomersManager({
         avatarOf={staffAvatarByName}
         onClose={() => setNotesFor(null)}
       />
+
+      <AppointmentHistoryDrawer customer={apptFor} staff={staff} onClose={() => setApptFor(null)} />
     </Page>
   );
 }

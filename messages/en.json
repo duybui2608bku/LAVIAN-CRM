@@ -321,6 +321,34 @@
     "colPhone": "Phone",
     "colTags": "Tags",
     "colStage": "Stage",
+    "colDeposit": "Deposit",
+    "colAppointment": "Appointment",
+    "viewAppointments": "View appointments & change history",
+    "apptHistory": {
+      "title": "Appointments — {name}",
+      "appointments": "Appointments ({count})",
+      "noAppointments": "No appointments yet",
+      "history": "Change history",
+      "noHistory": "No changes recorded yet",
+      "systemActor": "SMAX form",
+      "upcoming": "Upcoming",
+      "checkedIn": "Visited",
+      "notCheckedIn": "Not visited",
+      "yes": "Yes",
+      "no": "No",
+      "action": {
+        "create": "Created appointment",
+        "update": "Updated appointment",
+        "delete": "Deleted appointment"
+      },
+      "field": {
+        "scheduled_at": "Date & time",
+        "checked_in": "Visited",
+        "service_ids": "Services",
+        "staff_id": "Customer care",
+        "note": "Note"
+      }
+    },
     "colSource": "Source",
     "colWaNumber": "WA Number",
     "colInstagram": "Instagram",
