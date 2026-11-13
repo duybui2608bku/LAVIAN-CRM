@@ -269,16 +269,17 @@ export function CustomersManager({
     {
       title: t("region"),
       key: "region",
-      width: 180,
+      width: 260,
       render: (_, c) => {
         const r = regionNames(c.region_code);
-        if (!r) return c.address_detail ? <span className="text-xs">{c.address_detail}</span> : DASH;
-        // Dòng 1 = huyện/TP (hoặc tỉnh), dòng 2 = tỉnh; hover xem địa chỉ chi tiết.
-        return (
-          <div title={c.address_detail ?? undefined} className="leading-tight">
-            <div>{r.city ?? r.province}</div>
-            {r.city && <div className="text-xs text-muted-foreground">{r.province}</div>}
+        // 1 hàng: "địa chỉ chi tiết, huyện/TP, tỉnh"; dài quá thì cắt "…", hover xem đủ.
+        const text = [c.address_detail, r?.city, r?.province].filter(Boolean).join(", ");
+        return text ? (
+          <div title={text} className="max-w-[260px] truncate">
+            {text}
           </div>
+        ) : (
+          DASH
         );
       },
     },
