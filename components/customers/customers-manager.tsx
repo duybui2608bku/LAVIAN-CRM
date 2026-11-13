@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
@@ -18,7 +17,6 @@ import {
   History,
   Info,
   Pencil,
-  RefreshCw,
   Search,
   Trash2,
   UserPlus,
@@ -108,9 +106,8 @@ export function CustomersManager({
   const t = useTranslations("customers");
   const tc = useTranslations("common");
   const locale = useLocale();
-  const router = useRouter();
   const confirm = useConfirm();
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) =>
@@ -428,13 +425,6 @@ export function CustomersManager({
         title={t("title")}
         actions={
           <>
-            <Button
-              icon={<RefreshCw className="size-4" />}
-              loading={pending}
-              aria-label={t("reload")}
-              title={t("reload")}
-              onClick={() => start(() => router.refresh())}
-            />
             <Button
               type="primary"
               icon={<UserPlus className="size-4" />}
