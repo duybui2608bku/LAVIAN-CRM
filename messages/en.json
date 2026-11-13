@@ -324,6 +324,7 @@
     "colDeposit": "Deposit",
     "colAppointment": "Appointment",
     "viewAppointments": "View appointments & change history",
+    "addAppointment": "Add appointment",
     "apptHistory": {
       "title": "Appointments — {name}",
       "appointments": "Appointments ({count})",

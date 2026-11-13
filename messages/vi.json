@@ -323,6 +323,7 @@
     "colDeposit": "Tiền cọc",
     "colAppointment": "Lịch hẹn",
     "viewAppointments": "Xem lịch hẹn & lịch sử thay đổi",
+    "addAppointment": "Thêm lịch hẹn",
     "apptHistory": {
       "title": "Lịch hẹn — {name}",
       "appointments": "Lịch hẹn ({count})",
