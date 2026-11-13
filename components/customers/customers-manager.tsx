@@ -274,13 +274,12 @@ export function CustomersManager({
         const r = regionNames(c.region_code);
         // 1 hàng: "địa chỉ chi tiết, huyện/TP, tỉnh"; dài quá thì cắt "…", hover xem đủ.
         const text = [c.address_detail, r?.city, r?.province].filter(Boolean).join(", ");
+        // Trống thì để ô trống (không "—").
         return text ? (
           <div title={text} className="max-w-[260px] truncate">
             {text}
           </div>
-        ) : (
-          DASH
-        );
+        ) : null;
       },
     },
     {
