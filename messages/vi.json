@@ -320,6 +320,34 @@
     "colName": "Họ tên",
     "colPhone": "Điện thoại",
     "colStage": "Giai đoạn",
+    "colDeposit": "Tiền cọc",
+    "colAppointment": "Lịch hẹn",
+    "viewAppointments": "Xem lịch hẹn & lịch sử thay đổi",
+    "apptHistory": {
+      "title": "Lịch hẹn — {name}",
+      "appointments": "Lịch hẹn ({count})",
+      "noAppointments": "Chưa có lịch hẹn",
+      "history": "Lịch sử thay đổi",
+      "noHistory": "Chưa có thay đổi nào được ghi lại",
+      "systemActor": "Form SMAX",
+      "upcoming": "Sắp tới",
+      "checkedIn": "Đã đến",
+      "notCheckedIn": "Chưa đến",
+      "yes": "Có",
+      "no": "Không",
+      "action": {
+        "create": "Tạo lịch hẹn",
+        "update": "Sửa lịch hẹn",
+        "delete": "Xoá lịch hẹn"
+      },
+      "field": {
+        "scheduled_at": "Ngày giờ",
+        "checked_in": "Đã đến",
+        "service_ids": "Dịch vụ",
+        "staff_id": "CSKH",
+        "note": "Ghi chú"
+      }
+    },
     "colSource": "Nguồn",
     "colWaNumber": "Số WA",
     "colInstagram": "Instagram",

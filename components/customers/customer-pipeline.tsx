@@ -46,6 +46,7 @@ type Card = {
   error?: string;
   label?: string; // mặc định t(key)
   dash?: boolean; // nối bằng "–" thay vì mũi tên
+  extra?: string; // hiện sau số, vd. tổng tiền cọc
 };
 
 /**
@@ -95,6 +96,8 @@ export function CustomerPipeline({
       return d >= from && d <= to;
     }).length;
 
+  const deposited = data.filter((c) => DEPOSITED_OR_LATER.has(c.stage));
+
   const dataCards: Card[] = [
     {
       key: "messages",
@@ -105,16 +108,17 @@ export function CustomerPipeline({
     },
     { key: "data", icon: Phone, tone: "info", value: data.length },
     {
-      key: "deposited",
-      icon: Wallet,
-      tone: "warning",
-      value: data.filter((c) => DEPOSITED_OR_LATER.has(c.stage)).length,
-    },
-    {
       key: "booked",
       icon: CalendarDays,
       tone: "primary",
       value: data.filter((c) => booked.has(c.id)).length,
+    },
+    {
+      key: "deposited",
+      icon: Wallet,
+      tone: "warning",
+      value: deposited.length,
+      extra: `${deposited.reduce((s, c) => s + Number(c.deposit_amount ?? 0), 0).toLocaleString("en-US")} IDR`,
     },
     {
       key: "visited",
@@ -151,7 +155,7 @@ export function CustomerPipeline({
           <c.icon className="size-4" />
         </span>
         <div className="min-w-0">
-          <div className="text-lg leading-6 font-semibold tabular-nums">
+          <div className="truncate text-lg leading-6 font-semibold tabular-nums">
             {c.error ? (
               <Tooltip title={c.error}>
                 <span className="text-muted-foreground">—</span>
@@ -159,7 +163,10 @@ export function CustomerPipeline({
             ) : c.value === null ? (
               <span className="inline-block h-5 w-8 animate-pulse rounded bg-muted align-middle" />
             ) : (
-              c.value.toLocaleString(locale)
+              <>
+                {c.value.toLocaleString(locale)}
+                {c.extra && <span className="text-sm font-medium"> - {c.extra}</span>}
+              </>
             )}
           </div>
           <p className="truncate text-xs text-muted-foreground">{c.label ?? t(c.key)}</p>

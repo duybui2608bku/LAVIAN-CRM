@@ -76,6 +76,7 @@ export interface Customer {
   sales_id: string | null; // nhân viên Sales phụ trách (profiles)
   technician_id: string | null; // kỹ thuật viên làm dịch vụ (profiles)
   first_contact: string | null;
+  deposit_amount: number | null; // tiền cọc (IDR)
   payment_confirm_url: string | null; // ảnh xác nhận thanh toán
   notes: CustomerNote[];
   created_at: string;
