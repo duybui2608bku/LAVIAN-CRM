@@ -62,7 +62,7 @@ export function LeadAppointmentForm({ smaxCustomerId, defaultStaffId, staffOptio
 
   return (
     <>
-      <Form form={form} layout="vertical" size="large" requiredMark={false} disabled={pending}
+      <Form form={form} layout="vertical" requiredMark={false} disabled={pending}
         initialValues={{ staff_id: defaultStaffId, service_ids: [], note: "" }} onFinish={onFinish}>
         <div className="grid grid-cols-2 gap-3">
           <Form.Item name="scheduled_at" label={t("date")} trigger="onSave"

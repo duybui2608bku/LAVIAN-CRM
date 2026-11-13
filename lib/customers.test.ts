@@ -43,6 +43,12 @@ test("lọc stage / source / staff", () => {
   assert.equal(matchesCustomerFilters(base, { staffId: "staff-2" }), false);
 });
 
+test("lọc theo đánh giá", () => {
+  assert.equal(matchesCustomerFilters({ ...base, rating: "spam" }, { rating: "spam" }), true);
+  assert.equal(matchesCustomerFilters({ ...base, rating: "potential" }, { rating: "spam" }), false);
+  assert.equal(matchesCustomerFilters({ ...base, rating: null }, { rating: "spam" }), false);
+});
+
 test("lọc theo tỉnh (region_code tỉnh hoặc huyện/TP)", () => {
   assert.equal(matchesCustomerFilters({ ...base, region_code: "31" }, { province: "31" }), true);
   assert.equal(matchesCustomerFilters({ ...base, region_code: "31.71" }, { province: "31" }), true);

@@ -7,7 +7,7 @@ import { z } from "zod";
 import { appointmentPatchSchema } from "@/lib/appointments";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CUSTOMER_OPTIONS, leadSource } from "@/lib/customer-options";
+import { CUSTOMER_OPTIONS, leadSource, validRating } from "@/lib/customer-options";
 import { formatPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
 
@@ -18,6 +18,7 @@ const schema = z.object({
   note: z.string().trim().max(1000),
   staff_id: z.uuid().or(z.literal("")),
   stage: z.string(),
+  rating: z.string().max(50).catch(""), // giá trị lạ → null qua validRating
   // Tiền cọc (IDR, số nguyên) — chỉ lưu khi giai đoạn là "deposited".
   deposit_amount: z.number().int().min(0).max(1e12).nullable().catch(null),
   website: z.string(),
@@ -61,6 +62,7 @@ export type LeadMode = "create" | "update";
 
 export type LeadCustomer = {
   stage: string;
+  rating: string;
   staff_id: string;
   staff_name: string;
   staff_avatar: string | null;
@@ -80,7 +82,7 @@ export async function checkLeadCustomer(
 
   const { data, error } = await createAdminClient()
     .from("customers")
-    .select("stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, staff:profiles!staff_id(user_name, avatar_url)")
+    .select("stage, rating, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, staff:profiles!staff_id(user_name, avatar_url)")
     .eq("smax_customer_id", id.data)
     .is("deleted_at", null)
     .maybeSingle();
@@ -92,6 +94,7 @@ export async function checkLeadCustomer(
     | null;
   return {
     stage: data.stage ?? "new_lead",
+    rating: data.rating ?? "",
     staff_id: data.staff_id ?? "",
     staff_name: staff?.user_name ?? "",
     staff_avatar: staff?.avatar_url ?? null,
@@ -142,6 +145,7 @@ export async function submitLead(
       // Payload hỏng/thiếu → null: không ghi đè smax_data đang có khi cập nhật.
       ...(d.smax_data ? { smax_data: d.smax_data } : {}),
       stage,
+      rating: validRating(d.rating),
       staff_id: d.staff_id || null,
       region_code: d.region_code || null,
       address_detail: d.address_detail || null,

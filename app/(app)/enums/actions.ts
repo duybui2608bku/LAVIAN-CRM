@@ -10,10 +10,11 @@ import type { EnumKind } from "@/types/customer";
 type Result = { error?: string };
 
 // Cột customers ứng với từng kind — để đếm option đang dùng trước khi xóa.
-const KIND_COLUMN: Record<EnumKind, "stage" | "source" | "lost_reason"> = {
+const KIND_COLUMN: Record<EnumKind, "stage" | "source" | "lost_reason" | "rating"> = {
   stage: "stage",
   source: "source",
   lost_reason: "lost_reason",
+  rating: "rating",
 };
 
 export async function createOption(input: {

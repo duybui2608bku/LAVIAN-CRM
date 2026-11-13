@@ -1,0 +1,6 @@
+- [x] 1. Migration cột `customers.rating`
+- [x] 2. Chạy migration trên Supabase (project Lavian)
+- [x] 3. Kind `rating` + 4 giá trị trong `CUSTOMER_OPTIONS`, `validRating`
+- [x] 4. `/customers`: field cạnh Giai đoạn, cột sửa inline, bộ lọc (+ test)
+- [x] 5. Form SMAX: lưới 2x2, fill từ CRM, ghi khi submit/update
+- [x] 6. i18n en/vi, tsc + eslint + test

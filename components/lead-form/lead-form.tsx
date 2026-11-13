@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button, Form, Input, InputNumber, Result, Segmented } from "antd";
+import { Alert, Button, ConfigProvider, Form, Input, InputNumber, Result, Segmented, type ThemeConfig } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import { Bug } from "lucide-react";
 
@@ -49,6 +49,7 @@ type Values = {
   phone: string;
   staff_id: string;
   stage: string;
+  rating: string;
   deposit_amount: number | null;
   payment_confirm_url: string | null;
   region_code: string;
@@ -58,7 +59,7 @@ type Values = {
 };
 
 // Trường lấy theo khách đang có trong CRM — fill khi tìm thấy, reset khi đổi khách.
-const CRM_FIELDS = ["stage", "staff_id", "deposit_amount", "payment_confirm_url", "region_code", "address_detail"] as const;
+const CRM_FIELDS = ["stage", "rating", "staff_id", "deposit_amount", "payment_confirm_url", "region_code", "address_detail"] as const;
 
 const DEFAULTS: Values = {
   full_name: "",
@@ -67,6 +68,7 @@ const DEFAULTS: Values = {
   address_detail: "",
   staff_id: "",
   stage: "new_lead",
+  rating: "",
   deposit_amount: null,
   payment_confirm_url: null,
   note: "",
@@ -81,15 +83,30 @@ const parseIdr = (v: string | undefined) =>
 
 type Tab = "customer" | "appointment";
 
-export function LeadForm({
-  staff,
-  stages,
-  services,
-}: {
+type LeadFormProps = {
   staff: StaffRef[];
   stages: EnumOption[];
+  ratings: EnumOption[];
   services: LeadService[];
-}) {
+};
+
+// Form nhúng trong khung SMAX hẹp → control/nhãn/khoảng cách gọn hơn phần còn lại của app.
+const COMPACT: ThemeConfig = {
+  token: { controlHeight: 36 },
+  components: {
+    Form: { itemMarginBottom: 12, verticalLabelPadding: "0 0 4px", labelFontSize: 13 },
+  },
+};
+
+export function LeadForm(props: LeadFormProps) {
+  return (
+    <ConfigProvider theme={COMPACT}>
+      <LeadFormInner {...props} />
+    </ConfigProvider>
+  );
+}
+
+function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
   const t = useTranslations("leadForm");
   const locale = useLocale();
   const params = useSearchParams();
@@ -212,6 +229,9 @@ export function LeadForm({
       setDone(true);
     }), () => {}); // thiếu dữ liệu: antd đã hiện lỗi dưới từng ô
 
+  const tagOptions = (opts: EnumOption[]) =>
+    opts.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }));
+
   // CSKH hiện tại có thể đã nghỉ/khác bộ phận → vẫn hiện tên thay vì uuid.
   const staffOptions = staff.map((s) => ({ value: s.id, label: staffLabel(s) }));
   if (existing?.staff_id && !staff.some((s) => s.id === existing.staff_id)) {
@@ -253,10 +273,9 @@ export function LeadForm({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <Segmented<Tab>
         block
-        size="large"
         value={activeTab}
         onChange={setTab}
         options={[
@@ -276,10 +295,10 @@ export function LeadForm({
           />
         </div>
       )}
-      <Form form={form} layout="vertical" size="large" requiredMark={false} initialValues={DEFAULTS}
+      <Form form={form} layout="vertical" requiredMark={false} initialValues={DEFAULTS}
         className={activeTab === "customer" ? undefined : "hidden"}>
         {existing && (
-          <Alert type="warning" showIcon className="mb-4" title={t("existingCustomer")} />
+          <Alert type="warning" showIcon className="mb-3" title={t("existingCustomer")} />
         )}
         <Form.Item
           name="full_name"
@@ -312,36 +331,43 @@ export function LeadForm({
             />
           </Form.Item>
         )}
-        {stages.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            <Form.Item name="stage" label={t("stage")}>
-              <ClearableSelect
-                className="w-full"
-                clearable={false}
-                options={stages.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }))}
-                ariaLabel={t("stage")}
-              />
-            </Form.Item>
-            {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
-            <Form.Item name="deposit_amount" label={t("deposit")}>
-              <InputNumber<number>
-                className="w-full"
-                min={0}
-                precision={0}
-                controls={false}
-                inputMode="numeric"
-                placeholder="0"
-                suffix={IDR_CURRENCY}
-                formatter={formatIdr}
-                parser={parseIdr}
-                disabled={!isDeposited}
-              />
-            </Form.Item>
-          </div>
-        )}
-        <Form.Item name="payment_confirm_url" label={t("paymentConfirm")}>
-          <ImageUpload paste label={t("uploadImage")} />
-        </Form.Item>
+        {/* Lưới 2x2: Giai đoạn | Đánh giá, Tiền cọc | Ảnh xác nhận thanh toán. */}
+        <div className="grid grid-cols-2 gap-x-3">
+          <Form.Item name="stage" label={t("stage")}>
+            <ClearableSelect
+              className="w-full"
+              clearable={false}
+              options={tagOptions(stages)}
+              ariaLabel={t("stage")}
+            />
+          </Form.Item>
+          <Form.Item name="rating" label={t("rating")}>
+            <ClearableSelect
+              className="w-full"
+              options={tagOptions(ratings)}
+              placeholder={t("noteOptional")}
+              ariaLabel={t("rating")}
+            />
+          </Form.Item>
+          {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
+          <Form.Item name="deposit_amount" label={t("deposit")}>
+            <InputNumber<number>
+              className="w-full"
+              min={0}
+              precision={0}
+              controls={false}
+              inputMode="numeric"
+              placeholder="0"
+              suffix={IDR_CURRENCY}
+              formatter={formatIdr}
+              parser={parseIdr}
+              disabled={!isDeposited}
+            />
+          </Form.Item>
+          <Form.Item name="payment_confirm_url" label={t("paymentConfirm")}>
+            <ImageUpload paste label={t("uploadImage")} />
+          </Form.Item>
+        </div>
         <Form.Item
           name="note"
           label={t("note")}
@@ -359,7 +385,7 @@ export function LeadForm({
         </Form.Item>
 
         {/* Dính đáy màn hình: form dài vẫn thấy nút Submit/Update không cần cuộn. */}
-        <div className="sticky bottom-0 z-10 -mx-4 flex gap-2 border-t border-border bg-background px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="sticky bottom-0 z-10 -mx-3 flex gap-2 border-t border-border bg-background px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
           {embedded && (
             <Button
               aria-label={t("log")}
