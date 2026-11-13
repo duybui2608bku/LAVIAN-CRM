@@ -52,6 +52,8 @@ export interface CustomerInput {
   technician_id?: string | null;
   first_contact?: string | null; // "YYYY-MM-DD"
   payment_confirm_url?: string | null; // ảnh xác nhận thanh toán
+  region_code?: string | null; // mã vùng Kemendagri: "31" | "31.71"
+  address_detail?: string | null; // địa chỉ chi tiết (text tự do)
 }
 
 /** Khách hàng — ánh xạ bảng `public.customers`. */
@@ -78,6 +80,8 @@ export interface Customer {
   first_contact: string | null;
   deposit_amount: number | null; // tiền cọc (IDR)
   payment_confirm_url: string | null; // ảnh xác nhận thanh toán
+  region_code: string | null; // mã vùng Kemendagri: tỉnh "31" | huyện/TP "31.71"
+  address_detail: string | null; // địa chỉ chi tiết (text tự do)
   notes: CustomerNote[];
   created_at: string;
   updated_at: string;
