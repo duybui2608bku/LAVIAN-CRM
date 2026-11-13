@@ -6,7 +6,7 @@ import { getCurrentProfile } from "@/lib/auth";
 
 export default async function MarketingPage() {
   const profile = await getCurrentProfile();
-  if (profile?.role !== "admin") redirect("/");
+  if (!profile?.permissions.includes("marketing.view")) redirect("/");
 
   return (
     <Page>

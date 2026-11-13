@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, requirePermission } from "@/lib/auth";
 import { appointmentPatchSchema } from "@/lib/appointments";
 import { normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { AppointmentPatch } from "@/types/appointment";
+import { CARE_DEPARTMENTS } from "@/types/user";
 
 async function client() {
   const profile = await getCurrentProfile();
@@ -31,7 +32,7 @@ async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch:
   const checks: PromiseLike<void>[] = [];
   if (patch.staff_id) {
     checks.push(db.from("profiles").select("id").eq("id", patch.staff_id).eq("status", "active")
-      .eq("department", "customer_care").single().then(({ error }) => { if (error) throw error; }));
+      .in("department", CARE_DEPARTMENTS).single().then(({ error }) => { if (error) throw error; }));
   }
   const serviceIds = patch.service_ids;
   if (serviceIds?.length) {
@@ -48,6 +49,7 @@ export async function createAppointment(
   input: AppointmentPatch & { scheduled_at: string },
 ): Promise<{ error?: string }> {
   try {
+    await requirePermission("appointments.edit");
     z.uuid().parse(customerId);
     const patch = appointmentPatchSchema.parse(input);
     if (!patch.scheduled_at) throw new Error("Missing date");
@@ -72,6 +74,7 @@ export async function createAppointment(
 
 export async function patchAppointment(id: string, input: AppointmentPatch): Promise<{ error?: string }> {
   try {
+    await requirePermission("appointments.edit");
     z.uuid().parse(id);
     const patch = appointmentPatchSchema.parse(input);
     const db = await client();
@@ -88,6 +91,7 @@ export async function patchAppointment(id: string, input: AppointmentPatch): Pro
 
 export async function deleteAppointment(id: string): Promise<{ error?: string }> {
   try {
+    await requirePermission("appointments.delete");
     z.uuid().parse(id);
     const db = await client();
     const { error } = await db.from("clinic_appointments").update({ deleted_at: new Date().toISOString() })

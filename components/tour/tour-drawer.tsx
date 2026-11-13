@@ -22,7 +22,8 @@ import type { AppointmentCustomer } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import type { Tour, TourImageField, TourPatch } from "@/types/tour";
 
-export type TourMe = { id: string; isAdmin: boolean; isTechnician: boolean };
+// canEdit/canDelete = quyền bộ phận tour.edit/tour.delete; quản lý (xác nhận, gán KTV) = isAdmin.
+export type TourMe = { id: string; isAdmin: boolean; isTechnician: boolean; canEdit: boolean; canDelete: boolean };
 type T = ReturnType<typeof useTranslations<"tour">>;
 
 const STATUS_COLOR: Record<TourStatus, string> = { pending: "gold", claimed: "blue", confirmed: "green" };
@@ -87,9 +88,9 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
 
   const status = tourStatus(tour);
   const isOwner = tour.technician_id === me.id;
-  const canEdit = me.isAdmin || (status !== "confirmed" && (!me.isTechnician || isOwner));
+  const canEdit = me.canEdit && (me.isAdmin || (status !== "confirmed" && (!me.isTechnician || isOwner)));
   const canEditBasic = canEdit && !me.isTechnician;
-  const canClaim = me.isTechnician && status === "pending";
+  const canClaim = me.canEdit && me.isTechnician && status === "pending";
   const technician = staff.find((s) => s.id === tour.technician_id);
   const done = t("saved");
   const failed = t("saveError");

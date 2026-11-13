@@ -6,7 +6,7 @@ import { getCurrentProfile } from "@/lib/auth";
 
 export default async function ReportsPage() {
   const profile = await getCurrentProfile();
-  if (profile?.role !== "admin") redirect("/");
+  if (!profile?.permissions.includes("reports.view")) redirect("/");
 
   return (
     <Page>

@@ -43,7 +43,9 @@
     "filters": "Filters",
     "clearFilters": "Clear filters",
     "account": "Account",
-    "darkMode": "Dark mode"
+    "darkMode": "Dark mode",
+    "noAccessTitle": "No access yet",
+    "noAccessBody": "Your account has not been granted access to any page. Please contact an administrator."
   },
   "home": {
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
@@ -196,6 +198,16 @@
     "dept_customer_care": "Customer Care",
     "dept_technician": "Technician",
     "dept_sales": "Sales",
+    "dept_customer_care_leader": "Customer Care Leader",
+    "permissions": "Permissions",
+    "permissionsTitle": "Permissions by department",
+    "permissionsHint": "Choose which menus and actions each department may use. Admins always have full access; the Users page is admin-only. Picking Edit/Delete adds View automatically.",
+    "permissionsOk": "Permissions saved",
+    "noPermissions": "No access",
+    "perm_view": "View",
+    "perm_edit": "Create / Edit",
+    "perm_delete": "Delete",
+    "save": "Save",
     "departmentOk": "Department updated",
     "avatarOk": "Avatar updated",
     "changeAvatar": "Click to change avatar",

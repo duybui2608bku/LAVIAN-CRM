@@ -13,6 +13,7 @@ import { FormDrawer } from "@/components/common/form-drawer";
 import { RowActions } from "@/components/common/row-actions";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
 import { useConfirm } from "@/components/common/confirm-action";
+import { useCan } from "@/components/common/permissions";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { matchesNameOrPhone, serviceName } from "@/lib/customers";
@@ -20,12 +21,13 @@ import { waColor } from "@/lib/wa";
 import { toast } from "@/lib/toast";
 import type { Appointment, AppointmentCustomer, AppointmentPatch } from "@/types/appointment";
 import type { Service } from "@/types/service";
+import { CARE_DEPARTMENTS } from "@/types/user";
 
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
 
 // Chỉ chọn CSKH (giữ người đang gán để vẫn hiển thị).
 const staffOptions = (staff: AppointmentStaff[], current?: string | null) => staff
-  .filter((s) => s.id === current || (s.status === "active" && s.department === "customer_care"))
+  .filter((s) => s.id === current || (s.status === "active" && CARE_DEPARTMENTS.includes(s.department ?? "")))
   .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
 export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer }: {
@@ -38,6 +40,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const t = useTranslations("appointments");
   const locale = useLocale();
   const confirm = useConfirm();
+  const can = useCan();
+  const canEdit = can("appointments.edit");
   const [, start] = useTransition();
   const [search, setSearch] = useState("");
   const [date, setDate] = useState("");
@@ -77,14 +81,14 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       return wa ? <Tag color={waColor(wa)} className="me-0">{wa}</Tag> : <span className="text-muted-foreground">—</span>;
     } },
     { title: t("date"), width: 220, sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
-      render: (_, row) => <AppointmentDate inline value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
+      render: (_, row) => <AppointmentDate inline disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
-      value={row.checked_in ? "arrived" : "waiting"} ariaLabel={t("confirmation")}
+      value={row.checked_in ? "arrived" : "waiting"} ariaLabel={t("confirmation")} disabled={!canEdit}
       display={<Tag color={row.checked_in ? "green" : "default"} className="me-0">{row.checked_in ? t("arrived") : t("notArrived")}</Tag>}
       options={[{ value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]}
       onSave={(value) => save(row.id, { checked_in: value === "arrived" })} /> },
     { title: t("services"), width: 220, render: (_, row) => <InlineMultiSelect
-      value={row.service_ids} ariaLabel={t("services")}
+      value={row.service_ids} ariaLabel={t("services")} disabled={!canEdit}
       display={row.service_ids.length ? <div className="flex flex-wrap gap-1">{row.service_ids.map((id) => {
         const service = services.find((s) => s.id === id);
         return <Tag key={id} color="purple" className="me-0">{service ? serviceName(service, locale) : id}</Tag>;
@@ -92,7 +96,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       options={services.filter((s) => s.is_active || row.service_ids.includes(s.id)).map((s) => ({ value: s.id, label: serviceName(s, locale) }))}
       onSave={(service_ids) => save(row.id, { service_ids })} /> },
     { title: t("staff"), width: 170, render: (_, row) => <InlineSelect value={row.staff_id ?? ""}
-      ariaLabel={t("staff")} noneLabel={t("choose")}
+      ariaLabel={t("staff")} noneLabel={t("choose")} disabled={!canEdit}
       display={(() => {
         const member = staff.find((s) => s.id === row.staff_id);
         return member ? staffLabel(member) : <span className="text-muted-foreground">{t("choose")}</span>;
@@ -100,8 +104,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       options={staffOptions(staff, row.staff_id)}
       onSave={(value) => save(row.id, { staff_id: value || null })} /> },
     { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note}
-      label={t("note")} onSave={(note) => save(row.id, { note })} /> },
-    { key: "actions", width: 56, align: "right", fixed: "right", render: (_, row) => <RowActions label={t("remove")}
+      label={t("note")} disabled={!canEdit} onSave={(note) => save(row.id, { note })} /> },
+    { key: "actions", width: 56, align: "right", fixed: "right", render: (_, row) => can("appointments.delete") && <RowActions label={t("remove")}
       items={[{ icon: <Trash2 className="size-4" />, label: t("remove"), danger: true, onSelect: () => confirm({
         title: t("removeTitle"), content: t("removeBody", { name: customerMap.get(row.customer_id)?.full_name ?? "" }),
         okText: t("remove"), cancelText: t("cancel"), onOk: async () => {
@@ -124,8 +128,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <Select value={arrival} aria-label={t("confirmation")} className="min-w-40" onChange={(v) => { setArrival(v); resetPage(); }}
         options={[{ value: "all", label: t("allArrivals") }, { value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
-      <Button type="primary" icon={<CalendarPlus className="size-4" />}
-        onClick={() => setCreating(true)}>{t("create")}</Button>
+      {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
+        onClick={() => setCreating(true)}>{t("create")}</Button>}
     </PageToolbar>
     <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1640 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
@@ -135,13 +139,13 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   </Page>;
 }
 
-function AppointmentNote({ value, label, onSave }: {
-  value: string; label: string; onSave: (note: string) => void;
+function AppointmentNote({ value, label, disabled, onSave }: {
+  value: string; label: string; disabled?: boolean; onSave: (note: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
   const [seen, setSeen] = useState(value);
   if (seen !== value) { setSeen(value); setDraft(value); }
-  return <Input.TextArea value={draft} aria-label={label} placeholder={label}
+  return <Input.TextArea value={draft} aria-label={label} placeholder={label} disabled={disabled}
     variant="borderless" autoSize={{ minRows: 1, maxRows: 6 }} maxLength={10000}
     onChange={(e) => setDraft(e.target.value)} onBlur={() => {
       if (draft.trim() !== value) onSave(draft);

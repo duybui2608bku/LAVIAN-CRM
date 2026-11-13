@@ -19,6 +19,7 @@ import {
   updateService,
 } from "@/app/(app)/services/actions";
 import { useConfirm } from "@/components/common/confirm-action";
+import { useCan } from "@/components/common/permissions";
 import { DataTable } from "@/components/common/data-table";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { RowActions } from "@/components/common/row-actions";
@@ -37,6 +38,9 @@ export function ServicesManager({ services }: { services: Service[] }) {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [, start] = useTransition();
   const confirm = useConfirm();
+  const can = useCan();
+  const canEdit = can("services.edit");
+  const canDelete = can("services.delete");
   // Bật/tắt hiện ngay; server trả về thì React tự đồng bộ (lỗi → quay lại).
   const [rows, patchRow] = useOptimistic(
     services,
@@ -82,6 +86,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
           checked={s.is_active}
           aria-label={t("colActive")}
           title={s.is_active ? t("active") : t("inactive")}
+          disabled={!canEdit}
           onChange={() => onToggleActive(s)}
         />
       ),
@@ -91,31 +96,30 @@ export function ServicesManager({ services }: { services: Service[] }) {
       key: "actions",
       width: 72,
       align: "right",
-      render: (_, s) => (
-        <RowActions
-          label={t("colActions")}
-          items={[
-            {
-              icon: <Pencil className="size-4" />,
-              label: t("edit"),
-              onSelect: () => setDialog({ service: s }),
-            },
-            {
-              icon: <Trash2 className="size-4" />,
-              label: t("delete"),
-              danger: true,
-              onSelect: () =>
-                confirm({
-                  title: t("deleteConfirm"),
-                  content: t("deleteConfirmBody", { name: s.name_vi }),
-                  okText: t("delete"),
-                  cancelText: t("cancel"),
-                  onOk: () => remove(s),
-                }),
-            },
-          ]}
-        />
-      ),
+      render: (_, s) =>
+        canEdit || canDelete ? (
+          <RowActions
+            label={t("colActions")}
+            items={[
+              ...(canEdit ? [{ icon: <Pencil className="size-4" />, label: t("edit"), onSelect: () => setDialog({ service: s }) }] : []),
+              ...(canDelete
+                ? [{
+                    icon: <Trash2 className="size-4" />,
+                    label: t("delete"),
+                    danger: true,
+                    onSelect: () =>
+                      confirm({
+                        title: t("deleteConfirm"),
+                        content: t("deleteConfirmBody", { name: s.name_vi }),
+                        okText: t("delete"),
+                        cancelText: t("cancel"),
+                        onOk: () => remove(s),
+                      }),
+                  }]
+                : []),
+            ]}
+          />
+        ) : null,
     },
   ];
 
@@ -124,7 +128,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
       <PageHeader
         title={t("title")}
         actions={
-          <Button
+          canEdit && <Button
             type="primary"
             icon={<Plus className="size-4" />}
             onClick={() => setDialog({ service: null })}

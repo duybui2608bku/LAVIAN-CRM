@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import {
   fetchFbAds,
@@ -25,7 +25,7 @@ export interface AdsStats {
 
 /** Số liệu trang Marketing theo khoảng ngày Việt Nam `YYYY-MM-DD`. */
 export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
-  await requireAdmin();
+  await requirePermission("marketing.view");
 
   const stats: AdsStats = {
     currency: null,
@@ -64,7 +64,7 @@ export async function updateCampaignStatus(
   id: string,
   status: "ACTIVE" | "PAUSED",
 ): Promise<{ error?: string }> {
-  await requireAdmin();
+  await requirePermission("marketing.edit");
   if (!/^\d+$/.test(id) || (status !== "ACTIVE" && status !== "PAUSED"))
     return { error: "Tham số không hợp lệ." };
   try {

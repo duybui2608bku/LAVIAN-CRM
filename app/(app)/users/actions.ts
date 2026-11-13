@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeError } from "@/lib/errors";
-import type { UserDepartment, UserRole, UserStatus } from "@/types/user";
+import { effectivePermissions } from "@/lib/permissions";
+import { createClient } from "@/lib/supabase/server";
+import { DEPARTMENTS, type UserDepartment, type UserRole, type UserStatus } from "@/types/user";
 
 type Result = { error?: string };
 
@@ -128,6 +130,30 @@ export async function resetPassword(
     const admin = createAdminClient();
     const { error } = await admin.auth.admin.updateUserById(id, { password });
     if (error) throw error;
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e).message };
+  }
+}
+
+/** Admin lưu quyền của các bộ phận (key lạ bị bỏ). Đổi quyền ảnh hưởng menu → revalidate cả layout. */
+export async function saveDepartmentPermissions(
+  input: Partial<Record<UserDepartment, string[]>>,
+): Promise<Result> {
+  try {
+    await requireAdmin();
+    const db = await createClient();
+    const results = await Promise.all(
+      DEPARTMENTS.filter((d) => input[d]).map((department) =>
+        db
+          .from("department_permissions")
+          .update({ permissions: effectivePermissions(null, input[department]) })
+          .eq("department", department),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) throw failed.error;
+    revalidatePath("/", "layout");
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };

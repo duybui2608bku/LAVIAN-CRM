@@ -41,7 +41,10 @@ export default async function TourPage({ searchParams }: { searchParams: Promise
   }
 
   return <TourView
-    me={{ id: profile.id, isAdmin, isTechnician }}
+    me={{
+      id: profile.id, isAdmin, isTechnician,
+      canEdit: profile.permissions.includes("tour.edit"), canDelete: profile.permissions.includes("tour.delete"),
+    }}
     month={month.format("YYYY-MM")}
     tours={(tours.data ?? []) as unknown as Tour[]}
     pending={(pending?.data ?? []) as unknown as Tour[]}

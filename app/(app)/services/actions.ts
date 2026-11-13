@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requirePermission } from "@/lib/auth";
+
 import { createClient } from "@/lib/supabase/server";
 import { normalizeError } from "@/lib/errors";
 import type { ServiceInput } from "@/types/service";
@@ -10,6 +12,7 @@ type Result = { error?: string };
 
 export async function createService(input: ServiceInput): Promise<Result> {
   try {
+    await requirePermission("services.edit");
     const supabase = await createClient();
     const { error } = await supabase.from("services").insert(input);
     if (error) throw error;
@@ -25,6 +28,7 @@ export async function updateService(
   input: ServiceInput,
 ): Promise<Result> {
   try {
+    await requirePermission("services.edit");
     const supabase = await createClient();
     const { error } = await supabase
       .from("services")
@@ -41,6 +45,7 @@ export async function updateService(
 /** Xóa cứng — nhưng chặn nếu dịch vụ đã dùng trong lịch hẹn/tour (pattern deleteOption). */
 export async function deleteService(id: string): Promise<Result> {
   try {
+    await requirePermission("services.delete");
     const supabase = await createClient();
 
     // Đếm cả lịch đã soft-delete — giữ được tên dịch vụ cho dữ liệu cũ.
