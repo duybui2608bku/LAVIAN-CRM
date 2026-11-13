@@ -49,6 +49,7 @@ type Values = {
   phone: string;
   staff_id: string;
   stage: string;
+  rating: string;
   deposit_amount: number | null;
   payment_confirm_url: string | null;
   region_code: string;
@@ -58,7 +59,7 @@ type Values = {
 };
 
 // Trường lấy theo khách đang có trong CRM — fill khi tìm thấy, reset khi đổi khách.
-const CRM_FIELDS = ["stage", "staff_id", "deposit_amount", "payment_confirm_url", "region_code", "address_detail"] as const;
+const CRM_FIELDS = ["stage", "rating", "staff_id", "deposit_amount", "payment_confirm_url", "region_code", "address_detail"] as const;
 
 const DEFAULTS: Values = {
   full_name: "",
@@ -67,6 +68,7 @@ const DEFAULTS: Values = {
   address_detail: "",
   staff_id: "",
   stage: "new_lead",
+  rating: "",
   deposit_amount: null,
   payment_confirm_url: null,
   note: "",
@@ -84,6 +86,7 @@ type Tab = "customer" | "appointment";
 type LeadFormProps = {
   staff: StaffRef[];
   stages: EnumOption[];
+  ratings: EnumOption[];
   services: LeadService[];
 };
 
@@ -103,7 +106,7 @@ export function LeadForm(props: LeadFormProps) {
   );
 }
 
-function LeadFormInner({ staff, stages, services }: LeadFormProps) {
+function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
   const t = useTranslations("leadForm");
   const locale = useLocale();
   const params = useSearchParams();
@@ -226,6 +229,9 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
       setDone(true);
     }), () => {}); // thiếu dữ liệu: antd đã hiện lỗi dưới từng ô
 
+  const tagOptions = (opts: EnumOption[]) =>
+    opts.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }));
+
   // CSKH hiện tại có thể đã nghỉ/khác bộ phận → vẫn hiện tên thay vì uuid.
   const staffOptions = staff.map((s) => ({ value: s.id, label: staffLabel(s) }));
   if (existing?.staff_id && !staff.some((s) => s.id === existing.staff_id)) {
@@ -325,36 +331,43 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
             />
           </Form.Item>
         )}
-        {stages.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            <Form.Item name="stage" label={t("stage")}>
-              <ClearableSelect
-                className="w-full"
-                clearable={false}
-                options={stages.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }))}
-                ariaLabel={t("stage")}
-              />
-            </Form.Item>
-            {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
-            <Form.Item name="deposit_amount" label={t("deposit")}>
-              <InputNumber<number>
-                className="w-full"
-                min={0}
-                precision={0}
-                controls={false}
-                inputMode="numeric"
-                placeholder="0"
-                suffix={IDR_CURRENCY}
-                formatter={formatIdr}
-                parser={parseIdr}
-                disabled={!isDeposited}
-              />
-            </Form.Item>
-          </div>
-        )}
-        <Form.Item name="payment_confirm_url" label={t("paymentConfirm")}>
-          <ImageUpload paste label={t("uploadImage")} />
-        </Form.Item>
+        {/* Lưới 2x2: Giai đoạn | Đánh giá, Tiền cọc | Ảnh xác nhận thanh toán. */}
+        <div className="grid grid-cols-2 gap-x-3">
+          <Form.Item name="stage" label={t("stage")}>
+            <ClearableSelect
+              className="w-full"
+              clearable={false}
+              options={tagOptions(stages)}
+              ariaLabel={t("stage")}
+            />
+          </Form.Item>
+          <Form.Item name="rating" label={t("rating")}>
+            <ClearableSelect
+              className="w-full"
+              options={tagOptions(ratings)}
+              placeholder={t("noteOptional")}
+              ariaLabel={t("rating")}
+            />
+          </Form.Item>
+          {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
+          <Form.Item name="deposit_amount" label={t("deposit")}>
+            <InputNumber<number>
+              className="w-full"
+              min={0}
+              precision={0}
+              controls={false}
+              inputMode="numeric"
+              placeholder="0"
+              suffix={IDR_CURRENCY}
+              formatter={formatIdr}
+              parser={parseIdr}
+              disabled={!isDeposited}
+            />
+          </Form.Item>
+          <Form.Item name="payment_confirm_url" label={t("paymentConfirm")}>
+            <ImageUpload paste label={t("uploadImage")} />
+          </Form.Item>
+        </div>
         <Form.Item
           name="note"
           label={t("note")}

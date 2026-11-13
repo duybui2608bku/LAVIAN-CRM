@@ -75,6 +75,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 type Filters = {
   search: string;
   stage: string;
+  rating: string;
   source: string;
   staffId: string;
   province: string;
@@ -85,6 +86,7 @@ type Filters = {
 const EMPTY_FILTERS: Filters = {
   search: "",
   stage: "",
+  rating: "",
   source: "",
   staffId: "",
   province: "",
@@ -94,6 +96,7 @@ const EMPTY_FILTERS: Filters = {
 
 type Patch = {
   stage?: string;
+  rating?: string | null;
   staff_id?: string | null;
   sales_id?: string | null;
   technician_id?: string | null;
@@ -297,6 +300,21 @@ export function CustomersManager({
       ),
     },
     {
+      title: t("colRating"),
+      dataIndex: "rating",
+      width: 140,
+      render: (_, c) => (
+        <InlineSelect
+          value={c.rating ?? ""}
+          display={tagFor("rating", c.rating)}
+          options={tagOptions("rating", c.rating)}
+          noneLabel={t("noneOption")}
+          ariaLabel={t("colRating")}
+          onSave={(v) => patchField(c.id, { rating: v || null })}
+        />
+      ),
+    },
+    {
       title: t("colDeposit"),
       dataIndex: "deposit_amount",
       width: 140,
@@ -457,7 +475,7 @@ export function CustomersManager({
   const editing = target && target !== "new" ? target : null;
   // Số lọc đang bật (khoảng ngày tính 1) — có lọc thì hiện nút "Xoá bộ lọc".
   const activeCount =
-    [filters.search, filters.stage, filters.source, filters.staffId, filters.province].filter(Boolean)
+    [filters.search, filters.stage, filters.rating, filters.source, filters.staffId, filters.province].filter(Boolean)
       .length + (filters.from || filters.to ? 1 : 0);
 
   return (
@@ -491,6 +509,14 @@ export function CustomersManager({
           options={kindOptions("stage")}
           placeholder={t("allStage")}
           ariaLabel={t("colStage")}
+        />
+        <ClearableSelect
+          className="min-w-36"
+          value={filters.rating}
+          onChange={(v) => setFilter("rating", v)}
+          options={kindOptions("rating")}
+          placeholder={t("allRating")}
+          ariaLabel={t("colRating")}
         />
         <ClearableSelect
           className="min-w-36"
@@ -670,6 +696,7 @@ type Values = {
   phone: string;
   social_name?: string;
   stage: string;
+  rating?: string;
   staff_id?: string;
   lost_reason?: string;
   first_contact?: string;
@@ -711,6 +738,7 @@ function CustomerDialog({
         phone: formatPhone(v.phone),
         social_name: v.social_name || null,
         stage: v.stage,
+        rating: v.rating || null,
         lost_reason: v.lost_reason || null,
         staff_id: v.staff_id || null,
         // Sales/KTV đã ẩn khỏi form → giữ nguyên giá trị đang có.
@@ -754,6 +782,7 @@ function CustomerDialog({
           phone: editing?.phone ?? "",
           social_name: editing?.social_name ?? "",
           stage: editing?.stage ?? "new_lead",
+          rating: editing?.rating ?? "",
           staff_id: editing?.staff_id ?? "",
           lost_reason: editing?.lost_reason ?? "",
           first_contact: editing?.first_contact?.slice(0, 10) ?? "",
@@ -777,13 +806,23 @@ function CustomerDialog({
         <Form.Item name="address_detail" label={t("addressDetail")} rules={[{ max: 500 }]}>
           <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} />
         </Form.Item>
-        <Form.Item name="stage" label={t("colStage")}>
-          <ClearableSelect
-            clearable={false}
-            options={selectOptions("stage", editing?.stage)}
-            ariaLabel={t("colStage")}
-          />
-        </Form.Item>
+        {/* Giai đoạn + Đánh giá chung 1 hàng. */}
+        <div className="grid grid-cols-2 gap-3">
+          <Form.Item name="stage" label={t("colStage")}>
+            <ClearableSelect
+              clearable={false}
+              options={selectOptions("stage", editing?.stage)}
+              ariaLabel={t("colStage")}
+            />
+          </Form.Item>
+          <Form.Item name="rating" label={t("colRating")}>
+            <ClearableSelect
+              options={selectOptions("rating", editing?.rating)}
+              placeholder={t("noneOption")}
+              ariaLabel={t("colRating")}
+            />
+          </Form.Item>
+        </div>
         {stage === "lost" && (
           <Form.Item name="lost_reason" label={t("colLostReason")}>
             <ClearableSelect

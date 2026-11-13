@@ -41,6 +41,7 @@ export default async function LeadFormPage() {
             staff={staff ?? []}
             services={services ?? []}
             stages={CUSTOMER_OPTIONS.filter((o) => o.kind === "stage")}
+            ratings={CUSTOMER_OPTIONS.filter((o) => o.kind === "rating")}
           />
         </Suspense>
       </div>

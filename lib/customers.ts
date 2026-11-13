@@ -49,6 +49,7 @@ export function createdAgeBucket(createdAt: string, now: Date = new Date()): 0 |
 export interface CustomerFilters {
   search?: string;
   stage?: string;
+  rating?: string;
   source?: string;
   staffId?: string;
   salesId?: string;
@@ -69,6 +70,7 @@ export function matchesCustomerFilters(
 ): boolean {
   if (!matchesNameOrPhone(c.full_name, c.phone, f.search ?? "")) return false;
   if (f.stage && c.stage !== f.stage) return false;
+  if (f.rating && c.rating !== f.rating) return false;
   if (f.source && c.source !== f.source) return false;
   if (f.staffId && c.staff_id !== f.staffId) return false;
   if (f.salesId && c.sales_id !== f.salesId) return false;

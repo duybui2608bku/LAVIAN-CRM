@@ -8,9 +8,18 @@ const definitions: [EnumKind, string, string, string, string][] = [
   ["stage", "visited", "Đã đến", "Visited", "green"],
   ["stage", "returning", "Khách quay lại", "Returning", "purple"],
   ["stage", "lost", "Đã mất", "Lost", "red"],
+  ["rating", "potential", "Tiềm năng", "Potential", "green"],
+  ["rating", "price_only", "Chỉ hỏi giá", "Price only", "gold"],
+  ["rating", "far", "Ở xa", "Far away", "orange"],
+  ["rating", "spam", "Spam", "Spam", "red"],
   ["source", "instagrams", "Instagram", "Instagram", "magenta"],
   ["source", "whatsapp", "WhatsApp", "WhatsApp", "green"],
 ];
+
+/** Giá trị đánh giá hợp lệ → giữ; "" / lạ → null (chưa đánh giá). */
+export function validRating(v: string | null | undefined): string | null {
+  return v && CUSTOMER_OPTIONS.some((o) => o.kind === "rating" && o.value === v) ? v : null;
+}
 
 /** Nguồn khách: có hội thoại WhatsApp (link SMAX `/chats/waw…`) → WA, còn lại mặc định Instagram. */
 export function leadSource(threadLink: string | null | undefined): "whatsapp" | "instagrams" {

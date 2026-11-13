@@ -1,6 +1,6 @@
 "use server";
 
-import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
+import { CUSTOMER_OPTIONS, validRating } from "@/lib/customer-options";
 import { formatPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 
@@ -71,6 +71,7 @@ function clean(input: CustomerInput) {
     phone: formatPhone(input.phone),
     social_name: nz(input.social_name),
     stage: input.stage,
+    rating: validRating(input.rating),
     lost_reason: input.stage === "lost" ? nz(input.lost_reason) : null,
     staff_id: nz(input.staff_id),
     sales_id: nz(input.sales_id),
@@ -112,11 +113,12 @@ export async function updateCustomer(
   }
 }
 
-/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/staff_id/sales_id/technician_id. */
+/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/rating/staff_id/sales_id/technician_id. */
 export async function patchCustomer(
   id: string,
   patch: {
     stage?: string;
+    rating?: string | null;
     staff_id?: string | null;
     sales_id?: string | null;
     technician_id?: string | null;
@@ -131,6 +133,7 @@ export async function patchCustomer(
       // Đồng nhất với clean(): rời khỏi 'lost' thì xóa lý do.
       if (patch.stage !== "lost") data.lost_reason = null;
     }
+    if (patch.rating !== undefined) data.rating = validRating(patch.rating);
     if (patch.staff_id !== undefined) data.staff_id = patch.staff_id || null;
     if (patch.sales_id !== undefined) data.sales_id = patch.sales_id || null;
     if (patch.technician_id !== undefined)
