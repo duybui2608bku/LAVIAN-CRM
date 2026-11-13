@@ -152,7 +152,8 @@ type CreateValues = Required<Pick<AppointmentPatch, "scheduled_at">> & Omit<Appo
   customer_id: string;
 };
 
-function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff, services }: {
+// Dùng chung: /appointments (nút Thêm) và /customers (nút thêm lịch ở cột Lịch hẹn).
+export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff, services }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
