@@ -33,7 +33,7 @@ export default async function LeadFormPage() {
   ]);
 
   return (
-    <main className="flex min-h-svh justify-center p-4">
+    <main className="flex min-h-svh justify-center p-3">
       <div className="w-full max-w-lg">
         {/* useSearchParams trong LeadForm cần Suspense boundary */}
         <Suspense>

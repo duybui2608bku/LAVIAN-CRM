@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button, Form, Input, InputNumber, Result, Segmented } from "antd";
+import { Alert, Button, ConfigProvider, Form, Input, InputNumber, Result, Segmented, type ThemeConfig } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import { Bug } from "lucide-react";
 
@@ -81,15 +81,29 @@ const parseIdr = (v: string | undefined) =>
 
 type Tab = "customer" | "appointment";
 
-export function LeadForm({
-  staff,
-  stages,
-  services,
-}: {
+type LeadFormProps = {
   staff: StaffRef[];
   stages: EnumOption[];
   services: LeadService[];
-}) {
+};
+
+// Form nhúng trong khung SMAX hẹp → control/nhãn/khoảng cách gọn hơn phần còn lại của app.
+const COMPACT: ThemeConfig = {
+  token: { controlHeight: 36 },
+  components: {
+    Form: { itemMarginBottom: 12, verticalLabelPadding: "0 0 4px", labelFontSize: 13 },
+  },
+};
+
+export function LeadForm(props: LeadFormProps) {
+  return (
+    <ConfigProvider theme={COMPACT}>
+      <LeadFormInner {...props} />
+    </ConfigProvider>
+  );
+}
+
+function LeadFormInner({ staff, stages, services }: LeadFormProps) {
   const t = useTranslations("leadForm");
   const locale = useLocale();
   const params = useSearchParams();
@@ -253,10 +267,9 @@ export function LeadForm({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <Segmented<Tab>
         block
-        size="large"
         value={activeTab}
         onChange={setTab}
         options={[
@@ -276,10 +289,10 @@ export function LeadForm({
           />
         </div>
       )}
-      <Form form={form} layout="vertical" size="large" requiredMark={false} initialValues={DEFAULTS}
+      <Form form={form} layout="vertical" requiredMark={false} initialValues={DEFAULTS}
         className={activeTab === "customer" ? undefined : "hidden"}>
         {existing && (
-          <Alert type="warning" showIcon className="mb-4" title={t("existingCustomer")} />
+          <Alert type="warning" showIcon className="mb-3" title={t("existingCustomer")} />
         )}
         <Form.Item
           name="full_name"
@@ -359,7 +372,7 @@ export function LeadForm({
         </Form.Item>
 
         {/* Dính đáy màn hình: form dài vẫn thấy nút Submit/Update không cần cuộn. */}
-        <div className="sticky bottom-0 z-10 -mx-4 flex gap-2 border-t border-border bg-background px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="sticky bottom-0 z-10 -mx-3 flex gap-2 border-t border-border bg-background px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
           {embedded && (
             <Button
               aria-label={t("log")}
