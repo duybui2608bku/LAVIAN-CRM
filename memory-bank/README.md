@@ -50,8 +50,8 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
-### 2026-11-13 — /customers: bỏ nút Tải lại ở header
-- **Thay đổi:** Bỏ nút icon Tải lại (`router.refresh()`) cạnh tiêu đề "Khách hàng"; header chỉ còn nút "+ Khách hàng mới". Xoá key i18n `reload` (en/vi, không còn ai dùng), import `useRouter`/`RefreshCw`.
+### 2026-11-13 — /customers: bỏ nút Tải lại, nút Thêm khách xuống thanh tìm
+- **Thay đổi:** Bỏ nút icon Tải lại (`router.refresh()`) cạnh tiêu đề "Khách hàng". Nút "+ Khách hàng mới" chuyển từ PageHeader xuống **đầu** `PageToolbar` (trước ô tìm) theo yêu cầu; header chỉ còn tiêu đề. Xoá key i18n `reload` (en/vi, không còn ai dùng), import `useRouter`/`RefreshCw`.
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.
 - **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt. Dữ liệu vẫn tự cập nhật sau mỗi thao tác nhờ `revalidatePath`; muốn tải lại dữ liệu người khác sửa thì F5.
 
