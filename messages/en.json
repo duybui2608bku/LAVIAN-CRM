@@ -308,7 +308,7 @@
       "messages": "Messages",
       "data": "Data",
       "deposited": "Deposited",
-      "booked": "Booked",
+      "booked": "Appointments",
       "visited": "Visited",
       "total": "Total appointments ({range})",
       "todayAppointments": "Today's appointments",

@@ -57,7 +57,7 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 - **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt. **Migration ĐÃ CHẠY trên Lavian (2026-11-13, MCP `apply_migration` tên `clinic_appointment_logs`, user cho phép)** — đã xác nhận: bảng 0 dòng, trigger `clinic_appointments_log` có, policy chỉ SELECT, authenticated chỉ SELECT, anon không quyền. Trigger chưa được thử bằng thao tác ghi thật (chưa sửa lịch nào). Log của `/appointments` gắn đúng người vì dùng client của user.
 
 ### 2026-11-13 — /customers pipeline: Booked trước Deposited
-- **Thay đổi:** Đổi thứ tự 2 thẻ pipeline: Tin nhắn → Data → **Booked → Deposited** → Visited (trước là Deposited → Booked). Chỉ đổi vị trí trong mảng `dataCards`, cách đếm giữ nguyên. Thẻ Deposited hiện thêm tổng tiền cọc: `7 - 300,000 IDR` (cộng `deposit_amount` của các khách được đếm, format `en-US` theo yêu cầu; field `extra` trên `Card`).
+- **Thay đổi:** Nhãn en thẻ `booked` đổi "Booked" → "Appointments" (thẻ đếm khách CÓ LỊCH HẸN trong `clinic_appointments`, không phải stage "Booked"; vi vẫn "Lịch hẹn"). Đổi thứ tự 2 thẻ pipeline: Tin nhắn → Data → **Booked → Deposited** → Visited (trước là Deposited → Booked). Chỉ đổi vị trí trong mảng `dataCards`, cách đếm giữ nguyên. Thẻ Deposited hiện thêm tổng tiền cọc: `7 - 300,000 IDR` (cộng `deposit_amount` của các khách được đếm, format `en-US` theo yêu cầu; field `extra` trên `Card`).
 - **File ảnh hưởng:** `components/customers/customer-pipeline.tsx`, `memory-bank/README.md`.
 - **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt.
 
