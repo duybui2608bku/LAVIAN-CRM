@@ -14,6 +14,7 @@ import {
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  CalendarPlus,
   History,
   Info,
   Pencil,
@@ -30,6 +31,7 @@ import {
   patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
+import { CreateAppointmentDrawer, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
@@ -42,7 +44,7 @@ import { EnumTag } from "@/components/common/enum-tag";
 import { InlineSelect } from "@/components/common/inline-select";
 import { RowActions } from "@/components/common/row-actions";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
-import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
+import { staffLabel, UserAvatar } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah } from "@/lib/currency";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
@@ -50,8 +52,9 @@ import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
+import type { Service } from "@/types/service";
 
-type Staff = StaffRef & { department?: string | null };
+type Staff = AppointmentStaff;
 
 // Option theo bộ phận (Nhân viên = customer_care, Sales, Kỹ thuật viên):
 // chỉ user đúng bộ phận + giá trị đang gán (user đổi bộ phận sau khi gán
@@ -97,11 +100,13 @@ export function CustomersManager({
   staff,
   options,
   appointments,
+  services,
 }: {
   customers: Customer[];
   staff: Staff[];
   options: EnumOption[];
   appointments: PipelineAppointment[];
+  services: Service[];
 }) {
   const t = useTranslations("customers");
   const tc = useTranslations("common");
@@ -116,6 +121,7 @@ export function CustomersManager({
   // Lưu id (không giữ object) để modal ghi chú tự nhận note mới sau revalidate.
   const [notesFor, setNotesFor] = useState<string | null>(null);
   const [apptFor, setApptFor] = useState<Customer | null>(null);
+  const [createFor, setCreateFor] = useState<string | null>(null); // id khách đang tạo lịch hẹn
   const [page, setPage] = useState(1);
 
   // Sửa inline hiện ngay, không chờ server. React tự trả về dữ liệu server khi
@@ -163,6 +169,11 @@ export function CustomersManager({
     }
     return map;
   }, [appointments, now]);
+  const apptCount = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of appointments) map.set(a.customer_id, (map.get(a.customer_id) ?? 0) + 1);
+    return map;
+  }, [appointments]);
 
   const filtered = useMemo(
     () => rowsData.filter((c) => matchesCustomerFilters(c, filters)),
@@ -289,17 +300,27 @@ export function CustomersManager({
                 {d.format("DD-MM HH:mm")}
               </Tag>
             ) : (
-              DASH
+              // Chưa có lịch → nút mở drawer tạo lịch hẹn cho khách này.
+              <Button
+                type="text"
+                size="small"
+                aria-label={t("addAppointment")}
+                title={t("addAppointment")}
+                icon={<CalendarPlus className="size-4" />}
+                onClick={() => setCreateFor(c.id)}
+              />
             )}
-            {/* Mở drawer: toàn bộ lịch hẹn + lịch sử thay đổi. */}
-            <Button
-              type="text"
-              size="small"
-              aria-label={t("viewAppointments")}
-              title={t("viewAppointments")}
-              icon={<History className="size-4" />}
-              onClick={() => setApptFor(c)}
-            />
+            {/* Mở drawer: toàn bộ lịch hẹn + lịch sử thay đổi; badge = số lịch chưa xoá. */}
+            <Badge count={apptCount.get(c.id) ?? 0} size="small" overflowCount={99}>
+              <Button
+                type="text"
+                size="small"
+                aria-label={t("viewAppointments")}
+                title={t("viewAppointments")}
+                icon={<History className="size-4" />}
+                onClick={() => setApptFor(c)}
+              />
+            </Badge>
           </div>
         );
       },
@@ -503,6 +524,18 @@ export function CustomersManager({
       />
 
       <AppointmentHistoryDrawer customer={apptFor} staff={staff} onClose={() => setApptFor(null)} />
+
+      {/* key theo khách: form mới mỗi lần mở (không dính khách/giá trị lần trước). */}
+      <CreateAppointmentDrawer
+        key={createFor ?? ""}
+        open={createFor !== null}
+        initialCustomer={createFor ?? ""}
+        customers={rowsData}
+        staff={staff}
+        services={services}
+        onClose={() => setCreateFor(null)}
+        onCreated={() => setCreateFor(null)}
+      />
     </Page>
   );
 }

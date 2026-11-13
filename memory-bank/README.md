@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-13 — /customers cột Lịch hẹn: nút thêm lịch + badge số lịch
+- **Thay đổi:** Khách chưa có lịch hẹn: thay "—" bằng nút icon `CalendarPlus` → mở `CreateAppointmentDrawer` (export từ `appointments-manager.tsx`, dùng chung với /appointments) đã chọn sẵn khách + CSKH của khách; `key` theo id khách để form mới mỗi lần mở. Nút History có antd `Badge` = số lịch hẹn chưa xoá của khách (0 → ẩn). Page `/customers` nạp thêm `services` + `profiles.status` (type `Staff` = `AppointmentStaff`). i18n `customers.addAppointment` (en/vi). Tạo xong `createAppointment` đã `revalidatePath("/customers")` → cột/badge/pipeline tự cập nhật.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/appointments/appointments-manager.tsx`, `app/(app)/customers/page.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.
+- **Còn dở / ghi chú:** tsc/eslint sạch, chưa xem trên trình duyệt. Khách ĐÃ có lịch thì không có nút thêm ở cột (chỉ khi chưa có lịch, theo yêu cầu). Staff (không phải admin) vẫn tạo được lịch từ /customers vì action chỉ kiểm profile active.
+
 ### 2026-11-13 — /customers: bỏ nút Tải lại, nút Thêm khách xuống thanh tìm
 - **Thay đổi:** Bỏ nút icon Tải lại (`router.refresh()`) cạnh tiêu đề "Khách hàng". Nút "+ Khách hàng mới" chuyển từ PageHeader xuống **đầu** `PageToolbar` (trước ô tìm) theo yêu cầu; header chỉ còn tiêu đề. Xoá key i18n `reload` (en/vi, không còn ai dùng), import `useRouter`/`RefreshCw`.
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `messages/{en,vi}.json`, `memory-bank/README.md`.
