@@ -42,11 +42,13 @@ import { ImageUpload } from "@/components/common/image-upload";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
 import { EnumTag } from "@/components/common/enum-tag";
 import { InlineSelect } from "@/components/common/inline-select";
+import { RegionSelect } from "@/components/common/region-select";
 import { RowActions } from "@/components/common/row-actions";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah } from "@/lib/currency";
+import { PROVINCES, regionNames } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
 import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
@@ -75,6 +77,7 @@ type Filters = {
   stage: string;
   source: string;
   staffId: string;
+  province: string;
   from: string;
   to: string;
 };
@@ -84,6 +87,7 @@ const EMPTY_FILTERS: Filters = {
   stage: "",
   source: "",
   staffId: "",
+  province: "",
   from: "",
   to: "",
 };
@@ -263,6 +267,22 @@ export function CustomersManager({
     },
     { title: t("colPhone"), dataIndex: "phone" },
     {
+      title: t("region"),
+      key: "region",
+      width: 180,
+      render: (_, c) => {
+        const r = regionNames(c.region_code);
+        if (!r) return c.address_detail ? <span className="text-xs">{c.address_detail}</span> : DASH;
+        // Dòng 1 = huyện/TP (hoặc tỉnh), dòng 2 = tỉnh; hover xem địa chỉ chi tiết.
+        return (
+          <div title={c.address_detail ?? undefined} className="leading-tight">
+            <div>{r.city ?? r.province}</div>
+            {r.city && <div className="text-xs text-muted-foreground">{r.province}</div>}
+          </div>
+        );
+      },
+    },
+    {
       title: t("colStage"),
       dataIndex: "stage",
       width: 150,
@@ -437,7 +457,7 @@ export function CustomersManager({
   const editing = target && target !== "new" ? target : null;
   // Số lọc đang bật (khoảng ngày tính 1) — có lọc thì hiện nút "Xoá bộ lọc".
   const activeCount =
-    [filters.search, filters.stage, filters.source, filters.staffId].filter(Boolean)
+    [filters.search, filters.stage, filters.source, filters.staffId, filters.province].filter(Boolean)
       .length + (filters.from || filters.to ? 1 : 0);
 
   return (
@@ -487,6 +507,15 @@ export function CustomersManager({
           options={deptOptions(staff, "customer_care")}
           placeholder={t("allStaff")}
           ariaLabel={t("colStaff")}
+        />
+        <ClearableSelect
+          className="min-w-36"
+          value={filters.province}
+          onChange={(v) => setFilter("province", v)}
+          options={PROVINCES}
+          placeholder={t("allProvince")}
+          ariaLabel={t("province")}
+          searchable
         />
         <DateRangePicker
           from={filters.from}
@@ -645,6 +674,8 @@ type Values = {
   lost_reason?: string;
   first_contact?: string;
   payment_confirm_url?: string | null;
+  region_code?: string;
+  address_detail?: string;
 };
 
 function CustomerDialog({
@@ -687,6 +718,8 @@ function CustomerDialog({
         technician_id: editing?.technician_id ?? null,
         first_contact: v.first_contact || null,
         payment_confirm_url: v.payment_confirm_url || null,
+        region_code: v.region_code || null,
+        address_detail: v.address_detail || null,
       };
       const res = editing
         ? await updateCustomer(editing.id, input)
@@ -725,6 +758,8 @@ function CustomerDialog({
           lost_reason: editing?.lost_reason ?? "",
           first_contact: editing?.first_contact?.slice(0, 10) ?? "",
           payment_confirm_url: editing?.payment_confirm_url ?? null,
+          region_code: editing?.region_code ?? "",
+          address_detail: editing?.address_detail ?? "",
         }}
       >
         <Form.Item name="full_name" label={t("colName")} rules={required}>
@@ -735,6 +770,12 @@ function CustomerDialog({
         </Form.Item>
         <Form.Item name="social_name" label={t("socialName")}>
           <Input />
+        </Form.Item>
+        <Form.Item name="region_code" label={t("region")}>
+          <RegionSelect provinceLabel={t("province")} cityLabel={t("city")} />
+        </Form.Item>
+        <Form.Item name="address_detail" label={t("addressDetail")} rules={[{ max: 500 }]}>
+          <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} />
         </Form.Item>
         <Form.Item name="stage" label={t("colStage")}>
           <ClearableSelect

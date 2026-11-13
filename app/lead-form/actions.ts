@@ -23,6 +23,9 @@ const schema = z.object({
   website: z.string(),
   // Ảnh xác nhận thanh toán (null = xoá). Hỏng/thiếu → undefined: không đụng giá trị cũ.
   payment_confirm_url: z.url().max(2000).nullable().optional().catch(undefined),
+  // Mã vùng Kemendagri "31" | "31.71"; "" = chưa chọn. Sai định dạng → "".
+  region_code: z.string().regex(/^\d{2}(\.\d{2})?$/).or(z.literal("")).catch(""),
+  address_detail: z.string().trim().max(500).catch(""),
   social_name: z.string().trim().max(200).catch(""),
   picture: z.string().trim().max(2000).catch(""),
   tags: z
@@ -63,6 +66,8 @@ export type LeadCustomer = {
   staff_avatar: string | null;
   deposit_amount: number | null;
   payment_confirm_url: string | null;
+  region_code: string;
+  address_detail: string;
 };
 
 // Khách đã có trong CRM → trả giai đoạn + CSKH hiện tại để form fill sẵn,
@@ -75,7 +80,7 @@ export async function checkLeadCustomer(
 
   const { data, error } = await createAdminClient()
     .from("customers")
-    .select("stage, staff_id, deposit_amount, payment_confirm_url, staff:profiles!staff_id(user_name, avatar_url)")
+    .select("stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, staff:profiles!staff_id(user_name, avatar_url)")
     .eq("smax_customer_id", id.data)
     .is("deleted_at", null)
     .maybeSingle();
@@ -93,6 +98,8 @@ export async function checkLeadCustomer(
     // numeric về dạng string qua PostgREST.
     deposit_amount: data.deposit_amount == null ? null : Number(data.deposit_amount),
     payment_confirm_url: data.payment_confirm_url ?? null,
+    region_code: data.region_code ?? "",
+    address_detail: data.address_detail ?? "",
   };
 }
 
@@ -136,6 +143,8 @@ export async function submitLead(
       ...(d.smax_data ? { smax_data: d.smax_data } : {}),
       stage,
       staff_id: d.staff_id || null,
+      region_code: d.region_code || null,
+      address_detail: d.address_detail || null,
       // Chỉ ghi khi đang ở "deposited" và có nhập — còn lại giữ tiền cọc cũ trong CRM.
       ...(stage === "deposited" && d.deposit_amount != null
         ? { deposit_amount: d.deposit_amount }

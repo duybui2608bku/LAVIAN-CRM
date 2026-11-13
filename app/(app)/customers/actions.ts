@@ -77,6 +77,8 @@ function clean(input: CustomerInput) {
     technician_id: nz(input.technician_id),
     first_contact: nz(input.first_contact),
     payment_confirm_url: nz(input.payment_confirm_url),
+    region_code: nz(input.region_code),
+    address_detail: nz(input.address_detail)?.slice(0, 500) ?? null,
   };
 }
 

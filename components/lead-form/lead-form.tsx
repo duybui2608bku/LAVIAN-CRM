@@ -17,6 +17,7 @@ import { EnumTag } from "@/components/common/enum-tag";
 import { LeadAppointmentForm, type LeadService } from "@/components/lead-form/lead-appointment-form";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { ImageUpload } from "@/components/common/image-upload";
+import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
@@ -50,13 +51,20 @@ type Values = {
   stage: string;
   deposit_amount: number | null;
   payment_confirm_url: string | null;
+  region_code: string;
+  address_detail: string;
   note: string;
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
 
+// Trường lấy theo khách đang có trong CRM — fill khi tìm thấy, reset khi đổi khách.
+const CRM_FIELDS = ["stage", "staff_id", "deposit_amount", "payment_confirm_url", "region_code", "address_detail"] as const;
+
 const DEFAULTS: Values = {
   full_name: "",
   phone: "",
+  region_code: "",
+  address_detail: "",
   staff_id: "",
   stage: "new_lead",
   deposit_amount: null,
@@ -146,10 +154,9 @@ export function LeadForm({
             setExisting(found);
             // Fill giá trị hiện tại trong CRM — bỏ qua ô người dùng đã tự chọn.
             if (found) {
-              if (!form.isFieldTouched("stage")) form.setFieldValue("stage", found.stage);
-              if (!form.isFieldTouched("staff_id")) form.setFieldValue("staff_id", found.staff_id);
-              if (!form.isFieldTouched("deposit_amount")) form.setFieldValue("deposit_amount", found.deposit_amount);
-              if (!form.isFieldTouched("payment_confirm_url")) form.setFieldValue("payment_confirm_url", found.payment_confirm_url);
+              for (const f of CRM_FIELDS) {
+                if (!form.isFieldTouched(f)) form.setFieldValue(f, found[f]);
+              }
             }
           })
           .catch(() => {
@@ -169,7 +176,7 @@ export function LeadForm({
         }
       } else if (id !== prev) {
         // Đổi sang khách khác: reset luôn giai đoạn/CSKH của khách trước.
-        form.resetFields(["stage", "staff_id", "deposit_amount", "payment_confirm_url"]);
+        form.resetFields([...CRM_FIELDS]);
         form.setFieldsValue({
           full_name: c.name ? String(c.name) : "",
           phone: phone ? formatPhone(String(phone)) : "",
@@ -289,6 +296,13 @@ export function LeadForm({
         >
           <Input type="text" inputMode="tel" autoComplete="tel" />
         </Form.Item>
+        {/* Tỉnh + Huyện/TP trên 1 hàng 2 cột. */}
+        <Form.Item name="region_code" label={t("region")}>
+          <RegionSelect provinceLabel={t("province")} cityLabel={t("city")} />
+        </Form.Item>
+        <Form.Item name="address_detail" label={t("addressDetail")} rules={[{ max: 500 }]}>
+          <Input placeholder={t("noteOptional")} />
+        </Form.Item>
         {staff.length > 0 && (
           <Form.Item name="staff_id" label={t("staff")}>
             <ClearableSelect
@@ -344,7 +358,8 @@ export function LeadForm({
           <Input tabIndex={-1} autoComplete="off" aria-hidden="true" />
         </Form.Item>
 
-        <div className="flex gap-2">
+        {/* Dính đáy màn hình: form dài vẫn thấy nút Submit/Update không cần cuộn. */}
+        <div className="sticky bottom-0 z-10 -mx-4 flex gap-2 border-t border-border bg-background px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {embedded && (
             <Button
               aria-label={t("log")}

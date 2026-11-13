@@ -53,6 +53,7 @@ export interface CustomerFilters {
   staffId?: string;
   salesId?: string;
   technicianId?: string;
+  province?: string; // mã tỉnh 2 số — khớp region_code "31" lẫn "31.71"
   from?: string; // YYYY-MM-DD — created_at >= from
   to?: string; // YYYY-MM-DD — created_at <= to (theo ngày)
 }
@@ -72,6 +73,7 @@ export function matchesCustomerFilters(
   if (f.staffId && c.staff_id !== f.staffId) return false;
   if (f.salesId && c.sales_id !== f.salesId) return false;
   if (f.technicianId && c.technician_id !== f.technicianId) return false;
+  if (f.province && c.region_code?.slice(0, 2) !== f.province) return false;
 
   const day = c.created_at.slice(0, 10);
   if (f.from && day < f.from) return false;

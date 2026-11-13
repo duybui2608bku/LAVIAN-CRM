@@ -299,6 +299,11 @@
     "createOk": "Added"
   },
   "customers": {
+    "region": "Region",
+    "province": "Province",
+    "city": "Regency / City",
+    "allProvince": "All provinces",
+    "addressDetail": "Address detail",
     "paymentConfirm": "Payment confirm",
     "uploadImage": "Double-click to choose · Click + Ctrl+V to paste",
     "pipeline": {
@@ -397,6 +402,10 @@
     "createOk": "Customer added"
   },
   "leadForm": {
+    "region": "Region",
+    "province": "Province",
+    "city": "Regency / City",
+    "addressDetail": "Address detail",
     "history": "Appointment history",
     "historyEmpty": "No appointments yet",
     "paymentConfirm": "Payment confirm",

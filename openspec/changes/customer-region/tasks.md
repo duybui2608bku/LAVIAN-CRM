@@ -1,0 +1,6 @@
+- [x] 1. Tạo `lib/id-regions.json` (2 cấp) từ dataset wilayah
+- [x] 2. Migration cột `customers.region_code` + `address_detail`
+- [x] 3. `RegionSelect` (1 hàng 2 cột) + field Khu vực / Địa chỉ trong drawer `/customers` + `clean()` + select page
+- [x] 4. Bảng `/customers`: cột Khu vực + lọc theo tỉnh (`matchesCustomerFilters.province` + test)
+- [x] 5. Form SMAX: Khu vực + Địa chỉ, fill khi khách đã có, ghi khi submit/update
+- [x] 6. i18n en/vi, tsc + eslint + test
