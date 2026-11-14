@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const appointmentPatchSchema = z.object({
   scheduled_at: z.iso.datetime({ offset: true }),
+  booking_confirm: z.boolean(),
   checked_in: z.boolean(),
   service_ids: z.array(z.uuid()).max(100).transform((ids) => [...new Set(ids)]),
   staff_id: z.uuid().nullable(),

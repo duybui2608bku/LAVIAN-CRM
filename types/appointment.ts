@@ -3,6 +3,7 @@ export interface Appointment {
   id: string;
   customer_id: string;
   scheduled_at: string;
+  booking_confirm: boolean; // CSKH đã gọi lại xác nhận lịch
   checked_in: boolean;
   service_ids: string[];
   staff_id: string | null; // chăm sóc khách hàng
@@ -19,7 +20,7 @@ export type AppointmentCustomer = {
 };
 
 /** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`). */
-export type AppointmentLogField = "scheduled_at" | "checked_in" | "service_ids" | "staff_id" | "note";
+export type AppointmentLogField = "scheduled_at" | "booking_confirm" | "checked_in" | "service_ids" | "staff_id" | "note";
 
 /** 1 dòng `clinic_appointment_logs` — actor_id null = ghi qua admin client (Form SMAX). */
 export interface AppointmentLog {
@@ -33,5 +34,5 @@ export interface AppointmentLog {
 }
 
 export type AppointmentPatch =Partial<Pick<Appointment,
-  "scheduled_at" | "checked_in" | "service_ids" | "staff_id" | "note"
+  "scheduled_at" | "booking_confirm" | "checked_in" | "service_ids" | "staff_id" | "note"
 >>;

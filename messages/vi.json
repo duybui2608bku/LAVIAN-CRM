@@ -6,6 +6,10 @@
     "phone": "Số điện thoại",
     "wa": "Số WA",
     "date": "Ngày giờ hẹn",
+    "bookingConfirm": "Xác nhận lịch",
+    "confirmed": "Đã xác nhận",
+    "unconfirmed": "Chưa xác nhận",
+    "allBookingConfirms": "Tất cả xác nhận lịch",
     "confirmation": "Xác nhận tại phòng khám",
     "services": "Dịch vụ",
     "staff": "Chăm sóc khách hàng",
@@ -373,6 +377,7 @@
       },
       "field": {
         "scheduled_at": "Ngày giờ",
+        "booking_confirm": "Xác nhận lịch",
         "checked_in": "Đã đến",
         "service_ids": "Dịch vụ",
         "staff_id": "CSKH",

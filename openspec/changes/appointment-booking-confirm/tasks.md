@@ -1,0 +1,5 @@
+- [x] 1. Migration cột `booking_confirm` + cập nhật trigger log
+- [x] 2. Zod schema + types
+- [x] 3. `/appointments`: select cột, cột inline + bộ lọc
+- [x] 4. Drawer lịch sử: nhãn + giá trị `booking_confirm`
+- [x] 5. i18n en/vi, tsc + eslint + test

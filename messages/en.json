@@ -6,6 +6,10 @@
     "phone": "Phone",
     "wa": "WA number",
     "date": "Appointment date & time",
+    "bookingConfirm": "Booking confirmation",
+    "confirmed": "Confirmed",
+    "unconfirmed": "Not confirmed",
+    "allBookingConfirms": "All booking confirmations",
     "confirmation": "Clinic confirmation",
     "services": "Services",
     "staff": "Customer care",
@@ -374,6 +378,7 @@
       },
       "field": {
         "scheduled_at": "Date & time",
+        "booking_confirm": "Booking confirmed",
         "checked_in": "Visited",
         "service_ids": "Services",
         "staff_id": "Customer care",
