@@ -63,8 +63,8 @@ test("thẻ số liệu: booking theo ngày tạo, khách đến theo ngày hẹ
     messages: 12, bookings: 1, newBookings: 0, confirmed: 0, cancelled: 0, rescheduled: 0, scheduled: 0, arrived: 0,
   });
   assert.deepEqual(r.days, [
-    { date: "2026-11-13", bookings: 2, arrived: 0 },
-    { date: "2026-11-14", bookings: 1, arrived: 1 },
+    { date: "2026-11-13", bookings: 2, newBookings: 1, arrived: 0 },
+    { date: "2026-11-14", bookings: 1, newBookings: 0, arrived: 1 },
   ]);
   assert.deepEqual(r.sources, { instagrams: 1, whatsapp: 1, other: 1 });
 });

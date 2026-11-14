@@ -28,6 +28,7 @@ import { getTelesalesReport, type TelesalesReport } from "@/app/(app)/reports/te
 import { DateRangeFilter, initialRange } from "@/components/common/date-range-filter";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { PageHeader, PageToolbar } from "@/components/layout/page";
+import { FunnelChart, TrendChart } from "@/components/reports/telesales-charts";
 import { change, ratio } from "@/lib/reports";
 import {
   BOOKING_SOURCES,
@@ -35,7 +36,6 @@ import {
   kpiCompletion,
   staffTotals,
   type BookingSource,
-  type DayStat,
   type PeriodStats,
   type StaffCounts,
   type StaffPerf,
@@ -88,11 +88,10 @@ export function TelesalesReportView() {
   }, [range]);
   React.useEffect(load, [load]);
 
-  const num = (v: number | null) => (v == null ? "—" : v.toLocaleString(locale));
+  // Không có dữ liệu (nguồn lỗi, chia cho 0...) → "-".
+  const num = (v: number | null) => (v == null ? "-" : v.toLocaleString(locale));
   const pct = (v: number | null) =>
-    v == null ? "—" : `${(v * 100).toLocaleString(locale, { maximumFractionDigits: 1 })}%`;
-  const ddmm = (d: string) => dayjs(d).format("DD/MM");
-  const rangeText = (a: string, b: string) => (a === b ? ddmm(a) : `${ddmm(a)} – ${ddmm(b)}`);
+    v == null ? "-" : `${(v * 100).toLocaleString(locale, { maximumFractionDigits: 1 })}%`;
 
   const data = report?.data ?? null;
   const cur = data?.cur;
@@ -117,11 +116,7 @@ export function TelesalesReportView() {
     <>
       <PageHeader
         title={t("title")}
-        description={
-          report && !report.error
-            ? t("subtitle", { range: rangeText(range.from, range.to), prev: rangeText(report.previous.from, report.previous.to) })
-            : t("subtitleShort")
-        }
+        description={t("subtitleShort")}
         actions={
           <Button icon={<RefreshCw className={cn("size-4", pending && "animate-spin")} />} onClick={load}>
             {t("refresh")}
@@ -193,20 +188,32 @@ export function TelesalesReportView() {
         {/* Phễu · Xu hướng · Tốc độ phản hồi */}
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)]">
           <Section icon={Filter} title={t("funnel")} tip={t("tip.funnel")}>
-            <Funnel
-              loading={!report}
-              steps={[
-                { label: t("card.messages"), value: cur?.messages ?? null },
-                { label: t("card.bookings"), value: cur?.bookings ?? null },
-                { label: t("card.confirmed"), value: cur?.confirmed ?? null },
-                { label: t("card.arrived"), value: cur?.arrived ?? null },
-              ]}
-              num={num}
-              pct={pct}
-            />
+            {!report ? (
+              <ChartSkeleton />
+            ) : (
+              <FunnelChart
+                ariaLabel={t("funnel")}
+                steps={(["messages", "bookings", "confirmed", "arrived"] as const).map((k) => {
+                  const v = cur ? cur[k] : null;
+                  const share = ratio(v, cur?.messages ?? null);
+                  return { label: t(`card.${k}`), value: num(v), detail: share == null ? undefined : pct(share) };
+                })}
+              />
+            )}
           </Section>
           <Section icon={TrendingUp} title={t("trend")} tip={t("tip.trend")}>
-            <Trend days={data?.days ?? []} num={num} ddmm={ddmm} />
+            {!data ? (
+              <ChartSkeleton />
+            ) : (
+              <TrendChart
+                ariaLabel={t("trend")}
+                labels={data.days.map((d) => dayjs(d.date).format("DD/MM"))}
+                series={[
+                  { label: t("card.newBookings"), data: data.days.map((d) => d.newBookings) },
+                  { label: t("card.arrived"), data: data.days.map((d) => d.arrived) },
+                ]}
+              />
+            )}
           </Section>
           <Section icon={Timer} title={t("response")} className="lg:col-span-2 xl:col-span-1">
             <Updating />
@@ -259,6 +266,10 @@ function Section({
   );
 }
 
+function ChartSkeleton() {
+  return <div className="h-60 animate-pulse rounded-lg bg-muted/60" />;
+}
+
 /** Ô "Đang cập nhật" (icon chấm than) cho phần chưa có dữ liệu. */
 function Updating() {
   const t = useTranslations("telesales");
@@ -269,114 +280,6 @@ function Updating() {
       </span>
       <p className="text-sm font-medium">{t("updating")}</p>
       <p className="max-w-56 text-xs text-muted-foreground">{t("updatingHint")}</p>
-    </div>
-  );
-}
-
-function Funnel({
-  steps,
-  loading,
-  num,
-  pct,
-}: {
-  steps: { label: string; value: number | null }[];
-  loading: boolean;
-  num: (v: number | null) => string;
-  pct: (v: number | null) => string;
-}) {
-  const t = useTranslations("telesales");
-  const max = Math.max(0, ...steps.map((s) => s.value ?? 0));
-  const top = steps[0].value;
-  if (!loading && max === 0) return <p className="py-10 text-center text-sm text-muted-foreground">{t("noData")}</p>;
-  return (
-    <ol className="flex flex-col gap-2.5">
-      {steps.map((s, i) => (
-        <li key={s.label} className="flex flex-col gap-1">
-          <div className="flex items-baseline justify-between gap-2 text-xs">
-            <span className="truncate font-medium">{s.label}</span>
-            <span className="shrink-0 tabular-nums">
-              <span className="font-semibold">{num(s.value)}</span>
-              {i > 0 ? <span className="text-muted-foreground"> · {pct(ratio(s.value, top))}</span> : null}
-            </span>
-          </div>
-          {/* Thanh căn giữa, rộng theo giá trị → dáng phễu; 1 hue, đậm dần theo tầng. */}
-          <div className="flex h-6 justify-center rounded-sm bg-muted/60">
-            {loading ? (
-              <span className="h-full w-1/2 animate-pulse rounded-sm bg-muted" />
-            ) : (
-              <span
-                className="h-full rounded-sm bg-primary transition-[width] duration-500"
-                style={{
-                  width: max ? `${Math.max(((s.value ?? 0) / max) * 100, s.value ? 2 : 0)}%` : 0,
-                  opacity: 0.45 + (0.55 * (i + 1)) / steps.length,
-                }}
-              />
-            )}
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function Trend({ days, num, ddmm }: { days: DayStat[]; num: (v: number | null) => string; ddmm: (d: string) => string }) {
-  const t = useTranslations("telesales");
-  const max = Math.max(0, ...days.flatMap((d) => [d.bookings, d.arrived]));
-  const legend = (
-    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1.5">
-        <span className="size-2.5 rounded-sm" style={{ background: "var(--chart-1)" }} />
-        {t("card.bookings")}
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="size-2.5 rounded-sm" style={{ background: "var(--chart-3)" }} />
-        {t("card.arrived")}
-      </span>
-    </div>
-  );
-  if (!days.length || max === 0)
-    return (
-      <>
-        {legend}
-        <p className="py-10 text-center text-sm text-muted-foreground">{t("noData")}</p>
-      </>
-    );
-  const step = Math.ceil(days.length / 8); // tối đa ~8 nhãn trục
-  const h = (v: number) => `${Math.max((v / max) * 100, v ? 3 : 0)}%`;
-  return (
-    <div className="flex flex-col gap-2">
-      {legend}
-      <div className="relative flex h-44 items-end gap-0.5 border-b border-border sm:gap-1">
-        <span className="absolute top-0 left-0 text-[10px] text-muted-foreground tabular-nums">{num(max)}</span>
-        {days.map((d) => (
-          <Tooltip
-            key={d.date}
-            title={
-              <span className="flex flex-col">
-                <span className="font-medium">{ddmm(d.date)}</span>
-                <span>
-                  {t("card.bookings")}: {num(d.bookings)}
-                </span>
-                <span>
-                  {t("card.arrived")}: {num(d.arrived)}
-                </span>
-              </span>
-            }
-          >
-            <div className="flex h-full min-w-0 flex-1 items-end justify-center gap-px rounded-t-sm hover:bg-muted/60">
-              <span className="w-1/2 max-w-4 rounded-t-sm" style={{ height: h(d.bookings), background: "var(--chart-1)" }} />
-              <span className="w-1/2 max-w-4 rounded-t-sm" style={{ height: h(d.arrived), background: "var(--chart-3)" }} />
-            </div>
-          </Tooltip>
-        ))}
-      </div>
-      <div className="flex gap-0.5 sm:gap-1">
-        {days.map((d, i) => (
-          <span key={d.date} className="min-w-0 flex-1 text-center text-[10px] whitespace-nowrap text-muted-foreground">
-            {i % step === 0 ? ddmm(d.date) : ""}
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
@@ -425,7 +328,7 @@ function Donut({
             })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-semibold tabular-nums">{sources ? num(total) : "—"}</span>
+          <span className="text-xl font-semibold tabular-nums">{sources ? num(total) : "-"}</span>
           <span className="text-xs text-muted-foreground">{t("card.bookings")}</span>
         </div>
       </div>
@@ -435,8 +338,8 @@ function Donut({
             <span className="size-2.5 shrink-0 rounded-sm" style={{ background: SOURCE_COLOR[s] }} />
             <span className="flex-1 truncate">{t(`source.${s}`)}</span>
             <span className="tabular-nums">
-              <span className="font-medium">{sources ? num(sources[s]) : "—"}</span>
-              <span className="text-xs text-muted-foreground"> ({total ? pct(sources![s] / total) : "—"})</span>
+              <span className="font-medium">{sources ? num(sources[s]) : "-"}</span>
+              <span className="text-xs text-muted-foreground"> ({total ? pct(sources![s] / total) : "-"})</span>
             </span>
           </li>
         ))}
@@ -469,7 +372,7 @@ function StaffTable({
 
   const kpiCell = (bookings: number, conversations: number | null) => {
     const k = kpiCompletion(bookings, conversations);
-    if (k == null) return <span className="text-muted-foreground">—</span>;
+    if (k == null) return <span className="text-muted-foreground">-</span>;
     return (
       <div className="flex min-w-28 items-center gap-2">
         <Progress
@@ -499,7 +402,7 @@ function StaffTable({
         "name" in r ? (
           <span className="flex items-center gap-2 whitespace-nowrap">
             <UserAvatar src={r.avatar_url} size={22} />
-            <span className="font-medium">{r.name || "—"}</span>
+            <span className="font-medium">{r.name || "-"}</span>
           </span>
         ) : (
           <span className="whitespace-nowrap text-muted-foreground">{t("other")}</span>
@@ -518,10 +421,10 @@ function StaffTable({
           <span className="tabular-nums">{num(r.conversations)}</span>
         ) : "name" in r ? (
           <Tooltip title={t("notMapped")}>
-            <span className="cursor-help text-muted-foreground">—</span>
+            <span className="cursor-help text-muted-foreground">-</span>
           </Tooltip>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          <span className="text-muted-foreground">-</span>
         ),
     },
     { key: "bookings", title: t("col.bookings"), align: "right", render: (_, r) => <span className="tabular-nums">{num(r.bookings)}</span> },

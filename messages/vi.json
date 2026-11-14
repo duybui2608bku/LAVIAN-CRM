@@ -553,10 +553,9 @@
   },
   "telesales": {
     "title": "Leader Telesales",
-    "subtitle": "{range} · so với {prev}",
     "subtitleShort": "Hiệu suất đội Telesales theo khoảng ngày",
     "refresh": "Tải lại",
-    "sourceError": "Một số nguồn dữ liệu lỗi — phần liên quan hiện “—”",
+    "sourceError": "Một số nguồn dữ liệu lỗi — phần liên quan hiện “-”",
     "card": {
       "messages": "Tin nhắn (FB)",
       "bookings": "Booking",
@@ -582,7 +581,7 @@
       "arrived": "Lịch có NGÀY HẸN trong kỳ và đã check-in. Show-up = Khách đến / lịch hẹn trong kỳ.",
       "cancelled": "Booking tạo trong kỳ ở trạng thái “Khách hủy” hoặc “Đổi lịch”. Giảm là tốt.",
       "funnel": "Tin nhắn → Booking → Đã xác nhận → Khách đến; % so với Tin nhắn.",
-      "trend": "Booking theo ngày tạo, Khách đến theo ngày hẹn.",
+      "trend": "Booking mới theo ngày tạo lịch, Khách đến theo ngày hẹn.",
       "sources": "Booking tạo trong kỳ theo nguồn của khách.",
       "staff": "Booking/Khách đến theo nhân viên phụ trách lịch hẹn. Hoàn thành KPI = Tỉ lệ booking / {kpi}.",
       "conversations": "Số hội thoại nhân viên đã xử lý trên SMAX trong kỳ."
@@ -611,7 +610,6 @@
       "whatsapp": "WhatsApp",
       "other": "Khác"
     },
-    "alerts": "Cảnh báo & công việc cần xử lý",
-    "noData": "Chưa có dữ liệu trong kỳ"
+    "alerts": "Cảnh báo & công việc cần xử lý"
   }
 }

@@ -553,10 +553,9 @@
   },
   "telesales": {
     "title": "Leader Telesales",
-    "subtitle": "{range} · vs {prev}",
     "subtitleShort": "Telesales team performance by date range",
     "refresh": "Refresh",
-    "sourceError": "Some data sources failed — related figures show “—”",
+    "sourceError": "Some data sources failed — related figures show “-”",
     "card": {
       "messages": "Messages (FB)",
       "bookings": "Bookings",
@@ -582,7 +581,7 @@
       "arrived": "Appointments SCHEDULED in the period and checked in. Show-up = Arrived / scheduled appointments.",
       "cancelled": "Bookings created in the period with status “Cancelled” or “Rescheduled”. Lower is better.",
       "funnel": "Messages → Bookings → Confirmed → Arrived; % of Messages.",
-      "trend": "Bookings by created date, Arrived by appointment date.",
+      "trend": "New bookings by created date, Arrived by appointment date.",
       "sources": "Bookings created in the period by customer source.",
       "staff": "Bookings/Arrived by the appointment's assigned staff. KPI completion = Booking rate / {kpi}.",
       "conversations": "Conversations handled by the staff member on SMAX in the period."
@@ -611,7 +610,6 @@
       "whatsapp": "WhatsApp",
       "other": "Other"
     },
-    "alerts": "Alerts & pending tasks",
-    "noData": "No data in this period"
+    "alerts": "Alerts & pending tasks"
   }
 }
