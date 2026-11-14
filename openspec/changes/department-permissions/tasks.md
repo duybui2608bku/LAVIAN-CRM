@@ -2,5 +2,5 @@
 - [x] 2. `lib/permissions.ts`, `requirePermission`, proxy, trang chủ
 - [x] 3. Server actions + page guard theo quyền
 - [x] 4. Shell menu + `useCan` ẩn nút sửa/xoá
-- [x] 5. /users: Drawer phân quyền TreeSelect + bộ phận leader
+- [x] 5. /users/permissions (menu con của Người dùng): cây quyền theo bộ phận + bộ phận leader
 - [x] 6. i18n, tsc + eslint + test

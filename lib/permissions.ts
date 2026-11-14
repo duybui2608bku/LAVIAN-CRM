@@ -39,3 +39,17 @@ export function homePath(permissions: readonly Permission[]): string | null {
   const m = MODULES.find((m) => permissions.includes(`${m}.view` as Permission));
   return m ? `/${m}` : null;
 }
+
+/**
+ * Chuẩn hoá sau khi tick: chọn Sửa/Xoá → tự thêm Xem (thiếu Xem thì không vào được trang);
+ * bỏ Xem → bỏ luôn Sửa/Xoá của module đó. Trả về theo thứ tự ALL_PERMISSIONS.
+ */
+export function normalizePermissions(prev: readonly string[], next: readonly string[]): Permission[] {
+  const set = new Set(next);
+  for (const m of MODULES) {
+    const keys = PERMISSION_MODULES[m].map((a) => `${m}.${a}`);
+    if (prev.includes(`${m}.view`) && !set.has(`${m}.view`)) keys.forEach((k) => set.delete(k));
+    else if (keys.some((k) => set.has(k))) set.add(`${m}.view`);
+  }
+  return ALL_PERMISSIONS.filter((p) => set.has(p));
+}
