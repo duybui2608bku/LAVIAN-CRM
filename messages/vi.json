@@ -49,7 +49,9 @@
     "account": "Tài khoản",
     "darkMode": "Giao diện tối",
     "noAccessTitle": "Chưa được cấp quyền",
-    "noAccessBody": "Tài khoản của bạn chưa được cấp quyền vào trang nào. Vui lòng liên hệ quản trị viên."
+    "noAccessBody": "Tài khoản của bạn chưa được cấp quyền vào trang nào. Vui lòng liên hệ quản trị viên.",
+    "notifications": "Thông báo",
+    "noNotifications": "Chưa có thông báo nào"
   },
   "home": {
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"

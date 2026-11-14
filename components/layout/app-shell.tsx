@@ -11,7 +11,7 @@ import {
   CalendarDays,
   ChartColumn,
   Check,
-  ChevronsUpDown,
+  ChevronDown,
   Languages,
   LayoutGrid,
   LockKeyhole,
@@ -32,6 +32,7 @@ import { useSwitchLocale } from "@/components/common/language-switcher";
 import { LocaleFlag } from "@/components/common/locale-flag";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Logo } from "@/components/layout/logo";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { ProfileDialog } from "@/components/layout/profile-dialog";
 import { PermissionsProvider } from "@/components/common/permissions";
 import { useMounted } from "@/hooks/use-mounted";
@@ -75,8 +76,8 @@ const flatten = (items: readonly NavItem[]): NavLink[] =>
 type Account = { userName?: string; avatarUrl?: string | null };
 
 /**
- * Khung app. Desktop (≥ md): sidebar kiểu Linear/Attio (logo, menu chia nhóm, tài khoản ở đáy).
- * Điện thoại: như app — thanh trên (logo + avatar), thanh tab dưới (3 trang chính + Menu),
+ * Khung app. Desktop (≥ md): sidebar kiểu Linear/Attio (logo, menu chia nhóm) + header (thu gọn sidebar, chuông, tài khoản).
+ * Điện thoại: như app — thanh trên (logo + chuông + avatar), thanh tab dưới (3 trang chính + Menu),
  * "Menu" mở bottom sheet chứa mục quản trị + tài khoản.
  */
 export function AppShell({
@@ -172,37 +173,40 @@ export function AppShell({
             items={menuItems(collapsed)}
             className="min-h-0 flex-1 overflow-y-auto border-0! py-2"
           />
-          <div className={collapsed ? "flex flex-col items-center gap-1 p-2" : "flex items-center gap-1 p-2"}>
-            <AccountMenu
-              compact={collapsed}
-              userName={userName}
-              avatarUrl={avatarUrl}
-              onProfile={openProfile}
-            />
-            <Button
-              type="text"
-              aria-label={t("nav.toggleSidebar")}
-              title={t("nav.toggleSidebar")}
-              icon={collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-              onClick={toggle}
-            />
-          </div>
         </div>
       </Layout.Sider>
 
       <Layout className="min-w-0">
-        {/* Điện thoại: thanh trên kiểu app — logo + tên, avatar mở Menu. */}
+        {/* Desktop: header — trái nút thu gọn sidebar, phải chuông thông báo + tài khoản. */}
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-1 border-b border-border bg-card/90 px-3 backdrop-blur max-md:hidden">
+          <Button
+            type="text"
+            aria-label={t("nav.toggleSidebar")}
+            title={t("nav.toggleSidebar")}
+            icon={collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            onClick={toggle}
+          />
+          <div className="ms-auto flex items-center gap-1">
+            <NotificationBell />
+            <AccountMenu userName={userName} avatarUrl={avatarUrl} onProfile={openProfile} />
+          </div>
+        </header>
+
+        {/* Điện thoại: thanh trên kiểu app — logo + tên, chuông, avatar mở Menu. */}
         <header className="sticky top-0 z-30 border-b border-border bg-card/90 pt-[env(safe-area-inset-top)] backdrop-blur md:hidden">
           <div className="flex h-13 items-center gap-2.5 px-4">
             <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2.5">
               {logo}
               {brand}
             </Link>
+            <span className="ms-auto">
+              <NotificationBell />
+            </span>
             <button
               type="button"
               aria-label={t("common.account")}
               onClick={() => setSheetOpen(true)}
-              className="ms-auto flex size-10 items-center justify-center rounded-full active:bg-muted"
+              className="flex size-10 items-center justify-center rounded-full active:bg-muted"
             >
               <UserAvatar src={avatarUrl} size={30} />
             </button>
@@ -433,13 +437,12 @@ function useSignOut() {
     });
 }
 
-/** Avatar + tên ở đáy sidebar (desktop) → menu: giao diện tối, ngôn ngữ, đăng xuất. */
+/** Avatar + tên ở header (desktop) → menu: hồ sơ, giao diện tối, ngôn ngữ, đăng xuất. */
 function AccountMenu({
-  compact,
   userName,
   avatarUrl,
   onProfile,
-}: { compact: boolean; onProfile: () => void } & Account) {
+}: { onProfile: () => void } & Account) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
   const { isDark, setDark } = useDarkMode();
@@ -497,24 +500,16 @@ function AccountMenu({
   };
 
   return (
-    <Dropdown trigger={["click"]} placement={compact ? "topLeft" : "top"} menu={{ items, onClick }}>
+    <Dropdown trigger={["click"]} placement="bottomRight" menu={{ items, onClick }}>
       <button
         type="button"
         aria-label={t("common.account")}
         title={userName}
-        className={
-          compact
-            ? "flex size-9 items-center justify-center rounded-lg hover:bg-muted"
-            : "flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-muted"
-        }
+        className="flex max-w-56 items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-muted"
       >
         <UserAvatar src={avatarUrl} size={26} />
-        {!compact && (
-          <>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">{userName}</span>
-            <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
-          </>
-        )}
+        <span className="min-w-0 truncate text-sm font-medium">{userName}</span>
+        <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </button>
     </Dropdown>
   );
