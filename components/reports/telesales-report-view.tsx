@@ -300,8 +300,8 @@ function Donut({
   const GAP = total && BOOKING_SOURCES.filter((s) => sources![s]).length > 1 ? 1.5 : 0; // khe 2px giữa lát
   let offset = 0;
   return (
-    <div className="flex flex-wrap items-center justify-center gap-4">
-      <div className="relative size-36 shrink-0">
+    <div className="flex flex-1 flex-wrap items-center justify-center gap-x-8 gap-y-4 py-2">
+      <div className="relative size-48 shrink-0 sm:size-52">
         <svg viewBox="0 0 100 100" className="size-full -rotate-90" role="img" aria-label={t("sources")}>
           <circle cx="50" cy="50" r={R} fill="none" stroke="var(--muted)" strokeWidth="14" />
           {sources &&
@@ -328,21 +328,31 @@ function Donut({
             })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-semibold tabular-nums">{sources ? num(total) : "-"}</span>
-          <span className="text-xs text-muted-foreground">{t("card.bookings")}</span>
+          <span className="text-3xl font-semibold tabular-nums">{total ? num(total) : "-"}</span>
+          <span className="text-sm text-muted-foreground">{t("card.bookings")}</span>
         </div>
       </div>
-      <ul className="flex min-w-36 flex-col gap-1.5 text-sm">
-        {BOOKING_SOURCES.map((s) => (
-          <li key={s} className="flex items-center gap-2">
-            <span className="size-2.5 shrink-0 rounded-sm" style={{ background: SOURCE_COLOR[s] }} />
-            <span className="flex-1 truncate">{t(`source.${s}`)}</span>
-            <span className="tabular-nums">
-              <span className="font-medium">{sources ? num(sources[s]) : "-"}</span>
-              <span className="text-xs text-muted-foreground"> ({total ? pct(sources![s] / total) : "-"})</span>
-            </span>
-          </li>
-        ))}
+      <ul className="flex min-w-44 flex-col gap-2.5 text-sm">
+        {BOOKING_SOURCES.map((s) => {
+          const n = sources?.[s] ?? 0;
+          return (
+            <li key={s} className="flex items-center gap-2">
+              <span className="size-3 shrink-0 rounded-sm" style={{ background: SOURCE_COLOR[s] }} />
+              <span className="flex-1 truncate">{t(`source.${s}`)}</span>
+              {/* Không có booking → chỉ "-" (không "0 (-)"). */}
+              <span className="tabular-nums">
+                {n ? (
+                  <>
+                    <span className="font-medium">{num(n)}</span>
+                    <span className="text-xs text-muted-foreground"> ({pct(n / total)})</span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -386,12 +396,16 @@ function StaffTable({
       </div>
     );
   };
-  const showUp = (r: StaffCounts) => (
-    <span className="tabular-nums whitespace-nowrap">
-      {num(r.arrived)}
-      <span className="text-muted-foreground"> ({pct(ratio(r.arrived, r.scheduled))})</span>
-    </span>
-  );
+  // Không có lịch hẹn trong kỳ → chỉ "-" (không "0 (-)").
+  const showUp = (r: StaffCounts) =>
+    r.scheduled ? (
+      <span className="tabular-nums whitespace-nowrap">
+        {num(r.arrived)}
+        <span className="text-muted-foreground"> ({pct(ratio(r.arrived, r.scheduled))})</span>
+      </span>
+    ) : (
+      <span className="text-muted-foreground">-</span>
+    );
 
   const columns: TableProps<StaffRow>["columns"] = [
     {
