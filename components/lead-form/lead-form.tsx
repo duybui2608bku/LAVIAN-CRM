@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button, ConfigProvider, Form, Input, InputNumber, Result, Segmented, type ThemeConfig } from "antd";
+import { Button, ConfigProvider, Form, Input, InputNumber, Result, Segmented, Tooltip, type ThemeConfig } from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { Bug } from "lucide-react";
+import { Bug, CircleAlert } from "lucide-react";
 
 import {
   checkLeadCustomer,
@@ -23,6 +23,7 @@ import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
 import { formatPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import type { EnumOption } from "@/types/customer";
 
 const requestCustomer = (integrationId: string) =>
@@ -49,7 +50,6 @@ type Values = {
   phone: string;
   staff_id: string;
   stage: string;
-  rating: string;
   deposit_amount: number | null;
   payment_confirm_url: string | null;
   region_code: string;
@@ -59,7 +59,7 @@ type Values = {
 };
 
 // Trường lấy theo khách đang có trong CRM — fill khi tìm thấy, reset khi đổi khách.
-const CRM_FIELDS = ["stage", "rating", "staff_id", "deposit_amount", "payment_confirm_url", "region_code", "address_detail"] as const;
+const CRM_FIELDS = ["stage", "staff_id", "deposit_amount", "payment_confirm_url", "region_code", "address_detail"] as const;
 
 const DEFAULTS: Values = {
   full_name: "",
@@ -68,7 +68,6 @@ const DEFAULTS: Values = {
   address_detail: "",
   staff_id: "",
   stage: "new_lead",
-  rating: "",
   deposit_amount: null,
   payment_confirm_url: null,
   note: "",
@@ -86,7 +85,6 @@ type Tab = "customer" | "appointment";
 type LeadFormProps = {
   staff: StaffRef[];
   stages: EnumOption[];
-  ratings: EnumOption[];
   services: LeadService[];
 };
 
@@ -106,7 +104,7 @@ export function LeadForm(props: LeadFormProps) {
   );
 }
 
-function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
+function LeadFormInner({ staff, stages, services }: LeadFormProps) {
   const t = useTranslations("leadForm");
   const locale = useLocale();
   const params = useSearchParams();
@@ -273,7 +271,7 @@ function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <Segmented<Tab>
         block
         value={activeTab}
@@ -285,7 +283,7 @@ function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
       />
       {/* 2 tab chỉ ẩn (không unmount) để giữ dữ liệu đang nhập khi chuyển tab. */}
       {existing && (
-        <div className={activeTab === "appointment" ? undefined : "hidden"}>
+        <div className={activeTab === "appointment" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
           <LeadAppointmentForm
             key={customerId}
             smaxCustomerId={customerId}
@@ -295,26 +293,35 @@ function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
           />
         </div>
       )}
-      <Form form={form} layout="vertical" requiredMark={false} initialValues={DEFAULTS}
-        className={activeTab === "customer" ? undefined : "hidden"}>
-        {existing && (
-          <Alert type="warning" showIcon className="mb-3" title={t("existingCustomer")} />
-        )}
-        <Form.Item
-          name="full_name"
-          label={t("name")}
-          rules={[{ required: true, whitespace: true, max: 120, message: t("nameRequired") }]}
-        >
-          <Input autoFocus />
-        </Form.Item>
-        <Form.Item
-          name="phone"
-          label={t("phone")}
-          rules={[{ required: true, message: t("phoneInvalid") }]}
-          normalize={normalizePhone}
-        >
-          <Input type="text" inputMode="tel" autoComplete="tel" />
-        </Form.Item>
+      <FitToHeight hidden={activeTab !== "customer"}>
+      <Form form={form} layout="vertical" requiredMark={false} initialValues={DEFAULTS}>
+        <div className="grid grid-cols-2 gap-x-3">
+          <Form.Item
+            name="full_name"
+            label={
+              <span className="inline-flex items-center gap-1">
+                {t("name")}
+                {/* Khách đã có trong CRM: chỉ icon, hover/chạm mới hiện đủ câu. */}
+                {existing && (
+                  <Tooltip title={t("existingCustomer")} trigger={["hover", "click"]}>
+                    <CircleAlert className="size-4 cursor-help text-warning" aria-label={t("existingCustomer")} />
+                  </Tooltip>
+                )}
+              </span>
+            }
+            rules={[{ required: true, whitespace: true, max: 120, message: t("nameRequired") }]}
+          >
+            <Input autoFocus />
+          </Form.Item>
+          <Form.Item
+            name="phone"
+            label={t("phone")}
+            rules={[{ required: true, message: t("phoneInvalid") }]}
+            normalize={normalizePhone}
+          >
+            <Input type="text" inputMode="tel" autoComplete="tel" />
+          </Form.Item>
+        </div>
         {/* Tỉnh + Huyện/TP trên 1 hàng 2 cột. */}
         <Form.Item name="region_code" label={t("region")}>
           <RegionSelect provinceLabel={t("province")} cityLabel={t("city")} />
@@ -322,31 +329,24 @@ function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
         <Form.Item name="address_detail" label={t("addressDetail")} rules={[{ max: 500 }]}>
           <Input placeholder={t("noteOptional")} />
         </Form.Item>
-        {staff.length > 0 && (
-          <Form.Item name="staff_id" label={t("staff")}>
-            <ClearableSelect
-              options={staffOptions}
-              placeholder={t("noteOptional")}
-              ariaLabel={t("staff")}
-            />
-          </Form.Item>
-        )}
-        {/* Lưới 2x2: Giai đoạn | Đánh giá, Tiền cọc | Ảnh xác nhận thanh toán. */}
+        {/* Lưới 2x2: Telesales | Giai đoạn, Tiền cọc | Ảnh xác nhận thanh toán. */}
         <div className="grid grid-cols-2 gap-x-3">
+          {staff.length > 0 && (
+            <Form.Item name="staff_id" label={t("staff")}>
+              <ClearableSelect
+                className="w-full"
+                options={staffOptions}
+                placeholder={t("noteOptional")}
+                ariaLabel={t("staff")}
+              />
+            </Form.Item>
+          )}
           <Form.Item name="stage" label={t("stage")}>
             <ClearableSelect
               className="w-full"
               clearable={false}
               options={tagOptions(stages)}
               ariaLabel={t("stage")}
-            />
-          </Form.Item>
-          <Form.Item name="rating" label={t("rating")}>
-            <ClearableSelect
-              className="w-full"
-              options={tagOptions(ratings)}
-              placeholder={t("noteOptional")}
-              ariaLabel={t("rating")}
             />
           </Form.Item>
           {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
@@ -365,7 +365,7 @@ function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
             />
           </Form.Item>
           <Form.Item name="payment_confirm_url" label={t("paymentConfirm")}>
-            <ImageUpload paste label={t("uploadImage")} />
+            <ImageUpload paste label={t("uploadImage")} className="aspect-auto h-20 w-full" />
           </Form.Item>
         </div>
         <Form.Item
@@ -373,7 +373,7 @@ function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
           label={t("note")}
           rules={[{ max: 1000, message: t("noteTooLong") }]}
         >
-          <Input.TextArea rows={3} placeholder={t("noteOptional")} />
+          <Input.TextArea rows={2} placeholder={t("noteOptional")} />
         </Form.Item>
         {embedded && showLog && (
           <Form.Item label={t("log")}>
@@ -384,8 +384,7 @@ function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
           <Input tabIndex={-1} autoComplete="off" aria-hidden="true" />
         </Form.Item>
 
-        {/* Dính đáy màn hình: form dài vẫn thấy nút Submit/Update không cần cuộn. */}
-        <div className="sticky bottom-0 z-10 -mx-3 flex gap-2 border-t border-border bg-background px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+        <div className="flex gap-2 pb-[env(safe-area-inset-bottom)]">
           {embedded && (
             <Button
               aria-label={t("log")}
@@ -415,6 +414,48 @@ function LeadFormInner({ staff, stages, ratings, services }: LeadFormProps) {
           )}
         </div>
       </Form>
+      </FitToHeight>
+    </div>
+  );
+}
+
+/**
+ * Vừa chiều cao còn lại của màn hình, không cuộn dọc: nội dung cao hơn chỗ trống thì thu nhỏ
+ * (scale, giữ nguyên bề ngang). Nhỏ hơn MIN_SCALE mới cho cuộn để chữ vẫn đọc được.
+ */
+const MIN_SCALE = 0.7;
+function FitToHeight({ hidden, children }: { hidden?: boolean; children: ReactNode }) {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const o = outer.current;
+    const i = inner.current;
+    if (!o || !i) return;
+    // offsetHeight không tính transform → luôn là chiều cao thật của nội dung.
+    const ro = new ResizeObserver(() => {
+      const avail = o.clientHeight;
+      const natural = i.offsetHeight;
+      if (!avail || !natural) return; // đang ẩn (tab khác)
+      setScale(natural > avail ? Math.max(Math.floor((avail / natural) * 1000) / 1000, MIN_SCALE) : 1);
+    });
+    ro.observe(o);
+    ro.observe(i);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={outer}
+      className={hidden ? "hidden" : cn("min-h-0 flex-1", scale > MIN_SCALE ? "overflow-hidden" : "overflow-y-auto")}
+    >
+      <div
+        ref={inner}
+        style={scale < 1 ? { transform: `scale(${scale})`, transformOrigin: "top left", width: `${100 / scale}%` } : undefined}
+      >
+        {children}
+      </div>
     </div>
   );
 }

@@ -458,7 +458,6 @@
     "province": "Province",
     "city": "Regency / City",
     "addressDetail": "Address detail",
-    "rating": "Rating",
     "history": "Appointment history",
     "historyEmpty": "No appointments yet",
     "paymentConfirm": "Payment confirm",

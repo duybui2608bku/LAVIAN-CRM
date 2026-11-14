@@ -61,7 +61,7 @@ export function LeadAppointmentForm({ smaxCustomerId, defaultStaffId, staffOptio
   const serviceMap = new Map(services.map((s) => [s.id, serviceName(s, locale)]));
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       <Form form={form} layout="vertical" requiredMark={false} disabled={pending}
         initialValues={{ staff_id: defaultStaffId, service_ids: [], note: "" }} onFinish={onFinish}>
         <div className="grid grid-cols-2 gap-3">
@@ -78,7 +78,7 @@ export function LeadAppointmentForm({ smaxCustomerId, defaultStaffId, staffOptio
             options={services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />
         </Form.Item>
         <Form.Item name="note" label={t("note")}>
-          <Input.TextArea rows={3} maxLength={10000} />
+          <Input.TextArea rows={2} maxLength={10000} />
         </Form.Item>
         <Button type="primary" htmlType="submit" block loading={pending}
           icon={<CalendarPlus className="size-4" />}>
@@ -86,7 +86,9 @@ export function LeadAppointmentForm({ smaxCustomerId, defaultStaffId, staffOptio
         </Button>
       </Form>
 
-      <Divider titlePlacement="start" className="mt-6">{tl("history")}</Divider>
+      <Divider titlePlacement="start" className="my-3!">{tl("history")}</Divider>
+      {/* Lịch sử dài cuộn trong khung này — trang không cuộn. */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
       {history === null ? (
         <div className="flex justify-center py-4"><Spin /></div>
       ) : history.length === 0 ? (
@@ -118,6 +120,7 @@ export function LeadAppointmentForm({ smaxCustomerId, defaultStaffId, staffOptio
           ))}
         </ul>
       )}
-    </>
+      </div>
+    </div>
   );
 }
