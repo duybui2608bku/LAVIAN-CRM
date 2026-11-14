@@ -34,15 +34,15 @@ export default async function LeadFormPage() {
   ]);
 
   return (
-    <main className="flex min-h-svh justify-center p-3">
-      <div className="w-full max-w-lg">
+    // Cao đúng 1 màn hình, không cuộn trang: form tự thu nhỏ vừa chiều cao (FitToHeight trong LeadForm).
+    <main className="flex h-svh justify-center overflow-hidden p-3">
+      <div className="flex w-full max-w-lg min-h-0 flex-col">
         {/* useSearchParams trong LeadForm cần Suspense boundary */}
         <Suspense>
           <LeadForm
             staff={staff ?? []}
             services={services ?? []}
             stages={CUSTOMER_OPTIONS.filter((o) => o.kind === "stage")}
-            ratings={CUSTOMER_OPTIONS.filter((o) => o.kind === "rating")}
           />
         </Suspense>
       </div>
