@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { LeadForm } from "@/components/lead-form/lead-form";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
-import { CARE_DEPARTMENTS } from "@/types/user";
+import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 // Trang public (không cần đăng nhập) — nhúng iframe vào SMAX hoặc mở trực tiếp.
 // Luôn tiếng Anh (proxy.ts) + giao diện sáng (forcedTheme ở app/providers.tsx).
@@ -23,7 +23,7 @@ export default async function LeadFormPage() {
       .from("profiles")
       .select("id, user_name, avatar_url")
       .eq("status", "active")
-      .in("department", CARE_DEPARTMENTS)
+      .in("department", TELESALES_DEPARTMENTS)
       .neq("user_name", "")
       .order("user_name"),
     admin

@@ -20,7 +20,7 @@ import {
 
 import { getReport, type Report } from "@/app/(app)/reports/actions";
 import { DataTable } from "@/components/common/data-table";
-import { DateRangePicker } from "@/components/common/date-picker";
+import { DateRangeFilter, initialRange } from "@/components/common/date-range-filter";
 import { PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah, IDR_CURRENCY } from "@/lib/currency";
 import {
@@ -63,37 +63,13 @@ const META: Record<Metric, { icon: React.ElementType; tone: Tone }> = {
 
 const FB_METRICS: ReadonlySet<Metric> = new Set(["spend", "messages", "costPerMessage", "costPerData"]);
 
-const PRESETS = ["today", "yesterday", "last7", "last30", "thisMonth", "lastMonth"] as const;
-type Preset = (typeof PRESETS)[number];
-
-function presetRange(p: Preset): { from: string; to: string } {
-  const d = dayjs();
-  const f = (x: dayjs.Dayjs) => x.format("YYYY-MM-DD");
-  switch (p) {
-    case "today":
-      return { from: f(d), to: f(d) };
-    case "yesterday":
-      return { from: f(d.subtract(1, "day")), to: f(d.subtract(1, "day")) };
-    case "last7":
-      return { from: f(d.subtract(6, "day")), to: f(d) };
-    case "last30":
-      return { from: f(d.subtract(29, "day")), to: f(d) };
-    case "thisMonth":
-      return { from: f(d.startOf("month")), to: f(d) };
-    case "lastMonth": {
-      const m = d.subtract(1, "month");
-      return { from: f(m.startOf("month")), to: f(m.endOf("month")) };
-    }
-  }
-}
-
 /** Chỉ số của 1 ngày (dòng bảng / cột biểu đồ). */
 const dayTotals = (r: DayRow): Totals => totals([r]);
 
 export function ReportsView() {
   const t = useTranslations("reports");
   const locale = useLocale();
-  const [range, setRange] = React.useState(() => presetRange("last7"));
+  const [range, setRange] = React.useState(() => initialRange("last7"));
   const [report, setReport] = React.useState<Report | null>(null);
   const [pending, startTransition] = React.useTransition();
   const [chartMetric, setChartMetric] = React.useState<Metric>("data");
@@ -135,11 +111,6 @@ export function ReportsView() {
   const prev = report ? totals(prevRows) : null;
   const errorOf = (m: Metric) => (FB_METRICS.has(m) ? report?.errors.fb : report?.errors.db);
 
-  const activePreset = PRESETS.find((p) => {
-    const r = presetRange(p);
-    return r.from === range.from && r.to === to;
-  });
-
   // ROAS chỉ có nghĩa khi tiền quảng cáo cùng đơn vị Rupiah với doanh thu.
   const roas = currency === IDR_CURRENCY ? ratio(cur?.revenue ?? null, cur?.spend ?? null) : null;
 
@@ -167,22 +138,7 @@ export function ReportsView() {
       />
 
       <PageToolbar>
-        <div className="overflow-x-auto">
-          <Segmented<Preset | "custom">
-            value={activePreset ?? "custom"}
-            onChange={(v) => v !== "custom" && setRange(presetRange(v))}
-            options={[
-              ...PRESETS.map((p) => ({ value: p, label: t(`preset.${p}`) })),
-              ...(activePreset ? [] : [{ value: "custom" as const, label: t("preset.custom") }]),
-            ]}
-          />
-        </div>
-        <DateRangePicker
-          from={range.from}
-          to={to}
-          allowClear={false}
-          onChange={(r) => r.from && setRange({ from: r.from, to: r.to || r.from })}
-        />
+        <DateRangeFilter value={{ from: range.from, to }} onChange={setRange} />
       </PageToolbar>
 
       {report?.error ? <Alert type="error" showIcon title={report.error} /> : null}

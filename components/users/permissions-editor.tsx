@@ -39,11 +39,12 @@ const MODULE_ICONS: Record<PermissionModule, typeof Users> = {
   tour: Wallet,
   services: Briefcase,
   reports: ChartColumn,
+  telesales: Headset,
   marketing: Megaphone,
 };
 const DEPARTMENT_ICONS: Record<UserDepartment, typeof Users> = {
-  customer_care: Headset,
-  customer_care_leader: Crown,
+  telesales: Headset,
+  telesales_leader: Crown,
   technician: Wrench,
   sales: TrendingUp,
 };

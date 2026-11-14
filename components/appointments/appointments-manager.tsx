@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import { createAppointment, deleteAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { DataTable } from "@/components/common/data-table";
-import { DatePicker } from "@/components/common/date-picker";
+import { DateRangePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { RowActions } from "@/components/common/row-actions";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
@@ -19,15 +19,15 @@ import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { matchesNameOrPhone, serviceName } from "@/lib/customers";
 import { waColor } from "@/lib/wa";
 import { toast } from "@/lib/toast";
-import type { Appointment, AppointmentCustomer, AppointmentPatch } from "@/types/appointment";
+import { BOOKING_STATUSES, BOOKING_STATUS_COLORS, type Appointment, type AppointmentCustomer, type AppointmentPatch } from "@/types/appointment";
 import type { Service } from "@/types/service";
-import { CARE_DEPARTMENTS } from "@/types/user";
+import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
 
-// Chỉ chọn CSKH (giữ người đang gán để vẫn hiển thị).
+// Chỉ chọn Telesales (giữ người đang gán để vẫn hiển thị).
 const staffOptions = (staff: AppointmentStaff[], current?: string | null) => staff
-  .filter((s) => s.id === current || (s.status === "active" && CARE_DEPARTMENTS.includes(s.department ?? "")))
+  .filter((s) => s.id === current || (s.status === "active" && TELESALES_DEPARTMENTS.includes(s.department ?? "")))
   .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
 export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer }: {
@@ -44,7 +44,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const canEdit = can("appointments.edit");
   const [, start] = useTransition();
   const [search, setSearch] = useState("");
-  const [date, setDate] = useState("");
+  const [dates, setDates] = useState({ from: "", to: "" });
   const [customerFilter, setCustomerFilter] = useState(initialCustomer);
   const [arrival, setArrival] = useState("all");
   const [booking, setBooking] = useState("all");
@@ -64,13 +64,16 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     } catch { toast.error(t("saveError")); }
   });
 
+  // Lọc theo ngày hẹn (giờ máy); chỉ chọn "từ" = đúng 1 ngày.
+  const inRange = (day: string) => !dates.from || (day >= dates.from && day <= (dates.to || dates.from));
+  const statusOptions = BOOKING_STATUSES.map((value) => ({ value, label: t(`bookingStatus.${value}`) }));
   const customerMap = new Map(customers.map((customer) => [customer.id, customer]));
   const filtered = rows.filter((row) => {
     const customer = customerMap.get(row.customer_id);
     return customer && (!customerFilter || row.customer_id === customerFilter)
-      && (!date || dayjs(row.scheduled_at).format("YYYY-MM-DD") === date)
+      && inRange(dayjs(row.scheduled_at).format("YYYY-MM-DD"))
       && (arrival === "all" || row.checked_in === (arrival === "arrived"))
-      && (booking === "all" || row.booking_confirm === (booking === "confirmed"))
+      && (booking === "all" || row.booking_confirm === booking)
       && matchesNameOrPhone(customer.full_name, customer.phone, search);
   });
   const resetPage = () => setPage(1);
@@ -85,10 +88,10 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     { title: t("date"), width: 220, sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
       render: (_, row) => <AppointmentDate inline disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
     { title: t("bookingConfirm"), width: 160, render: (_, row) => <InlineSelect
-      value={row.booking_confirm ? "confirmed" : "unconfirmed"} ariaLabel={t("bookingConfirm")} disabled={!canEdit}
-      display={<Tag color={row.booking_confirm ? "green" : "orange"} className="me-0">{row.booking_confirm ? t("confirmed") : t("unconfirmed")}</Tag>}
-      options={[{ value: "confirmed", label: t("confirmed") }, { value: "unconfirmed", label: t("unconfirmed") }]}
-      onSave={(value) => save(row.id, { booking_confirm: value === "confirmed" })} /> },
+      value={row.booking_confirm} ariaLabel={t("bookingConfirm")} disabled={!canEdit}
+      display={<Tag color={BOOKING_STATUS_COLORS[row.booking_confirm]} className="me-0">{t(`bookingStatus.${row.booking_confirm}`)}</Tag>}
+      options={statusOptions}
+      onSave={(value) => save(row.id, { booking_confirm: value as Appointment["booking_confirm"] })} /> },
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
       value={row.checked_in ? "arrived" : "waiting"} ariaLabel={t("confirmation")} disabled={!canEdit}
       display={<Tag color={row.checked_in ? "green" : "default"} className="me-0">{row.checked_in ? t("arrived") : t("notArrived")}</Tag>}
@@ -130,12 +133,12 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <PageToolbar>
       <Input value={search} allowClear className="w-full sm:max-w-64" placeholder={t("search")}
         aria-label={t("search")} prefix={<Search className="size-4" />} onChange={(e) => { setSearch(e.target.value); resetPage(); }} />
-      <DatePicker value={date} onChange={(v) => { setDate(v); resetPage(); }} placeholder={t("allDates")} className="w-44" />
-      <Button onClick={() => { setDate(dayjs().format("YYYY-MM-DD")); resetPage(); }}>{t("today")}</Button>
+      <DateRangePicker from={dates.from} to={dates.to} onChange={(r) => { setDates(r); resetPage(); }} placeholder={t("allDates")} />
+      <Button onClick={() => { const d = dayjs().format("YYYY-MM-DD"); setDates({ from: d, to: d }); resetPage(); }}>{t("today")}</Button>
       <Select value={arrival} aria-label={t("confirmation")} className="min-w-40" onChange={(v) => { setArrival(v); resetPage(); }}
         options={[{ value: "all", label: t("allArrivals") }, { value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]} />
       <Select value={booking} aria-label={t("bookingConfirm")} className="min-w-40" onChange={(v) => { setBooking(v); resetPage(); }}
-        options={[{ value: "all", label: t("allBookingConfirms") }, { value: "confirmed", label: t("confirmed") }, { value: "unconfirmed", label: t("unconfirmed") }]} />
+        options={[{ value: "all", label: t("allBookingConfirms") }, ...statusOptions]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
         onClick={() => setCreating(true)}>{t("create")}</Button>}
@@ -144,7 +147,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff} services={services}
-      onCreated={() => { setCreating(false); setDate(""); setCustomerFilter(""); setSearch(""); setArrival("all"); setBooking("all"); setPage(1); }} />
+      onCreated={() => { setCreating(false); setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setArrival("all"); setBooking("all"); setPage(1); }} />
   </Page>;
 }
 

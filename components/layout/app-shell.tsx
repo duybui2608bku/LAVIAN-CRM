@@ -12,7 +12,9 @@ import {
   ChartColumn,
   Check,
   ChevronDown,
+  Headset,
   Languages,
+  LayoutDashboard,
   LayoutGrid,
   LockKeyhole,
   LogOut,
@@ -52,7 +54,15 @@ const ITEMS = [
 ] as const;
 
 const ADMIN_ITEMS = [
-  { key: "reports", href: "/reports", icon: ChartColumn },
+  {
+    key: "reports",
+    href: "/reports",
+    icon: ChartColumn,
+    children: [
+      { key: "reportsOverview", href: "/reports", icon: LayoutDashboard, perm: "reports.view" },
+      { key: "telesales", href: "/reports/telesales", icon: Headset, perm: "telesales.view" },
+    ],
+  },
   { key: "marketing", href: "/marketing", icon: Megaphone },
   {
     key: "users",
@@ -66,8 +76,8 @@ const ADMIN_ITEMS = [
   { key: "services", href: "/services", icon: Briefcase },
 ] as const;
 
-type NavItem = (typeof ITEMS)[number] | (typeof ADMIN_ITEMS)[number];
-type NavLink = { key: string; href: string; icon: typeof Users };
+type NavLink = { key: string; href: string; icon: typeof Users; perm?: Permission };
+type NavItem = NavLink | (NavLink & { children: readonly NavLink[] });
 
 // Mục có menu con → trải thành các trang con (sheet điện thoại, tìm mục đang chọn).
 const flatten = (items: readonly NavItem[]): NavLink[] =>
@@ -106,9 +116,17 @@ export function AppShell({
   };
 
   // Menu theo quyền "<module>.view" (proxy.ts chặn route tương ứng); /users chỉ admin.
-  const allowed = (i: NavItem) => (i.key === "users" ? isAdmin : permissions.includes(`${i.key}.view` as Permission));
-  const main = ITEMS.filter(allowed);
-  const admin = ADMIN_ITEMS.filter(allowed);
+  // Menu cha: giữ menu con được phép (con có `perm` riêng), hết con thì ẩn; href cha = con đầu tiên
+  // (tab dưới điện thoại bấm vào cha).
+  const visible = (items: readonly NavItem[]): NavItem[] =>
+    items.flatMap<NavItem>((i) => {
+      if (i.key === "users") return isAdmin ? [i] : [];
+      if (!("children" in i)) return permissions.includes(`${i.key}.view` as Permission) ? [i] : [];
+      const kids = i.children.filter((c) => !c.perm || permissions.includes(c.perm));
+      return kids.length ? [{ ...i, href: kids[0].href, children: kids }] : [];
+    });
+  const main = visible(ITEMS);
+  const admin = visible(ADMIN_ITEMS);
   const all: readonly NavItem[] = [...main, ...admin];
   // Điện thoại: tối đa 3 tab dưới, phần còn lại nằm trong "Menu".
   const tabs = all.slice(0, 3);
@@ -169,7 +187,9 @@ export function AppShell({
             mode="inline"
             inlineCollapsed={collapsed}
             selectedKeys={[selected]}
-            defaultOpenKeys={pathname.startsWith("/users") ? ["/users:sub"] : []}
+            defaultOpenKeys={all
+              .filter((i) => "children" in i && i.children.some((c) => pathname === c.href || pathname.startsWith(`${c.href}/`)))
+              .map((i) => `${i.href}:sub`)}
             items={menuItems(collapsed)}
             className="min-h-0 flex-1 overflow-y-auto border-0! py-2"
           />
