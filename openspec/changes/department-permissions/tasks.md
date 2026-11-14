@@ -1,0 +1,6 @@
+- [x] 1. Migration (đã chạy trên Supabase project Lavian 2026-11-13): enum leader + bảng department_permissions + has_permission + policy enum_options
+- [x] 2. `lib/permissions.ts`, `requirePermission`, proxy, trang chủ
+- [x] 3. Server actions + page guard theo quyền
+- [x] 4. Shell menu + `useCan` ẩn nút sửa/xoá
+- [x] 5. /users: Drawer phân quyền TreeSelect + bộ phận leader
+- [x] 6. i18n, tsc + eslint + test

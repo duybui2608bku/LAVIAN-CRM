@@ -7,15 +7,16 @@ import type { Profile } from "@/types/user";
 export default async function UsersPage() {
   const me = await getCurrentProfile();
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const [{ data }, { data: access }] = await Promise.all([
+    supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+    supabase.from("department_permissions").select("department, permissions"),
+  ]);
 
   return (
     <UsersManager
       profiles={(data as Profile[]) ?? []}
       currentUserId={me?.id ?? ""}
+      departmentPermissions={Object.fromEntries((access ?? []).map((r) => [r.department, r.permissions as string[]]))}
     />
   );
 }

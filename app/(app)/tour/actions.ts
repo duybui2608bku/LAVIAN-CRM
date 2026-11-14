@@ -3,16 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
+import type { Permission } from "@/lib/permissions";
 import { tourCreateSchema, tourPatchSchema } from "@/lib/tours";
 
 type Result = { error?: string };
 
-async function context() {
-  const profile = await getCurrentProfile();
-  if (profile?.status !== "active") throw new Error("Unauthorized");
+// Quyền bộ phận (tour.edit / tour.delete) mở thao tác; quản lý (xác nhận, gán KTV, sửa/xoá mọi tour) vẫn chỉ admin.
+async function context(key: Permission) {
+  const profile = await requirePermission(key);
   return { profile, isAdmin: profile.role === "admin", db: await createClient() };
 }
 
@@ -33,7 +34,7 @@ async function run(action: (t: Awaited<ReturnType<typeof getTranslations<"tour">
 export async function createTour(input: z.input<typeof tourCreateSchema>) {
   return run(async () => {
     const values = tourCreateSchema.parse(input);
-    const { profile, db } = await context();
+    const { profile, db } = await context("tour.edit");
     const { error } = await db.from("tours").insert({ ...values, created_by: profile.id });
     if (error) throw error;
   });
@@ -43,7 +44,7 @@ export async function createTour(input: z.input<typeof tourCreateSchema>) {
 export async function claimTour(id: string) {
   return run(async (t) => {
     z.uuid().parse(id);
-    const { profile, db } = await context();
+    const { profile, db } = await context("tour.edit");
     if (profile.department !== "technician") return t("onlyTechnician");
     const { data, error } = await db.from("tours")
       .update({ technician_id: profile.id, claimed_at: new Date().toISOString() })
@@ -57,7 +58,7 @@ export async function claimTour(id: string) {
 export async function releaseTour(id: string) {
   return run(async (t) => {
     z.uuid().parse(id);
-    const { profile, db } = await context();
+    const { profile, db } = await context("tour.edit");
     const { data, error } = await db.from("tours").update({ technician_id: null, claimed_at: null })
       .eq("id", id).eq("technician_id", profile.id).is("confirmed_at", null).is("deleted_at", null).select("id");
     if (error) throw error;
@@ -73,7 +74,7 @@ export async function updateTour(id: string, input: z.input<typeof tourPatchSche
   return run(async (t) => {
     z.uuid().parse(id);
     const patch = tourPatchSchema.parse(input);
-    const { profile, isAdmin, db } = await context();
+    const { profile, isAdmin, db } = await context("tour.edit");
     const data: Record<string, unknown> = { ...patch };
     if (patch.technician_id !== undefined) {
       if (!isAdmin) return t("forbidden");
@@ -99,7 +100,7 @@ export async function updateTour(id: string, input: z.input<typeof tourPatchSche
 export async function confirmTour(id: string, confirmed: boolean) {
   return run(async (t) => {
     z.uuid().parse(id);
-    const { profile, isAdmin, db } = await context();
+    const { profile, isAdmin, db } = await context("tour.edit");
     if (!isAdmin) return t("forbidden");
     let query = db.from("tours").update(confirmed
       ? { confirmed_at: new Date().toISOString(), confirmed_by: profile.id }
@@ -118,7 +119,7 @@ export async function confirmTour(id: string, confirmed: boolean) {
 export async function deleteTour(id: string) {
   return run(async (t) => {
     z.uuid().parse(id);
-    const { profile, isAdmin, db } = await context();
+    const { profile, isAdmin, db } = await context("tour.delete");
     let query = db.from("tours").update({ deleted_at: new Date().toISOString() }).eq("id", id).is("deleted_at", null);
     if (!isAdmin) query = query.eq("created_by", profile.id).is("technician_id", null);
     const { data, error } = await query.select("id");

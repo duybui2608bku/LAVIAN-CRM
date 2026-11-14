@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { fetchFbAdsDaily, supaRange } from "@/lib/marketing";
 import { buildDays, dayCount, previousRange, type DayRow } from "@/lib/reports";
@@ -35,7 +35,7 @@ async function fetchAll<T>(
 
 /** Báo cáo theo khoảng ngày VN `YYYY-MM-DD` (kèm kỳ trước để so sánh). */
 export async function getReport(from: string, to: string): Promise<Report> {
-  await requireAdmin();
+  await requirePermission("reports.view");
   const previous = YMD_RE.test(from) && YMD_RE.test(to) ? previousRange(from, to) : { from, to };
   const report: Report = { currency: null, rows: [], previous, errors: {} };
   if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to)

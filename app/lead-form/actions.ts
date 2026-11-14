@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOMER_OPTIONS, leadSource, validRating } from "@/lib/customer-options";
 import { formatPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
+import { CARE_DEPARTMENTS } from "@/types/user";
 
 const schema = z.object({
   customer_id: z.string().trim().max(200),
@@ -228,7 +229,7 @@ export async function createLeadAppointment(
     await Promise.all([
       d.staff_id
         ? db.from("profiles").select("id").eq("id", d.staff_id).eq("status", "active")
-            .eq("department", "customer_care").single()
+            .in("department", CARE_DEPARTMENTS).single()
             .then(({ error }) => { if (error) throw error; })
         : null,
       serviceIds.length

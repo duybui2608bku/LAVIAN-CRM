@@ -43,7 +43,9 @@
     "filters": "Bộ lọc",
     "clearFilters": "Xoá lọc",
     "account": "Tài khoản",
-    "darkMode": "Giao diện tối"
+    "darkMode": "Giao diện tối",
+    "noAccessTitle": "Chưa được cấp quyền",
+    "noAccessBody": "Tài khoản của bạn chưa được cấp quyền vào trang nào. Vui lòng liên hệ quản trị viên."
   },
   "home": {
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
@@ -196,6 +198,16 @@
     "dept_customer_care": "Chăm sóc khách hàng",
     "dept_technician": "Kỹ Thuật Viên",
     "dept_sales": "Sales",
+    "dept_customer_care_leader": "Trưởng nhóm CSKH",
+    "permissions": "Phân quyền",
+    "permissionsTitle": "Phân quyền theo bộ phận",
+    "permissionsHint": "Chọn menu và thao tác mỗi bộ phận được phép. Admin luôn toàn quyền; trang Người dùng chỉ admin. Chọn Sửa/Xoá sẽ tự thêm Xem.",
+    "permissionsOk": "Đã lưu phân quyền",
+    "noPermissions": "Không có quyền",
+    "perm_view": "Xem",
+    "perm_edit": "Thêm / Sửa",
+    "perm_delete": "Xoá",
+    "save": "Lưu",
     "departmentOk": "Đã cập nhật bộ phận",
     "avatarOk": "Đã cập nhật ảnh đại diện",
     "changeAvatar": "Bấm để đổi ảnh đại diện",

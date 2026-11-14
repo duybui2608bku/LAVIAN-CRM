@@ -5,7 +5,7 @@ import { formatPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth";
+import { getCurrentProfile, requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { fetchFbAds } from "@/lib/marketing";
 import type { Appointment, AppointmentLog } from "@/types/appointment";
@@ -85,6 +85,7 @@ function clean(input: CustomerInput) {
 
 export async function createCustomer(input: CustomerInput): Promise<Result> {
   try {
+    await requirePermission("customers.edit");
     const supabase = await createClient();
     const { error } = await supabase.from("customers").insert(clean(input));
     if (error) throw error;
@@ -100,6 +101,7 @@ export async function updateCustomer(
   input: CustomerInput,
 ): Promise<Result> {
   try {
+    await requirePermission("customers.edit");
     const supabase = await createClient();
     const { error } = await supabase
       .from("customers")
@@ -125,6 +127,7 @@ export async function patchCustomer(
   },
 ): Promise<Result> {
   try {
+    await requirePermission("customers.edit");
     if (patch.stage && !CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === patch.stage))
       throw new Error("Giai đoạn không hợp lệ.");
     const data: Record<string, string | null> = {};
@@ -158,6 +161,7 @@ export async function addCustomerNote(
   text: string,
 ): Promise<Result> {
   try {
+    await requirePermission("customers.edit");
     const trimmed = text.trim();
     if (!trimmed) return {};
     const supabase = await createClient();
@@ -186,6 +190,7 @@ export async function addCustomerNote(
 /** Xóa mềm: đặt deleted_at (giữ lịch sử). */
 export async function deleteCustomer(id: string): Promise<Result> {
   try {
+    await requirePermission("customers.delete");
     const supabase = await createClient();
     const { error } = await supabase
       .from("customers")

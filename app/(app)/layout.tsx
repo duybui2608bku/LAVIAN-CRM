@@ -19,6 +19,7 @@ export default async function AppLayout({
     <AppShell
       defaultCollapsed={collapsed}
       isAdmin={profile?.role === "admin"}
+      permissions={profile?.permissions ?? []}
       userName={profile?.user_name || profile?.email}
       avatarUrl={profile?.avatar_url}
     >

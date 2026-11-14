@@ -74,7 +74,7 @@ function useServiceLabel(services: Service[]) {
 
 // ───────────────────────── KTV ─────────────────────────
 
-function TechnicianTours({ month, tours, pending, services, onOpen, onPhotos, goMonth }: ViewProps) {
+function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos, goMonth }: ViewProps) {
   const t = useTranslations("tour");
   const serviceLabel = useServiceLabel(services);
   const [tab, setTab] = useState<"pending" | "mine">(pending.length ? "pending" : "mine");
@@ -103,8 +103,8 @@ function TechnicianTours({ month, tours, pending, services, onOpen, onPhotos, go
       {pending.length ? pending.map((tour) => <div key={tour.id} className="surface flex flex-col gap-2 p-3">
         <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
         {tour.note ? <p className="line-clamp-3 text-sm text-muted-foreground">{tour.note}</p> : null}
-        <Button type="primary" size="large" block loading={claiming === tour.id} disabled={!!claiming}
-          onClick={() => claim(tour.id)}>{t("claim")}</Button>
+        {me.canEdit ? <Button type="primary" size="large" block loading={claiming === tour.id} disabled={!!claiming}
+          onClick={() => claim(tour.id)}>{t("claim")}</Button> : null}
       </div>) : <div className="surface py-10"><Empty description={t("noPending")} /></div>}
     </div> : <>
       <PageToolbar><MonthPicker month={month} goMonth={goMonth} /></PageToolbar>
@@ -213,7 +213,7 @@ function TourTable({ me, month, tours, services, staff, customers, onOpen, onPho
         { icon: <PencilLine className="size-4" />, label: t("open"), onSelect: () => onOpen(r.id) },
         ...(me.isAdmin && tourStatus(r) === "claimed" ? [{ icon: <CheckCircle2 className="size-4" />, label: t("confirm"),
           onSelect: () => void runAction(confirmTour(r.id, true), t("confirmedToast"), failed) }] : []),
-        ...(me.isAdmin || (r.created_by === me.id && !r.technician_id) ? [{
+        ...(me.canDelete && (me.isAdmin || (r.created_by === me.id && !r.technician_id)) ? [{
           icon: <Trash2 className="size-4" />, label: t("remove"), danger: true, onSelect: () => confirm({
             title: t("removeTitle"), content: t("removeBody", { name: r.customer?.full_name ?? "" }),
             okText: t("remove"), cancelText: t("cancel"),
@@ -234,7 +234,7 @@ function TourTable({ me, month, tours, services, staff, customers, onOpen, onPho
           {t("exportSlip")}
         </Button>
       </> : null}
-      <Button type="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>{t("create")}</Button>
+      {me.canEdit ? <Button type="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>{t("create")}</Button> : null}
     </>} />
     <PageToolbar>
       <MonthPicker month={month} goMonth={goMonth} />

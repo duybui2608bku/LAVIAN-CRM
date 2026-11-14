@@ -34,6 +34,7 @@ import {
 import { CreateAppointmentDrawer, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
+import { useCan } from "@/components/common/permissions";
 import { DataTable } from "@/components/common/data-table";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
@@ -55,15 +56,16 @@ import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
+import { CARE_DEPARTMENTS } from "@/types/user";
 
 type Staff = AppointmentStaff;
 
-// Option theo bộ phận (Nhân viên = customer_care, Sales, Kỹ thuật viên):
+// Option theo bộ phận (Nhân viên = customer_care + leader, Sales, Kỹ thuật viên):
 // chỉ user đúng bộ phận + giá trị đang gán (user đổi bộ phận sau khi gán
 // vẫn hiện — cùng triết lý option inactive).
 const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
   staff
-    .filter((s) => s.department === dept || s.id === current)
+    .filter((s) => (dept === "customer_care" ? CARE_DEPARTMENTS.includes(s.department ?? "") : s.department === dept) || s.id === current)
     .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
 const DASH = <span className="text-muted-foreground">—</span>;
@@ -119,6 +121,9 @@ export function CustomersManager({
   const tc = useTranslations("common");
   const locale = useLocale();
   const confirm = useConfirm();
+  const can = useCan();
+  const canEdit = can("customers.edit");
+  const canDelete = can("customers.delete");
   const [, start] = useTransition();
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -295,6 +300,7 @@ export function CustomersManager({
           display={tagFor("stage", c.stage)}
           options={tagOptions("stage", c.stage)}
           ariaLabel={t("colStage")}
+          disabled={!canEdit}
           onSave={(v) => patchField(c.id, { stage: v })}
         />
       ),
@@ -310,6 +316,7 @@ export function CustomersManager({
           options={tagOptions("rating", c.rating)}
           noneLabel={t("noneOption")}
           ariaLabel={t("colRating")}
+          disabled={!canEdit}
           onSave={(v) => patchField(c.id, { rating: v || null })}
         />
       ),
@@ -337,7 +344,7 @@ export function CustomersManager({
               <Tag color={color} title={d.format("DD-MM-YYYY HH:mm")} className="me-0 tabular-nums">
                 {d.format("DD-MM HH:mm")}
               </Tag>
-            ) : (
+            ) : can("appointments.edit") && (
               // Chưa có lịch → nút mở drawer tạo lịch hẹn cho khách này.
               <Button
                 type="text"
@@ -412,6 +419,7 @@ export function CustomersManager({
           options={deptOptions(staff, dept, c[field])}
           noneLabel={t("noneOption")}
           ariaLabel={t(label)}
+          disabled={!canEdit}
           onSave={(v) => patchField(c.id, { [field]: v || null })}
         />
       ),
@@ -451,24 +459,18 @@ export function CustomersManager({
       key: "actions",
       align: "right",
       fixed: "right",
-      render: (_, c) => (
-        <RowActions
-          label={t("colActions")}
-          items={[
-            {
-              icon: <Pencil className="size-4" />,
-              label: t("edit"),
-              onSelect: () => setTarget(c),
-            },
-            {
-              icon: <Trash2 className="size-4" />,
-              label: t("delete"),
-              danger: true,
-              onSelect: () => askDelete(c),
-            },
-          ]}
-        />
-      ),
+      render: (_, c) =>
+        canEdit || canDelete ? (
+          <RowActions
+            label={t("colActions")}
+            items={[
+              ...(canEdit ? [{ icon: <Pencil className="size-4" />, label: t("edit"), onSelect: () => setTarget(c) }] : []),
+              ...(canDelete
+                ? [{ icon: <Trash2 className="size-4" />, label: t("delete"), danger: true, onSelect: () => askDelete(c) }]
+                : []),
+            ]}
+          />
+        ) : null,
     },
   ];
 
@@ -491,9 +493,11 @@ export function CustomersManager({
 
       {/* Thanh lọc: hiện thẳng mọi bộ lọc (ít trường, không cần gom vào popover). */}
       <PageToolbar>
-        <Button type="primary" icon={<UserPlus className="size-4" />} onClick={() => setTarget("new")}>
-          {t("create")}
-        </Button>
+        {canEdit && (
+          <Button type="primary" icon={<UserPlus className="size-4" />} onClick={() => setTarget("new")}>
+            {t("create")}
+          </Button>
+        )}
         <Input
           allowClear
           className="w-full sm:max-w-64"
@@ -622,6 +626,7 @@ function NotesModal({
   const t = useTranslations("customers");
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
+  const canEdit = useCan()("customers.edit");
 
   const save = () =>
     start(async () => {
@@ -661,7 +666,7 @@ function NotesModal({
           }}
         />
         <div className="flex justify-end">
-          <Button type="primary" loading={pending} disabled={!text.trim()} onClick={save}>
+          <Button type="primary" loading={pending} disabled={!text.trim() || !canEdit} onClick={save}>
             {t("addNote")}
           </Button>
         </div>

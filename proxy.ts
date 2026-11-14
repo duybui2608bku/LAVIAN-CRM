@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { LOCALE_COOKIE } from "@/i18n/config";
+import { effectivePermissions, moduleOfPath } from "@/lib/permissions";
 
 // Next.js 16 renamed Middleware -> Proxy (see node_modules/next/dist/docs proxy guide).
 // Cổng xác thực: refresh session + chặn chưa-đăng-nhập / banned / route admin.
@@ -11,8 +12,8 @@ const AUTH_PAGES = ["/login", "/banned"];
 // Route công khai (không cần đăng nhập) — /lead-form nhúng iframe SMAX,
 // người đã đăng nhập vẫn mở được (không redirect như trang auth).
 const PUBLIC_PATHS = [...AUTH_PAGES, "/lead-form"];
-// Route staff được vào — khớp STAFF_ITEMS ở components/layout/app-shell.tsx.
-const STAFF_PATHS = ["/customers", "/services"];
+// Route chỉ admin (không nằm trong cây phân quyền).
+const ADMIN_PATHS = ["/users", "/enums"];
 
 export async function proxy(request: NextRequest) {
   // /lead-form hướng tới khách quốc tế: luôn tiếng Anh (form không có switcher).
@@ -69,12 +70,12 @@ export async function proxy(request: NextRequest) {
     return isPublic ? response : redirectTo("/login");
   }
 
-  // Đã đăng nhập → lấy role + status (RLS cho phép đọc chính mình).
+  // Đã đăng nhập → lấy role + status + quyền bộ phận trong 1 query.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, status")
+    .select("role, status, access:department_permissions(permissions)")
     .eq("id", userId)
-    .single();
+    .single<{ role: string; status: string; access: { permissions: string[] } | null }>();
 
   // Bị khoá → ép về /banned.
   if (profile?.status === "banned") {
@@ -91,13 +92,15 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // Staff (không phải admin) chỉ vào được /customers và /services (xem); còn lại về /customers.
-  // "/" tự redirect sang /customers nên cho qua.
-  const isStaffRoute =
-    path === "/" ||
-    STAFF_PATHS.some((p) => path === p || path.startsWith(p + "/"));
-  if (profile?.role !== "admin" && !isStaffRoute) {
-    return redirectTo("/customers");
+  // Admin vào mọi route. Còn lại: route module cần quyền "<module>.view", route admin bị chặn;
+  // về "/" (trang chủ tự chuyển tới menu đầu tiên được phép).
+  if (profile?.role !== "admin") {
+    const permissions = effectivePermissions(profile?.role, profile?.access?.permissions);
+    const mod = moduleOfPath(path);
+    const denied =
+      ADMIN_PATHS.some((p) => path === p || path.startsWith(p + "/")) ||
+      (mod !== null && !permissions.some((p) => p === `${mod}.view`));
+    if (denied) return redirectTo("/");
   }
 
   return response;

@@ -20,6 +20,7 @@ import { toast } from "@/lib/toast";
 import type { FbCampaign } from "@/lib/marketing";
 import { cn } from "@/lib/utils";
 import { campaignWa, summarizeByWa, waColor } from "@/lib/wa";
+import { useCan } from "@/components/common/permissions";
 
 /** Chia an toàn: thiếu số hoặc mẫu 0 → null ("—"). */
 const ratio = (a: number | null, b: number | null) =>
@@ -41,6 +42,7 @@ const STATUS_COLOR: Record<string, string> = {
 export function AdsStatsView() {
   const t = useTranslations("marketing");
   const locale = useLocale();
+  const canEdit = useCan()("marketing.edit");
   const today = formatISODate(new Date());
   const [range, setRange] = React.useState({ from: today, to: today });
   const [stats, setStats] = React.useState<AdsStats | null>(null);
@@ -116,6 +118,7 @@ export function AdsStatsView() {
         if (status !== "ACTIVE" && status !== "PAUSED")
           return <Tag color={STATUS_COLOR[status]}>{statusLabel(status)}</Tag>;
         const active = status === "ACTIVE";
+        if (!canEdit) return <Switch size="small" checked={active} disabled aria-label={statusLabel(status)} />;
         return (
           <ConfirmAction
             title={t(active ? "confirmPause" : "confirmActivate")}

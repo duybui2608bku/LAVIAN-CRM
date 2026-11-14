@@ -31,9 +31,11 @@ import { LocaleFlag } from "@/components/common/locale-flag";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Logo } from "@/components/layout/logo";
 import { ProfileDialog } from "@/components/layout/profile-dialog";
+import { PermissionsProvider } from "@/components/common/permissions";
 import { useMounted } from "@/hooks/use-mounted";
 import { localeLabels, locales, type Locale } from "@/i18n/config";
 import { signOut } from "@/lib/actions/auth";
+import type { Permission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 // Cookie giữ trạng thái thu gọn qua lần tải lại (layout server đọc lại → không nháy).
@@ -53,9 +55,6 @@ const ADMIN_ITEMS = [
   { key: "services", href: "/services", icon: Briefcase },
 ] as const;
 
-// Staff (role ≠ admin) chỉ thấy 2 mục này — proxy.ts chặn các route còn lại.
-const STAFF_ITEMS = [ITEMS[0], ADMIN_ITEMS[3]] as const;
-
 type NavItem = (typeof ITEMS)[number] | (typeof ADMIN_ITEMS)[number];
 
 type Account = { userName?: string; avatarUrl?: string | null };
@@ -68,12 +67,14 @@ type Account = { userName?: string; avatarUrl?: string | null };
 export function AppShell({
   defaultCollapsed,
   isAdmin,
+  permissions,
   userName,
   avatarUrl,
   children,
 }: {
   defaultCollapsed: boolean;
   isAdmin: boolean;
+  permissions: Permission[];
   children: React.ReactNode;
 } & Account) {
   const t = useTranslations();
@@ -88,7 +89,14 @@ export function AppShell({
     document.cookie = `${COLLAPSE_COOKIE}=${collapsed}; path=/; max-age=31536000`;
   };
 
-  const all: readonly NavItem[] = isAdmin ? [...ITEMS, ...ADMIN_ITEMS] : STAFF_ITEMS;
+  // Menu theo quyền "<module>.view" (proxy.ts chặn route tương ứng); /users chỉ admin.
+  const allowed = (i: NavItem) => (i.key === "users" ? isAdmin : permissions.includes(`${i.key}.view` as Permission));
+  const main = ITEMS.filter(allowed);
+  const admin = ADMIN_ITEMS.filter(allowed);
+  const all: readonly NavItem[] = [...main, ...admin];
+  // Điện thoại: tối đa 3 tab dưới, phần còn lại nằm trong "Menu".
+  const tabs = all.slice(0, 3);
+  const sheetItems = all.slice(3);
   const selected = all.find((i) => pathname.startsWith(i.href))?.href ?? pathname;
   const toMenu = (items: readonly NavItem[]) =>
     items.map(({ key, href, icon: Icon }) => ({
@@ -98,12 +106,12 @@ export function AppShell({
     }));
 
   const menuItems = (compact: boolean): MenuProps["items"] => {
-    if (!isAdmin) return toMenu(STAFF_ITEMS);
+    if (!main.length || !admin.length) return toMenu(all);
     // Thu gọn: tiêu đề nhóm không đọc được → thay bằng vạch ngăn.
-    if (compact) return [...toMenu(ITEMS), { type: "divider" }, ...toMenu(ADMIN_ITEMS)];
+    if (compact) return [...toMenu(main), { type: "divider" }, ...toMenu(admin)];
     return [
-      { type: "group", key: "main", label: t("nav.groupMain"), children: toMenu(ITEMS) },
-      { type: "group", key: "admin", label: t("nav.groupAdmin"), children: toMenu(ADMIN_ITEMS) },
+      { type: "group", key: "main", label: t("nav.groupMain"), children: toMenu(main) },
+      { type: "group", key: "admin", label: t("nav.groupAdmin"), children: toMenu(admin) },
     ];
   };
 
@@ -128,7 +136,7 @@ export function AppShell({
         className="sticky! top-0 h-svh border-r border-border max-md:hidden!"
       >
         <div className="flex h-full flex-col">
-          <Link href="/customers" prefetch={false} className="flex h-14 shrink-0 items-center gap-2.5 px-4">
+          <Link href="/" prefetch={false} className="flex h-14 shrink-0 items-center gap-2.5 px-4">
             {logo}
             {!collapsed && brand}
           </Link>
@@ -161,7 +169,7 @@ export function AppShell({
         {/* Điện thoại: thanh trên kiểu app — logo + tên, avatar mở Menu. */}
         <header className="sticky top-0 z-30 border-b border-border bg-card/90 pt-[env(safe-area-inset-top)] backdrop-blur md:hidden">
           <div className="flex h-13 items-center gap-2.5 px-4">
-            <Link href="/customers" prefetch={false} className="flex min-w-0 items-center gap-2.5">
+            <Link href="/" prefetch={false} className="flex min-w-0 items-center gap-2.5">
               {logo}
               {brand}
             </Link>
@@ -178,20 +186,20 @@ export function AppShell({
 
         {/* Chừa chỗ cho thanh tab dưới trên điện thoại. */}
         <Layout.Content className="flex flex-col max-md:pb-[calc(4rem+env(safe-area-inset-bottom))]">
-          {children}
+          <PermissionsProvider value={permissions}>{children}</PermissionsProvider>
         </Layout.Content>
       </Layout>
 
       <BottomTabs
-        items={isAdmin ? ITEMS : STAFF_ITEMS}
+        items={tabs}
         pathname={pathname}
-        menuActive={sheetOpen || (isAdmin && ADMIN_ITEMS.some((i) => pathname.startsWith(i.href)))}
+        menuActive={sheetOpen || sheetItems.some((i) => pathname.startsWith(i.href))}
         onMenu={() => setSheetOpen(true)}
       />
       <MenuSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        isAdmin={isAdmin}
+        items={sheetItems}
         pathname={pathname}
         userName={userName}
         avatarUrl={avatarUrl}
@@ -265,7 +273,7 @@ function BottomTabs({
 function MenuSheet({
   open,
   onClose,
-  isAdmin,
+  items,
   pathname,
   userName,
   avatarUrl,
@@ -273,7 +281,7 @@ function MenuSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  isAdmin: boolean;
+  items: readonly NavItem[];
   pathname: string;
   onProfile: () => void;
 } & Account) {
@@ -304,11 +312,11 @@ function MenuSheet({
           </div>
         </div>
 
-        {isAdmin && (
+        {items.length > 0 && (
           <div className="flex flex-col gap-2">
             <p className="text-xs font-medium text-muted-foreground">{t("nav.groupAdmin")}</p>
             <div className="grid grid-cols-3 gap-2">
-              {ADMIN_ITEMS.map(({ key, href, icon: Icon }) => {
+              {items.map(({ key, href, icon: Icon }) => {
                 const active = pathname.startsWith(href);
                 return (
                   <Link
