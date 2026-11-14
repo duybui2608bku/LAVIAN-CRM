@@ -17,7 +17,10 @@ thay vì cố định "staff chỉ vào /customers + /services".
 - Server actions dùng `requirePermission` thay `requireAdmin` / thêm kiểm tra cho customers, appointments, services, enums, reports, marketing.
   Tour: quyền quản lý (xác nhận, gán KTV, xem tất cả) = `tour.edit`.
 - Shell: menu lọc theo quyền; context `useCan()` để ẩn nút sửa/xoá.
-- /users: nút "Phân quyền" mở Drawer, mỗi bộ phận 1 TreeSelect (treeCheckable) module → Xem/Sửa/Xoá.
+- Menu "Người dùng" thành menu con: **Danh sách** (`/users`) + **Phân quyền** (`/users/permissions`).
+  Trang Phân quyền: trái = danh sách bộ phận (số nhân viên, số quyền, chấm = chưa lưu), phải = cây checkbox
+  menu → Xem / Thêm-Sửa / Xoá (`Tree` checkable). Sửa nháp nhiều bộ phận rồi "Lưu thay đổi" 1 lần, có "Hoàn tác".
+  `normalizePermissions`: chọn Sửa/Xoá tự bật Xem, bỏ Xem tắt cả menu.
 - Leader được tính là CSKH ở các ô chọn nhân viên CSKH.
 
 ## Impact

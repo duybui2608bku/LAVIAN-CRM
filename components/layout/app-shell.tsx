@@ -14,6 +14,7 @@ import {
   ChevronsUpDown,
   Languages,
   LayoutGrid,
+  LockKeyhole,
   LogOut,
   Megaphone,
   Moon,
@@ -21,6 +22,7 @@ import {
   PanelLeftOpen,
   UserCog,
   UserPen,
+  UsersRound,
   Users,
   Wallet,
 } from "lucide-react";
@@ -51,11 +53,24 @@ const ITEMS = [
 const ADMIN_ITEMS = [
   { key: "reports", href: "/reports", icon: ChartColumn },
   { key: "marketing", href: "/marketing", icon: Megaphone },
-  { key: "users", href: "/users", icon: UserCog },
+  {
+    key: "users",
+    href: "/users",
+    icon: UserCog,
+    children: [
+      { key: "usersList", href: "/users", icon: UsersRound },
+      { key: "permissions", href: "/users/permissions", icon: LockKeyhole },
+    ],
+  },
   { key: "services", href: "/services", icon: Briefcase },
 ] as const;
 
 type NavItem = (typeof ITEMS)[number] | (typeof ADMIN_ITEMS)[number];
+type NavLink = { key: string; href: string; icon: typeof Users };
+
+// Mục có menu con → trải thành các trang con (sheet điện thoại, tìm mục đang chọn).
+const flatten = (items: readonly NavItem[]): NavLink[] =>
+  items.flatMap<NavLink>((i) => ("children" in i ? i.children : [i]));
 
 type Account = { userName?: string; avatarUrl?: string | null };
 
@@ -96,14 +111,23 @@ export function AppShell({
   const all: readonly NavItem[] = [...main, ...admin];
   // Điện thoại: tối đa 3 tab dưới, phần còn lại nằm trong "Menu".
   const tabs = all.slice(0, 3);
-  const sheetItems = all.slice(3);
-  const selected = all.find((i) => pathname.startsWith(i.href))?.href ?? pathname;
-  const toMenu = (items: readonly NavItem[]) =>
-    items.map(({ key, href, icon: Icon }) => ({
-      key: href,
-      icon: <Icon className="size-4" />,
-      label: <Link href={href} prefetch={false}>{t(`nav.${key}`)}</Link>,
-    }));
+  const sheetItems = flatten(all.slice(3));
+  // Khớp dài nhất: /users/permissions chọn "Phân quyền", không phải "Danh sách".
+  const selected =
+    flatten(all)
+      .filter((i) => pathname === i.href || pathname.startsWith(`${i.href}/`))
+      .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? pathname;
+  const link = ({ key, href, icon: Icon }: NavLink) => ({
+    key: href,
+    icon: <Icon className="size-4" />,
+    label: <Link href={href} prefetch={false}>{t(`nav.${key}`)}</Link>,
+  });
+  const toMenu = (items: readonly NavItem[]): NonNullable<MenuProps["items"]> =>
+    items.map((i) =>
+      "children" in i
+        ? { key: `${i.href}:sub`, icon: <i.icon className="size-4" />, label: t(`nav.${i.key}`), children: i.children.map(link) }
+        : link(i),
+    );
 
   const menuItems = (compact: boolean): MenuProps["items"] => {
     if (!main.length || !admin.length) return toMenu(all);
@@ -144,6 +168,7 @@ export function AppShell({
             mode="inline"
             inlineCollapsed={collapsed}
             selectedKeys={[selected]}
+            defaultOpenKeys={pathname.startsWith("/users") ? ["/users:sub"] : []}
             items={menuItems(collapsed)}
             className="min-h-0 flex-1 overflow-y-auto border-0! py-2"
           />
@@ -281,7 +306,7 @@ function MenuSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  items: readonly NavItem[];
+  items: readonly NavLink[];
   pathname: string;
   onProfile: () => void;
 } & Account) {
@@ -317,7 +342,7 @@ function MenuSheet({
             <p className="text-xs font-medium text-muted-foreground">{t("nav.groupAdmin")}</p>
             <div className="grid grid-cols-3 gap-2">
               {items.map(({ key, href, icon: Icon }) => {
-                const active = pathname.startsWith(href);
+                const active = pathname === href;
                 return (
                   <Link
                     key={href}

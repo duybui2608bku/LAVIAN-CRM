@@ -3,7 +3,7 @@
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Avatar, Button, Form, Input, Modal, Tag, Tooltip, Upload, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
-import { Ban, Camera, KeyRound, Loader2, LockKeyhole, Search, ShieldCheck, User, UserPlus } from "lucide-react";
+import { Ban, Camera, KeyRound, Loader2, Search, ShieldCheck, User, UserPlus } from "lucide-react";
 
 import {
   createUser,
@@ -22,7 +22,6 @@ import { ImageUpload, uploadImage } from "@/components/common/image-upload";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { normalizeError } from "@/lib/errors";
 import { toast } from "@/lib/toast";
-import { PermissionsDrawer } from "@/components/users/permissions-drawer";
 import { DEPARTMENTS, type Profile, type UserDepartment } from "@/types/user";
 
 const NO_DEPT = "none"; // giá trị lọc "Chưa gán bộ phận"
@@ -30,18 +29,15 @@ const NO_DEPT = "none"; // giá trị lọc "Chưa gán bộ phận"
 export function UsersManager({
   profiles,
   currentUserId,
-  departmentPermissions,
 }: {
   profiles: Profile[];
   currentUserId: string;
-  departmentPermissions: Record<string, string[]>;
 }) {
   const t = useTranslations("users");
   const [query, setQuery] = useState("");
   const [role, setRole] = useState(""); // "" = tất cả
   const [department, setDepartment] = useState(""); // "" = tất cả, NO_DEPT = chưa gán
   const [createOpen, setCreateOpen] = useState(false);
-  const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [resetTarget, setResetTarget] = useState<Profile | null>(null);
   const [, start] = useTransition();
   const confirm = useConfirm();
@@ -225,9 +221,6 @@ export function UsersManager({
           placeholder={t("allDepartment")}
           ariaLabel={t("colDepartment")}
         />
-        <Button icon={<LockKeyhole className="size-4" />} onClick={() => setPermissionsOpen(true)}>
-          {t("permissions")}
-        </Button>
         <Button
           type="primary"
           icon={<UserPlus className="size-4" />}
@@ -240,11 +233,6 @@ export function UsersManager({
       <DataTable columns={columns} dataSource={filtered} pageSize={0} empty={t("empty")} />
 
       <CreateUserDialog open={createOpen} onClose={() => setCreateOpen(false)} />
-      <PermissionsDrawer
-        open={permissionsOpen}
-        onClose={() => setPermissionsOpen(false)}
-        initial={departmentPermissions}
-      />
       <ResetPasswordDialog
         target={resetTarget}
         onClose={() => setResetTarget(null)}
