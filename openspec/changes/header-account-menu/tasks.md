@@ -1,0 +1,4 @@
+- [x] 1. Header desktop: nút sidebar + chuông + menu tài khoản; bỏ đáy sidebar
+- [x] 2. Thanh trên điện thoại: thêm chuông
+- [x] 3. NotificationBell (trạng thái trống)
+- [x] 4. i18n en/vi, tsc + eslint

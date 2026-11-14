@@ -29,7 +29,7 @@ export async function getCustomerAppointments(
     const [appts, logs, services] = await Promise.all([
       supabase
         .from("clinic_appointments")
-        .select("id, customer_id, scheduled_at, checked_in, service_ids, staff_id, note")
+        .select("id, customer_id, scheduled_at, booking_confirm, checked_in, service_ids, staff_id, note")
         .eq("customer_id", customerId)
         .is("deleted_at", null)
         .order("scheduled_at", { ascending: false }),

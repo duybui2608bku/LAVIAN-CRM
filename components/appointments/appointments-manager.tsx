@@ -47,6 +47,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [date, setDate] = useState("");
   const [customerFilter, setCustomerFilter] = useState(initialCustomer);
   const [arrival, setArrival] = useState("all");
+  const [booking, setBooking] = useState("all");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
   const [rows, patchOptimistic] = useOptimistic(appointments,
@@ -69,6 +70,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     return customer && (!customerFilter || row.customer_id === customerFilter)
       && (!date || dayjs(row.scheduled_at).format("YYYY-MM-DD") === date)
       && (arrival === "all" || row.checked_in === (arrival === "arrived"))
+      && (booking === "all" || row.booking_confirm === (booking === "confirmed"))
       && matchesNameOrPhone(customer.full_name, customer.phone, search);
   });
   const resetPage = () => setPage(1);
@@ -82,6 +84,11 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     } },
     { title: t("date"), width: 220, sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
       render: (_, row) => <AppointmentDate inline disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
+    { title: t("bookingConfirm"), width: 160, render: (_, row) => <InlineSelect
+      value={row.booking_confirm ? "confirmed" : "unconfirmed"} ariaLabel={t("bookingConfirm")} disabled={!canEdit}
+      display={<Tag color={row.booking_confirm ? "green" : "orange"} className="me-0">{row.booking_confirm ? t("confirmed") : t("unconfirmed")}</Tag>}
+      options={[{ value: "confirmed", label: t("confirmed") }, { value: "unconfirmed", label: t("unconfirmed") }]}
+      onSave={(value) => save(row.id, { booking_confirm: value === "confirmed" })} /> },
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
       value={row.checked_in ? "arrived" : "waiting"} ariaLabel={t("confirmation")} disabled={!canEdit}
       display={<Tag color={row.checked_in ? "green" : "default"} className="me-0">{row.checked_in ? t("arrived") : t("notArrived")}</Tag>}
@@ -127,15 +134,17 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <Button onClick={() => { setDate(dayjs().format("YYYY-MM-DD")); resetPage(); }}>{t("today")}</Button>
       <Select value={arrival} aria-label={t("confirmation")} className="min-w-40" onChange={(v) => { setArrival(v); resetPage(); }}
         options={[{ value: "all", label: t("allArrivals") }, { value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]} />
+      <Select value={booking} aria-label={t("bookingConfirm")} className="min-w-40" onChange={(v) => { setBooking(v); resetPage(); }}
+        options={[{ value: "all", label: t("allBookingConfirms") }, { value: "confirmed", label: t("confirmed") }, { value: "unconfirmed", label: t("unconfirmed") }]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
         onClick={() => setCreating(true)}>{t("create")}</Button>}
     </PageToolbar>
-    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1640 }} empty={t("empty")}
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1800 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff} services={services}
-      onCreated={() => { setCreating(false); setDate(""); setCustomerFilter(""); setSearch(""); setArrival("all"); setPage(1); }} />
+      onCreated={() => { setCreating(false); setDate(""); setCustomerFilter(""); setSearch(""); setArrival("all"); setBooking("all"); setPage(1); }} />
   </Page>;
 }
 

@@ -10,7 +10,7 @@ import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { serviceName } from "@/lib/customers";
 import type { Appointment, AppointmentLog, AppointmentLogField } from "@/types/appointment";
 
-const FIELDS: AppointmentLogField[] = ["scheduled_at", "checked_in", "service_ids", "staff_id", "note"];
+const FIELDS: AppointmentLogField[] = ["scheduled_at", "booking_confirm", "checked_in", "service_ids", "staff_id", "note"];
 const ACTION_COLOR = { create: "green", update: "blue", delete: "red" } as const;
 const fmt = (v: string, f = "DD-MM-YYYY HH:mm") => dayjs(v).format(f);
 
@@ -60,6 +60,7 @@ export function AppointmentHistoryDrawer({
     switch (field) {
       case "scheduled_at":
         return fmt(String(v));
+      case "booking_confirm":
       case "checked_in":
         return v ? t("yes") : t("no");
       case "service_ids":

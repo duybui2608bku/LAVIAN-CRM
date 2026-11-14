@@ -6,6 +6,10 @@
     "phone": "Số điện thoại",
     "wa": "Số WA",
     "date": "Ngày giờ hẹn",
+    "bookingConfirm": "Xác nhận lịch",
+    "confirmed": "Đã xác nhận",
+    "unconfirmed": "Chưa xác nhận",
+    "allBookingConfirms": "Tất cả xác nhận lịch",
     "confirmation": "Xác nhận tại phòng khám",
     "services": "Dịch vụ",
     "staff": "Chăm sóc khách hàng",
@@ -45,7 +49,9 @@
     "account": "Tài khoản",
     "darkMode": "Giao diện tối",
     "noAccessTitle": "Chưa được cấp quyền",
-    "noAccessBody": "Tài khoản của bạn chưa được cấp quyền vào trang nào. Vui lòng liên hệ quản trị viên."
+    "noAccessBody": "Tài khoản của bạn chưa được cấp quyền vào trang nào. Vui lòng liên hệ quản trị viên.",
+    "notifications": "Thông báo",
+    "noNotifications": "Chưa có thông báo nào"
   },
   "home": {
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
@@ -373,6 +379,7 @@
       },
       "field": {
         "scheduled_at": "Ngày giờ",
+        "booking_confirm": "Xác nhận lịch",
         "checked_in": "Đã đến",
         "service_ids": "Dịch vụ",
         "staff_id": "CSKH",

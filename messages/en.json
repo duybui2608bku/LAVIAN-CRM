@@ -6,6 +6,10 @@
     "phone": "Phone",
     "wa": "WA number",
     "date": "Appointment date & time",
+    "bookingConfirm": "Booking confirmation",
+    "confirmed": "Confirmed",
+    "unconfirmed": "Not confirmed",
+    "allBookingConfirms": "All booking confirmations",
     "confirmation": "Clinic confirmation",
     "services": "Services",
     "staff": "Customer care",
@@ -45,7 +49,9 @@
     "account": "Account",
     "darkMode": "Dark mode",
     "noAccessTitle": "No access yet",
-    "noAccessBody": "Your account has not been granted access to any page. Please contact an administrator."
+    "noAccessBody": "Your account has not been granted access to any page. Please contact an administrator.",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications yet"
   },
   "home": {
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
@@ -374,6 +380,7 @@
       },
       "field": {
         "scheduled_at": "Date & time",
+        "booking_confirm": "Booking confirmed",
         "checked_in": "Visited",
         "service_ids": "Services",
         "staff_id": "Customer care",
