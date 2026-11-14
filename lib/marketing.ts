@@ -17,6 +17,8 @@ const SMAX_STAFF_RANKING_API =
   "https://api.smax.ai/bizs/lavianbeautycenter/statistics-v2/supporter-staff-ranking";
 const SMAX_STAFF_REPORT_API =
   "https://api.smax.ai/bizs/lavianbeautycenter/statistics-v2/supporter-staff-report";
+const SMAX_DISTRIBUTION_API =
+  "https://api.smax.ai/bizs/lavianbeautycenter/statistics-v2/supporter-distribution";
 const SMAX_SUPPORTERS_API =
   "https://api.smax.ai/bizs/lavianbeautycenter/statistics/supporters";
 const SMAX_PAGE_PIDS = [
@@ -482,6 +484,32 @@ export async function fetchSmaxTags(
         0,
       ),
     }));
+}
+
+type SmaxDistributionRes = {
+  status?: number;
+  message?: string;
+  data?: { data?: { user_id?: string; handled_conversations?: number }[] };
+};
+
+/** Số hội thoại mỗi nhân viên SMAX đã xử lý trong range (mọi trang) → Map user_id → handled_conversations. */
+export async function fetchSmaxHandledConversations(from: string, to: string): Promise<Map<string, number>> {
+  const token = process.env.SMAX_TOKEN;
+  if (!token) throw new Error("Thiếu SMAX_TOKEN.");
+  const range = smaxRange(from, to);
+  const res = await fetch(SMAX_DISTRIBUTION_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    cache: "no-store",
+    body: JSON.stringify({ from: range.from, to: range.to, page_pids: [] }),
+  });
+  const json = (await res.json().catch(() => null)) as SmaxDistributionRes | null;
+  if (!res.ok || !json || json.status !== 200) throw new Error(json?.message ?? `SMAX API ${res.status}`);
+  const out = new Map<string, number>();
+  for (const row of json.data?.data ?? []) {
+    if (row.user_id) out.set(row.user_id, (out.get(row.user_id) ?? 0) + Number(row.handled_conversations ?? 0));
+  }
+  return out;
 }
 
 /** Ghép báo cáo chăm sóc với xếp hạng SĐT theo `user_id`. */

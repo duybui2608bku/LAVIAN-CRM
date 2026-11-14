@@ -7,12 +7,10 @@
     "wa": "WA number",
     "date": "Appointment date & time",
     "bookingConfirm": "Booking confirmation",
-    "confirmed": "Confirmed",
-    "unconfirmed": "Wait confirm",
     "allBookingConfirms": "All booking confirmations",
     "confirmation": "Clinic confirmation",
     "services": "Services",
-    "staff": "Customer care",
+    "staff": "Telesales",
     "note": "Note",
     "choose": "Choose…",
     "chooseCustomer": "Choose a name or search by phone",
@@ -34,7 +32,13 @@
     "removeTitle": "Delete this appointment?",
     "removeBody": "The appointment for {name} will be removed from the list.",
     "removed": "Appointment deleted",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "bookingStatus": {
+      "pending": "Wait confirm",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "rescheduled": "Rescheduled"
+    }
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -51,7 +55,18 @@
     "noAccessTitle": "No access yet",
     "noAccessBody": "Your account has not been granted access to any page. Please contact an administrator.",
     "notifications": "Notifications",
-    "noNotifications": "No notifications yet"
+    "noNotifications": "No notifications yet",
+    "datePreset": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This week",
+      "lastWeek": "Last week",
+      "last7": "7 days",
+      "last30": "30 days",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "custom": "Custom"
+    }
   },
   "home": {
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
@@ -158,7 +173,9 @@
     "toggleSidebar": "Toggle sidebar",
     "groupMain": "Workspace",
     "groupAdmin": "Admin",
-    "more": "Menu"
+    "more": "Menu",
+    "reportsOverview": "Overview",
+    "telesales": "Leader Telesales"
   },
   "theme": {
     "toggle": "Toggle theme"
@@ -203,10 +220,10 @@
     "colEmail": "Email",
     "colRole": "Role",
     "colDepartment": "Department",
-    "dept_customer_care": "Customer Care",
+    "dept_telesales": "Telesales",
     "dept_technician": "Technician",
     "dept_sales": "Sales",
-    "dept_customer_care_leader": "Customer Care Leader",
+    "dept_telesales_leader": "Telesales Leader",
     "permissionsTitle": "Permissions",
     "permissionsHint": "Choose which menus and actions each department can use. Admins always have full access; the Users page is admin-only. Picking Edit/Delete turns on View; removing View turns off the whole menu.",
     "permissionsOk": "Permissions saved",
@@ -257,7 +274,10 @@
     "emailInvalid": "Invalid email",
     "allRole": "All roles",
     "allDepartment": "All departments",
-    "noDepartment": "No department"
+    "noDepartment": "No department",
+    "colSmaxId": "SMAX ID",
+    "smaxIdHint": "Edit SMAX staff ID (24 chars) — used by the Leader Telesales report",
+    "smaxIdOk": "SMAX ID updated"
   },
   "enums": {
     "title": "Categories (Enum)",
@@ -383,7 +403,7 @@
         "booking_confirm": "Booking confirmed",
         "checked_in": "Visited",
         "service_ids": "Services",
-        "staff_id": "Customer care",
+        "staff_id": "Telesales",
         "note": "Note"
       }
     },
@@ -506,15 +526,6 @@
     "subtitle": "From ads to revenue · {range}, vs {prev}",
     "subtitleShort": "From ads to revenue",
     "refresh": "Reload",
-    "preset": {
-      "today": "Today",
-      "yesterday": "Yesterday",
-      "last7": "7 days",
-      "last30": "30 days",
-      "thisMonth": "This month",
-      "lastMonth": "Last month",
-      "custom": "Custom"
-    },
     "metric": {
       "spend": "Spend",
       "messages": "Messages",
@@ -539,5 +550,68 @@
     "daily": "Daily breakdown",
     "date": "Date",
     "total": "Total"
+  },
+  "telesales": {
+    "title": "Leader Telesales",
+    "subtitle": "{range} · vs {prev}",
+    "subtitleShort": "Telesales team performance by date range",
+    "refresh": "Refresh",
+    "sourceError": "Some data sources failed — related figures show “—”",
+    "card": {
+      "messages": "Messages (FB)",
+      "bookings": "Bookings",
+      "newBookings": "New bookings",
+      "confirmed": "Confirmed",
+      "arrived": "Arrived",
+      "cancelled": "Cancelled / Rescheduled"
+    },
+    "hint": {
+      "previous": "Previous: {value}",
+      "fbError": "Facebook Ads failed",
+      "bookingRate": "Booking rate: {value} / message",
+      "newShare": "{value} of bookings",
+      "confirmRate": "Confirm rate: {value}",
+      "showUp": "Show-up: {value} / {scheduled} appointments",
+      "cancel": "Cancelled {cancelled} · Rescheduled {rescheduled} · {value} / booking"
+    },
+    "tip": {
+      "messages": "Messaging conversations started from Facebook ads (2 ad accounts) in the period.",
+      "bookings": "Appointments CREATED in the period. Booking rate = Bookings / Messages.",
+      "newBookings": "Bookings of customers created in the same period (new customers).",
+      "confirmed": "Bookings created in the period with status “Confirmed”.",
+      "arrived": "Appointments SCHEDULED in the period and checked in. Show-up = Arrived / scheduled appointments.",
+      "cancelled": "Bookings created in the period with status “Cancelled” or “Rescheduled”. Lower is better.",
+      "funnel": "Messages → Bookings → Confirmed → Arrived; % of Messages.",
+      "trend": "Bookings by created date, Arrived by appointment date.",
+      "sources": "Bookings created in the period by customer source.",
+      "staff": "Bookings/Arrived by the appointment's assigned staff. KPI completion = Booking rate / {kpi}.",
+      "conversations": "Conversations handled by the staff member on SMAX in the period."
+    },
+    "funnel": "Conversion funnel",
+    "trend": "Booking trend",
+    "response": "Message response speed",
+    "updating": "Coming soon",
+    "updatingHint": "This metric will be available in a future update.",
+    "staffTitle": "Telesales staff performance",
+    "col": {
+      "staff": "Staff",
+      "conversations": "Conversations",
+      "bookings": "Bookings",
+      "bookingRate": "Booking rate",
+      "showUp": "Show-up",
+      "kpi": "KPI completion ({kpi})"
+    },
+    "other": "Other / unassigned",
+    "total": "Total",
+    "notMapped": "No SMAX ID — admin can set it on the Users page",
+    "noStaff": "No Telesales staff yet",
+    "sources": "Bookings by source",
+    "source": {
+      "instagrams": "Instagram",
+      "whatsapp": "WhatsApp",
+      "other": "Other"
+    },
+    "alerts": "Alerts & pending tasks",
+    "noData": "No data in this period"
   }
 }

@@ -4,11 +4,11 @@ import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { fetchFbAdsDaily, supaRange } from "@/lib/marketing";
 import { buildDays, dayCount, previousRange, type DayRow } from "@/lib/reports";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 366;
-const PAGE = 1000; // PostgREST trả tối đa 1000 dòng/lần
 
 export interface Report {
   /** Currency tài khoản ads (vd. "IDR"); null khi FB lỗi. */
@@ -18,19 +18,6 @@ export interface Report {
   previous: { from: string; to: string };
   errors: { fb?: string; db?: string };
   error?: string;
-}
-
-/** Đọc hết các trang của 1 query Supabase (dữ liệu cả năm có thể > 1000 dòng). */
-async function fetchAll<T>(
-  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
-): Promise<T[]> {
-  const out: T[] = [];
-  for (let i = 0; ; i += PAGE) {
-    const { data, error } = await page(i, i + PAGE - 1);
-    if (error) throw new Error(error.message);
-    out.push(...(data ?? []));
-    if (!data || data.length < PAGE) return out;
-  }
 }
 
 /** Báo cáo theo khoảng ngày VN `YYYY-MM-DD` (kèm kỳ trước để so sánh). */

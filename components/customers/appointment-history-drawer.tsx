@@ -8,7 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { getCustomerAppointments, type CustomerAppointmentsData } from "@/app/(app)/customers/actions";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { serviceName } from "@/lib/customers";
-import type { Appointment, AppointmentLog, AppointmentLogField } from "@/types/appointment";
+import { BOOKING_STATUSES, type Appointment, type AppointmentLog, type AppointmentLogField, type BookingStatus } from "@/types/appointment";
 
 const FIELDS: AppointmentLogField[] = ["scheduled_at", "booking_confirm", "checked_in", "service_ids", "staff_id", "note"];
 const ACTION_COLOR = { create: "green", update: "blue", delete: "red" } as const;
@@ -25,6 +25,7 @@ export function AppointmentHistoryDrawer({
   onClose: () => void;
 }) {
   const t = useTranslations("customers.apptHistory");
+  const tStatus = useTranslations("appointments.bookingStatus");
   const locale = useLocale();
   const [data, setData] = useState<(CustomerAppointmentsData & { error?: string; for: string; now: number }) | null>(null);
   const [loading, startLoading] = useTransition();
@@ -61,6 +62,7 @@ export function AppointmentHistoryDrawer({
       case "scheduled_at":
         return fmt(String(v));
       case "booking_confirm":
+        return BOOKING_STATUSES.includes(v as BookingStatus) ? tStatus(v as BookingStatus) : String(v);
       case "checked_in":
         return v ? t("yes") : t("no");
       case "service_ids":
@@ -76,7 +78,7 @@ export function AppointmentHistoryDrawer({
     FIELDS.filter((f) => f in log.changes)
       .map((f) => ({ f, ...log.changes[f]! }))
       // Tạo mới: chỉ liệt kê giá trị có nội dung (bỏ ghi chú trống, chưa đến, không dịch vụ).
-      .filter((c) => log.action !== "create" || (c.new !== "" && c.new !== false && !(Array.isArray(c.new) && !c.new.length) && c.new !== null))
+      .filter((c) => log.action !== "create" || (c.new !== "" && c.new !== false && c.new !== "pending" && !(Array.isArray(c.new) && !c.new.length) && c.new !== null))
       .map((c) => (
         <li key={c.f} className="flex flex-wrap items-center gap-x-1.5">
           <span className="text-muted-foreground">{t(`field.${c.f}`)}:</span>

@@ -8,7 +8,7 @@ import { appointmentPatchSchema } from "@/lib/appointments";
 import { normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { AppointmentPatch } from "@/types/appointment";
-import { CARE_DEPARTMENTS } from "@/types/user";
+import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 async function client() {
   const profile = await getCurrentProfile();
@@ -32,7 +32,7 @@ async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch:
   const checks: PromiseLike<void>[] = [];
   if (patch.staff_id) {
     checks.push(db.from("profiles").select("id").eq("id", patch.staff_id).eq("status", "active")
-      .in("department", CARE_DEPARTMENTS).single().then(({ error }) => { if (error) throw error; }));
+      .in("department", TELESALES_DEPARTMENTS).single().then(({ error }) => { if (error) throw error; }));
   }
   const serviceIds = patch.service_ids;
   if (serviceIds?.length) {

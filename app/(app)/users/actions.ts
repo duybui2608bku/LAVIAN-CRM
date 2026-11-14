@@ -99,6 +99,29 @@ export async function setUserDepartment(
   }
 }
 
+const SMAX_ID_RE = /^[a-f0-9]{24}$/i; // user_id SMAX = ObjectId 24 ký tự hex
+
+/** Admin ghép user với nhân viên SMAX ("" = bỏ ghép) — dùng cho báo cáo Leader Telesales. */
+export async function setUserSmaxId(id: string, smaxUserId: string): Promise<Result> {
+  try {
+    await requireAdmin();
+    const value = smaxUserId.trim();
+    if (value && !SMAX_ID_RE.test(value)) return { error: "ID SMAX phải gồm 24 ký tự hex." };
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("profiles")
+      .update({ smax_user_id: value || null })
+      .eq("id", id);
+    if (error?.code === "23505") return { error: "ID SMAX này đã gán cho user khác." };
+    if (error) throw error;
+
+    revalidatePath("/users");
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e).message };
+  }
+}
+
 /** Admin đổi avatar user (click avatar ở bảng /users). */
 export async function setUserAvatar(
   id: string,

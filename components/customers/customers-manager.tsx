@@ -56,16 +56,16 @@ import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
-import { CARE_DEPARTMENTS } from "@/types/user";
+import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 type Staff = AppointmentStaff;
 
-// Option theo bộ phận (Nhân viên = customer_care + leader, Sales, Kỹ thuật viên):
+// Option theo bộ phận (Nhân viên = telesales + leader, Sales, Kỹ thuật viên):
 // chỉ user đúng bộ phận + giá trị đang gán (user đổi bộ phận sau khi gán
 // vẫn hiện — cùng triết lý option inactive).
 const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
   staff
-    .filter((s) => (dept === "customer_care" ? CARE_DEPARTMENTS.includes(s.department ?? "") : s.department === dept) || s.id === current)
+    .filter((s) => (dept === "telesales" ? TELESALES_DEPARTMENTS.includes(s.department ?? "") : s.department === dept) || s.id === current)
     .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
 const DASH = <span className="text-muted-foreground">—</span>;
@@ -406,7 +406,7 @@ export function CustomersManager({
     ...(
       [
         // Sales, Kỹ thuật viên: ẩn khỏi trang (dữ liệu vẫn giữ; KTV tự điền khi nhận tour).
-        ["staff_id", "colStaff", "customer_care"],
+        ["staff_id", "colStaff", "telesales"],
       ] as const
     ).map(([field, label, dept]) => ({
       title: t(label),
@@ -534,7 +534,7 @@ export function CustomersManager({
           className="min-w-36"
           value={filters.staffId}
           onChange={(v) => setFilter("staffId", v)}
-          options={deptOptions(staff, "customer_care")}
+          options={deptOptions(staff, "telesales")}
           placeholder={t("allStaff")}
           ariaLabel={t("colStaff")}
         />
@@ -839,7 +839,7 @@ function CustomerDialog({
         )}
         <Form.Item name="staff_id" label={t("colStaff")}>
           <ClearableSelect
-            options={deptOptions(staff, "customer_care", editing?.staff_id)}
+            options={deptOptions(staff, "telesales", editing?.staff_id)}
             placeholder={t("noneOption")}
             ariaLabel={t("colStaff")}
           />

@@ -1,9 +1,20 @@
-// Lịch hẹn chỉ lưu lịch đến của khách (tính doanh số CSKH). Tour KTV ở bảng `tours` (types/tour.ts).
+// Lịch hẹn chỉ lưu lịch đến của khách (tính doanh số Telesales). Tour KTV ở bảng `tours` (types/tour.ts).
+
+/** Trạng thái xác nhận lịch (cột `booking_confirm`, check constraint ở DB). */
+export const BOOKING_STATUSES = ["pending", "confirmed", "cancelled", "rescheduled"] as const;
+export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+export const BOOKING_STATUS_COLORS: Record<BookingStatus, string> = {
+  pending: "orange",
+  confirmed: "green",
+  cancelled: "red",
+  rescheduled: "blue",
+};
+
 export interface Appointment {
   id: string;
   customer_id: string;
   scheduled_at: string;
-  booking_confirm: boolean; // CSKH đã gọi lại xác nhận lịch
+  booking_confirm: BookingStatus; // Telesales gọi lại xác nhận lịch
   checked_in: boolean;
   service_ids: string[];
   staff_id: string | null; // chăm sóc khách hàng

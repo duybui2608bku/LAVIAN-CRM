@@ -2,8 +2,10 @@
 
 import { DatePicker as AntDatePicker, TimePicker as AntTimePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
+import { useTranslations } from "next-intl";
 
 import { useIsTouch } from "@/hooks/use-is-mobile";
+import { DATE_PRESETS, presetRange } from "@/lib/date-presets";
 
 // Giá trị luôn là chuỗi `YYYY-MM-DD` ("" = trống) để khớp cột date + lib/date.
 const FORMAT = "YYYY-MM-DD";
@@ -44,7 +46,8 @@ export function DatePicker({
   );
 }
 
-/** Date range picker. from/to dạng chuỗi `YYYY-MM-DD`, onChange trả cả cặp. */
+/** Date range picker (kèm mốc nhanh Hôm nay / Tuần này / Tháng trước… trong popup).
+ *  from/to dạng chuỗi `YYYY-MM-DD`, onChange trả cả cặp. */
 export function DateRangePicker({
   from,
   to,
@@ -64,9 +67,16 @@ export function DateRangePicker({
   const ph: [string, string] | undefined =
     typeof placeholder === "string" ? [placeholder, placeholder] : placeholder;
   const touch = useIsTouch();
+  const t = useTranslations("common.datePreset");
+  const today = dayjs().format(FORMAT);
+  const presets = DATE_PRESETS.map((p) => {
+    const r = presetRange(p, today);
+    return { label: t(p), value: [toDay(r.from)!, toDay(r.to)!] as [Dayjs, Dayjs] };
+  });
   return (
     <AntDatePicker.RangePicker
       inputReadOnly={touch}
+      presets={presets}
       value={from ? [toDay(from), toDay(to)] : null}
       onChange={(r) => onChange({ from: toStr(r?.[0]), to: toStr(r?.[1]) })}
       placeholder={ph}

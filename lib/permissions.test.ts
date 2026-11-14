@@ -13,11 +13,17 @@ test("module theo đường dẫn", () => {
   assert.equal(moduleOfPath("/tour/abc"), "tour");
   assert.equal(moduleOfPath("/tourist"), null);
   assert.equal(moduleOfPath("/users"), null);
+  // Trang con có quyền riêng: khớp route dài nhất.
+  assert.equal(moduleOfPath("/reports"), "reports");
+  assert.equal(moduleOfPath("/reports/telesales"), "telesales");
+  assert.equal(moduleOfPath("/reports/telesales/x"), "telesales");
+  assert.equal(moduleOfPath("/reports/telesalesx"), "reports");
 });
 
 test("trang chủ = menu đầu tiên được xem", () => {
   assert.equal(homePath(["services.view", "appointments.view"]), "/appointments");
   assert.equal(homePath(["customers.edit"]), null);
+  assert.equal(homePath(["telesales.view"]), "/reports/telesales");
 });
 
 test("chọn Sửa/Xoá tự thêm Xem, bỏ Xem thì bỏ cả module", () => {

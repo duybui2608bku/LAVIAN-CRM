@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Avatar, Button, Form, Input, Modal, Tag, Tooltip, Upload, type TableProps } from "antd";
+import { Avatar, Button, Form, Input, Modal, Tag, Tooltip, Typography, Upload, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
 import { Ban, Camera, KeyRound, Loader2, Search, ShieldCheck, User, UserPlus } from "lucide-react";
 
@@ -10,6 +10,7 @@ import {
   resetPassword,
   setUserAvatar,
   setUserDepartment,
+  setUserSmaxId,
   setUserStatus,
 } from "@/app/(app)/users/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
@@ -79,6 +80,20 @@ export function UsersManager({
       toast.success(t("departmentOk"));
     });
 
+  const changeSmaxId = (p: Profile, value: string) => {
+    const next = value.trim();
+    if (next === (p.smax_user_id ?? "")) return;
+    start(async () => {
+      patchRow({ id: p.id, smax_user_id: next || null });
+      const res = await setUserSmaxId(p.id, next);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(t("smaxIdOk"));
+    });
+  };
+
   const changeAvatar = (p: Profile, avatar_url: string) =>
     start(async () => {
       patchRow({ id: p.id, avatar_url });
@@ -137,6 +152,18 @@ export function UsersManager({
           ariaLabel={t("colDepartment")}
           onSave={(v) => changeDepartment(p, v)}
         />
+      ),
+    },
+    {
+      title: t("colSmaxId"),
+      dataIndex: "smax_user_id",
+      render: (v: string | null, p) => (
+        <Typography.Text
+          className="font-mono text-xs"
+          editable={{ text: v ?? "", tooltip: t("smaxIdHint"), onChange: (next) => changeSmaxId(p, next) }}
+        >
+          {v || <span className="text-muted-foreground">—</span>}
+        </Typography.Text>
       ),
     },
     {

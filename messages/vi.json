@@ -7,12 +7,10 @@
     "wa": "Số WA",
     "date": "Ngày giờ hẹn",
     "bookingConfirm": "Xác nhận lịch",
-    "confirmed": "Đã xác nhận",
-    "unconfirmed": "Chờ xác nhận",
     "allBookingConfirms": "Tất cả xác nhận lịch",
     "confirmation": "Xác nhận tại phòng khám",
     "services": "Dịch vụ",
-    "staff": "Chăm sóc khách hàng",
+    "staff": "Telesales",
     "note": "Ghi chú",
     "choose": "Chọn…",
     "chooseCustomer": "Chọn tên hoặc tìm số điện thoại",
@@ -34,7 +32,13 @@
     "removeTitle": "Xóa lịch hẹn này?",
     "removeBody": "Lịch hẹn của {name} sẽ được gỡ khỏi danh sách.",
     "removed": "Đã xóa lịch hẹn",
-    "cancel": "Hủy"
+    "cancel": "Hủy",
+    "bookingStatus": {
+      "pending": "Chờ xác nhận",
+      "confirmed": "Đã xác nhận",
+      "cancelled": "Khách hủy",
+      "rescheduled": "Đổi lịch"
+    }
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -51,7 +55,18 @@
     "noAccessTitle": "Chưa được cấp quyền",
     "noAccessBody": "Tài khoản của bạn chưa được cấp quyền vào trang nào. Vui lòng liên hệ quản trị viên.",
     "notifications": "Thông báo",
-    "noNotifications": "Chưa có thông báo nào"
+    "noNotifications": "Chưa có thông báo nào",
+    "datePreset": {
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua",
+      "thisWeek": "Tuần này",
+      "lastWeek": "Tuần trước",
+      "last7": "7 ngày",
+      "last30": "30 ngày",
+      "thisMonth": "Tháng này",
+      "lastMonth": "Tháng trước",
+      "custom": "Tùy chỉnh"
+    }
   },
   "home": {
     "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
@@ -158,7 +173,9 @@
     "toggleSidebar": "Đóng/mở thanh bên",
     "groupMain": "Vận hành",
     "groupAdmin": "Quản trị",
-    "more": "Menu"
+    "more": "Menu",
+    "reportsOverview": "Tổng quan",
+    "telesales": "Leader Telesales"
   },
   "theme": {
     "toggle": "Chuyển giao diện sáng/tối"
@@ -203,10 +220,10 @@
     "colEmail": "Email",
     "colRole": "Vai trò",
     "colDepartment": "Bộ phận",
-    "dept_customer_care": "Chăm sóc khách hàng",
+    "dept_telesales": "Telesales",
     "dept_technician": "Kỹ Thuật Viên",
     "dept_sales": "Sales",
-    "dept_customer_care_leader": "Trưởng nhóm CSKH",
+    "dept_telesales_leader": "Trưởng nhóm Telesales",
     "permissionsTitle": "Phân quyền",
     "permissionsHint": "Chọn menu và thao tác mỗi bộ phận được dùng. Admin luôn toàn quyền; trang Người dùng chỉ admin. Chọn Sửa/Xoá sẽ tự bật Xem, bỏ Xem sẽ tắt cả menu đó.",
     "permissionsOk": "Đã lưu phân quyền",
@@ -257,7 +274,10 @@
     "emailInvalid": "Email không hợp lệ",
     "allRole": "Tất cả vai trò",
     "allDepartment": "Tất cả bộ phận",
-    "noDepartment": "Chưa gán bộ phận"
+    "noDepartment": "Chưa gán bộ phận",
+    "colSmaxId": "ID SMAX",
+    "smaxIdHint": "Sửa ID nhân viên SMAX (24 ký tự) — dùng cho báo cáo Leader Telesales",
+    "smaxIdOk": "Đã cập nhật ID SMAX"
   },
   "enums": {
     "title": "Danh mục (Enum)",
@@ -382,7 +402,7 @@
         "booking_confirm": "Xác nhận lịch",
         "checked_in": "Đã đến",
         "service_ids": "Dịch vụ",
-        "staff_id": "CSKH",
+        "staff_id": "Telesales",
         "note": "Ghi chú"
       }
     },
@@ -506,15 +526,6 @@
     "subtitle": "Từ quảng cáo đến doanh thu · {range}, so với {prev}",
     "subtitleShort": "Từ quảng cáo đến doanh thu",
     "refresh": "Tải lại",
-    "preset": {
-      "today": "Hôm nay",
-      "yesterday": "Hôm qua",
-      "last7": "7 ngày",
-      "last30": "30 ngày",
-      "thisMonth": "Tháng này",
-      "lastMonth": "Tháng trước",
-      "custom": "Tuỳ chọn"
-    },
     "metric": {
       "spend": "Chi tiêu",
       "messages": "Tin nhắn",
@@ -539,5 +550,68 @@
     "daily": "Chi tiết từng ngày",
     "date": "Ngày",
     "total": "Tổng"
+  },
+  "telesales": {
+    "title": "Leader Telesales",
+    "subtitle": "{range} · so với {prev}",
+    "subtitleShort": "Hiệu suất đội Telesales theo khoảng ngày",
+    "refresh": "Tải lại",
+    "sourceError": "Một số nguồn dữ liệu lỗi — phần liên quan hiện “—”",
+    "card": {
+      "messages": "Tin nhắn (FB)",
+      "bookings": "Booking",
+      "newBookings": "Booking mới",
+      "confirmed": "Đã xác nhận",
+      "arrived": "Khách đến",
+      "cancelled": "Khách hủy / Đổi lịch"
+    },
+    "hint": {
+      "previous": "Kỳ trước: {value}",
+      "fbError": "Facebook Ads lỗi",
+      "bookingRate": "Tỉ lệ booking: {value} / tin nhắn",
+      "newShare": "{value} tổng booking",
+      "confirmRate": "Tỉ lệ xác nhận: {value}",
+      "showUp": "Show-up: {value} / {scheduled} lịch hẹn",
+      "cancel": "Hủy {cancelled} · Đổi {rescheduled} · {value} / booking"
+    },
+    "tip": {
+      "messages": "Số cuộc trò chuyện nhắn tin bắt đầu từ quảng cáo Facebook (2 tài khoản ads) trong kỳ.",
+      "bookings": "Số lịch hẹn được TẠO trong kỳ. Tỉ lệ booking = Booking / Tin nhắn.",
+      "newBookings": "Booking của khách hàng được tạo trong cùng kỳ (khách mới).",
+      "confirmed": "Booking tạo trong kỳ đang ở trạng thái “Đã xác nhận”.",
+      "arrived": "Lịch có NGÀY HẸN trong kỳ và đã check-in. Show-up = Khách đến / lịch hẹn trong kỳ.",
+      "cancelled": "Booking tạo trong kỳ ở trạng thái “Khách hủy” hoặc “Đổi lịch”. Giảm là tốt.",
+      "funnel": "Tin nhắn → Booking → Đã xác nhận → Khách đến; % so với Tin nhắn.",
+      "trend": "Booking theo ngày tạo, Khách đến theo ngày hẹn.",
+      "sources": "Booking tạo trong kỳ theo nguồn của khách.",
+      "staff": "Booking/Khách đến theo nhân viên phụ trách lịch hẹn. Hoàn thành KPI = Tỉ lệ booking / {kpi}.",
+      "conversations": "Số hội thoại nhân viên đã xử lý trên SMAX trong kỳ."
+    },
+    "funnel": "Phễu chuyển đổi",
+    "trend": "Xu hướng Booking",
+    "response": "Tốc độ phản hồi tin nhắn",
+    "updating": "Đang cập nhật",
+    "updatingHint": "Số liệu này sẽ có trong bản cập nhật tới.",
+    "staffTitle": "Hiệu suất nhân viên Telesales",
+    "col": {
+      "staff": "Nhân viên",
+      "conversations": "Hội thoại",
+      "bookings": "Booking",
+      "bookingRate": "Tỉ lệ booking",
+      "showUp": "Show-up",
+      "kpi": "Hoàn thành KPI ({kpi})"
+    },
+    "other": "Khác / chưa gán",
+    "total": "Tổng",
+    "notMapped": "Chưa ghép ID SMAX — admin nhập ở trang Người dùng",
+    "noStaff": "Chưa có nhân viên bộ phận Telesales",
+    "sources": "Booking theo nguồn",
+    "source": {
+      "instagrams": "Instagram",
+      "whatsapp": "WhatsApp",
+      "other": "Khác"
+    },
+    "alerts": "Cảnh báo & công việc cần xử lý",
+    "noData": "Chưa có dữ liệu trong kỳ"
   }
 }

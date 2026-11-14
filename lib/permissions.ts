@@ -7,6 +7,7 @@ export const PERMISSION_MODULES = {
   tour: ["view", "edit", "delete"],
   services: ["view", "edit", "delete"],
   reports: ["view"],
+  telesales: ["view"],
   marketing: ["view", "edit"],
 } as const;
 
@@ -16,6 +17,12 @@ export type Permission = {
 }[PermissionModule];
 
 export const MODULES = Object.keys(PERMISSION_MODULES) as PermissionModule[];
+
+/** Route của module: mặc định `/<module>`; báo cáo Leader Telesales là trang con của Báo cáo. */
+export const MODULE_PATHS: Record<PermissionModule, string> = {
+  ...(Object.fromEntries(MODULES.map((m) => [m, `/${m}`])) as Record<PermissionModule, string>),
+  telesales: "/reports/telesales",
+};
 export const ALL_PERMISSIONS = MODULES.flatMap((m) =>
   PERMISSION_MODULES[m].map((a) => `${m}.${a}` as Permission),
 );
@@ -29,15 +36,19 @@ export function effectivePermissions(
   return ALL_PERMISSIONS.filter((p) => departmentPermissions?.includes(p));
 }
 
-/** Module của 1 đường dẫn (route trùng tên module), null nếu không thuộc module nào. */
+/** Module của 1 đường dẫn — khớp route dài nhất (/reports/telesales → telesales, không phải reports). */
 export function moduleOfPath(path: string): PermissionModule | null {
-  return MODULES.find((m) => path === `/${m}` || path.startsWith(`/${m}/`)) ?? null;
+  return (
+    MODULES.filter((m) => path === MODULE_PATHS[m] || path.startsWith(`${MODULE_PATHS[m]}/`)).sort(
+      (a, b) => MODULE_PATHS[b].length - MODULE_PATHS[a].length,
+    )[0] ?? null
+  );
 }
 
 /** Trang đầu tiên user được xem (null = không có quyền nào). */
 export function homePath(permissions: readonly Permission[]): string | null {
   const m = MODULES.find((m) => permissions.includes(`${m}.view` as Permission));
-  return m ? `/${m}` : null;
+  return m ? MODULE_PATHS[m] : null;
 }
 
 /**
