@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-14 — Sửa dark mode (biến CSS antd) + nhãn "Wait confirm"
+- **Thay đổi:** Dark mode: Select, header Table, Tag mặc định… vẫn nền sáng. Nguyên nhân: antd 6 mặc định dùng chung key biến CSS `css-var-root` cho mọi theme → biến **component token** của sáng và tối trùng selector, bản sáng (vd style SSR còn sót) đè bản tối. Sửa: `cssVar: { key: dark ? "css-var-dark" : "css-var-light" }` trong `buildTheme` (`antd-provider.tsx`). Nhãn lịch chưa xác nhận: en "Not confirmed" → "Wait confirm", vi "Chưa xác nhận" → "Chờ xác nhận".
+- **File ảnh hưởng:** `components/common/antd-provider.tsx`, `messages/{en,vi}.json`.
+- **Còn dở / ghi chú:** tsc/eslint sạch. **Chưa xem trên trình duyệt** — cần thử đổi sáng ↔ tối vài lần ở `/appointments` (ô lọc, header bảng, Tag) để xác nhận.
+
 ### 2026-11-14 — Header: menu tài khoản + chuông thông báo
 - **Thay đổi:** OpenSpec `header-account-menu`. Desktop có thêm **header sticky h-14** trong vùng nội dung (`app-shell.tsx`): trái = nút thu gọn/mở sidebar (chuyển từ đáy sidebar), phải = `NotificationBell` + `AccountMenu` (avatar + tên + ChevronDown, dropdown `bottomRight`: Hồ sơ, Giao diện tối, Ngôn ngữ, Đăng xuất). **Bỏ phần đáy sidebar.** Điện thoại: thanh trên thêm chuông cạnh avatar (avatar vẫn mở bottom sheet Menu). `components/layout/notification-bell.tsx` = Popover trạng thái trống. i18n `common.{notifications,noNotifications}`.
 - **File ảnh hưởng:** `components/layout/{app-shell,notification-bell}.tsx`, `messages/{en,vi}.json`, `openspec/changes/header-account-menu/*`.

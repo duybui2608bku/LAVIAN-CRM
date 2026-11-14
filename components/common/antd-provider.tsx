@@ -54,6 +54,10 @@ function buildTheme(dark: boolean, touch: boolean): ThemeConfig {
   const c = dark ? DARK : LIGHT;
   return {
     algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+    // Mỗi theme 1 key biến CSS riêng. Mặc định antd dùng chung `css-var-root` → biến
+    // component (nền Select, header Table, Tag…) của sáng và tối trùng selector, bản sáng
+    // (vd style SSR còn sót) đè bản tối sau khi đổi theme.
+    cssVar: { key: dark ? "css-var-dark" : "css-var-light" },
     token: {
       ...c,
       borderRadius: 8,
