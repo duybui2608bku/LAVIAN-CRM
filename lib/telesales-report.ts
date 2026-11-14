@@ -38,7 +38,7 @@ export type PeriodStats = {
   arrived: number;
 };
 
-export type DayStat = { date: string; bookings: number; arrived: number };
+export type DayStat = { date: string; bookings: number; newBookings: number; arrived: number };
 /** Nguồn cố định thứ tự (màu theo nguồn, không theo hạng). */
 export const BOOKING_SOURCES = ["instagrams", "whatsapp", "other"] as const;
 export type BookingSource = (typeof BOOKING_SOURCES)[number];
@@ -131,7 +131,7 @@ export function buildTelesalesReport(input: {
   const days: DayStat[] = [];
   const dayIndex = new Map<string, DayStat>();
   for (let d = from; d <= to; d = addDays(d, 1)) {
-    const row = { date: d, bookings: 0, arrived: 0 };
+    const row = { date: d, bookings: 0, newBookings: 0, arrived: 0 };
     days.push(row);
     dayIndex.set(d, row);
   }
@@ -144,7 +144,9 @@ export function buildTelesalesReport(input: {
   for (const a of appts) {
     const created = vnDay(a.created_at);
     if (inPeriod(created, from, to)) {
-      dayIndex.get(created)!.bookings++;
+      const day = dayIndex.get(created)!;
+      day.bookings++;
+      if (inPeriod(vnDay(a.customer.created_at), from, to)) day.newBookings++;
       sources[sourceOf(a.customer.source)]++;
       bucket(a.staff_id).bookings++;
     }
