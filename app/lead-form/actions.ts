@@ -26,7 +26,8 @@ const schema = z.object({
   payment_confirm_url: z.url().max(2000).nullable().optional().catch(undefined),
   // Mã vùng Kemendagri "31" | "31.71"; "" = chưa chọn. Sai định dạng → "".
   region_code: z.string().regex(/^\d{2}(\.\d{2})?$/).or(z.literal("")).catch(""),
-  address_detail: z.string().trim().max(500).catch(""),
+  // Thiếu (ô đang tạm ẩn ở form) → undefined: không đụng giá trị cũ.
+  address_detail: z.string().trim().max(500).optional().catch(undefined),
   social_name: z.string().trim().max(200).catch(""),
   picture: z.string().trim().max(2000).catch(""),
   tags: z
@@ -145,7 +146,7 @@ export async function submitLead(
       stage,
       staff_id: d.staff_id || null,
       region_code: d.region_code || null,
-      address_detail: d.address_detail || null,
+      ...(d.address_detail !== undefined ? { address_detail: d.address_detail || null } : {}),
       // Chỉ ghi khi đang ở "deposited" và có nhập — còn lại giữ tiền cọc cũ trong CRM.
       ...(stage === "deposited" && d.deposit_amount != null
         ? { deposit_amount: d.deposit_amount }
