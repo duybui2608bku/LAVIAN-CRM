@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-16 — Bỏ dòng ghi chú cuối trang Báo cáo Smax / Follow up
+- **Thay đổi:** xóa đoạn giải thích cách đếm ở cuối 2 trang theo yêu cầu (định nghĩa vẫn nằm trong `openspec/changes/smax-followup-report/proposal.md` và comment code).
+- **File ảnh hưởng:** `components/customers/smax-report-view.tsx`, `components/customers/smax-followup-view.tsx`, `messages/{vi,en}.json` (bỏ `smaxReport.tagNote`, `smaxFollowup.note`).
+- **Còn dở / ghi chú:** chưa push/PR (nhánh `claude/smax-remove-notes`). Vẫn chờ chốt Show-up lấy tag `purchase` hay check-in CRM.
+
 ### 2026-11-16 — Trang Follow up (bào data cũ) từ SMAX
 - **Thay đổi:** OpenSpec `smax-followup-report` (nhánh `claude/smax-followup`). Menu Khách hàng thêm **"Follow up" `/customers/smax-followup`** (quyền `customers.view`). Dùng lại `fetchInboxThreads` (hội thoại WA+IG có tin nhắn trong khoảng). Thread SMAX có `created_at` (lần nhắn đầu) và `customer.tags[].{alias,time}` (thời điểm gắn tag) → `buildFollowupReport(threads, from, to)` ở `lib/smax-inbox.ts` (gộp chung file vì `node --test` không resolve import không đuôi `.ts`). Data cũ = `created_at` < 00:00 WIB ngày bắt đầu. Số bào = data cũ có tin nhắn trong khoảng; Booking follow-up = data cũ gắn `booking`/`bookings-deposit` (lần sớm nhất) trong khoảng; Show-up = data cũ gắn `purchase` trong khoảng; Chất lượng = data cũ chuyển Booking hoặc Show-up ÷ Số bào; Booking mới = data mới gắn Booking trong khoảng; Tổng booking = mới + follow-up. Theo nhân viên = tag tên (như Báo cáo Smax). UI: 5 StatCard + bảng theo Telesales (bấm dòng = lọc). Server action `getFollowupReport` cùng file `smax-report/actions.ts` (helper chung `withThreads`).
 - **File ảnh hưởng:** `lib/smax-inbox.ts`, `lib/smax-followup.test.ts`, `app/(app)/customers/smax-report/actions.ts`, `app/(app)/customers/smax-followup/page.tsx`, `components/customers/smax-followup-view.tsx`, `components/layout/app-shell.tsx`, `messages/{vi,en}.json`, `openspec/changes/smax-followup-report/`.

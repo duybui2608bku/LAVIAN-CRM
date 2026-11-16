@@ -113,8 +113,6 @@ export function SmaxFollowupView() {
             <StaffTable report={report} loading={loading} onPick={setStaff} />
           </section>
         ) : null}
-
-        <p className="text-xs text-muted-foreground">{t("note")}</p>
       </div>
     </>
   );

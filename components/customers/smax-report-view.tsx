@@ -161,10 +161,7 @@ export function SmaxReportView() {
             <StaffTable report={report} loading={loading} onPick={setStaff} />
           </Section>
         ) : null}
-
-        <p className="text-xs text-muted-foreground">{t("tagNote")}</p>
       </div>
-
     </>
   );
 }
