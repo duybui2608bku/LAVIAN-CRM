@@ -1,5 +1,5 @@
 /**
- * Báo cáo Inbox SMAX: đếm hội thoại có tin nhắn trong khoảng ngày theo kênh (WA/IG),
+ * Báo cáo Inbox SMAX (+ báo cáo Follow up ở cuối file): đếm hội thoại có tin nhắn trong khoảng ngày theo kênh (WA/IG),
  * trạng thái (tag Booking / Potential / Follow up / Pending 24h / Spam) và nhân viên (tag tên nhân viên).
  * Tag là trạng thái HIỆN TẠI của hội thoại (SMAX không lưu lịch sử tag theo ngày).
  */
@@ -9,9 +9,10 @@ const CHANNEL_OF: Record<string, InboxChannel> = { whatsappweb: "wa", instagram:
 
 export const INBOX_STATUSES = ["booking", "potential", "followUp", "pending", "spam"] as const;
 export type InboxStatus = (typeof INBOX_STATUSES)[number];
+const BOOKING_ALIASES = ["booking", "bookings-deposit"];
 // Thứ tự = ưu tiên khi 1 hội thoại lỡ gắn nhiều trạng thái.
 const STATUS_ALIASES: [InboxStatus, string[]][] = [
-  ["booking", ["booking", "bookings-deposit"]],
+  ["booking", BOOKING_ALIASES],
   ["potential", ["potential"]],
   ["followUp", ["follow-up"]],
   ["pending", ["no-reply"]],
@@ -30,7 +31,16 @@ export const INBOX_STAFF = [
 ] as const;
 export const UNASSIGNED = "__none";
 
-export type InboxThread = { id: string; platform?: string; tag_aliases?: string[]; last_message_at?: string };
+export type InboxThread = {
+  id: string;
+  platform?: string;
+  tag_aliases?: string[];
+  last_message_at?: string;
+  /** Lúc khách nhắn lần đầu (dùng cho trang Follow up). */
+  created_at?: string;
+  /** Tag kèm thời điểm gắn (dùng cho trang Follow up). */
+  customer?: { tags?: { alias?: string; time?: string }[] };
+};
 
 export type InboxCounts = Record<InboxStatus, number> & {
   /** Có tag Bookings deposit (đã nằm trong booking). */
@@ -96,4 +106,78 @@ export function inboxDateRange(from: string, to: string): [string, string] {
   const [y, m, d] = from.split("-").map(Number);
   const start = new Date(Date.UTC(y, m - 1, d) - 7 * 3_600_000);
   return [start.toISOString(), `${to}T16:59:59.999Z`];
+}
+
+// ---------------------------------------------------------------------------
+/*
+ * Báo cáo Follow up (bào data cũ) từ hội thoại SMAX:
+ * - data cũ = hội thoại tạo trước ngày bắt đầu, data mới = tạo trong khoảng;
+ * - "chuyển đổi" dựa trên thời điểm gắn tag (`customer.tags[].time`) — SMAX không lưu lịch sử đổi tag.
+ */
+const SHOW_UP_ALIAS = "purchase"; // "Pelanggan datang ke klinik dan melakukan pembayaran."
+
+export type FollowupCounts = {
+  /** Data cũ có tin nhắn trong khoảng (số bào). */
+  worked: number;
+  /** Data cũ chuyển sang Booking hoặc Show-up trong khoảng. */
+  converted: number;
+  /** Data cũ được gắn Booking trong khoảng (booking follow-up). */
+  bookingOld: number;
+  /** Data cũ được gắn Purchase trong khoảng. */
+  showUp: number;
+  /** Data mới được gắn Booking trong khoảng. */
+  bookingNew: number;
+};
+export type FollowupStaffRow = { alias: string; name: string; counts: FollowupCounts };
+export type FollowupReport = { total: FollowupCounts; staff: FollowupStaffRow[] };
+
+const emptyFollowup = (): FollowupCounts => ({ worked: 0, converted: 0, bookingOld: 0, showUp: 0, bookingNew: 0 });
+
+/** Lần gắn sớm nhất của 1 trong các tag (ms), không có → NaN. */
+function taggedAt(t: InboxThread, aliases: string[]): number {
+  const times = (t.customer?.tags ?? [])
+    .filter((g) => g.alias && aliases.includes(g.alias) && g.time)
+    .map((g) => Date.parse(g.time!));
+  return times.length ? Math.min(...times) : NaN;
+}
+
+/** `from`/`to` là ngày WIB `YYYY-MM-DD` (cùng khoảng đã dùng để lấy hội thoại). */
+export function buildFollowupReport(threads: InboxThread[], from: string, to: string): FollowupReport {
+  const [start, end] = inboxDateRange(from, to).map(Date.parse);
+  const inRange = (ms: number) => ms >= start && ms <= end;
+  const total = emptyFollowup();
+  const staff = new Map<string, FollowupCounts>(
+    [...INBOX_STAFF.map((s) => s.alias), UNASSIGNED].map((a) => [a, emptyFollowup()]),
+  );
+  const seen = new Set<string>();
+
+  for (const t of threads) {
+    const created = Date.parse(t.created_at ?? "");
+    if (!CHANNEL_OF[t.platform ?? ""] || seen.has(t.id) || Number.isNaN(created)) continue;
+    seen.add(t.id);
+    const old = created < start;
+    const booked = inRange(taggedAt(t, BOOKING_ALIASES));
+    const showed = inRange(taggedAt(t, [SHOW_UP_ALIAS]));
+
+    const add = (c: FollowupCounts) => {
+      if (old) {
+        c.worked++;
+        if (booked) c.bookingOld++;
+        if (showed) c.showUp++;
+        if (booked || showed) c.converted++;
+      } else if (booked) c.bookingNew++;
+    };
+    add(total);
+    const tags = t.tag_aliases ?? [];
+    const owners = INBOX_STAFF.filter((s) => tags.includes(s.alias)).map((s) => s.alias);
+    for (const o of owners.length ? owners : [UNASSIGNED]) add(staff.get(o)!);
+  }
+
+  return {
+    total,
+    staff: [
+      ...INBOX_STAFF.map((s) => ({ alias: s.alias, name: s.name, counts: staff.get(s.alias)! })),
+      { alias: UNASSIGNED, name: "", counts: staff.get(UNASSIGNED)! },
+    ],
+  };
 }

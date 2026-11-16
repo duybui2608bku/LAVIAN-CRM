@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LockKeyhole,
+  MessageSquareReply,
   LogOut,
   Megaphone,
   Moon,
@@ -56,6 +57,7 @@ const ITEMS = [
     children: [
       { key: "customersList", href: "/customers", icon: UsersRound, perm: "customers.view" },
       { key: "smaxReport", href: "/customers/smax-report", icon: Inbox, perm: "customers.view" },
+      { key: "smaxFollowup", href: "/customers/smax-followup", icon: MessageSquareReply, perm: "customers.view" },
     ],
   },
   { key: "appointments", href: "/appointments", icon: CalendarDays },
