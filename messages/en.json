@@ -619,13 +619,17 @@
     "refresh": "Refresh",
     "staff": "Telesales",
     "allStaff": "All telesales",
+    "source": "Source",
+    "allSources": "All sources",
     "unassigned": "Unassigned",
     "card": {
-      "total": "Total conversations"
+      "total": "Total conversations",
+      "bookingOld": "Old-lead bookings"
     },
     "hint": {
       "total": "+{untagged} without status",
-      "deposit": "{n} deposit"
+      "deposit": "{n} deposit",
+      "bookingOld": "Old leads tagged Booking in range (re-engaged)"
     },
     "status": {
       "booking": "Booking",
@@ -639,8 +643,7 @@
     "channel": "Channel",
     "total": "Total",
     "bookingRate": "Booking rate",
-    "distribution": "Distribution",
-    "tagNote": "Counts conversations with messages in the range by their current SMAX tags. Booking includes Bookings deposit. A conversation with several statuses counts once, in the order Booking → Potential → Follow Up → Pending 24H → Spam. Past dates show the current status, not the end-of-day status."
+    "distribution": "Distribution"
   },
   "smaxFollowup": {
     "worked": "Re-engaged",
@@ -655,7 +658,6 @@
       "bookingNew": "From new leads in range",
       "bookingOld": "From old (nurtured) leads",
       "bookingTotal": "New + follow-up bookings"
-    },
-    "note": "Old lead = SMAX conversation whose first message is before the start date; new lead = first message within the range. Re-engaged = old leads with messages in the range (including customers who came back on their own). Booking / Show-up count when the Booking (incl. Bookings deposit) / Purchase tag was added within the range. Quality = old leads converted to Booking or Show-up ÷ Re-engaged. SMAX keeps no tag history, so the previous status (Follow-up, Pending, Unanswered) can't be split out."
+    }
   }
 }

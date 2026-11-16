@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildFollowupReport, UNASSIGNED } from "./smax-inbox.ts";
+import { buildFollowupReport, staffAvatars, UNASSIGNED } from "./smax-inbox.ts";
 
 // Ngày 16/11 WIB = 2026-11-15T17:00Z → 2026-11-16T16:59:59.999Z.
 const OLD = "2026-11-10T03:00:00.000Z";
@@ -39,4 +39,15 @@ test("buildFollowupReport: tách data cũ / mới theo ngày tạo và thời đ
   assert.deepEqual(row("sabil"), row("ratih"));
   assert.equal(row("sabil").converted, 1);
   assert.deepEqual(row(UNASSIGNED), { worked: 0, converted: 0, bookingOld: 0, showUp: 0, bookingNew: 0 });
+});
+
+test("staffAvatars ghép tag tên SMAX với tài khoản CRM theo tên", () => {
+  const avatars = staffAvatars([
+    { user_name: "Bulan", avatar_url: "b.png" },
+    { user_name: "tiara", avatar_url: "t.png" },
+    { user_name: "Resi", avatar_url: "r.png" },
+  ]);
+  assert.equal(avatars.bulan, "b.png");
+  assert.equal(avatars["tiara-kania"], "t.png");
+  assert.equal(avatars.angel, null);
 });

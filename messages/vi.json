@@ -619,13 +619,17 @@
     "refresh": "Tải lại",
     "staff": "Telesales",
     "allStaff": "Tất cả Telesales",
+    "source": "Nguồn",
+    "allSources": "Tất cả nguồn",
     "unassigned": "Chưa gán Telesales",
     "card": {
-      "total": "Tổng hội thoại"
+      "total": "Tổng hội thoại",
+      "bookingOld": "Booking cũ"
     },
     "hint": {
       "total": "+{untagged} chưa gắn trạng thái",
-      "deposit": "{n} deposit"
+      "deposit": "{n} deposit",
+      "bookingOld": "Data cũ được gắn Booking trong khoảng (bào được)"
     },
     "status": {
       "booking": "Booking",
@@ -639,8 +643,7 @@
     "channel": "Kênh",
     "total": "Tổng",
     "bookingRate": "Tỉ lệ Booking",
-    "distribution": "Phân bổ",
-    "tagNote": "Đếm hội thoại có tin nhắn trong khoảng ngày theo tag hiện tại trên SMAX. Booking gồm cả Bookings deposit. Hội thoại gắn nhiều trạng thái được tính 1 lần theo thứ tự Booking → Potential → Follow Up → Pending 24H → Spam. Xem ngày cũ sẽ ra trạng thái hiện tại, không phải trạng thái cuối ngày đó."
+    "distribution": "Phân bổ"
   },
   "smaxFollowup": {
     "worked": "Số bào",
@@ -655,7 +658,6 @@
       "bookingNew": "Từ data mới trong khoảng",
       "bookingOld": "Từ data cũ (chăm sóc, nuôi dưỡng)",
       "bookingTotal": "Booking mới + Booking follow-up"
-    },
-    "note": "Data cũ = hội thoại SMAX có lần nhắn đầu trước ngày bắt đầu; data mới = nhắn lần đầu trong khoảng. Số bào = data cũ có tin nhắn trong khoảng (gồm cả khách tự nhắn lại). Booking / Show-up tính theo thời điểm gắn tag Booking (gồm Bookings deposit) / Purchase trong khoảng. Chất lượng bào = data cũ chuyển sang Booking hoặc Show-up ÷ Số bào. SMAX không lưu lịch sử đổi tag nên không tách được trạng thái trước đó (Follow-up, Pending, Unanswer)."
+    }
   }
 }
