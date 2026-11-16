@@ -619,13 +619,17 @@
     "refresh": "Tải lại",
     "staff": "Telesales",
     "allStaff": "Tất cả Telesales",
+    "source": "Nguồn",
+    "allSources": "Tất cả nguồn",
     "unassigned": "Chưa gán Telesales",
     "card": {
-      "total": "Tổng hội thoại"
+      "total": "Tổng hội thoại",
+      "bookingOld": "Booking cũ"
     },
     "hint": {
       "total": "+{untagged} chưa gắn trạng thái",
-      "deposit": "{n} deposit"
+      "deposit": "{n} deposit",
+      "bookingOld": "Data cũ được gắn Booking trong khoảng (bào được)"
     },
     "status": {
       "booking": "Booking",

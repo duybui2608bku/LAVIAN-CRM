@@ -1,5 +1,5 @@
 /**
- * Báo cáo Inbox SMAX (+ báo cáo Follow up ở cuối file): đếm hội thoại có tin nhắn trong khoảng ngày theo kênh (WA/IG),
+ * Báo cáo Inbox SMAX (+ báo cáo Follow up ở cuối file; Booking cũ dùng chung định nghĩa với Follow up): đếm hội thoại có tin nhắn trong khoảng ngày theo kênh (WA/IG),
  * trạng thái (tag Booking / Potential / Follow up / Pending 24h / Spam) và nhân viên (tag tên nhân viên).
  * Tag là trạng thái HIỆN TẠI của hội thoại (SMAX không lưu lịch sử tag theo ngày).
  */
@@ -31,6 +31,14 @@ export const INBOX_STAFF = [
 ] as const;
 export const UNASSIGNED = "__none";
 
+/** Ghép tag tên SMAX với tài khoản CRM theo tên (không phân biệt hoa thường; "Tiara Kania" ↔ "Tiara"). */
+export function staffAvatars(profiles: { user_name: string | null; avatar_url: string | null }[]): Record<string, string | null> {
+  const byName = new Map(profiles.map((p) => [(p.user_name ?? "").trim().toLowerCase(), p.avatar_url]));
+  return Object.fromEntries(
+    INBOX_STAFF.map((s) => [s.alias, byName.get(s.name.toLowerCase()) ?? byName.get(s.name.split(" ")[0].toLowerCase()) ?? null]),
+  );
+}
+
 export type InboxThread = {
   id: string;
   platform?: string;
@@ -47,12 +55,14 @@ export type InboxCounts = Record<InboxStatus, number> & {
   deposit: number;
   /** Hội thoại chưa gắn trạng thái nào. */
   untagged: number;
+  /** Booking cũ (bào được): data cũ được gắn Booking trong khoảng — cùng định nghĩa "Booking follow-up" trang Follow up. */
+  bookingOld: number;
 };
 export type ChannelCounts = Record<InboxChannel, InboxCounts>;
 export type InboxStaffRow = { alias: string; name: string; counts: ChannelCounts };
 export type InboxReport = { total: ChannelCounts; staff: InboxStaffRow[]; threads: number };
 
-const emptyCounts = (): InboxCounts => ({ booking: 0, potential: 0, followUp: 0, pending: 0, spam: 0, deposit: 0, untagged: 0 });
+const emptyCounts = (): InboxCounts => ({ booking: 0, potential: 0, followUp: 0, pending: 0, spam: 0, deposit: 0, untagged: 0, bookingOld: 0 });
 const emptyChannels = (): ChannelCounts => ({ wa: emptyCounts(), ig: emptyCounts() });
 
 /** Tổng các trạng thái (= cột "all total" của mẫu, không tính hội thoại chưa gắn). */
@@ -64,7 +74,9 @@ export const sumChannels = (c: ChannelCounts): InboxCounts => {
   return out;
 };
 
-export function buildInboxReport(threads: InboxThread[]): InboxReport {
+/** `from`/`to` là ngày WIB `YYYY-MM-DD` (cùng khoảng đã dùng để lấy hội thoại) — dùng cho Booking cũ. */
+export function buildInboxReport(threads: InboxThread[], from: string, to: string): InboxReport {
+  const [start, end] = inboxDateRange(from, to).map(Date.parse);
   const total = emptyChannels();
   const staff = new Map<string, ChannelCounts>(
     [...INBOX_STAFF.map((s) => s.alias), UNASSIGNED].map((a) => [a, emptyChannels()]),
@@ -80,11 +92,14 @@ export function buildInboxReport(threads: InboxThread[]): InboxReport {
     const tags = t.tag_aliases ?? [];
     const status = STATUS_ALIASES.find(([, aliases]) => aliases.some((a) => tags.includes(a)))?.[0];
     const owners = INBOX_STAFF.filter((s) => tags.includes(s.alias)).map((s) => s.alias);
+    const bookedAt = taggedAt(t, BOOKING_ALIASES);
+    const bookingOld = Date.parse(t.created_at ?? "") < start && bookedAt >= start && bookedAt <= end;
 
     const add = (c: InboxCounts) => {
       if (status) c[status]++;
       else c.untagged++;
       if (tags.includes(DEPOSIT_ALIAS)) c.deposit++;
+      if (bookingOld) c.bookingOld++;
     };
     add(total[channel]);
     // Hội thoại gắn 2 nhân viên → tính cho cả 2 (tổng vẫn đếm 1 lần).

@@ -9,6 +9,7 @@ import { getFollowupReport } from "@/app/(app)/customers/smax-report/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { initialRange } from "@/components/common/date-range-filter";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { StatCard } from "@/components/common/stat-card";
 import { PageToolbar } from "@/components/layout/page";
 import { INBOX_STAFF, UNASSIGNED, type FollowupCounts, type FollowupReport } from "@/lib/smax-inbox";
@@ -110,7 +111,7 @@ export function SmaxFollowupView() {
         {!staff ? (
           <section className="surface flex min-w-0 flex-col gap-3 p-4">
             <h2 className="text-sm font-semibold">{tr("byStaff")}</h2>
-            <StaffTable report={report} loading={loading} onPick={setStaff} />
+            <StaffTable report={report} avatars={result?.avatars} loading={loading} onPick={setStaff} />
           </section>
         ) : null}
       </div>
@@ -121,7 +122,17 @@ export function SmaxFollowupView() {
 type StaffRow = { alias: string; name: string; c: FollowupCounts };
 
 /** Bảng theo Telesales; bấm dòng để lọc theo người đó. */
-function StaffTable({ report, loading, onPick }: { report: FollowupReport | null; loading: boolean; onPick: (alias: string) => void }) {
+function StaffTable({
+  report,
+  avatars,
+  loading,
+  onPick,
+}: {
+  report: FollowupReport | null;
+  avatars?: Result["avatars"];
+  loading: boolean;
+  onPick: (alias: string) => void;
+}) {
   const t = useTranslations("smaxFollowup");
   const tr = useTranslations("smaxReport");
   const { num, pct } = useFormat();
@@ -142,7 +153,10 @@ function StaffTable({ report, loading, onPick }: { report: FollowupReport | null
       key: "name",
       title: tr("staff"),
       render: (_, r) => (
-        <span className={cn("whitespace-nowrap font-medium", r.alias === UNASSIGNED && "text-muted-foreground")}>{r.name}</span>
+        <span className={cn("flex items-center gap-2 whitespace-nowrap font-medium", r.alias === UNASSIGNED && "text-muted-foreground")}>
+          {r.alias === UNASSIGNED ? null : <UserAvatar src={avatars?.[r.alias]} size={24} />}
+          {r.name}
+        </span>
       ),
     },
     numCol("worked", t("worked"), true),

@@ -9,21 +9,29 @@ import { getInboxReport } from "@/app/(app)/customers/smax-report/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { initialRange } from "@/components/common/date-range-filter";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { StatCard } from "@/components/common/stat-card";
 import { PageToolbar } from "@/components/layout/page";
 import {
+  INBOX_CHANNELS,
   INBOX_STAFF,
   INBOX_STATUSES,
   statusTotal,
   sumChannels,
   UNASSIGNED,
   type ChannelCounts,
+  type InboxChannel,
   type InboxCounts,
   type InboxStatus,
 } from "@/lib/smax-inbox";
 import { cn } from "@/lib/utils";
 
 type Result = Awaited<ReturnType<typeof getInboxReport>>;
+
+const CHANNEL_LABEL: Record<InboxChannel, string> = { wa: "WhatsApp", ig: "Instagram" };
+
+/** Số theo trạng thái của một kênh, hoặc cộng mọi kênh khi không lọc nguồn. */
+const pickChannel = (c: ChannelCounts, channel: InboxChannel | "") => (channel ? c[channel] : sumChannels(c));
 
 // Màu trạng thái dùng chung cho thanh phân bổ + chấm chú thích.
 const STATUS_COLOR: Record<InboxStatus, string> = {
@@ -47,6 +55,7 @@ export function SmaxReportView() {
   const { num, pct } = useFormat();
   const [range, setRange] = React.useState(() => initialRange("today"));
   const [staff, setStaff] = React.useState("");
+  const [channel, setChannel] = React.useState<InboxChannel | "">("");
   const [result, setResult] = React.useState<Result | null>(null);
   const [pending, startTransition] = React.useTransition();
   const requestId = React.useRef(0);
@@ -61,13 +70,13 @@ export function SmaxReportView() {
   React.useEffect(load, [load]);
 
   const report = result?.data ?? null;
-  // Lọc Telesales chỉ đổi phạm vi số liệu (tính sẵn ở server) — không gọi lại API.
+  // Lọc Telesales / nguồn chỉ đổi phạm vi số liệu (tính sẵn ở server) — không gọi lại API.
   const scope: ChannelCounts | null = report
     ? staff
       ? (report.staff.find((s) => s.alias === staff)?.counts ?? null)
       : report.total
     : null;
-  const sum = scope ? sumChannels(scope) : null;
+  const sum = scope ? pickChannel(scope, channel) : null;
   const all = sum ? statusTotal(sum) : 0;
   const loading = !result;
 
@@ -94,6 +103,14 @@ export function SmaxReportView() {
           className="w-48 max-sm:w-full"
           searchable
         />
+        <ClearableSelect
+          value={channel}
+          onChange={(v) => setChannel(v as InboxChannel | "")}
+          options={INBOX_CHANNELS.map((c) => ({ value: c, label: CHANNEL_LABEL[c] }))}
+          placeholder={t("allSources")}
+          ariaLabel={t("source")}
+          className="w-40 max-sm:w-full"
+        />
         <Button icon={<RefreshCw className={cn("size-4", pending && "animate-spin")} />} onClick={load}>
           {t("refresh")}
         </Button>
@@ -102,7 +119,7 @@ export function SmaxReportView() {
       {result?.error ? <Alert type="error" showIcon title={result.error} /> : null}
 
       <div className={cn("flex flex-col gap-4 transition-opacity duration-200", pending && result && "opacity-60")}>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
           <StatCard
             label={t("card.total")}
             loading={loading}
@@ -110,38 +127,52 @@ export function SmaxReportView() {
             hint={sum ? t("hint.total", { untagged: num(sum.untagged) }) : undefined}
           />
           {INBOX_STATUSES.map((s) => (
-            <StatCard
-              key={s}
-              loading={loading}
-              label={
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
-                  {t(`status.${s}`)}
-                </span>
-              }
-              value={
-                sum ? (
-                  <span className="flex items-baseline gap-2">
-                    {num(sum[s])}
-                    <span className="text-sm font-medium text-muted-foreground">{pct(sum[s], all)}</span>
+            <React.Fragment key={s}>
+              <StatCard
+                loading={loading}
+                label={
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
+                    {t(`status.${s}`)}
                   </span>
-                ) : (
-                  "-"
-                )
-              }
-              hint={
-                scope
-                  ? [`WA ${num(scope.wa[s])} · IG ${num(scope.ig[s])}`, s === "booking" && sum ? t("hint.deposit", { n: num(sum.deposit) }) : null]
-                      .filter(Boolean)
-                      .join(" · ")
-                  : undefined
-              }
-            />
+                }
+                value={
+                  sum ? (
+                    <span className="flex items-baseline gap-2">
+                      {num(sum[s])}
+                      <span className="text-sm font-medium text-muted-foreground">{pct(sum[s], all)}</span>
+                    </span>
+                  ) : (
+                    "-"
+                  )
+                }
+                hint={
+                  scope
+                    ? [channel ? null : `WA ${num(scope.wa[s])} · IG ${num(scope.ig[s])}`, s === "booking" && sum ? t("hint.deposit", { n: num(sum.deposit) }) : null]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : undefined
+                }
+              />
+              {s === "booking" ? (
+                <StatCard
+                  loading={loading}
+                  label={
+                    <span className="flex items-center gap-1.5">
+                      <span className="size-2 rounded-full" style={{ background: STATUS_COLOR.booking }} />
+                      {t("card.bookingOld")}
+                    </span>
+                  }
+                  value={sum ? num(sum.bookingOld) : "-"}
+                  hint={t("hint.bookingOld")}
+                />
+              ) : null}
+            </React.Fragment>
           ))}
         </div>
 
         <Section title={t("byChannel")}>
-          <ChannelTable scope={scope} loading={loading} />
+          <ChannelTable scope={scope} channel={channel} loading={loading} />
         </Section>
 
         {!staff ? (
@@ -158,7 +189,7 @@ export function SmaxReportView() {
               </span>
             }
           >
-            <StaffTable report={report} loading={loading} onPick={setStaff} />
+            <StaffTable report={report} channel={channel} avatars={result?.avatars} loading={loading} onPick={setStaff} />
           </Section>
         ) : null}
       </div>
@@ -181,16 +212,18 @@ function Section({ title, extra, children }: { title: string; extra?: React.Reac
 type ChannelRow = { key: string; label: string; counts: InboxCounts; strong?: boolean };
 
 /** Bảng theo kênh (mẫu "Inbox destination"): WA / IG / Tổng × trạng thái, ô kèm % theo dòng. */
-function ChannelTable({ scope, loading }: { scope: ChannelCounts | null; loading: boolean }) {
+function ChannelTable({ scope, channel, loading }: { scope: ChannelCounts | null; channel: InboxChannel | ""; loading: boolean }) {
   const t = useTranslations("smaxReport");
   const { num, pct } = useFormat();
-  const rows: ChannelRow[] = scope
-    ? [
-        { key: "wa", label: "WhatsApp", counts: scope.wa },
-        { key: "ig", label: "Instagram", counts: scope.ig },
-        { key: "total", label: t("total"), counts: sumChannels(scope), strong: true },
-      ]
-    : [];
+  // Lọc nguồn → chỉ còn dòng kênh đó (không cần dòng Tổng).
+  const rows: ChannelRow[] = !scope
+    ? []
+    : channel
+      ? [{ key: channel, label: CHANNEL_LABEL[channel], counts: scope[channel] }]
+      : [
+          ...INBOX_CHANNELS.map((c) => ({ key: c, label: CHANNEL_LABEL[c], counts: scope[c] })),
+          { key: "total", label: t("total"), counts: sumChannels(scope), strong: true },
+        ];
 
   const columns: TableProps<ChannelRow>["columns"] = [
     { key: "label", title: t("channel"), render: (_, r) => <span className={cn(r.strong ? "font-semibold" : "font-medium")}>{r.label}</span> },
@@ -232,10 +265,14 @@ type StaffRow = { alias: string; name: string; sum: InboxCounts; all: number };
 /** Bảng theo Telesales: số theo trạng thái + thanh phân bổ; bấm dòng để lọc theo người đó. */
 function StaffTable({
   report,
+  channel,
+  avatars,
   loading,
   onPick,
 }: {
   report: Result["data"];
+  channel: InboxChannel | "";
+  avatars?: Result["avatars"];
   loading: boolean;
   onPick: (alias: string) => void;
 }) {
@@ -243,7 +280,7 @@ function StaffTable({
   const { num, pct } = useFormat();
   const rows: StaffRow[] = (report?.staff ?? [])
     .map((s) => {
-      const sum = sumChannels(s.counts);
+      const sum = pickChannel(s.counts, channel);
       return { alias: s.alias, name: s.alias === UNASSIGNED ? t("unassigned") : s.name, sum, all: statusTotal(sum) };
     })
     // Nhiều hội thoại nhất lên đầu; "Chưa gán" luôn cuối.
@@ -254,7 +291,10 @@ function StaffTable({
       key: "name",
       title: t("staff"),
       render: (_, r) => (
-        <span className={cn("whitespace-nowrap font-medium", r.alias === UNASSIGNED && "text-muted-foreground")}>{r.name}</span>
+        <span className={cn("flex items-center gap-2 whitespace-nowrap font-medium", r.alias === UNASSIGNED && "text-muted-foreground")}>
+          {r.alias === UNASSIGNED ? null : <UserAvatar src={avatars?.[r.alias]} size={24} />}
+          {r.name}
+        </span>
       ),
     },
     ...INBOX_STATUSES.map((s) => ({

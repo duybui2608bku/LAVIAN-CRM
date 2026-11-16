@@ -619,13 +619,17 @@
     "refresh": "Refresh",
     "staff": "Telesales",
     "allStaff": "All telesales",
+    "source": "Source",
+    "allSources": "All sources",
     "unassigned": "Unassigned",
     "card": {
-      "total": "Total conversations"
+      "total": "Total conversations",
+      "bookingOld": "Old-lead bookings"
     },
     "hint": {
       "total": "+{untagged} without status",
-      "deposit": "{n} deposit"
+      "deposit": "{n} deposit",
+      "bookingOld": "Old leads tagged Booking in range (re-engaged)"
     },
     "status": {
       "booking": "Booking",
