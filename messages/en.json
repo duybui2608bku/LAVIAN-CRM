@@ -175,7 +175,9 @@
     "groupAdmin": "Admin",
     "more": "Menu",
     "reportsOverview": "Overview",
-    "telesales": "Leader Telesales"
+    "telesales": "Leader Telesales",
+    "customersList": "List",
+    "smaxReport": "Smax report"
   },
   "theme": {
     "toggle": "Toggle theme"
@@ -611,5 +613,32 @@
       "other": "Other"
     },
     "alerts": "Alerts & pending tasks"
+  },
+  "smaxReport": {
+    "title": "Smax report",
+    "subtitle": "WhatsApp & Instagram conversations by status and telesales",
+    "refresh": "Refresh",
+    "staff": "Telesales",
+    "allStaff": "All telesales",
+    "unassigned": "Unassigned",
+    "card": {
+      "total": "Total conversations"
+    },
+    "hint": {
+      "total": "+{untagged} without status",
+      "deposit": "{n} deposit"
+    },
+    "status": {
+      "booking": "Booking",
+      "followUp": "Follow Up",
+      "pending": "Pending 24H"
+    },
+    "byChannel": "By channel",
+    "byStaff": "By telesales",
+    "channel": "Channel",
+    "total": "Total",
+    "bookingRate": "Booking rate",
+    "distribution": "Distribution",
+    "tagNote": "Counts conversations with messages in the range by their current SMAX tags. Booking includes Bookings deposit. Past dates show the current status, not the end-of-day status."
   }
 }

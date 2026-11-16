@@ -13,6 +13,7 @@ import {
   Check,
   ChevronDown,
   Headset,
+  Inbox,
   Languages,
   LayoutDashboard,
   LayoutGrid,
@@ -48,7 +49,15 @@ const COLLAPSE_COOKIE = "sidebar_state";
 
 // Chỉ giữ mục có trang thật. Thêm dần khi dựng tính năng.
 const ITEMS = [
-  { key: "customers", href: "/customers", icon: Users },
+  {
+    key: "customers",
+    href: "/customers",
+    icon: Users,
+    children: [
+      { key: "customersList", href: "/customers", icon: UsersRound, perm: "customers.view" },
+      { key: "smaxReport", href: "/customers/smax-report", icon: Inbox, perm: "customers.view" },
+    ],
+  },
   { key: "appointments", href: "/appointments", icon: CalendarDays },
   { key: "tour", href: "/tour", icon: Wallet },
 ] as const;
