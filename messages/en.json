@@ -628,8 +628,10 @@
     },
     "status": {
       "booking": "Booking",
+      "potential": "Potential",
       "followUp": "Follow Up",
-      "pending": "Pending 24H"
+      "pending": "Pending 24H",
+      "spam": "Spam"
     },
     "byChannel": "By channel",
     "byStaff": "By telesales",
@@ -637,6 +639,6 @@
     "total": "Total",
     "bookingRate": "Booking rate",
     "distribution": "Distribution",
-    "tagNote": "Counts conversations with messages in the range by their current SMAX tags. Booking includes Bookings deposit. Past dates show the current status, not the end-of-day status."
+    "tagNote": "Counts conversations with messages in the range by their current SMAX tags. Booking includes Bookings deposit. A conversation with several statuses counts once, in the order Booking → Potential → Follow Up → Pending 24H → Spam. Past dates show the current status, not the end-of-day status."
   }
 }
