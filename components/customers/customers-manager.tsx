@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   Form,
+  Image,
   Input,
   Modal,
   Tag,
@@ -326,8 +327,23 @@ export function CustomersManager({
       dataIndex: "deposit_amount",
       width: 140,
       align: "right",
-      render: (v: number | null) =>
-        v ? <span className="tabular-nums">{formatRupiah(Number(v))}</span> : DASH,
+      // Có ảnh xác nhận thanh toán → thumbnail nhỏ cạnh số tiền, bấm mở preview to (antd Image).
+      render: (v: number | null, c) =>
+        v || c.payment_confirm_url ? (
+          <div className="flex items-center justify-end gap-2">
+            {c.payment_confirm_url && (
+              <Image
+                src={c.payment_confirm_url}
+                alt={t("paymentConfirm")}
+                width={28}
+                height={28}
+                className="rounded border border-border object-cover"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+            {v ? <span className="tabular-nums">{formatRupiah(Number(v))}</span> : null}
+          </div>
+        ) : DASH,
     },
     {
       title: t("colAppointment"),
