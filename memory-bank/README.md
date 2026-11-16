@@ -50,6 +50,21 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-16 — Tạm ẩn ô "Địa chỉ chi tiết" ở /lead-form
+- **Thay đổi:** Comment out `Form.Item address_detail` trong lead-form (bỏ comment để hiện lại). Server `submitLead`: `address_detail` thành optional — thiếu field thì **không ghi đè** địa chỉ cũ (trước đó thiếu sẽ thành null). Form khách hàng `/customers` vẫn giữ ô này.
+- **File ảnh hưởng:** `components/lead-form/lead-form.tsx`, `app/lead-form/actions.ts`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên `next dev`; chưa commit (nhánh `claude/deposit-payment-thumb`).
+
+### 2026-11-16 — Fix: ô SĐT vẫn nhập được chữ
+- **Thay đổi:** OpenSpec `phone-digits-only`. Thêm `isValidPhone` (`lib/phone.ts`: chỉ số/khoảng trắng/"-", "+" bỏ qua, ≥1 số). Form `/customers` + `/lead-form` có rule validator → SĐT có chữ **báo lỗi "Số điện thoại không hợp lệ"** dưới ô (không tự xoá ký tự; `normalizePhone` vẫn chỉ bỏ "+"). Server chặn lại: `customers/actions.ts` `clean()` throw, `lead-form/actions.ts` zod `refine(isValidPhone)`. Key mới `customers.phoneInvalid` (vi/en).
+- **File ảnh hưởng:** `lib/phone.ts`, `lib/phone.test.ts`, `components/customers/customers-manager.tsx`, `components/lead-form/lead-form.tsx`, `app/(app)/customers/actions.ts`, `app/lead-form/actions.ts`, `messages/{vi,en}.json`, `openspec/changes/phone-digits-only/*`.
+- **Còn dở / ghi chú:** test + tsc + eslint sạch; chưa gõ thử trên `next dev`. Làm trên nhánh `claude/deposit-payment-thumb` (chưa commit, lẫn với thay đổi deposit thumbnail).
+
+### 2026-11-14 — Thumbnail ảnh xác nhận thanh toán ở cột Deposit
+- **Thay đổi:** OpenSpec `deposit-payment-thumb` (nhánh `claude/deposit-payment-thumb`). Cột Deposit bảng `/customers`: có `payment_confirm_url` → thumbnail 28×28 (antd `Image`) cạnh số tiền, bấm mở preview ảnh to; chỉ có ảnh mà không có tiền vẫn hiện thumbnail.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `openspec/changes/deposit-payment-thumb/*`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; **chưa xem trong app thật** (`next dev`).
+
 ### 2026-11-14 — Leader Telesales: phễu + xu hướng bằng Chart.js, dữ liệu trống hiện "-"
 - **Thay đổi:** OpenSpec `telesales-chartjs` (nhánh `claude/telesales-chartjs`). Cài `chart.js@4.6.1` + `react-chartjs-2@5.3.1` + `chartjs-chart-funnel@4.2.5`. File mới `components/reports/telesales-charts.tsx`: `FunnelChart` (hình thang, rộng thu đều theo tầng = dáng phễu cố định, số thật + % so với Tin nhắn in trực tiếp trên tầng bằng plugin `funnelLabels`, chữ đen/trắng theo độ tương phản nền; tầng hẹp tự xuống 2 dòng) và `TrendChart` (đường + vùng gradient, 2 series **Booking mới** / **Khách đến**, legend chấm tròn, tooltip theo ngày). Màu đọc từ CSS var theme qua `useSyncExternalStore` + MutationObserver trên `<html>` (đổi sáng/tối tự vẽ lại). `DayStat` thêm `newBookings`. Bỏ dòng mô tả khoảng ngày "09/11 – 14/11 · so với ..." (luôn dùng `subtitleShort`, xoá key `telesales.subtitle`). Không có dữ liệu → "-" (thay "—"); bỏ ô "Chưa có dữ liệu" của phễu/xu hướng (key `telesales.noData`).
 - **File ảnh hưởng:** `package.json`, `package-lock.json`, `components/reports/{telesales-charts,telesales-report-view}.tsx`, `lib/telesales-report.ts` (+ test), `messages/{vi,en}.json`, `openspec/changes/telesales-chartjs/*`.

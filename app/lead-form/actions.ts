@@ -8,14 +8,14 @@ import { appointmentPatchSchema } from "@/lib/appointments";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOMER_OPTIONS, leadSource } from "@/lib/customer-options";
-import { formatPhone } from "@/lib/phone";
+import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 const schema = z.object({
   customer_id: z.string().trim().max(200),
   full_name: z.string().trim().min(1).max(120),
-  phone: z.string().transform(formatPhone).pipe(z.string().min(1)),
+  phone: z.string().refine(isValidPhone).transform(formatPhone),
   note: z.string().trim().max(1000),
   staff_id: z.uuid().or(z.literal("")),
   stage: z.string(),
@@ -26,7 +26,8 @@ const schema = z.object({
   payment_confirm_url: z.url().max(2000).nullable().optional().catch(undefined),
   // Mã vùng Kemendagri "31" | "31.71"; "" = chưa chọn. Sai định dạng → "".
   region_code: z.string().regex(/^\d{2}(\.\d{2})?$/).or(z.literal("")).catch(""),
-  address_detail: z.string().trim().max(500).catch(""),
+  // Thiếu (ô đang tạm ẩn ở form) → undefined: không đụng giá trị cũ.
+  address_detail: z.string().trim().max(500).optional().catch(undefined),
   social_name: z.string().trim().max(200).catch(""),
   picture: z.string().trim().max(2000).catch(""),
   tags: z
@@ -145,7 +146,7 @@ export async function submitLead(
       stage,
       staff_id: d.staff_id || null,
       region_code: d.region_code || null,
-      address_detail: d.address_detail || null,
+      ...(d.address_detail !== undefined ? { address_detail: d.address_detail || null } : {}),
       // Chỉ ghi khi đang ở "deposited" và có nhập — còn lại giữ tiền cọc cũ trong CRM.
       ...(stage === "deposited" && d.deposit_amount != null
         ? { deposit_amount: d.deposit_amount }

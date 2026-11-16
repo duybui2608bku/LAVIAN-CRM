@@ -3,6 +3,11 @@ export function normalizePhone(value: string): string {
   return value.replace(/\+/g, "").trim();
 }
 
+/** SĐT hợp lệ: chỉ gồm chữ số, khoảng trắng, "-" (dấu "+" được bỏ qua) và có ít nhất 1 số. */
+export function isValidPhone(value: string): boolean {
+  return /^[\d\s-]*\d[\d\s-]*$/.test(normalizePhone(value));
+}
+
 /**
  * Chuẩn hoá số di động Indonesia khi lưu: đầu "62" → "0", thiếu "0" thì thêm,
  * nhóm 4-4-còn lại (vd 0812-1214-1243, 0811-1011-23558, 0811-9727-970).

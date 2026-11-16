@@ -1,12 +1,21 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatPhone, normalizePhone } from "./phone.ts";
+import { formatPhone, isValidPhone, normalizePhone } from "./phone.ts";
 
 test("phone stays text, drops plus signs, and has no length limit", () => {
   assert.equal(normalizePhone("+72"), "72");
   assert.equal(normalizePhone("001"), "001");
   assert.equal(normalizePhone("7".repeat(100)), "7".repeat(100));
   assert.equal(normalizePhone(" +72 123-456 "), "72 123-456");
+});
+
+test("isValidPhone rejects letters and other symbols", () => {
+  assert.equal(isValidPhone("+62 812-345"), true);
+  assert.equal(isValidPhone("0812345"), true);
+  assert.equal(isValidPhone("0812abc345"), false);
+  assert.equal(isValidPhone("abc"), false);
+  assert.equal(isValidPhone("(0812).345"), false);
+  assert.equal(isValidPhone(" - "), false);
 });
 
 test("formatPhone: Indonesian mobile → 0xxx-xxxx-xxxx", () => {

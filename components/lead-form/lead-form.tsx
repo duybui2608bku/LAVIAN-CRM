@@ -21,7 +21,7 @@ import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
-import { formatPhone, normalizePhone } from "@/lib/phone";
+import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { EnumOption } from "@/types/customer";
@@ -316,7 +316,10 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
           <Form.Item
             name="phone"
             label={t("phone")}
-            rules={[{ required: true, message: t("phoneInvalid") }]}
+            rules={[
+              { required: true, message: t("phoneInvalid") },
+              { validator: (_, v?: string) => (!v || isValidPhone(v) ? Promise.resolve() : Promise.reject(new Error(t("phoneInvalid")))) },
+            ]}
             normalize={normalizePhone}
           >
             <Input type="text" inputMode="tel" autoComplete="tel" />
@@ -326,9 +329,11 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
         <Form.Item name="region_code" label={t("region")}>
           <RegionSelect provinceLabel={t("province")} cityLabel={t("city")} />
         </Form.Item>
+        {/* Tạm ẩn "Địa chỉ chi tiết" (2026-11-16) — bỏ comment để hiện lại. Không gửi field → server giữ giá trị cũ.
         <Form.Item name="address_detail" label={t("addressDetail")} rules={[{ max: 500 }]}>
           <Input placeholder={t("noteOptional")} />
         </Form.Item>
+        */}
         {/* Lưới 2x2: Telesales | Giai đoạn, Tiền cọc | Ảnh xác nhận thanh toán. */}
         <div className="grid grid-cols-2 gap-x-3">
           {staff.length > 0 && (

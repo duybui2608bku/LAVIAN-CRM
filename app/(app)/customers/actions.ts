@@ -1,7 +1,7 @@
 "use server";
 
 import { CUSTOMER_OPTIONS, validRating } from "@/lib/customer-options";
-import { formatPhone } from "@/lib/phone";
+import { formatPhone, isValidPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
@@ -66,6 +66,7 @@ function clean(input: CustomerInput) {
   const nz = (v?: string | null) => (v && v.trim() !== "" ? v.trim() : null);
   if (!CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === input.stage))
     throw new Error("Giai đoạn không hợp lệ.");
+  if (!isValidPhone(input.phone)) throw new Error("Số điện thoại không hợp lệ.");
   return {
     full_name: input.full_name.trim(),
     phone: formatPhone(input.phone),
