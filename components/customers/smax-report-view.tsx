@@ -7,9 +7,10 @@ import { RefreshCw } from "lucide-react";
 
 import { getInboxReport } from "@/app/(app)/customers/smax-report/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
-import { DateRangeFilter, initialRange } from "@/components/common/date-range-filter";
+import { DateRangePicker } from "@/components/common/date-picker";
+import { initialRange } from "@/components/common/date-range-filter";
 import { StatCard } from "@/components/common/stat-card";
-import { PageHeader, PageToolbar } from "@/components/layout/page";
+import { PageToolbar } from "@/components/layout/page";
 import {
   INBOX_STAFF,
   INBOX_STATUSES,
@@ -75,18 +76,13 @@ export function SmaxReportView() {
 
   return (
     <>
-      <PageHeader
-        title={t("title")}
-        description={t("subtitle")}
-        actions={
-          <Button icon={<RefreshCw className={cn("size-4", pending && "animate-spin")} />} onClick={load}>
-            {t("refresh")}
-          </Button>
-        }
-      />
-
       <PageToolbar>
-        <DateRangeFilter value={range} onChange={setRange} />
+        <DateRangePicker
+          from={range.from}
+          to={range.to}
+          allowClear={false}
+          onChange={(r) => r.from && setRange({ from: r.from, to: r.to || r.from })}
+        />
         <ClearableSelect
           value={staff}
           onChange={setStaff}
@@ -96,6 +92,9 @@ export function SmaxReportView() {
           className="w-48 max-sm:w-full"
           searchable
         />
+        <Button icon={<RefreshCw className={cn("size-4", pending && "animate-spin")} />} onClick={load}>
+          {t("refresh")}
+        </Button>
       </PageToolbar>
 
       {result?.error ? <Alert type="error" showIcon title={result.error} /> : null}

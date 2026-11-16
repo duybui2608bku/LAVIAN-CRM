@@ -615,8 +615,6 @@
     "alerts": "Alerts & pending tasks"
   },
   "smaxReport": {
-    "title": "Smax report",
-    "subtitle": "WhatsApp & Instagram conversations by status and telesales",
     "refresh": "Refresh",
     "staff": "Telesales",
     "allStaff": "All telesales",
