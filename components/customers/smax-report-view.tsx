@@ -28,8 +28,10 @@ type Result = Awaited<ReturnType<typeof getInboxReport>>;
 // Màu trạng thái dùng chung cho thanh phân bổ + chấm chú thích.
 const STATUS_COLOR: Record<InboxStatus, string> = {
   booking: "var(--success)",
+  potential: "var(--destructive)",
   followUp: "var(--info)",
   pending: "var(--warning)",
+  spam: "var(--muted-foreground)",
 };
 
 function useFormat() {
@@ -100,7 +102,7 @@ export function SmaxReportView() {
       {result?.error ? <Alert type="error" showIcon title={result.error} /> : null}
 
       <div className={cn("flex flex-col gap-4 transition-opacity duration-200", pending && result && "opacity-60")}>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <StatCard
             label={t("card.total")}
             loading={loading}

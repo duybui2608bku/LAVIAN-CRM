@@ -1,19 +1,21 @@
 /**
  * Báo cáo Inbox SMAX: đếm hội thoại có tin nhắn trong khoảng ngày theo kênh (WA/IG),
- * trạng thái (tag Booking / Follow up / Pending 24h) và nhân viên (tag tên nhân viên).
+ * trạng thái (tag Booking / Potential / Follow up / Pending 24h / Spam) và nhân viên (tag tên nhân viên).
  * Tag là trạng thái HIỆN TẠI của hội thoại (SMAX không lưu lịch sử tag theo ngày).
  */
 export const INBOX_CHANNELS = ["wa", "ig"] as const;
 export type InboxChannel = (typeof INBOX_CHANNELS)[number];
 const CHANNEL_OF: Record<string, InboxChannel> = { whatsappweb: "wa", instagram: "ig" };
 
-export const INBOX_STATUSES = ["booking", "followUp", "pending"] as const;
+export const INBOX_STATUSES = ["booking", "potential", "followUp", "pending", "spam"] as const;
 export type InboxStatus = (typeof INBOX_STATUSES)[number];
 // Thứ tự = ưu tiên khi 1 hội thoại lỡ gắn nhiều trạng thái.
 const STATUS_ALIASES: [InboxStatus, string[]][] = [
   ["booking", ["booking", "bookings-deposit"]],
+  ["potential", ["potential"]],
   ["followUp", ["follow-up"]],
   ["pending", ["no-reply"]],
+  ["spam", ["spam"]],
 ];
 const DEPOSIT_ALIAS = "bookings-deposit";
 
@@ -40,11 +42,11 @@ export type ChannelCounts = Record<InboxChannel, InboxCounts>;
 export type InboxStaffRow = { alias: string; name: string; counts: ChannelCounts };
 export type InboxReport = { total: ChannelCounts; staff: InboxStaffRow[]; threads: number };
 
-const emptyCounts = (): InboxCounts => ({ booking: 0, followUp: 0, pending: 0, deposit: 0, untagged: 0 });
+const emptyCounts = (): InboxCounts => ({ booking: 0, potential: 0, followUp: 0, pending: 0, spam: 0, deposit: 0, untagged: 0 });
 const emptyChannels = (): ChannelCounts => ({ wa: emptyCounts(), ig: emptyCounts() });
 
-/** Booking + Follow up + Pending 24h (= cột "all total" của mẫu, không tính hội thoại chưa gắn). */
-export const statusTotal = (c: InboxCounts) => c.booking + c.followUp + c.pending;
+/** Tổng các trạng thái (= cột "all total" của mẫu, không tính hội thoại chưa gắn). */
+export const statusTotal = (c: InboxCounts) => INBOX_STATUSES.reduce((n, s) => n + c[s], 0);
 /** Cộng WA + IG. */
 export const sumChannels = (c: ChannelCounts): InboxCounts => {
   const out = emptyCounts();

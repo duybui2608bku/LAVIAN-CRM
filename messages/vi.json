@@ -628,8 +628,10 @@
     },
     "status": {
       "booking": "Booking",
+      "potential": "Potential",
       "followUp": "Follow Up",
-      "pending": "Pending 24H"
+      "pending": "Pending 24H",
+      "spam": "Spam"
     },
     "byChannel": "Theo kênh",
     "byStaff": "Theo Telesales",
@@ -637,6 +639,6 @@
     "total": "Tổng",
     "bookingRate": "Tỉ lệ Booking",
     "distribution": "Phân bổ",
-    "tagNote": "Đếm hội thoại có tin nhắn trong khoảng ngày theo tag hiện tại trên SMAX. Booking gồm cả Bookings deposit. Xem ngày cũ sẽ ra trạng thái hiện tại, không phải trạng thái cuối ngày đó."
+    "tagNote": "Đếm hội thoại có tin nhắn trong khoảng ngày theo tag hiện tại trên SMAX. Booking gồm cả Bookings deposit. Hội thoại gắn nhiều trạng thái được tính 1 lần theo thứ tự Booking → Potential → Follow Up → Pending 24H → Spam. Xem ngày cũ sẽ ra trạng thái hiện tại, không phải trạng thái cuối ngày đó."
   }
 }
