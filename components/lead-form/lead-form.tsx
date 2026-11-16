@@ -21,7 +21,7 @@ import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
-import { formatPhone, normalizePhone } from "@/lib/phone";
+import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { EnumOption } from "@/types/customer";
@@ -316,7 +316,10 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
           <Form.Item
             name="phone"
             label={t("phone")}
-            rules={[{ required: true, message: t("phoneInvalid") }]}
+            rules={[
+              { required: true, message: t("phoneInvalid") },
+              { validator: (_, v?: string) => (!v || isValidPhone(v) ? Promise.resolve() : Promise.reject(new Error(t("phoneInvalid")))) },
+            ]}
             normalize={normalizePhone}
           >
             <Input type="text" inputMode="tel" autoComplete="tel" />

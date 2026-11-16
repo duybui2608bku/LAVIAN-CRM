@@ -52,7 +52,7 @@ import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES, regionNames } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
-import { formatPhone, normalizePhone } from "@/lib/phone";
+import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
@@ -815,7 +815,15 @@ function CustomerDialog({
         <Form.Item name="full_name" label={t("colName")} rules={required}>
           <Input />
         </Form.Item>
-        <Form.Item name="phone" label={t("colPhone")} rules={required} normalize={normalizePhone}>
+        <Form.Item
+          name="phone"
+          label={t("colPhone")}
+          rules={[
+            ...required,
+            { validator: (_, v?: string) => (!v || isValidPhone(v) ? Promise.resolve() : Promise.reject(new Error(t("phoneInvalid")))) },
+          ]}
+          normalize={normalizePhone}
+        >
           <Input inputMode="tel" autoComplete="off" />
         </Form.Item>
         <Form.Item name="social_name" label={t("socialName")}>

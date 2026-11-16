@@ -374,6 +374,7 @@
     "create": "New customer",
     "searchPlaceholder": "Search by name or phone…",
     "colName": "Full name",
+    "phoneInvalid": "Invalid phone number",
     "colPhone": "Phone",
     "colTags": "Tags",
     "colStage": "Stage",

@@ -8,14 +8,14 @@ import { appointmentPatchSchema } from "@/lib/appointments";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOMER_OPTIONS, leadSource } from "@/lib/customer-options";
-import { formatPhone } from "@/lib/phone";
+import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 const schema = z.object({
   customer_id: z.string().trim().max(200),
   full_name: z.string().trim().min(1).max(120),
-  phone: z.string().transform(formatPhone).pipe(z.string().min(1)),
+  phone: z.string().refine(isValidPhone).transform(formatPhone),
   note: z.string().trim().max(1000),
   staff_id: z.uuid().or(z.literal("")),
   stage: z.string(),
