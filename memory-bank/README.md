@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — Tăng tốc tải hội thoại SMAX (Báo cáo Smax + Follow up)
+- **Thay đổi:** `fetchInboxThreads` chia khoảng ngày thành lát 24h (00:00 WIB), tải song song 8 luồng/truy vấn, `limit` 200 → 500 (1000 bị SMAX từ chối), thử lại 3 lần khi 429/5xx/lỗi mạng (16 luồng từng gặp 502). Đo API thật 30 ngày: Follow up 20s → ~3s, Báo cáo Smax ~12s → ~2s; số hội thoại khớp cách cũ (5006 / 4399 / 145).
+- **File ảnh hưởng:** `lib/smax-threads.ts`, `openspec/changes/smax-fetch-parallel/`.
+- **Còn dở / ghi chú:** tsc + eslint + 62 test sạch; chưa xem trên trình duyệt (chỉ đo bằng script gọi thẳng module). Chưa cache kết quả — mỗi lần đổi ngày/Tải lại vẫn gọi SMAX.
+
 ### 2026-11-17 — Báo cáo Smax chỉ tính khách mới; Booking gồm cả khách cũ
 - **Thay đổi:** "Tổng hội thoại" → "Hội thoại mới" = hội thoại TẠO trong kỳ (`sort_by_created_at: true`); trạng thái Potential/Follow Up/Pending/Spam đếm trên tập này. Booking lấy truy vấn riêng (`tags` booking + bookings-deposit, `tags_condition: "OR"` bắt buộc) theo tin nhắn trong kỳ → gồm khách cũ; số booking khách cũ (hội thoại tạo trước kỳ) hiện ở ghi chú thẻ Booking (đã bỏ thẻ riêng). % và cột Tổng chia cho số hội thoại mới. Cập nhật `SMAX_TOKEN` mới trong `.env.local` (hết hạn 2026-12-09 — nhớ cập nhật cả Vercel).
 - **File ảnh hưởng:** `lib/smax-threads.ts`, `lib/smax-inbox.ts` (+ test), `app/(app)/customers/smax-report/actions.ts`, `components/customers/smax-report-view.tsx`, `messages/{vi,en}.json`, `openspec/changes/smax-report-new-leads/`.
