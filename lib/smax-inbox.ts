@@ -1,7 +1,8 @@
 /**
  * Báo cáo Inbox SMAX (+ báo cáo Follow up ở cuối file) — hiệu suất KHÁCH MỚI theo kênh (WA/IG) và nhân viên (tag tên):
  * - hội thoại mới = tạo trong khoảng ngày; trạng thái Potential / Follow up / Pending 24h / Spam đếm trên tập này;
- * - Booking lấy riêng = hội thoại gắn tag booking có tin nhắn trong khoảng (gồm cả khách cũ quay lại đặt lịch).
+ * - Booking lấy riêng = hội thoại được GẮN tag booking trong khoảng (theo `customer.tags[].time`, gồm cả khách cũ);
+ *   đã gắn từ trước mà trong khoảng chỉ nhắn lại thì không tính.
  * Tag là trạng thái HIỆN TẠI của hội thoại (SMAX không lưu lịch sử tag theo ngày).
  */
 export const INBOX_CHANNELS = ["wa", "ig"] as const;
@@ -92,11 +93,11 @@ export const sumChannels = (c: ChannelCounts): InboxCounts => {
 };
 
 /**
- * `created` = hội thoại tạo trong khoảng (khách mới), `booked` = hội thoại gắn tag booking có tin nhắn trong khoảng.
- * `from`/`to` là ngày WIB `YYYY-MM-DD` cùng khoảng đã dùng để lấy — dùng tách Booking khách cũ.
+ * `created` = hội thoại tạo trong khoảng (khách mới), `booked` = hội thoại có tag booking (tin nhắn từ đầu khoảng đến nay).
+ * `from`/`to` là ngày WIB `YYYY-MM-DD` — Booking chỉ tính khi lần gắn tag booking sớm nhất nằm trong khoảng.
  */
 export function buildInboxReport(created: InboxThread[], booked: InboxThread[], from: string, to: string): InboxReport {
-  const [start] = inboxDateRange(from, to).map(Date.parse);
+  const [start, end] = inboxDateRange(from, to).map(Date.parse);
   const total = emptyChannels();
   const staff = new Map<string, ChannelCounts>(
     [...INBOX_STAFF.map((s) => s.alias), UNASSIGNED].map((a) => [a, emptyChannels()]),
@@ -123,7 +124,8 @@ export function buildInboxReport(created: InboxThread[], booked: InboxThread[], 
     else if (status !== "booking") c[status]++; // Booking đếm từ `booked` (tránh đếm 2 lần)
   });
   tally(booked, (c, tags, t) => {
-    if (!BOOKING_ALIASES.some((a) => tags.includes(a))) return;
+    const at = taggedAt(t, BOOKING_ALIASES);
+    if (!BOOKING_ALIASES.some((a) => tags.includes(a)) || !(at >= start && at <= end)) return;
     c.booking++;
     if (tags.includes(DEPOSIT_ALIAS)) c.deposit++;
     if (Date.parse(t.created_at ?? "") < start) c.bookingOld++;

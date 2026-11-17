@@ -32,9 +32,12 @@ async function withRange<T>(from: string, to: string, build: () => Promise<T>): 
 /** Báo cáo Smax (hiệu suất khách mới) theo khoảng ngày. */
 export async function getInboxReport(from: string, to: string): Promise<Result<InboxReport>> {
   return withRange(from, to, async () => {
+    // Booking tính theo lúc gắn tag: hội thoại gắn trong khoảng nhưng nhắn tiếp sau đó có last_message_at muộn hơn `to`
+    // → lấy theo tin nhắn từ `from` tới hôm nay (WIB) rồi lọc theo thời điểm gắn.
+    const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
     const [created, booked] = await Promise.all([
       fetchInboxThreads(from, to, { byCreated: true }),
-      fetchInboxThreads(from, to, { tags: BOOKING_ALIASES }),
+      fetchInboxThreads(from, today > to ? today : to, { tags: BOOKING_ALIASES }),
     ]);
     return buildInboxReport(created, booked, from, to);
   });
