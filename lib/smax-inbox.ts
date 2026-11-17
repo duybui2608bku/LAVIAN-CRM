@@ -90,6 +90,8 @@ export type InboxCounts = Record<InboxStatus, number> & {
   reEngaged: number;
   /** Khách đến = gắn tag purchase trong khoảng (mọi khách). */
   showUp: number;
+  /** Khách đến ngay trong ngày đầu xuất hiện (cùng ngày WIB) — đã nằm trong showUp. */
+  showUpSameDay: number;
 };
 export type ChannelCounts = Record<InboxChannel, InboxCounts>;
 export type InboxStaffRow = { alias: string; name: string; counts: ChannelCounts };
@@ -107,6 +109,7 @@ const emptyCounts = (): InboxCounts => ({
   bookingOld: 0,
   reEngaged: 0,
   showUp: 0,
+  showUpSameDay: 0,
 });
 const emptyChannels = (): ChannelCounts => ({ wa: emptyCounts(), ig: emptyCounts() });
 
@@ -152,10 +155,14 @@ export function buildInboxReport(created: InboxThread[], active: InboxThread[], 
   });
   tally(active, (c, tags, t) => {
     const bookedAt = taggedAt(t, BOOKING_ALIASES);
-    const showed = inRange(taggedAt(t, [SHOW_UP_ALIAS]));
+    const showedAt = taggedAt(t, [SHOW_UP_ALIAS]);
+    const showed = inRange(showedAt);
     // Cùng điều kiện "số bào" của buildFollowupReport.
     if (firstSeen(t) < start && (inRange(Date.parse(t.last_message_at ?? "")) || inRange(bookedAt) || showed)) c.reEngaged++;
-    if (showed) c.showUp++;
+    if (showed) {
+      c.showUp++;
+      if (wibDate(firstSeen(t)) === wibDate(showedAt)) c.showUpSameDay++;
+    }
     if (!BOOKING_ALIASES.some((a) => tags.includes(a)) || !inRange(bookedAt)) return;
     c.booking++;
     if (tags.includes(DEPOSIT_ALIAS) && taggedAt(t, [DEPOSIT_ALIAS]) <= end) c.deposit++; // cọc sau kỳ → chưa tính
@@ -170,6 +177,9 @@ export function buildInboxReport(created: InboxThread[], active: InboxThread[], 
     ],
   };
 }
+
+/** Ngày WIB `YYYY-MM-DD` của mốc ms (NaN → ""). */
+const wibDate = (ms: number) => (Number.isNaN(ms) ? "" : new Date(ms + 7 * 3_600_000).toISOString().slice(0, 10));
 
 /** Khoảng ngày VN/WIB (UTC+7) `YYYY-MM-DD` → dateRange ISO của SMAX (00:00 WIB = 17:00 UTC hôm trước). */
 export function inboxDateRange(from: string, to: string): [string, string] {
