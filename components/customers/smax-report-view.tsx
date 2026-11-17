@@ -119,7 +119,7 @@ export function SmaxReportView() {
       {result?.error ? <Alert type="error" showIcon title={result.error} /> : null}
 
       <div className={cn("flex flex-col gap-4 transition-opacity duration-200", pending && result && "opacity-60")}>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <StatCard
             label={t("card.total")}
             loading={loading}
@@ -127,47 +127,38 @@ export function SmaxReportView() {
             hint={sum ? t("hint.total", { untagged: num(sum.untagged) }) : undefined}
           />
           {INBOX_STATUSES.map((s) => (
-            <React.Fragment key={s}>
-              <StatCard
-                loading={loading}
-                label={
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
-                    {t(`status.${s}`)}
+            <StatCard
+              key={s}
+              loading={loading}
+              label={
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
+                  {t(`status.${s}`)}
+                </span>
+              }
+              value={
+                sum ? (
+                  <span className="flex items-baseline gap-2">
+                    {num(sum[s])}
+                    <span className="text-sm font-medium text-muted-foreground">{pct(sum[s], all)}</span>
                   </span>
-                }
-                value={
-                  sum ? (
-                    <span className="flex items-baseline gap-2">
-                      {num(sum[s])}
-                      <span className="text-sm font-medium text-muted-foreground">{pct(sum[s], all)}</span>
-                    </span>
-                  ) : (
-                    "-"
-                  )
-                }
-                hint={
-                  scope
-                    ? [channel ? null : `WA ${num(scope.wa[s])} · IG ${num(scope.ig[s])}`, s === "booking" && sum ? t("hint.deposit", { n: num(sum.deposit) }) : null]
-                        .filter(Boolean)
-                        .join(" · ")
-                    : undefined
-                }
-              />
-              {s === "booking" ? (
-                <StatCard
-                  loading={loading}
-                  label={
-                    <span className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full" style={{ background: STATUS_COLOR.booking }} />
-                      {t("card.bookingOld")}
-                    </span>
-                  }
-                  value={sum ? num(sum.bookingOld) : "-"}
-                  hint={t("hint.bookingOld")}
-                />
-              ) : null}
-            </React.Fragment>
+                ) : (
+                  "-"
+                )
+              }
+              hint={
+                scope
+                  ? [
+                      channel ? null : `WA ${num(scope.wa[s])} · IG ${num(scope.ig[s])}`,
+                      ...(s === "booking" && sum
+                        ? [t("hint.deposit", { n: num(sum.deposit) }), t("hint.bookingOld", { n: num(sum.bookingOld) })]
+                        : []),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : undefined
+              }
+            />
           ))}
         </div>
 
@@ -297,9 +288,10 @@ function StaffTable({
         </span>
       ),
     },
-    ...INBOX_STATUSES.map((s) => ({
+    // Cột Old Booking ngay sau Booking (đã nằm trong số Booking).
+    ...[...INBOX_STATUSES.slice(0, 1), "bookingOld" as const, ...INBOX_STATUSES.slice(1)].map((s) => ({
       key: s,
-      title: t(`status.${s}`),
+      title: s === "bookingOld" ? t("bookingOld") : t(`status.${s}`),
       align: "right" as const,
       render: (_: unknown, r: StaffRow) => <span className="tabular-nums">{num(r.sum[s])}</span>,
     })),

@@ -51,7 +51,7 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 ## Nhật ký session
 
 ### 2026-11-17 — Báo cáo Smax chỉ tính khách mới; Booking gồm cả khách cũ
-- **Thay đổi:** "Tổng hội thoại" → "Hội thoại mới" = hội thoại TẠO trong kỳ (`sort_by_created_at: true`); trạng thái Potential/Follow Up/Pending/Spam đếm trên tập này. Booking lấy truy vấn riêng (`tags` booking + bookings-deposit, `tags_condition: "OR"` bắt buộc) theo tin nhắn trong kỳ → gồm khách cũ; "Booking khách cũ" = hội thoại tạo trước kỳ. % và cột Tổng chia cho số hội thoại mới. Cập nhật `SMAX_TOKEN` mới trong `.env.local` (hết hạn 2026-12-09 — nhớ cập nhật cả Vercel).
+- **Thay đổi:** "Tổng hội thoại" → "Hội thoại mới" = hội thoại TẠO trong kỳ (`sort_by_created_at: true`); trạng thái Potential/Follow Up/Pending/Spam đếm trên tập này. Booking lấy truy vấn riêng (`tags` booking + bookings-deposit, `tags_condition: "OR"` bắt buộc) theo tin nhắn trong kỳ → gồm khách cũ; số booking khách cũ (hội thoại tạo trước kỳ) hiện ở ghi chú thẻ Booking (đã bỏ thẻ riêng). % và cột Tổng chia cho số hội thoại mới. Cập nhật `SMAX_TOKEN` mới trong `.env.local` (hết hạn 2026-12-09 — nhớ cập nhật cả Vercel).
 - **File ảnh hưởng:** `lib/smax-threads.ts`, `lib/smax-inbox.ts` (+ test), `app/(app)/customers/smax-report/actions.ts`, `components/customers/smax-report-view.tsx`, `messages/{vi,en}.json`, `openspec/changes/smax-report-new-leads/`.
 - **Còn dở / ghi chú:** SMAX lỗi phân trang khi sắp theo ngày tạo (`after` vẫn so `last_message_at`) → phân trang bằng cách lùi mốc cuối `dateRange`. Chưa xem trên trình duyệt. Trang Follow up giữ cách lấy cũ.
 

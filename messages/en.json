@@ -623,13 +623,12 @@
     "allSources": "All sources",
     "unassigned": "Unassigned",
     "card": {
-      "total": "New conversations",
-      "bookingOld": "Returning-lead bookings"
+      "total": "New conversations"
     },
     "hint": {
       "total": "{untagged} without status",
       "deposit": "{n} deposit",
-      "bookingOld": "Leads from before the range with messages in it"
+      "bookingOld": "{n} returning"
     },
     "status": {
       "booking": "Booking",
@@ -642,6 +641,7 @@
     "byStaff": "By telesales",
     "channel": "Channel",
     "total": "Total",
+    "bookingOld": "Old Booking",
     "bookingRate": "Booking rate",
     "distribution": "Distribution"
   },

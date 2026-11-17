@@ -623,13 +623,12 @@
     "allSources": "Tất cả nguồn",
     "unassigned": "Chưa gán Telesales",
     "card": {
-      "total": "Hội thoại mới",
-      "bookingOld": "Booking khách cũ"
+      "total": "Hội thoại mới"
     },
     "hint": {
       "total": "{untagged} chưa gắn trạng thái",
       "deposit": "{n} deposit",
-      "bookingOld": "Khách nhắn từ trước kỳ, có tin nhắn trong kỳ"
+      "bookingOld": "{n} khách cũ"
     },
     "status": {
       "booking": "Booking",
@@ -642,6 +641,7 @@
     "byStaff": "Theo Telesales",
     "channel": "Kênh",
     "total": "Tổng",
+    "bookingOld": "Booking cũ",
     "bookingRate": "Tỉ lệ Booking",
     "distribution": "Phân bổ"
   },
