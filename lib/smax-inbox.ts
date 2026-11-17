@@ -2,7 +2,8 @@
  * Báo cáo Inbox SMAX (+ báo cáo Follow up ở cuối file) — hiệu suất KHÁCH MỚI theo kênh (WA/IG) và nhân viên (tag tên):
  * - hội thoại mới = tạo trong khoảng ngày; trạng thái Potential / Follow up / Pending 24h / Spam đếm trên tập này;
  * - Booking lấy riêng = hội thoại được GẮN tag booking trong khoảng (theo `customer.tags[].time`, gồm cả khách cũ);
- *   đã gắn từ trước mà trong khoảng chỉ nhắn lại thì không tính.
+ *   đã gắn từ trước mà trong khoảng chỉ nhắn lại thì không tính. Khách đến (tag purchase) cũng theo lúc gắn tag;
+ * - Re-engaged = khách cũ có tin nhắn hoặc được gắn Booking/Purchase trong khoảng (cùng định nghĩa "số bào" Follow up).
  * Tag là trạng thái HIỆN TẠI của hội thoại (SMAX không lưu lịch sử tag theo ngày).
  */
 export const INBOX_CHANNELS = ["wa", "ig"] as const;
@@ -85,6 +86,10 @@ export type InboxCounts = Record<InboxStatus, number> & {
   untagged: number;
   /** Booking của khách cũ (khách xuất hiện trước khoảng ngày) — đã nằm trong booking. */
   bookingOld: number;
+  /** Khách cũ quay lại (nhắn tin / gắn Booking / gắn Purchase trong khoảng). */
+  reEngaged: number;
+  /** Khách đến = gắn tag purchase trong khoảng (mọi khách). */
+  showUp: number;
 };
 export type ChannelCounts = Record<InboxChannel, InboxCounts>;
 export type InboxStaffRow = { alias: string; name: string; counts: ChannelCounts };
@@ -100,6 +105,8 @@ const emptyCounts = (): InboxCounts => ({
   deposit: 0,
   untagged: 0,
   bookingOld: 0,
+  reEngaged: 0,
+  showUp: 0,
 });
 const emptyChannels = (): ChannelCounts => ({ wa: emptyCounts(), ig: emptyCounts() });
 
@@ -113,11 +120,12 @@ export const sumChannels = (c: ChannelCounts): InboxCounts => {
 };
 
 /**
- * `created` = hội thoại tạo trong khoảng (khách mới), `booked` = hội thoại có tag booking (tin nhắn từ đầu khoảng đến nay).
- * `from`/`to` là ngày WIB `YYYY-MM-DD` — Booking chỉ tính khi lần gắn tag booking sớm nhất nằm trong khoảng.
+ * `created` = hội thoại tạo trong khoảng (khách mới), `active` = hội thoại có tin nhắn từ đầu khoảng đến nay.
+ * `from`/`to` là ngày WIB `YYYY-MM-DD` — Booking / Khách đến chỉ tính khi lần gắn tag sớm nhất nằm trong khoảng.
  */
-export function buildInboxReport(created: InboxThread[], booked: InboxThread[], from: string, to: string): InboxReport {
+export function buildInboxReport(created: InboxThread[], active: InboxThread[], from: string, to: string): InboxReport {
   const [start, end] = inboxDateRange(from, to).map(Date.parse);
+  const inRange = (ms: number) => ms >= start && ms <= end;
   const total = emptyChannels();
   const staff = new Map<string, ChannelCounts>(
     [...INBOX_STAFF.map((s) => s.alias), UNASSIGNED].map((a) => [a, emptyChannels()]),
@@ -142,9 +150,13 @@ export function buildInboxReport(created: InboxThread[], booked: InboxThread[], 
     if (!status) c.untagged++;
     else if (status !== "booking") c[status]++; // Booking đếm từ `booked` (tránh đếm 2 lần)
   });
-  tally(booked, (c, tags, t) => {
-    const at = taggedAt(t, BOOKING_ALIASES);
-    if (!BOOKING_ALIASES.some((a) => tags.includes(a)) || !(at >= start && at <= end)) return;
+  tally(active, (c, tags, t) => {
+    const bookedAt = taggedAt(t, BOOKING_ALIASES);
+    const showed = inRange(taggedAt(t, [SHOW_UP_ALIAS]));
+    // Cùng điều kiện "số bào" của buildFollowupReport.
+    if (firstSeen(t) < start && (inRange(Date.parse(t.last_message_at ?? "")) || inRange(bookedAt) || showed)) c.reEngaged++;
+    if (showed) c.showUp++;
+    if (!BOOKING_ALIASES.some((a) => tags.includes(a)) || !inRange(bookedAt)) return;
     c.booking++;
     if (tags.includes(DEPOSIT_ALIAS) && taggedAt(t, [DEPOSIT_ALIAS]) <= end) c.deposit++; // cọc sau kỳ → chưa tính
     if (firstSeen(t) < start) c.bookingOld++;

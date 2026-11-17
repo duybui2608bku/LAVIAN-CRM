@@ -191,7 +191,6 @@
     "telesales": "Leader Telesales",
     "bookings": "Quản lý Booking",
     "smaxReport": "Báo cáo Smax",
-    "smaxFollowup": "Follow up",
     "documents": "Tài liệu"
   },
   "theme": {
@@ -601,12 +600,15 @@
     "allSources": "Tất cả nguồn",
     "unassigned": "Chưa gán Telesales",
     "card": {
-      "total": "Khách mới"
+      "reEngaged": "Khách cũ quay lại",
+      "newCustomers": "Khách mới",
+      "bookingTotal": "Tổng Booking",
+      "bookingNew": "Booking mới",
+      "showUp": "Khách đến"
     },
     "hint": {
-      "total": "{untagged} chưa gắn trạng thái",
       "deposit": "{n} deposit",
-      "bookingOld": "{n} khách cũ"
+      "bookingOld": "Booking cũ: {n}"
     },
     "status": {
       "booking": "Booking",
@@ -616,10 +618,11 @@
       "spam": "Spam"
     },
     "byChannel": "Theo kênh",
+    "bySource": "Booking theo nguồn",
     "byStaff": "Theo Telesales",
     "channel": "Kênh",
     "total": "Tổng",
-    "bookingOld": "Booking cũ",
+    "bookingNew": "Booking mới",
     "bookingRate": "Tỉ lệ Booking",
     "distribution": "Phân bổ"
   },
@@ -630,13 +633,7 @@
     "bookingNew": "Booking mới",
     "bookingOld": "Booking follow-up",
     "bookingTotal": "Tổng booking",
-    "hint": {
-      "worked": "Khách cũ có tin nhắn trong khoảng",
-      "quality": "{booking} Booking · {showUp} đã đến",
-      "bookingNew": "Từ data mới trong khoảng",
-      "bookingOld": "Từ khách cũ được chăm",
-      "bookingTotal": "Booking mới + Booking follow-up"
-    }
+    "byStaff": "Follow up theo Telesales"
   },
   "documents": {
     "title": "Tài liệu",

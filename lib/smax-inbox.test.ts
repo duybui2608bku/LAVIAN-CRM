@@ -5,7 +5,7 @@ import { buildFollowupReport, buildInboxReport, countPotential, inboxDateRange, 
 
 const t = (id: string, platform: string, tags: string[]) => ({ id, platform, tag_aliases: tags });
 
-const zero = { booking: 0, potential: 0, followUp: 0, pending: 0, spam: 0, conversations: 0, deposit: 0, untagged: 0, bookingOld: 0 };
+const zero = { booking: 0, potential: 0, followUp: 0, pending: 0, spam: 0, conversations: 0, deposit: 0, untagged: 0, bookingOld: 0, reEngaged: 0, showUp: 0 };
 
 test("buildInboxReport: khách mới theo kênh, trạng thái, nhân viên", () => {
   const r = buildInboxReport(
@@ -63,10 +63,11 @@ test("buildInboxReport: Booking theo lúc gắn tag trong khoảng (gồm khách
     "2026-11-16",
     "2026-11-16",
   );
-  assert.deepEqual(r.total.wa, { ...zero, booking: 2, deposit: 1, bookingOld: 1 });
-  assert.deepEqual(r.total.ig, { ...zero, booking: 1, bookingOld: 1 });
+  // Khách cũ gắn Booking trong kỳ (2, 3) cũng là khách quay lại.
+  assert.deepEqual(r.total.wa, { ...zero, booking: 2, deposit: 1, bookingOld: 1, reEngaged: 1 });
+  assert.deepEqual(r.total.ig, { ...zero, booking: 1, bookingOld: 1, reEngaged: 1 });
   assert.equal(statusTotal(sumChannels(r.total)), 3);
-  assert.deepEqual(r.staff.find((s) => s.alias === "bulan")!.counts.wa, { ...zero, booking: 2, deposit: 1, bookingOld: 1 });
+  assert.deepEqual(r.staff.find((s) => s.alias === "bulan")!.counts.wa, { ...zero, booking: 2, deposit: 1, bookingOld: 1, reEngaged: 1 });
   assert.equal(r.staff.find((s) => s.alias === UNASSIGNED)!.counts.ig.bookingOld, 1);
 });
 
@@ -147,4 +148,29 @@ test("1 khách IG có tin nhắn + bình luận chỉ tính 1; khách cũ bình 
     byWa: {},
     total: 1,
   });
+});
+
+test("buildInboxReport: Khách đến theo lúc gắn purchase, Re-engaged = khách cũ nhắn/chuyển đổi trong kỳ", () => {
+  const OLD = "2026-11-01T03:00:00.000Z";
+  const D16 = "2026-11-16T03:00:00.000Z";
+  const th = (id: string, created: string, last: string, tags: { alias: string; time: string }[]) => ({
+    id,
+    platform: "whatsappweb",
+    created_at: created,
+    last_message_at: last,
+    tag_aliases: tags.map((g) => g.alias),
+    customer: { id, tags },
+  });
+  const r = buildInboxReport(
+    [],
+    [
+      th("1", OLD, D16, []), // khách cũ nhắn trong kỳ
+      th("2", OLD, "2026-11-18T03:00:00.000Z", [{ alias: "purchase", time: D16 }]), // khách cũ đến trong kỳ, nhắn sau kỳ
+      th("3", D16, D16, [{ alias: "purchase", time: D16 }]), // khách mới đến → chỉ tính Khách đến
+      th("4", OLD, "2026-11-18T03:00:00.000Z", [{ alias: "purchase", time: "2026-11-18T03:00:00.000Z" }]), // đến sau kỳ → bỏ
+    ],
+    "2026-11-16",
+    "2026-11-16",
+  );
+  assert.deepEqual(r.total.wa, { ...zero, reEngaged: 2, showUp: 2 });
 });

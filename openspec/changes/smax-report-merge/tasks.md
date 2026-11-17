@@ -1,0 +1,5 @@
+- [x] `buildInboxReport` thêm `reEngaged` + `showUp`, nhận tập hội thoại active (+ test)
+- [x] Action `getSmaxReport` gộp 2 báo cáo
+- [x] View: 5 thẻ mới, Theo kênh 7/3 + donut Booking theo nguồn, cột New Booking, bảng Follow up cuối trang
+- [x] Xoá trang/menu Follow up, dọn i18n
+- [ ] Xem trên trình duyệt (cần `.env.local` thật)
