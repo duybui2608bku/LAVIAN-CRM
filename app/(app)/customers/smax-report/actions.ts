@@ -3,7 +3,7 @@
 import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { dayCount } from "@/lib/reports";
-import { buildFollowupReport, buildInboxReport, staffAvatars, type FollowupReport, type InboxReport, type InboxThread } from "@/lib/smax-inbox";
+import { BOOKING_ALIASES, buildFollowupReport, buildInboxReport, staffAvatars, type FollowupReport, type InboxReport } from "@/lib/smax-inbox";
 import { fetchInboxThreads } from "@/lib/smax-threads";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,22 +19,28 @@ async function loadAvatars() {
   return staffAvatars(data ?? []);
 }
 
-/** Kiểm quyền + khoảng ngày WIB `YYYY-MM-DD`, lấy hội thoại rồi tính báo cáo. */
-async function withThreads<T>(from: string, to: string, build: (threads: InboxThread[]) => T): Promise<Result<T>> {
+/** Kiểm quyền + khoảng ngày WIB `YYYY-MM-DD`, rồi lấy hội thoại + tính báo cáo (`build`). */
+async function withRange<T>(from: string, to: string, build: () => Promise<T>): Promise<Result<T>> {
   await requirePermission("customers.view");
   if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to) return { data: null, error: "Khoảng ngày không hợp lệ." };
   if (dayCount(from, to) > MAX_DAYS) return { data: null, error: `Chọn tối đa ${MAX_DAYS} ngày.` };
-  const [threads, avatars] = await Promise.allSettled([fetchInboxThreads(from, to), loadAvatars()]);
-  if (threads.status === "rejected") return { data: null, error: normalizeError(threads.reason).message };
-  return { data: build(threads.value), avatars: avatars.status === "fulfilled" ? avatars.value : undefined };
+  const [data, avatars] = await Promise.allSettled([build(), loadAvatars()]);
+  if (data.status === "rejected") return { data: null, error: normalizeError(data.reason).message };
+  return { data: data.value, avatars: avatars.status === "fulfilled" ? avatars.value : undefined };
 }
 
-/** Báo cáo Smax theo khoảng ngày. */
+/** Báo cáo Smax (hiệu suất khách mới) theo khoảng ngày. */
 export async function getInboxReport(from: string, to: string): Promise<Result<InboxReport>> {
-  return withThreads(from, to, (threads) => buildInboxReport(threads, from, to));
+  return withRange(from, to, async () => {
+    const [created, booked] = await Promise.all([
+      fetchInboxThreads(from, to, { byCreated: true }),
+      fetchInboxThreads(from, to, { tags: BOOKING_ALIASES }),
+    ]);
+    return buildInboxReport(created, booked, from, to);
+  });
 }
 
 /** Báo cáo Follow up (bào data cũ) theo khoảng ngày. */
 export async function getFollowupReport(from: string, to: string): Promise<Result<FollowupReport>> {
-  return withThreads(from, to, (threads) => buildFollowupReport(threads, from, to));
+  return withRange(from, to, async () => buildFollowupReport(await fetchInboxThreads(from, to), from, to));
 }

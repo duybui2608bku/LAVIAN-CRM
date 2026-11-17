@@ -77,7 +77,7 @@ export function SmaxReportView() {
       : report.total
     : null;
   const sum = scope ? pickChannel(scope, channel) : null;
-  const all = sum ? statusTotal(sum) : 0;
+  const all = sum?.conversations ?? 0;
   const loading = !result;
 
   const staffOptions = [
@@ -119,7 +119,7 @@ export function SmaxReportView() {
       {result?.error ? <Alert type="error" showIcon title={result.error} /> : null}
 
       <div className={cn("flex flex-col gap-4 transition-opacity duration-200", pending && result && "opacity-60")}>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           <StatCard
             label={t("card.total")}
             loading={loading}
@@ -127,47 +127,38 @@ export function SmaxReportView() {
             hint={sum ? t("hint.total", { untagged: num(sum.untagged) }) : undefined}
           />
           {INBOX_STATUSES.map((s) => (
-            <React.Fragment key={s}>
-              <StatCard
-                loading={loading}
-                label={
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
-                    {t(`status.${s}`)}
+            <StatCard
+              key={s}
+              loading={loading}
+              label={
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
+                  {t(`status.${s}`)}
+                </span>
+              }
+              value={
+                sum ? (
+                  <span className="flex items-baseline gap-2">
+                    {num(sum[s])}
+                    <span className="text-sm font-medium text-muted-foreground">{pct(sum[s], all)}</span>
                   </span>
-                }
-                value={
-                  sum ? (
-                    <span className="flex items-baseline gap-2">
-                      {num(sum[s])}
-                      <span className="text-sm font-medium text-muted-foreground">{pct(sum[s], all)}</span>
-                    </span>
-                  ) : (
-                    "-"
-                  )
-                }
-                hint={
-                  scope
-                    ? [channel ? null : `WA ${num(scope.wa[s])} · IG ${num(scope.ig[s])}`, s === "booking" && sum ? t("hint.deposit", { n: num(sum.deposit) }) : null]
-                        .filter(Boolean)
-                        .join(" · ")
-                    : undefined
-                }
-              />
-              {s === "booking" ? (
-                <StatCard
-                  loading={loading}
-                  label={
-                    <span className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full" style={{ background: STATUS_COLOR.booking }} />
-                      {t("card.bookingOld")}
-                    </span>
-                  }
-                  value={sum ? num(sum.bookingOld) : "-"}
-                  hint={t("hint.bookingOld")}
-                />
-              ) : null}
-            </React.Fragment>
+                ) : (
+                  "-"
+                )
+              }
+              hint={
+                scope
+                  ? [
+                      channel ? null : `WA ${num(scope.wa[s])} · IG ${num(scope.ig[s])}`,
+                      ...(s === "booking" && sum
+                        ? [t("hint.deposit", { n: num(sum.deposit) }), t("hint.bookingOld", { n: num(sum.bookingOld) })]
+                        : []),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : undefined
+              }
+            />
           ))}
         </div>
 
@@ -234,7 +225,7 @@ function ChannelTable({ scope, channel, loading }: { scope: ChannelCounts | null
       render: (_: unknown, r: ChannelRow) => (
         <span className="whitespace-nowrap tabular-nums">
           <span className={cn(r.strong && "font-semibold")}>{num(r.counts[s])}</span>
-          <span className="ml-1.5 text-xs text-muted-foreground">{pct(r.counts[s], statusTotal(r.counts))}</span>
+          <span className="ml-1.5 text-xs text-muted-foreground">{pct(r.counts[s], r.counts.conversations)}</span>
         </span>
       ),
     })),
@@ -242,7 +233,7 @@ function ChannelTable({ scope, channel, loading }: { scope: ChannelCounts | null
       key: "all",
       title: t("total"),
       align: "right",
-      render: (_, r) => <span className="font-semibold tabular-nums">{num(statusTotal(r.counts))}</span>,
+      render: (_, r) => <span className="font-semibold tabular-nums">{num(r.counts.conversations)}</span>,
     },
   ];
 
@@ -260,7 +251,7 @@ function ChannelTable({ scope, channel, loading }: { scope: ChannelCounts | null
   );
 }
 
-type StaffRow = { alias: string; name: string; sum: InboxCounts; all: number };
+type StaffRow = { alias: string; name: string; sum: InboxCounts; all: number; bar: number };
 
 /** Bảng theo Telesales: số theo trạng thái + thanh phân bổ; bấm dòng để lọc theo người đó. */
 function StaffTable({
@@ -281,10 +272,10 @@ function StaffTable({
   const rows: StaffRow[] = (report?.staff ?? [])
     .map((s) => {
       const sum = pickChannel(s.counts, channel);
-      return { alias: s.alias, name: s.alias === UNASSIGNED ? t("unassigned") : s.name, sum, all: statusTotal(sum) };
+      return { alias: s.alias, name: s.alias === UNASSIGNED ? t("unassigned") : s.name, sum, all: sum.conversations, bar: statusTotal(sum) };
     })
-    // Nhiều hội thoại nhất lên đầu; "Chưa gán" luôn cuối.
-    .sort((a, b) => Number(a.alias === UNASSIGNED) - Number(b.alias === UNASSIGNED) || b.all - a.all);
+    // Nhiều hội thoại mới nhất lên đầu; "Chưa gán" luôn cuối.
+    .sort((a, b) => Number(a.alias === UNASSIGNED) - Number(b.alias === UNASSIGNED) || b.all - a.all || b.sum.booking - a.sum.booking);
 
   const columns: TableProps<StaffRow>["columns"] = [
     {
@@ -297,9 +288,10 @@ function StaffTable({
         </span>
       ),
     },
-    ...INBOX_STATUSES.map((s) => ({
+    // Cột Old Booking ngay sau Booking (đã nằm trong số Booking).
+    ...[...INBOX_STATUSES.slice(0, 1), "bookingOld" as const, ...INBOX_STATUSES.slice(1)].map((s) => ({
       key: s,
-      title: t(`status.${s}`),
+      title: s === "bookingOld" ? t("bookingOld") : t(`status.${s}`),
       align: "right" as const,
       render: (_: unknown, r: StaffRow) => <span className="tabular-nums">{num(r.sum[s])}</span>,
     })),
@@ -315,11 +307,11 @@ function StaffTable({
       title: t("distribution"),
       width: 200,
       render: (_, r) =>
-        r.all ? (
+        r.bar ? (
           <Tooltip title={INBOX_STATUSES.map((s) => `${t(`status.${s}`)}: ${num(r.sum[s])}`).join(" · ")}>
             <div className="flex h-2 w-full min-w-32 overflow-hidden rounded-full bg-muted">
               {INBOX_STATUSES.map((s) => (
-                <div key={s} style={{ width: `${(r.sum[s] / r.all) * 100}%`, background: STATUS_COLOR[s] }} />
+                <div key={s} style={{ width: `${(r.sum[s] / r.bar) * 100}%`, background: STATUS_COLOR[s] }} />
               ))}
             </div>
           </Tooltip>

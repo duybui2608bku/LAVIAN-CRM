@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — Báo cáo Smax chỉ tính khách mới; Booking gồm cả khách cũ
+- **Thay đổi:** "Tổng hội thoại" → "Hội thoại mới" = hội thoại TẠO trong kỳ (`sort_by_created_at: true`); trạng thái Potential/Follow Up/Pending/Spam đếm trên tập này. Booking lấy truy vấn riêng (`tags` booking + bookings-deposit, `tags_condition: "OR"` bắt buộc) theo tin nhắn trong kỳ → gồm khách cũ; số booking khách cũ (hội thoại tạo trước kỳ) hiện ở ghi chú thẻ Booking (đã bỏ thẻ riêng). % và cột Tổng chia cho số hội thoại mới. Cập nhật `SMAX_TOKEN` mới trong `.env.local` (hết hạn 2026-12-09 — nhớ cập nhật cả Vercel).
+- **File ảnh hưởng:** `lib/smax-threads.ts`, `lib/smax-inbox.ts` (+ test), `app/(app)/customers/smax-report/actions.ts`, `components/customers/smax-report-view.tsx`, `messages/{vi,en}.json`, `openspec/changes/smax-report-new-leads/`.
+- **Còn dở / ghi chú:** SMAX lỗi phân trang khi sắp theo ngày tạo (`after` vẫn so `last_message_at`) → phân trang bằng cách lùi mốc cuối `dateRange`. Chưa xem trên trình duyệt. Trang Follow up giữ cách lấy cũ.
+
 ### 2026-11-16 — Báo cáo Smax: avatar, lọc Nguồn, Booking cũ; bỏ ghi chú cuối trang
 - **Thay đổi:** (nhánh `claude/smax-remove-notes`) bỏ dòng ghi chú cuối trang Báo cáo Smax + Follow up. Bảng theo Telesales (2 trang) có avatar: `staffAvatars()` ghép tag tên SMAX ↔ `profiles.user_name` (không phân biệt hoa thường, thử cả từ đầu: "Tiara Kania" ↔ "Tiara"); action trả thêm `avatars`, lỗi đọc profiles thì bỏ qua. Báo cáo Smax thêm bộ lọc **Nguồn** WhatsApp/Instagram (lọc client trên `ChannelCounts`, không gọi lại API) và thẻ **Booking cũ** = data cũ được gắn Booking trong khoảng (`InboxCounts.bookingOld`, cùng định nghĩa "Booking follow-up" trang Follow up; `buildInboxReport(threads, from, to)` giờ cần khoảng ngày).
 - **File ảnh hưởng:** `lib/smax-inbox.ts` (+ test), `lib/smax-followup.test.ts`, `app/(app)/customers/smax-report/actions.ts`, `components/customers/smax-{report,followup}-view.tsx`, `messages/{vi,en}.json`.
