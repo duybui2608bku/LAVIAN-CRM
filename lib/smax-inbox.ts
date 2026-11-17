@@ -48,7 +48,11 @@ export type InboxThread = {
   /** Lúc khách nhắn lần đầu (dùng cho trang Follow up). */
   created_at?: string;
   /** Tag kèm thời điểm gắn (dùng cho trang Follow up). */
-  customer?: { tags?: { alias?: string; time?: string }[] };
+  customer?: { tags?: { alias?: string; time?: string }[]; instagram?: { ad_id?: string } };
+  /** Trang nhận tin: `waw<số WA>` / `ig<id>`. */
+  page_pid?: string;
+  /** Quảng cáo IG khách bấm gần nhất. */
+  instagram?: { ad_id?: string };
 };
 
 export type InboxCounts = Record<InboxStatus, number> & {
@@ -213,4 +217,36 @@ export function buildFollowupReport(threads: InboxThread[], from: string, to: st
       { alias: UNASSIGNED, name: "", counts: staff.get(UNASSIGNED)! },
     ],
   };
+}
+
+// ---------------------------------------------------------------------------
+/** Khách tiềm năng (cột trang Marketing): hội thoại có 1 trong các tag này — gắn nhiều tag vẫn chỉ tính 1. */
+export const POTENTIAL_ALIASES = ["phone", "booking", "bookings-deposit", "purchase"];
+
+export type PotentialCounts = {
+  /** campaign_id FB → số khách tiềm năng IG (ghép qua ad_id). */
+  byCampaign: Record<string, number>;
+  /** "WA-<4 số cuối>" → số khách tiềm năng nhắn vào số WA đó. */
+  byWa: Record<string, number>;
+};
+
+/** `adCampaign`: ad_id → campaign_id (từ FB). Mỗi hội thoại tính tối đa 1 lần. */
+export function countPotential(threads: InboxThread[], adCampaign: Map<string, string>): PotentialCounts {
+  const out: PotentialCounts = { byCampaign: {}, byWa: {} };
+  const seen = new Set<string>();
+  for (const t of threads) {
+    if (seen.has(t.id) || !POTENTIAL_ALIASES.some((a) => t.tag_aliases?.includes(a))) continue;
+    seen.add(t.id);
+    if (t.platform === "instagram") {
+      // ad_id của hội thoại là lần bấm gần nhất; không khớp FB thì thử ad_id lưu ở khách.
+      const campaign = [t.instagram?.ad_id, t.customer?.instagram?.ad_id]
+        .map((id) => id && adCampaign.get(id))
+        .find(Boolean);
+      if (campaign) out.byCampaign[campaign] = (out.byCampaign[campaign] ?? 0) + 1;
+    } else if (t.platform === "whatsappweb" && t.page_pid?.startsWith("waw")) {
+      const wa = `WA-${t.page_pid.slice(-4)}`; // cùng quy ước lib/wa.ts
+      out.byWa[wa] = (out.byWa[wa] ?? 0) + 1;
+    }
+  }
+  return out;
 }

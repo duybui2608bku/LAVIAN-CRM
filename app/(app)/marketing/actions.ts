@@ -3,12 +3,15 @@
 import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import {
+  fetchFbAdCampaigns,
   fetchFbAds,
   fetchFbCampaigns,
   fetchSmaxStats,
   setFbCampaignStatus,
   type FbCampaign,
 } from "@/lib/marketing";
+import { countPotential, type PotentialCounts } from "@/lib/smax-inbox";
+import { fetchInboxThreads } from "@/lib/smax-threads";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -19,7 +22,9 @@ export interface AdsStats {
   messages: number | null;
   leads: number | null;
   campaigns: FbCampaign[] | null;
-  errors: { fb?: string; campaigns?: string; smax?: string; db?: string };
+  /** Khách tiềm năng (hội thoại SMAX tạo trong range) theo chiến dịch IG / số WA; null khi lỗi. */
+  potential: PotentialCounts | null;
+  errors: { fb?: string; campaigns?: string; smax?: string; db?: string; potential?: string };
   error?: string;
 }
 
@@ -33,16 +38,23 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
     messages: null,
     leads: null,
     campaigns: null,
+    potential: null,
     errors: {},
   };
   if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to)
     return { ...stats, error: "Khoảng ngày không hợp lệ." };
 
-  const [fb, campaigns, smax] = await Promise.allSettled([
+  const [fb, campaigns, smax, potential] = await Promise.allSettled([
     fetchFbAds(from, to),
     fetchFbCampaigns(from, to),
     fetchSmaxStats(from, to),
+    Promise.all([fetchInboxThreads(from, to, { byCreated: true }), fetchFbAdCampaigns(from, to)]).then(
+      ([threads, ads]) => countPotential(threads, ads),
+    ),
   ]);
+
+  if (potential.status === "fulfilled") stats.potential = potential.value;
+  else stats.errors.potential = normalizeError(potential.reason).message;
 
   if (fb.status === "fulfilled") {
     stats.currency = fb.value.currency;
