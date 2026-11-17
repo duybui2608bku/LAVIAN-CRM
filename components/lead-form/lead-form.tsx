@@ -337,16 +337,15 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
         */}
         {/* Lưới 2x2: Telesales | Giai đoạn, Tiền cọc | Ảnh xác nhận thanh toán. */}
         <div className="grid grid-cols-2 gap-x-3">
-          {staff.length > 0 && (
-            <Form.Item name="staff_id" label={t("staff")}>
-              <ClearableSelect
-                className="w-full"
-                options={staffOptions}
-                placeholder={t("noteOptional")}
-                ariaLabel={t("staff")}
-              />
-            </Form.Item>
-          )}
+          <Form.Item name="staff_id" label={t("staff")} rules={[{ required: true, message: t("staffRequired") }]}>
+            <ClearableSelect
+              className="w-full"
+              clearable={false}
+              options={staffOptions}
+              placeholder={t("staffRequired")}
+              ariaLabel={t("staff")}
+            />
+          </Form.Item>
           <Form.Item name="stage" label={t("stage")} rules={[{ required: true, message: t("stageRequired") }]}>
             <ClearableSelect
               className="w-full"

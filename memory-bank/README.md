@@ -53,6 +53,7 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 ### 2026-11-17 — Fix vặt bảng /customers (nhánh `claude/misc-fixes`)
 - **Thay đổi:** Ẩn Rating (cột, bộ lọc, ô trong form — form giữ `Form.Item name="rating" hidden` để lưu không xoá giá trị cũ). Ẩn cột Region (form + lọc tỉnh vẫn giữ). Gộp Source + WA Number + Instagram thành 1 cột Source: icon nguồn + tag `WA-xxxx` (WhatsApp) hoặc link username IG; xoá cột WA Number và Instagram. Ẩn hành động Xoá khách với mọi vai trò (kể cả admin) — menu dòng chỉ còn Sửa; server action `deleteCustomer` vẫn còn (gác `customers.delete`).
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`.
+- **Lead form:** ô "Nhân viên tư vấn"/"Consultant" đổi nhãn thành **Telesales** (vi/en, cả tab Lịch hẹn dùng chung key `leadForm.staff`) và **bắt buộc chọn** ở tab Khách hàng (rule client + server `submitLead` trả "Vui lòng chọn Telesales." khi trống; ô luôn hiện, không còn ẩn khi danh sách rỗng). File: `components/lead-form/lead-form.tsx`, `app/lead-form/actions.ts`, `messages/{vi,en}.json`.
 - **Còn dở / ghi chú:** Không đổi DB. Key i18n `colWaNumber`/`colInstagram`/`allRating` tạm không dùng. tsc + eslint sạch; chưa xem trên trình duyệt.
 
 ### 2026-11-17 — Thống nhất "Show-up", stage Show-up tự động, bỏ New lead/Returning/Lost

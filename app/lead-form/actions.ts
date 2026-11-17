@@ -131,6 +131,7 @@ export async function submitLead(
 
     // Stage bắt buộc chọn (không còn mặc định "Khách mới").
     if (!isStage(d.stage)) return { error: "Vui lòng chọn giai đoạn." };
+    if (!d.staff_id) return { error: "Vui lòng chọn Telesales." };
     const stage = d.stage;
     const customer = {
       full_name: d.full_name,
