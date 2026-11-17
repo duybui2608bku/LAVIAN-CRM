@@ -609,7 +609,13 @@
     },
     "hint": {
       "deposit": "{n} deposit",
-      "bookingOld": "Old booking: {n}"
+      "bookingOld": "Old booking: {n}",
+      "showUpSameDay": "Same-day show-up: {n}"
+    },
+    "rate": {
+      "bookingTotal": "Total Booking / (New + re-engaged customers)",
+      "bookingNew": "New Booking / New customers",
+      "showUp": "Showed up / Total Booking"
     },
     "status": {
       "booking": "Booking",

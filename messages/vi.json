@@ -609,7 +609,13 @@
     },
     "hint": {
       "deposit": "{n} deposit",
-      "bookingOld": "Booking cũ: {n}"
+      "bookingOld": "Booking cũ: {n}",
+      "showUpSameDay": "Show-up trong ngày: {n}"
+    },
+    "rate": {
+      "bookingTotal": "Tổng Booking / (Khách mới + Khách cũ quay lại)",
+      "bookingNew": "Booking mới / Khách mới",
+      "showUp": "Khách đến / Tổng Booking"
     },
     "status": {
       "booking": "Booking",

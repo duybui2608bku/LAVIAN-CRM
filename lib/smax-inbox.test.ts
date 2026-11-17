@@ -5,7 +5,7 @@ import { buildFollowupReport, buildInboxReport, countPotential, inboxDateRange, 
 
 const t = (id: string, platform: string, tags: string[]) => ({ id, platform, tag_aliases: tags });
 
-const zero = { booking: 0, potential: 0, followUp: 0, pending: 0, spam: 0, conversations: 0, deposit: 0, untagged: 0, bookingOld: 0, reEngaged: 0, showUp: 0 };
+const zero = { booking: 0, potential: 0, followUp: 0, pending: 0, spam: 0, conversations: 0, deposit: 0, untagged: 0, bookingOld: 0, reEngaged: 0, showUp: 0, showUpSameDay: 0 };
 
 test("buildInboxReport: khách mới theo kênh, trạng thái, nhân viên", () => {
   const r = buildInboxReport(
@@ -166,11 +166,11 @@ test("buildInboxReport: Khách đến theo lúc gắn purchase, Re-engaged = kh�
     [
       th("1", OLD, D16, []), // khách cũ nhắn trong kỳ
       th("2", OLD, "2026-11-18T03:00:00.000Z", [{ alias: "purchase", time: D16 }]), // khách cũ đến trong kỳ, nhắn sau kỳ
-      th("3", D16, D16, [{ alias: "purchase", time: D16 }]), // khách mới đến → chỉ tính Khách đến
+      th("3", D16, D16, [{ alias: "purchase", time: D16 }]), // khách mới đến ngay trong ngày → Khách đến + Show-up trong ngày
       th("4", OLD, "2026-11-18T03:00:00.000Z", [{ alias: "purchase", time: "2026-11-18T03:00:00.000Z" }]), // đến sau kỳ → bỏ
     ],
     "2026-11-16",
     "2026-11-16",
   );
-  assert.deepEqual(r.total.wa, { ...zero, reEngaged: 2, showUp: 2 });
+  assert.deepEqual(r.total.wa, { ...zero, reEngaged: 2, showUp: 2, showUpSameDay: 1 });
 });
