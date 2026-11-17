@@ -1,8 +1,8 @@
-// rating: cố định trong code (lib/customer-options.ts) — trang /enums chỉ mở cho lost_reason.
-export const ENUM_KINDS = ["stage", "source", "lost_reason", "rating"] as const;
+// Danh mục khách hàng cố định trong code (lib/customer-options.ts).
+export const ENUM_KINDS = ["stage", "source", "rating"] as const;
 export type EnumKind = (typeof ENUM_KINDS)[number];
 
-/** Một giá trị danh mục (admin CRUD) — ánh xạ bảng `public.enum_options`. */
+/** Một giá trị danh mục (stage/source/rating) — định nghĩa trong `CUSTOMER_OPTIONS`. */
 export interface EnumOption {
   id: string;
   kind: EnumKind;
@@ -48,7 +48,6 @@ export interface CustomerInput {
   social_name?: string | null;
   stage: string;
   rating?: string | null; // đánh giá khách (CUSTOMER_OPTIONS kind "rating")
-  lost_reason?: string | null;
   staff_id?: string | null;
   sales_id?: string | null;
   technician_id?: string | null;
@@ -76,7 +75,6 @@ export interface Customer {
   source: string | null;
   stage: string;
   rating: string | null; // đánh giá khách: potential | price_only | far | spam
-  lost_reason: string | null;
   staff_id: string | null;
   sales_id: string | null; // nhân viên Sales phụ trách (profiles)
   technician_id: string | null; // kỹ thuật viên làm dịch vụ (profiles)

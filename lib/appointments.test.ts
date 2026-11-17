@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { appointmentPatchSchema, BOOKING_STATUS_VALUES } from "./appointments.ts";
+import { canConfirmShowUp, appointmentPatchSchema, BOOKING_STATUS_VALUES } from "./appointments.ts";
 
 test("appointment edits validate dates, IDs and whitelist; no tour/money fields", () => {
   for (const patch of [{}, { scheduled_at: "tomorrow" }, { scheduled_at: "2026-10-31" },
@@ -25,4 +25,11 @@ test("trạng thái xác nhận lịch: 4 giá trị, khớp BOOKING_STATUSES, t
   for (const v of [true, false, "unconfirmed", "", null]) {
     assert.equal(appointmentPatchSchema.safeParse({ booking_confirm: v }).success, false);
   }
+});
+
+test("Clinic confirmation (Show-up): chỉ Sales + admin", () => {
+  assert.equal(canConfirmShowUp({ role: "user", department: "sales" }), true);
+  assert.equal(canConfirmShowUp({ role: "admin", department: null }), true);
+  assert.equal(canConfirmShowUp({ role: "user", department: "telesales" }), false);
+  assert.equal(canConfirmShowUp(null), false);
 });

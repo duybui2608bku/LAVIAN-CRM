@@ -21,6 +21,7 @@ import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
+import { SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -67,7 +68,7 @@ const DEFAULTS: Values = {
   region_code: "",
   address_detail: "",
   staff_id: "",
-  stage: "new_lead",
+  stage: "", // bắt buộc chọn — không còn mặc định
   deposit_amount: null,
   payment_confirm_url: null,
   note: "",
@@ -346,11 +347,13 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
               />
             </Form.Item>
           )}
-          <Form.Item name="stage" label={t("stage")}>
+          <Form.Item name="stage" label={t("stage")} rules={[{ required: true, message: t("stageRequired") }]}>
             <ClearableSelect
               className="w-full"
               clearable={false}
-              options={tagOptions(stages)}
+              placeholder={t("stageRequired")}
+              // Show-up tự chuyển theo Clinic confirmation — chỉ hiện khi khách đang ở Show-up.
+              options={tagOptions(stages.filter((o) => o.value !== SHOW_UP_STAGE || o.value === existing?.stage))}
               ariaLabel={t("stage")}
             />
           </Form.Item>

@@ -1,6 +1,6 @@
 "use server";
 
-import { CUSTOMER_OPTIONS, validRating } from "@/lib/customer-options";
+import { isStage, validRating } from "@/lib/customer-options";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 
@@ -60,11 +60,11 @@ async function stampNote(text: string): Promise<CustomerNote> {
 }
 
 // Không gửi source: nguồn tự tính từ số WA (lead form), tạo tay → default DB 'instagrams'.
-// "" -> null; lost_reason chỉ giữ khi stage = 'lost'. KHÔNG đụng cột notes
+// "" -> null. KHÔNG đụng cột notes
 // (create dựa default '[]' của DB; note quản lý riêng qua addCustomerNote).
 function clean(input: CustomerInput) {
   const nz = (v?: string | null) => (v && v.trim() !== "" ? v.trim() : null);
-  if (!CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === input.stage))
+  if (!isStage(input.stage))
     throw new Error("Giai đoạn không hợp lệ.");
   if (!isValidPhone(input.phone)) throw new Error("Số điện thoại không hợp lệ.");
   return {
@@ -73,7 +73,6 @@ function clean(input: CustomerInput) {
     social_name: nz(input.social_name),
     stage: input.stage,
     rating: validRating(input.rating),
-    lost_reason: input.stage === "lost" ? nz(input.lost_reason) : null,
     staff_id: nz(input.staff_id),
     sales_id: nz(input.sales_id),
     technician_id: nz(input.technician_id),
@@ -129,14 +128,10 @@ export async function patchCustomer(
 ): Promise<Result> {
   try {
     await requirePermission("customers.edit");
-    if (patch.stage && !CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === patch.stage))
+    if (patch.stage !== undefined && !isStage(patch.stage))
       throw new Error("Giai đoạn không hợp lệ.");
     const data: Record<string, string | null> = {};
-    if (patch.stage !== undefined) {
-      data.stage = patch.stage;
-      // Đồng nhất với clean(): rời khỏi 'lost' thì xóa lý do.
-      if (patch.stage !== "lost") data.lost_reason = null;
-    }
+    if (patch.stage !== undefined) data.stage = patch.stage;
     if (patch.rating !== undefined) data.rating = validRating(patch.rating);
     if (patch.staff_id !== undefined) data.staff_id = patch.staff_id || null;
     if (patch.sales_id !== undefined) data.sales_id = patch.sales_id || null;

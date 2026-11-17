@@ -52,6 +52,7 @@ import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES, regionNames } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
+import { SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
@@ -111,12 +112,14 @@ export function CustomersManager({
   options,
   appointments,
   services,
+  canShowUp,
 }: {
   customers: Customer[];
   staff: Staff[];
   options: EnumOption[];
   appointments: PipelineAppointment[];
   services: Service[];
+  canShowUp: boolean;
 }) {
   const t = useTranslations("customers");
   const tc = useTranslations("common");
@@ -299,7 +302,8 @@ export function CustomersManager({
         <InlineSelect
           value={c.stage}
           display={tagFor("stage", c.stage)}
-          options={tagOptions("stage", c.stage)}
+          // Show-up tự chuyển theo Clinic confirmation → không chọn tay (chỉ hiện khi khách đang ở Show-up).
+          options={tagOptions("stage", c.stage).filter((o) => o.value !== SHOW_UP_STAGE || o.value === c.stage)}
           ariaLabel={t("colStage")}
           disabled={!canEdit}
           onSave={(v) => patchField(c.id, { stage: v })}
@@ -608,6 +612,7 @@ export function CustomersManager({
         customers={rowsData}
         staff={staff}
         services={services}
+        canShowUp={canShowUp}
         onClose={() => setCreateFor(null)}
         onCreated={() => setCreateFor(null)}
       />
@@ -719,7 +724,6 @@ type Values = {
   stage: string;
   rating?: string;
   staff_id?: string;
-  lost_reason?: string;
   first_contact?: string;
   payment_confirm_url?: string | null;
   region_code?: string;
@@ -743,7 +747,6 @@ function CustomerDialog({
   const locale = useLocale();
   const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
-  const stage = Form.useWatch("stage", form);
 
   // Option cho Select trong form: active + giá trị hiện tại (kể cả inactive).
   const selectOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
@@ -760,7 +763,6 @@ function CustomerDialog({
         social_name: v.social_name || null,
         stage: v.stage,
         rating: v.rating || null,
-        lost_reason: v.lost_reason || null,
         staff_id: v.staff_id || null,
         // Sales/KTV đã ẩn khỏi form → giữ nguyên giá trị đang có.
         sales_id: editing?.sales_id ?? null,
@@ -802,10 +804,9 @@ function CustomerDialog({
           full_name: editing?.full_name ?? "",
           phone: editing?.phone ?? "",
           social_name: editing?.social_name ?? "",
-          stage: editing?.stage ?? "new_lead",
+          stage: editing?.stage ?? "", // khách mới: bắt buộc chọn, không mặc định
           rating: editing?.rating ?? "",
           staff_id: editing?.staff_id ?? "",
-          lost_reason: editing?.lost_reason ?? "",
           first_contact: editing?.first_contact?.slice(0, 10) ?? "",
           payment_confirm_url: editing?.payment_confirm_url ?? null,
           region_code: editing?.region_code ?? "",
@@ -837,10 +838,13 @@ function CustomerDialog({
         </Form.Item>
         {/* Giai đoạn + Đánh giá chung 1 hàng. */}
         <div className="grid grid-cols-2 gap-3">
-          <Form.Item name="stage" label={t("colStage")}>
+          <Form.Item name="stage" label={t("colStage")} rules={required}>
             <ClearableSelect
               clearable={false}
-              options={selectOptions("stage", editing?.stage)}
+              placeholder={t("chooseStage")}
+              options={selectOptions("stage", editing?.stage).filter(
+                (o) => o.value !== SHOW_UP_STAGE || o.value === editing?.stage,
+              )}
               ariaLabel={t("colStage")}
             />
           </Form.Item>
@@ -852,15 +856,6 @@ function CustomerDialog({
             />
           </Form.Item>
         </div>
-        {stage === "lost" && (
-          <Form.Item name="lost_reason" label={t("colLostReason")}>
-            <ClearableSelect
-              options={selectOptions("lost_reason", editing?.lost_reason)}
-              placeholder={t("noneOption")}
-              ariaLabel={t("colLostReason")}
-            />
-          </Form.Item>
-        )}
         <Form.Item name="staff_id" label={t("colStaff")}>
           <ClearableSelect
             options={deptOptions(staff, "telesales", editing?.staff_id)}

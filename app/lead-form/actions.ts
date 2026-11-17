@@ -7,7 +7,7 @@ import { z } from "zod";
 import { appointmentPatchSchema } from "@/lib/appointments";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CUSTOMER_OPTIONS, leadSource } from "@/lib/customer-options";
+import { isStage, leadSource } from "@/lib/customer-options";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
@@ -93,7 +93,7 @@ export async function checkLeadCustomer(
     | { user_name: string; avatar_url: string | null }
     | null;
   return {
-    stage: data.stage ?? "new_lead",
+    stage: data.stage ?? "",
     staff_id: data.staff_id ?? "",
     staff_name: staff?.user_name ?? "",
     staff_avatar: staff?.avatar_url ?? null,
@@ -129,9 +129,9 @@ export async function submitLead(
       return { error: "Khách hàng chưa tồn tại. Hãy dùng nút Submit." };
     }
 
-    const stage = CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === d.stage)
-      ? d.stage
-      : "new_lead";
+    // Stage bắt buộc chọn (không còn mặc định "Khách mới").
+    if (!isStage(d.stage)) return { error: "Vui lòng chọn giai đoạn." };
+    const stage = d.stage;
     const customer = {
       full_name: d.full_name,
       phone: d.phone,

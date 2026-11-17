@@ -1,20 +1,22 @@
+import { getCurrentProfile } from "@/lib/auth";
+import { canConfirmShowUp } from "@/lib/appointments";
 import { createClient } from "@/lib/supabase/server";
 import { CustomersManager } from "@/components/customers/customers-manager";
 import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
 import type { AppointmentStaff } from "@/components/appointments/appointments-manager";
-import type { Customer, EnumOption } from "@/types/customer";
+import type { Customer } from "@/types/customer";
 import type { Service } from "@/types/service";
 import { CUSTOMER_OPTIONS, instagramUsername } from "@/lib/customer-options";
 
 const CUSTOMER_LIST_FIELDS =
-  "id, smax_customer_id, full_name, phone, social_name, picture, thread, source, stage, lost_reason, " +
+  "id, smax_customer_id, full_name, phone, social_name, picture, thread, source, stage, " +
   "staff_id, sales_id, technician_id, first_contact, notes, created_at, updated_at, deleted_at, deposit_amount, payment_confirm_url, region_code, address_detail, rating, " +
   "instagram_username:smax_data->customer->instagram->>username";
 
 // Mọi user đăng nhập đều xem được (RLS customers cho authenticated). Proxy đã gác login.
 export default async function CustomersPage() {
   const supabase = await createClient();
-  const [customersRes, staffRes, optionsRes, appointmentsRes, servicesRes] = await Promise.all([
+  const [customersRes, staffRes, appointmentsRes, servicesRes, profile] = await Promise.all([
     supabase
       .from("customers")
       // Không tải smax_data/tags (jsonb lớn, trang không dùng) — chỉ rút username IG bằng JSON path.
@@ -25,13 +27,6 @@ export default async function CustomersPage() {
       .from("profiles")
       .select("id, user_name, avatar_url, department, status")
       .order("user_name", { ascending: true }),
-    // Nạp tất cả option (kể cả inactive) để hiện nhãn đúng cho dữ liệu cũ;
-    // dropdown sẽ tự lọc is_active phía client.
-    supabase
-      .from("enum_options")
-      .select("*")
-      .eq("kind", "lost_reason")
-      .order("sort_order", { ascending: true }),
     // Lịch hẹn cho pipeline (chỉ 3 cột cần đếm).
     supabase
       .from("clinic_appointments")
@@ -39,6 +34,7 @@ export default async function CustomersPage() {
       .is("deleted_at", null),
     // Dịch vụ cho drawer tạo lịch hẹn (nút ở cột Lịch hẹn).
     supabase.from("services").select("*").order("sort_order", { ascending: true }),
+    getCurrentProfile(),
   ]);
 
   const customers = ((customersRes.data ?? []) as unknown as Customer[]).map((c) => ({
@@ -50,9 +46,10 @@ export default async function CustomersPage() {
     <CustomersManager
       customers={customers}
       staff={(staffRes.data as AppointmentStaff[]) ?? []}
-      options={[...CUSTOMER_OPTIONS, ...((optionsRes.data as EnumOption[]) ?? [])]}
+      options={CUSTOMER_OPTIONS}
       appointments={(appointmentsRes.data as PipelineAppointment[]) ?? []}
       services={(servicesRes.data as Service[]) ?? []}
+      canShowUp={canConfirmShowUp(profile)}
     />
   );
 }

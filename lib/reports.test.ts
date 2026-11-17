@@ -24,9 +24,9 @@ test("buildDays đếm Data/Đặt cọc/Đặt lịch theo ngày tạo khách +
   const rows = buildDays("2026-11-01", "2026-11-02", {
     fb: new Map([["2026-11-01", { spend: 100, messages: 4 }]]),
     customers: [
-      { id: "a", created_at: "2026-11-01T02:00:00Z", stage: "new_lead" },
+      { id: "a", created_at: "2026-11-01T02:00:00Z", stage: "consulting" },
       { id: "b", created_at: "2026-11-01T03:00:00Z", stage: "deposited" },
-      { id: "c", created_at: "2026-11-01T18:00:00Z", stage: "visited" }, // = 02/11 giờ VN
+      { id: "c", created_at: "2026-11-01T18:00:00Z", stage: "show_up" }, // = 02/11 giờ VN
       { id: "d", created_at: "2026-10-30T03:00:00Z", stage: "booked" }, // ngoài khoảng
     ],
     bookedIds: new Set(["a"]),

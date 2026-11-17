@@ -100,7 +100,7 @@ export function LeadAppointmentForm({ smaxCustomerId, defaultStaffId, staffOptio
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">{dayjs(a.scheduled_at).format("DD/MM/YYYY HH:mm")}</span>
                 <Tag color={a.checked_in ? "green" : "default"} className="me-0">
-                  {a.checked_in ? t("arrived") : t("notArrived")}
+                  {a.checked_in ? t("showUp") : t("notShowUp")}
                 </Tag>
               </div>
               {a.service_ids.length > 0 && (
