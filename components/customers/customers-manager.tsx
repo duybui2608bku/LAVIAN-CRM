@@ -20,7 +20,6 @@ import {
   Info,
   Pencil,
   Search,
-  Trash2,
   UserPlus,
   X,
 } from "lucide-react";
@@ -28,13 +27,11 @@ import {
 import {
   addCustomerNote,
   createCustomer,
-  deleteCustomer,
   patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
 import { CreateAppointmentDrawer, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
-import { useConfirm } from "@/components/common/confirm-action";
 import { useCan } from "@/components/common/permissions";
 import { DataTable } from "@/components/common/data-table";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
@@ -50,7 +47,7 @@ import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah } from "@/lib/currency";
-import { PROVINCES, regionNames } from "@/lib/id-regions";
+import { PROVINCES } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
 import { SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
@@ -124,10 +121,8 @@ export function CustomersManager({
   const t = useTranslations("customers");
   const tc = useTranslations("common");
   const locale = useLocale();
-  const confirm = useConfirm();
   const can = useCan();
   const canEdit = can("customers.edit");
-  const canDelete = can("customers.delete");
   const [, start] = useTransition();
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -203,22 +198,6 @@ export function CustomersManager({
     setPage(1);
   }
 
-  const askDelete = (c: Customer) =>
-    confirm({
-      title: t("deleteConfirm"),
-      content: t("deleteConfirmBody", { name: c.full_name }),
-      okText: t("delete"),
-      cancelText: t("cancel"),
-      onOk: async () => {
-        const res = await deleteCustomer(c.id);
-        if (res.error) {
-          toast.error(res.error);
-          return;
-        }
-        toast.success(t("deleteOk"));
-      },
-    });
-
   // Inline edit 1 trường từ bảng.
   const patchField = (id: string, patch: Patch) =>
     start(async () => {
@@ -279,22 +258,6 @@ export function CustomersManager({
     },
     { title: t("colPhone"), dataIndex: "phone" },
     {
-      title: t("region"),
-      key: "region",
-      width: 260,
-      render: (_, c) => {
-        const r = regionNames(c.region_code);
-        // 1 hàng: "địa chỉ chi tiết, huyện/TP, tỉnh"; dài quá thì cắt "…", hover xem đủ.
-        const text = [c.address_detail, r?.city, r?.province].filter(Boolean).join(", ");
-        // Trống thì để ô trống (không "—").
-        return text ? (
-          <div title={text} className="max-w-[260px] truncate">
-            {text}
-          </div>
-        ) : null;
-      },
-    },
-    {
       title: t("colStage"),
       dataIndex: "stage",
       width: 150,
@@ -307,22 +270,6 @@ export function CustomersManager({
           ariaLabel={t("colStage")}
           disabled={!canEdit}
           onSave={(v) => patchField(c.id, { stage: v })}
-        />
-      ),
-    },
-    {
-      title: t("colRating"),
-      dataIndex: "rating",
-      width: 140,
-      render: (_, c) => (
-        <InlineSelect
-          value={c.rating ?? ""}
-          display={tagFor("rating", c.rating)}
-          options={tagOptions("rating", c.rating)}
-          noneLabel={t("noneOption")}
-          ariaLabel={t("colRating")}
-          disabled={!canEdit}
-          onSave={(v) => patchField(c.id, { rating: v || null })}
         />
       ),
     },
@@ -392,36 +339,25 @@ export function CustomersManager({
     },
     {
       title: t("colSource"),
-      dataIndex: "source",
-      width: 80,
-      // Chỉ xem — nguồn tự tính từ số WA của hội thoại (WA / còn lại IG).
-      render: (_, c) => <SourceIcon source={c.source} />,
-    },
-    {
-      title: t("colWaNumber"),
-      key: "wa_number",
-      width: 100,
+      key: "source",
+      width: 170,
+      // Chỉ xem — icon nguồn + số WA nhận tin (WhatsApp) hoặc username IG (Instagram).
       render: (_, c) => {
         const wa = waNumber(c.thread?.link);
-        return wa ? <Tag color={waColor(wa)} className="me-0">{wa}</Tag> : DASH;
+        const ig = c.instagram_username;
+        return (
+          <div className="flex items-center gap-1.5">
+            <SourceIcon source={c.source} />
+            {wa ? (
+              <Tag color={waColor(wa)} className="me-0">{wa}</Tag>
+            ) : ig ? (
+              <a href={`https://www.instagram.com/${ig}`} target="_blank" rel="noreferrer" className="truncate">
+                {ig}
+              </a>
+            ) : null}
+          </div>
+        );
       },
-    },
-    {
-      title: t("colInstagram"),
-      key: "instagram_username",
-      width: 160,
-      render: (_, c) =>
-        c.instagram_username ? (
-          <a
-            href={`https://www.instagram.com/${c.instagram_username}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {c.instagram_username}
-          </a>
-        ) : (
-          DASH
-        ),
     },
     ...(
       [
@@ -480,15 +416,11 @@ export function CustomersManager({
       align: "right",
       fixed: "right",
       render: (_, c) =>
-        canEdit || canDelete ? (
+        // Xoá khách đã ẩn với mọi vai trò (kể cả admin) — chỉ còn Sửa.
+        canEdit ? (
           <RowActions
             label={t("colActions")}
-            items={[
-              ...(canEdit ? [{ icon: <Pencil className="size-4" />, label: t("edit"), onSelect: () => setTarget(c) }] : []),
-              ...(canDelete
-                ? [{ icon: <Trash2 className="size-4" />, label: t("delete"), danger: true, onSelect: () => askDelete(c) }]
-                : []),
-            ]}
+            items={[{ icon: <Pencil className="size-4" />, label: t("edit"), onSelect: () => setTarget(c) }]}
           />
         ) : null,
     },
@@ -533,14 +465,6 @@ export function CustomersManager({
           options={kindOptions("stage")}
           placeholder={t("allStage")}
           ariaLabel={t("colStage")}
-        />
-        <ClearableSelect
-          className="min-w-36"
-          value={filters.rating}
-          onChange={(v) => setFilter("rating", v)}
-          options={kindOptions("rating")}
-          placeholder={t("allRating")}
-          ariaLabel={t("colRating")}
         />
         <ClearableSelect
           className="min-w-36"
@@ -836,26 +760,20 @@ function CustomerDialog({
         <Form.Item name="address_detail" label={t("addressDetail")} rules={[{ max: 500 }]}>
           <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} />
         </Form.Item>
-        {/* Giai đoạn + Đánh giá chung 1 hàng. */}
-        <div className="grid grid-cols-2 gap-3">
-          <Form.Item name="stage" label={t("colStage")} rules={required}>
-            <ClearableSelect
-              clearable={false}
-              placeholder={t("chooseStage")}
-              options={selectOptions("stage", editing?.stage).filter(
-                (o) => o.value !== SHOW_UP_STAGE || o.value === editing?.stage,
-              )}
-              ariaLabel={t("colStage")}
-            />
-          </Form.Item>
-          <Form.Item name="rating" label={t("colRating")}>
-            <ClearableSelect
-              options={selectOptions("rating", editing?.rating)}
-              placeholder={t("noneOption")}
-              ariaLabel={t("colRating")}
-            />
-          </Form.Item>
-        </div>
+        <Form.Item name="stage" label={t("colStage")} rules={required}>
+          <ClearableSelect
+            clearable={false}
+            placeholder={t("chooseStage")}
+            options={selectOptions("stage", editing?.stage).filter(
+              (o) => o.value !== SHOW_UP_STAGE || o.value === editing?.stage,
+            )}
+            ariaLabel={t("colStage")}
+          />
+        </Form.Item>
+        {/* Đánh giá đang ẩn khỏi UI — giữ field ẩn để lưu form không xoá giá trị cũ. */}
+        <Form.Item name="rating" hidden>
+          <Input />
+        </Form.Item>
         <Form.Item name="staff_id" label={t("colStaff")}>
           <ClearableSelect
             options={deptOptions(staff, "telesales", editing?.staff_id)}
