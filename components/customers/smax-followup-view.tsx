@@ -7,6 +7,8 @@ import { RefreshCw } from "lucide-react";
 
 import { getFollowupReport } from "@/app/(app)/customers/smax-report/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { MetricList } from "@/components/common/metric-list";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { initialRange } from "@/components/common/date-range-filter";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -85,7 +87,7 @@ export function SmaxFollowupView() {
       {result?.error ? <Alert type="error" showIcon title={result.error} /> : null}
 
       <div className={cn("flex flex-col gap-4 transition-opacity duration-200", pending && result && "opacity-60")}>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5 max-sm:[&>*:last-child]:col-span-2">
           <StatCard label={t("worked")} loading={loading} value={show((c) => num(c.worked))} hint={t("hint.worked")} />
           <StatCard
             label={t("quality")}
@@ -136,10 +138,43 @@ function StaffTable({
   const t = useTranslations("smaxFollowup");
   const tr = useTranslations("smaxReport");
   const { num, pct } = useFormat();
+  const mobile = useIsMobile();
   const rows: StaffRow[] = (report?.staff ?? [])
     .map((s) => ({ alias: s.alias, name: s.alias === UNASSIGNED ? tr("unassigned") : s.name, c: s.counts }))
     // Bào nhiều nhất lên đầu; "Chưa gán" luôn cuối.
     .sort((a, b) => Number(a.alias === UNASSIGNED) - Number(b.alias === UNASSIGNED) || b.c.worked - a.c.worked);
+  const name = (r: StaffRow) => (
+    <span className={cn("flex min-w-0 items-center gap-2 whitespace-nowrap font-medium", r.alias === UNASSIGNED && "text-muted-foreground")}>
+      {r.alias === UNASSIGNED ? null : <UserAvatar src={avatars?.[r.alias]} size={24} />}
+      <span className="truncate">{r.name}</span>
+    </span>
+  );
+
+  if (mobile)
+    return (
+      <MetricList
+        className="-mx-4"
+        loading={loading}
+        rows={rows.map((r) => ({
+          key: r.alias,
+          title: name(r),
+          onClick: () => onPick(r.alias),
+          aside: (
+            <span className="text-sm">
+              <span className="font-semibold">{num(r.c.worked)}</span>{" "}
+              <span className="text-xs text-muted-foreground">{t("worked")}</span>
+            </span>
+          ),
+          metrics: [
+            { label: t("bookingOld"), value: num(r.c.bookingOld) },
+            { label: t("showUp"), value: num(r.c.showUp) },
+            { label: t("quality"), value: num(r.c.converted), sub: pct(r.c.converted, r.c.worked) },
+            { label: t("bookingNew"), value: num(r.c.bookingNew) },
+            { label: t("bookingTotal"), value: <span className="font-semibold">{num(r.c.bookingNew + r.c.bookingOld)}</span> },
+          ],
+        }))}
+      />
+    );
 
   const numCol = (key: keyof FollowupCounts, title: string, strong?: boolean) => ({
     key,
@@ -152,12 +187,7 @@ function StaffTable({
     {
       key: "name",
       title: tr("staff"),
-      render: (_, r) => (
-        <span className={cn("flex items-center gap-2 whitespace-nowrap font-medium", r.alias === UNASSIGNED && "text-muted-foreground")}>
-          {r.alias === UNASSIGNED ? null : <UserAvatar src={avatars?.[r.alias]} size={24} />}
-          {r.name}
-        </span>
-      ),
+      render: (_, r) => name(r),
     },
     numCol("worked", t("worked"), true),
     numCol("bookingOld", t("bookingOld")),

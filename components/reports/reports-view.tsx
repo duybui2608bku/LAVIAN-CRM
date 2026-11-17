@@ -20,6 +20,8 @@ import {
 
 import { getReport, type Report } from "@/app/(app)/reports/actions";
 import { DataTable } from "@/components/common/data-table";
+import { MetricList } from "@/components/common/metric-list";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { DateRangeFilter, initialRange } from "@/components/common/date-range-filter";
 import { PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah, IDR_CURRENCY } from "@/lib/currency";
@@ -69,6 +71,7 @@ const dayTotals = (r: DayRow): Totals => totals([r]);
 export function ReportsView() {
   const t = useTranslations("reports");
   const locale = useLocale();
+  const mobile = useIsMobile();
   const [range, setRange] = React.useState(() => initialRange("last7"));
   const [report, setReport] = React.useState<Report | null>(null);
   const [pending, startTransition] = React.useTransition();
@@ -259,6 +262,27 @@ export function ReportsView() {
 
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold">{t("daily")}</h2>
+        {mobile ? (
+          <div className="surface overflow-hidden">
+            <MetricList
+              loading={pending && !report}
+              rows={[
+                ...(cur && rows.length > 1
+                  ? [{ key: "total", title: t("total"), strong: true, metrics: METRICS.map((m) => ({ label: t(`metric.${m}`), value: fmt(m, cur[m]) })) }]
+                  : []),
+                ...[...rows].reverse().map((r) => ({
+                  key: r.date,
+                  title: (
+                    <span>
+                      <span className="text-muted-foreground">{weekday(r.date)}</span> {ddmm(r.date)}
+                    </span>
+                  ),
+                  metrics: METRICS.map((m) => ({ label: t(`metric.${m}`), value: fmt(m, dayTotals(r)[m]) })),
+                })),
+              ]}
+            />
+          </div>
+        ) : (
         <DataTable<DayRow>
           rowKey="date"
           loading={pending && !report}
@@ -300,6 +324,7 @@ export function ReportsView() {
             ) : null
           }
         />
+        )}
       </section>
     </>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Switch, Table, Tag, Tooltip, type TableColumnType } from "antd";
+import { Button, Switch, Table, Tag, Tooltip, type TableColumnType } from "antd";
 
 import { StatCard } from "@/components/common/stat-card";
 import { AlertCircle, RefreshCw } from "lucide-react";
@@ -14,6 +14,8 @@ import {
 } from "@/app/(app)/marketing/actions";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DateRangePicker } from "@/components/common/date-picker";
+import { MetricList } from "@/components/common/metric-list";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { PageHeader } from "@/components/layout/page";
 import { formatISODate } from "@/lib/date";
 import { toast } from "@/lib/toast";
@@ -43,6 +45,9 @@ export function AdsStatsView() {
   const t = useTranslations("marketing");
   const locale = useLocale();
   const canEdit = useCan()("marketing.edit");
+  const mobile = useIsMobile();
+  // Điện thoại: danh sách chiến dịch (chi tiêu giảm dần), xem thêm 20 mỗi lần thay cho phân trang.
+  const [mobileLimit, setMobileLimit] = React.useState(20);
   const today = formatISODate(new Date());
   const [range, setRange] = React.useState({ from: today, to: today });
   const [stats, setStats] = React.useState<AdsStats | null>(null);
@@ -73,11 +78,11 @@ export function AdsStatsView() {
     { key: "spend", value: money(s?.spend ?? null) },
     { key: "messages", value: count(s?.messages ?? null) },
     { key: "costPerMessage", value: money(ratio(s?.spend ?? null, s?.messages ?? null)) },
-    { key: "leads", value: count(s?.leads ?? null) },
-    { key: "costPerLead", value: money(ratio(s?.spend ?? null, s?.leads ?? null)) },
+    { key: "leads", value: count(s?.potential?.total ?? null) },
+    { key: "costPerLead", value: money(ratio(s?.spend ?? null, s?.potential?.total ?? null)) },
   ];
   // Lỗi từng nguồn hiện 1 lần ở đầu trang (trước đây lặp lại dưới nhiều card).
-  const errorLines = [...new Set([stats?.error, e?.fb, e?.smax].filter(Boolean))] as string[];
+  const errorLines = [...new Set([stats?.error, e?.fb, e?.potential].filter(Boolean))] as string[];
 
   // Bật/tắt chiến dịch: FB nhận xong thì vá trạng thái tại chỗ, không tải lại cả trang.
   const [toggling, setToggling] = React.useState<string | null>(null);
@@ -293,7 +298,7 @@ export function AdsStatsView() {
 
       <div
         className={cn(
-          "grid grid-cols-2 gap-3 transition-opacity duration-200 lg:grid-cols-5",
+          "grid grid-cols-2 gap-3 transition-opacity duration-200 lg:grid-cols-5 max-sm:[&>*:last-child]:col-span-2",
           stats && pending && "opacity-60",
         )}
       >
@@ -356,6 +361,44 @@ export function AdsStatsView() {
 
       <section className="space-y-2">
         <SectionTitle>{t("campaigns")}</SectionTitle>
+        {mobile ? (
+          <div className="surface overflow-hidden">
+            <MetricList
+              loading={!stats || pending}
+              empty={stats?.errors.campaigns ?? t("noCampaigns")}
+              rows={campaigns.slice(0, mobileLimit).map((r, i) => {
+                const cell = (key: string) => {
+                  const col = columns.find((c) => c.key === key)!;
+                  return col.render!(r[col.dataIndex as keyof FbCampaign], r, i) as React.ReactNode;
+                };
+                const wa = campaignWa(r.name);
+                return {
+                  key: r.id,
+                  title: (
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <span className="line-clamp-2 text-sm leading-snug">{r.name}</span>
+                      {wa ? (
+                        <Tag color={waColor(wa)} className="me-0 self-start">
+                          {wa}
+                        </Tag>
+                      ) : null}
+                    </span>
+                  ),
+                  aside: cell("status"),
+                  metrics: (["spend", "messages", "costPerMessage", "potential", "impressions", "reach"] as const).map((k) => ({
+                    label: columns.find((c) => c.key === k)!.title as React.ReactNode,
+                    value: cell(k),
+                  })),
+                };
+              })}
+            />
+            {campaigns.length > mobileLimit ? (
+              <Button type="text" block className="rounded-none border-t border-border" onClick={() => setMobileLimit((n) => n + 20)}>
+                {t("showMore", { n: campaigns.length - mobileLimit })}
+              </Button>
+            ) : null}
+          </div>
+        ) : (
         <div className="surface overflow-hidden">
           <Table
             rowKey="id"
@@ -374,6 +417,7 @@ export function AdsStatsView() {
             locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
           />
         </div>
+        )}
       </section>
     </>
   );

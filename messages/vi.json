@@ -496,8 +496,8 @@
     "spend": "Chi tiêu",
     "messages": "Tin nhắn",
     "costPerMessage": "Chi tiêu / Tin nhắn",
-    "leads": "Data",
-    "costPerLead": "Chi tiêu / SĐT",
+    "leads": "KH tiềm năng",
+    "costPerLead": "Chi tiêu / KH tiềm năng",
     "appointments": "Lịch hẹn",
     "visited": "Đã đến",
     "campaigns": "Chiến dịch",
@@ -524,7 +524,8 @@
     "status_ARCHIVED": "Đã lưu trữ",
     "status_UNKNOWN": "Không rõ",
     "colPotential": "KH tiềm năng",
-    "potentialSharedWa": "{count} chiến dịch dùng chung số {wa} — số này là tổng khách tiềm năng của cả số WA"
+    "potentialSharedWa": "{count} chiến dịch dùng chung số {wa} — số này là tổng khách tiềm năng của cả số WA",
+    "showMore": "Xem thêm ({n})"
   },
   "reports": {
     "title": "Báo cáo",
@@ -625,7 +626,7 @@
     "allSources": "Tất cả nguồn",
     "unassigned": "Chưa gán Telesales",
     "card": {
-      "total": "Hội thoại mới"
+      "total": "Khách mới"
     },
     "hint": {
       "total": "{untagged} chưa gắn trạng thái",
