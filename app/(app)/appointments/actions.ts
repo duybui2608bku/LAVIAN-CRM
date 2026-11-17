@@ -18,6 +18,7 @@ async function client() {
 
 function refresh() {
   revalidatePath("/customers");
+  revalidatePath("/customers/bookings");
   revalidatePath("/appointments");
 }
 

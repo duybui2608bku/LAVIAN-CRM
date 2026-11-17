@@ -9,6 +9,7 @@ import { Button, Drawer, Dropdown, Layout, Menu, Segmented, Switch, type MenuPro
 import {
   BookOpen,
   Briefcase,
+  CalendarCheck,
   CalendarDays,
   ChartColumn,
   Check,
@@ -51,15 +52,15 @@ const COLLAPSE_COOKIE = "sidebar_state";
 // Chỉ giữ mục có trang thật. Thêm dần khi dựng tính năng.
 const ITEMS = [
   {
+    // Mục cha có `perm` = có trang riêng: bấm thẳng vào cha mở /customers (không còn mục con "Danh sách").
     key: "customers",
     href: "/customers",
     icon: Users,
+    perm: "customers.view",
     children: [
-      { key: "customersList", href: "/customers", icon: UsersRound, perm: "customers.view" },
+      { key: "bookings", href: "/customers/bookings", icon: CalendarCheck, perm: "customers.view" },
       { key: "smaxReport", href: "/customers/smax-report", icon: Inbox, perm: "customers.view" },
       { key: "smaxFollowup", href: "/customers/smax-followup", icon: MessageSquareReply, perm: "customers.view" },
-      // URL giữ /reports/telesales (proxy + MODULE_PATHS dựa vào đó), chỉ đặt menu dưới Khách hàng.
-      { key: "telesales", href: "/reports/telesales", icon: Headset, perm: "telesales.view" },
     ],
   },
   { key: "appointments", href: "/appointments", icon: CalendarDays },
@@ -68,7 +69,14 @@ const ITEMS = [
 ] as const;
 
 const ADMIN_ITEMS = [
-  { key: "reports", href: "/reports", icon: ChartColumn },
+  {
+    // Bấm thẳng vào cha mở /reports; con: Leader Telesales.
+    key: "reports",
+    href: "/reports",
+    icon: ChartColumn,
+    perm: "reports.view",
+    children: [{ key: "telesales", href: "/reports/telesales", icon: Headset, perm: "telesales.view" }],
+  },
   { key: "marketing", href: "/marketing", icon: Megaphone },
   {
     key: "users",
@@ -83,11 +91,14 @@ const ADMIN_ITEMS = [
 ] as const;
 
 type NavLink = { key: string; href: string; icon: typeof Users; perm?: Permission };
-type NavItem = NavLink | (NavLink & { children: readonly NavLink[] });
+/** `page`: mục cha có trang riêng (bấm vào cha là mở `href`) — tính trong `visible()` theo `perm` của cha. */
+type NavItem = NavLink | (NavLink & { children: readonly NavLink[]; page?: boolean });
 
-// Mục có menu con → trải thành các trang con (sheet điện thoại, tìm mục đang chọn).
+// Mục có menu con → trải thành trang của cha (nếu có) + các trang con (sheet điện thoại, tìm mục đang chọn).
 const flatten = (items: readonly NavItem[]): NavLink[] =>
-  items.flatMap<NavLink>((i) => ("children" in i ? i.children : [i]));
+  items.flatMap<NavLink>((i) =>
+    "children" in i ? [...(i.page ? [{ key: i.key, href: i.href, icon: i.icon }] : []), ...i.children] : [i],
+  );
 
 type Account = { userName?: string; avatarUrl?: string | null };
 
@@ -131,7 +142,10 @@ export function AppShell({
       if (i.key === "documents") return [i];
       if (!("children" in i)) return permissions.includes(`${i.key}.view` as Permission) ? [i] : [];
       const kids = i.children.filter((c) => !c.perm || permissions.includes(c.perm));
-      return kids.length ? [{ ...i, href: kids[0].href, children: kids }] : [];
+      // Cha có trang riêng mà user có quyền → giữ href cha; không thì cha chỉ là nhóm, href = con đầu tiên.
+      const page = "perm" in i && !!i.perm && permissions.includes(i.perm);
+      if (page) return [{ ...i, page, children: kids }];
+      return kids.length ? [{ ...i, page, href: kids[0].href, children: kids }] : [];
     });
   const main = visible(ITEMS);
   const admin = visible(ADMIN_ITEMS);
@@ -152,7 +166,19 @@ export function AppShell({
   const toMenu = (items: readonly NavItem[]): NonNullable<MenuProps["items"]> =>
     items.map((i) =>
       "children" in i
-        ? { key: `${i.href}:sub`, icon: <i.icon className="size-4" />, label: t(`nav.${i.key}`), children: i.children.map(link) }
+        ? {
+            key: `${i.href}:sub`,
+            icon: <i.icon className="size-4" />,
+            // Cha có trang riêng: tiêu đề là link (bấm vừa mở trang vừa bung menu con); đang ở trang đó → tô màu chọn.
+            label: i.page ? (
+              <Link href={i.href} prefetch={false} className={cn(pathname === i.href && "font-medium text-primary!")}>
+                {t(`nav.${i.key}`)}
+              </Link>
+            ) : (
+              t(`nav.${i.key}`)
+            ),
+            children: i.children.map(link),
+          }
         : link(i),
     );
 
@@ -196,7 +222,7 @@ export function AppShell({
             inlineCollapsed={collapsed}
             selectedKeys={[selected]}
             defaultOpenKeys={all
-              .filter((i) => "children" in i && i.children.some((c) => pathname === c.href || pathname.startsWith(`${c.href}/`)))
+              .filter((i) => "children" in i && (pathname === i.href || i.children.some((c) => pathname === c.href || pathname.startsWith(`${c.href}/`))))
               .map((i) => `${i.href}:sub`)}
             items={menuItems(collapsed)}
             className="min-h-0 flex-1 overflow-y-auto border-0! py-2"

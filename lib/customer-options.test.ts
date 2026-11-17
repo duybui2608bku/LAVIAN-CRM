@@ -5,7 +5,7 @@ import { isLocale, locales } from "../i18n/config.ts";
 
 test("fixed stages and sources match the requested values", () => {
   assert.deepEqual(CUSTOMER_OPTIONS.filter((o) => o.kind === "stage").map((o) => o.value),
-    ["consulting", "deposited", "booked", "show_up"]);
+    ["consulting", "potential", "deposited", "booked", "show_up", "purchase"]);
   assert.deepEqual(CUSTOMER_OPTIONS.filter((o) => o.kind === "source").map((o) => o.value),
     ["instagrams", "whatsapp"]);
 });

@@ -7,7 +7,7 @@ import { z } from "zod";
 import { appointmentPatchSchema } from "@/lib/appointments";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isStage, leadSource } from "@/lib/customer-options";
+import { BOOKED_STAGE, isStage, leadSource } from "@/lib/customer-options";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
@@ -22,6 +22,15 @@ const schema = z.object({
   // Tiền cọc (IDR, số nguyên) — chỉ lưu khi giai đoạn là "deposited".
   deposit_amount: z.number().int().min(0).max(1e12).nullable().catch(null),
   website: z.string(),
+  // Lịch hẹn kèm khi tạo khách mới ở stage Booking. Hỏng/thiếu → null (server báo thiếu lịch).
+  appointment: z
+    .object({
+      scheduled_at: z.iso.datetime({ offset: true }),
+      service_ids: z.array(z.uuid()).max(100).transform((ids) => [...new Set(ids)]),
+    })
+    .nullable()
+    .optional()
+    .catch(null),
   // Ảnh xác nhận thanh toán (null = xoá). Hỏng/thiếu → undefined: không đụng giá trị cũ.
   payment_confirm_url: z.url().max(2000).nullable().optional().catch(undefined),
   // Mã vùng Kemendagri "31" | "31.71"; "" = chưa chọn. Sai định dạng → "".
@@ -130,7 +139,14 @@ export async function submitLead(
     }
 
     // Stage bắt buộc chọn (không còn mặc định "Khách mới").
-    if (!isStage(d.stage)) return { error: "Vui lòng chọn giai đoạn." };
+    if (!isStage(d.stage)) return { error: "Vui lòng chọn trạng thái." };
+    if (!d.staff_id) return { error: "Vui lòng chọn Telesales." };
+    // Khách mới ở Booking phải kèm lịch hẹn: tạo khách trước rồi tạo lịch (khách cũ dùng tab Lịch hẹn).
+    const appointment = mode === "create" && d.stage === BOOKED_STAGE ? d.appointment : null;
+    if (mode === "create" && d.stage === BOOKED_STAGE) {
+      if (!appointment) return { error: "Vui lòng chọn lịch hẹn." };
+      await assertServices(supabase, appointment.service_ids);
+    }
     const stage = d.stage;
     const customer = {
       full_name: d.full_name,
@@ -157,15 +173,36 @@ export async function submitLead(
     };
 
     if (mode === "create") {
-      const { error } = await supabase.from("customers").insert({
-        ...customer,
-        notes,
-        // Chỉ đặt lúc tạo — cập nhật giữ ngày liên hệ đầu tiên.
-        first_contact: new Date().toLocaleDateString("en-CA", {
-          timeZone: "Asia/Ho_Chi_Minh",
-        }),
-      });
+      const { data: created, error } = await supabase
+        .from("customers")
+        .insert({
+          ...customer,
+          notes,
+          // Chỉ đặt lúc tạo — cập nhật giữ ngày liên hệ đầu tiên.
+          first_contact: new Date().toLocaleDateString("en-CA", {
+            timeZone: "Asia/Ho_Chi_Minh",
+          }),
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+
+      if (appointment) {
+        const { error: apptError } = await supabase.from("clinic_appointments").insert({
+          customer_id: created.id,
+          scheduled_at: appointment.scheduled_at,
+          checked_in: false,
+          service_ids: appointment.service_ids,
+          staff_id: d.staff_id,
+          note: "",
+        });
+        if (apptError) {
+          // Không để khách Booking mà không có lịch: gỡ khách vừa tạo rồi báo lỗi.
+          await supabase.from("customers").delete().eq("id", created.id);
+          throw apptError;
+        }
+        revalidatePath("/appointments");
+      }
     } else {
       const { data: current, error: readError } = await supabase
         .from("customers")
@@ -189,6 +226,14 @@ export async function submitLead(
   } catch (e) {
     return { error: normalizeError(e).message };
   }
+}
+
+// Mọi id dịch vụ phải tồn tại (lịch hẹn lưu mảng uuid, không có FK).
+async function assertServices(db: ReturnType<typeof createAdminClient>, ids: string[]) {
+  if (!ids.length) return;
+  const { data, error } = await db.from("services").select("id").in("id", ids);
+  if (error) throw error;
+  if (data?.length !== ids.length) throw new Error("Invalid services");
 }
 
 const appointmentSchema = appointmentPatchSchema.safeExtend({
@@ -229,13 +274,7 @@ export async function createLeadAppointment(
             .in("department", TELESALES_DEPARTMENTS).single()
             .then(({ error }) => { if (error) throw error; })
         : null,
-      serviceIds.length
-        ? db.from("services").select("id").in("id", serviceIds)
-            .then(({ data, error }) => {
-              if (error) throw error;
-              if (data?.length !== serviceIds.length) throw new Error("Invalid services");
-            })
-        : null,
+      assertServices(db, serviceIds),
     ]);
 
     const { error } = await db.from("clinic_appointments").insert({

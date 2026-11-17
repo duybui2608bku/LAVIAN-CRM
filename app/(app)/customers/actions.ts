@@ -12,6 +12,12 @@ import type { Appointment, AppointmentLog } from "@/types/appointment";
 import type { CustomerInput, CustomerNote } from "@/types/customer";
 import type { Service } from "@/types/service";
 
+// Trang /customers + trang con lọc sẵn (Booking management) đọc cùng dữ liệu.
+function revalidateCustomers() {
+  revalidatePath("/customers");
+  revalidatePath("/customers/bookings");
+}
+
 type Result = { error?: string };
 
 export type CustomerAppointmentsData = {
@@ -89,7 +95,7 @@ export async function createCustomer(input: CustomerInput): Promise<Result> {
     const supabase = await createClient();
     const { error } = await supabase.from("customers").insert(clean(input));
     if (error) throw error;
-    revalidatePath("/customers");
+    revalidateCustomers();
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };
@@ -108,7 +114,7 @@ export async function updateCustomer(
       .update(clean(input))
       .eq("id", id);
     if (error) throw error;
-    revalidatePath("/customers");
+    revalidateCustomers();
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };
@@ -144,7 +150,7 @@ export async function patchCustomer(
       .update(data)
       .eq("id", id);
     if (error) throw error;
-    revalidatePath("/customers");
+    revalidateCustomers();
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };
@@ -176,7 +182,7 @@ export async function addCustomerNote(
       .update({ notes })
       .eq("id", id);
     if (upErr) throw upErr;
-    revalidatePath("/customers");
+    revalidateCustomers();
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };
@@ -193,7 +199,7 @@ export async function deleteCustomer(id: string): Promise<Result> {
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", id);
     if (error) throw error;
-    revalidatePath("/customers");
+    revalidateCustomers();
     return {};
   } catch (e) {
     return { error: normalizeError(e).message };

@@ -174,7 +174,7 @@
     "groupAdmin": "Admin",
     "more": "Menu",
     "telesales": "Leader Telesales",
-    "customersList": "List",
+    "bookings": "Booking management",
     "smaxReport": "Smax report",
     "smaxFollowup": "Follow up",
     "documents": "Documents"
@@ -309,6 +309,7 @@
     "createOk": "Added"
   },
   "customers": {
+    "bookingsTitle": "Booking management",
     "region": "Region",
     "province": "Province",
     "city": "Regency / City",
@@ -431,9 +432,10 @@
     "nameRequired": "Please enter your name",
     "phone": "Phone number",
     "phoneInvalid": "Invalid phone number",
-    "staff": "Consultant",
+    "staff": "Telesales",
+    "staffRequired": "Please choose a Telesales",
     "source": "Source",
-    "stage": "Stage",
+    "stage": "Status",
     "note": "Note",
     "noteOptional": "Optional",
     "noteTooLong": "Note must be at most 1000 characters",
@@ -448,7 +450,7 @@
     "currency": "Currency",
     "existingCustomer": "This customer already exists. You can update the record but cannot add it again.",
     "update": "Update",
-    "stageRequired": "Please choose a stage"
+    "stageRequired": "Please choose a status"
   },
   "marketing": {
     "title": "Marketing",

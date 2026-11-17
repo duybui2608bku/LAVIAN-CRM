@@ -174,7 +174,7 @@
     "groupAdmin": "Quản trị",
     "more": "Menu",
     "telesales": "Leader Telesales",
-    "customersList": "Danh sách",
+    "bookings": "Quản lý Booking",
     "smaxReport": "Báo cáo Smax",
     "smaxFollowup": "Follow up",
     "documents": "Tài liệu"
@@ -309,6 +309,7 @@
     "createOk": "Đã thêm"
   },
   "customers": {
+    "bookingsTitle": "Quản lý Booking",
     "region": "Khu vực",
     "province": "Tỉnh",
     "city": "Huyện / Thành phố",
@@ -431,9 +432,10 @@
     "nameRequired": "Vui lòng nhập họ tên",
     "phone": "Số điện thoại",
     "phoneInvalid": "Số điện thoại không hợp lệ",
-    "staff": "Nhân viên tư vấn",
+    "staff": "Telesales",
+    "staffRequired": "Vui lòng chọn Telesales",
     "source": "Nguồn",
-    "stage": "Giai đoạn",
+    "stage": "Trạng thái",
     "note": "Ghi chú",
     "noteOptional": "Không bắt buộc",
     "noteTooLong": "Ghi chú tối đa 1000 ký tự",
@@ -448,7 +450,7 @@
     "currency": "Loại tiền",
     "existingCustomer": "Khách hàng đã tồn tại. Không thể thêm mới; bạn chỉ có thể cập nhật thông tin.",
     "update": "Cập nhật",
-    "stageRequired": "Vui lòng chọn giai đoạn"
+    "stageRequired": "Vui lòng chọn trạng thái"
   },
   "marketing": {
     "title": "Marketing",
