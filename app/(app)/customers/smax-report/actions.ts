@@ -3,7 +3,7 @@
 import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { dayCount } from "@/lib/reports";
-import { BOOKING_ALIASES, buildFollowupReport, buildInboxReport, staffAvatars, type FollowupReport, type InboxReport } from "@/lib/smax-inbox";
+import { buildFollowupReport, buildInboxReport, staffAvatars, type FollowupReport, type InboxReport } from "@/lib/smax-inbox";
 import { fetchInboxThreads } from "@/lib/smax-threads";
 import { createClient } from "@/lib/supabase/server";
 
@@ -38,18 +38,15 @@ async function withRange<T>(from: string, to: string, build: () => Promise<T>): 
   return { data: data.value, avatars: avatars.status === "fulfilled" ? avatars.value : undefined };
 }
 
-/** Báo cáo Smax (hiệu suất khách mới) theo khoảng ngày. */
-export async function getInboxReport(from: string, to: string): Promise<Result<InboxReport>> {
-  return withRange(from, to, async () => {
-    const [created, booked] = await Promise.all([
-      fetchInboxThreads(from, to, { byCreated: true }),
-      fetchInboxThreads(from, untilToday(to), { tags: BOOKING_ALIASES }),
-    ]);
-    return buildInboxReport(created, booked, from, to);
-  });
-}
+export type SmaxReport = { inbox: InboxReport; followup: FollowupReport };
 
-/** Báo cáo Follow up (bào data cũ) theo khoảng ngày. */
-export async function getFollowupReport(from: string, to: string): Promise<Result<FollowupReport>> {
-  return withRange(from, to, async () => buildFollowupReport(await fetchInboxThreads(from, untilToday(to)), from, to));
+/** Báo cáo Smax (khách mới + Follow up khách cũ) theo khoảng ngày — 2 lượt tải hội thoại dùng chung cho cả 2 báo cáo. */
+export async function getSmaxReport(from: string, to: string): Promise<Result<SmaxReport>> {
+  return withRange(from, to, async () => {
+    const [created, active] = await Promise.all([
+      fetchInboxThreads(from, to, { byCreated: true }),
+      fetchInboxThreads(from, untilToday(to)),
+    ]);
+    return { inbox: buildInboxReport(created, active, from, to), followup: buildFollowupReport(active, from, to) };
+  });
 }

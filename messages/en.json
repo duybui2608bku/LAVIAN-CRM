@@ -192,7 +192,6 @@
     "telesales": "Leader Telesales",
     "bookings": "Booking management",
     "smaxReport": "Smax report",
-    "smaxFollowup": "Follow up",
     "documents": "Documents"
   },
   "theme": {
@@ -602,12 +601,15 @@
     "allSources": "All sources",
     "unassigned": "Unassigned",
     "card": {
-      "total": "New customers"
+      "reEngaged": "Re-engaged customers",
+      "newCustomers": "New customers",
+      "bookingTotal": "Total Booking",
+      "bookingNew": "New Booking",
+      "showUp": "Showed up"
     },
     "hint": {
-      "total": "{untagged} without status",
       "deposit": "{n} deposit",
-      "bookingOld": "{n} returning"
+      "bookingOld": "Old booking: {n}"
     },
     "status": {
       "booking": "Booking",
@@ -617,10 +619,11 @@
       "spam": "Spam"
     },
     "byChannel": "By channel",
+    "bySource": "Booking by source",
     "byStaff": "By telesales",
     "channel": "Channel",
     "total": "Total",
-    "bookingOld": "Old Booking",
+    "bookingNew": "New Booking",
     "bookingRate": "Booking rate",
     "distribution": "Distribution"
   },
@@ -631,13 +634,7 @@
     "bookingNew": "New bookings",
     "bookingOld": "Follow-up bookings",
     "bookingTotal": "Total bookings",
-    "hint": {
-      "worked": "Old leads with messages in range",
-      "quality": "{booking} Booking · {showUp} showed up",
-      "bookingNew": "From new leads in range",
-      "bookingOld": "From old (nurtured) leads",
-      "bookingTotal": "New + follow-up bookings"
-    }
+    "byStaff": "Follow-up by telesales"
   },
   "documents": {
     "title": "Documents",
