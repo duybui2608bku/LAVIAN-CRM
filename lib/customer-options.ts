@@ -2,6 +2,7 @@ import type { EnumKind, EnumOption } from "@/types/customer";
 
 const definitions: [EnumKind, string, string, string, string][] = [
   ["stage", "consulting", "Đang tư vấn", "Consulting", "cyan"],
+  ["stage", "potential", "Tiềm năng", "Potential", "purple"],
   ["stage", "deposited", "Đã đặt cọc", "Deposited", "gold"],
   ["stage", "booked", "Booking", "Booking", "geekblue"], // tạo mới ở lead form bắt buộc kèm lịch hẹn
   ["stage", "show_up", "Show-up", "Show-up", "green"], // tự động theo Clinic confirmation — không cho chọn tay
