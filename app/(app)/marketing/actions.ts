@@ -6,7 +6,6 @@ import {
   fetchFbAdCampaigns,
   fetchFbAds,
   fetchFbCampaigns,
-  fetchSmaxStats,
   setFbCampaignStatus,
   type FbCampaign,
 } from "@/lib/marketing";
@@ -20,11 +19,10 @@ export interface AdsStats {
   currency: string | null;
   spend: number | null;
   messages: number | null;
-  leads: number | null;
   campaigns: FbCampaign[] | null;
-  /** Khách tiềm năng (hội thoại SMAX tạo trong range) theo chiến dịch IG / số WA; null khi lỗi. */
+  /** Khách tiềm năng (khách SMAX mới trong range có tag Phone/WA, Booking, Deposit, Purchase): tổng + theo chiến dịch IG / số WA; null khi lỗi. */
   potential: PotentialCounts | null;
-  errors: { fb?: string; campaigns?: string; smax?: string; db?: string; potential?: string };
+  errors: { fb?: string; campaigns?: string; db?: string; potential?: string };
   error?: string;
 }
 
@@ -36,7 +34,6 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
     currency: null,
     spend: null,
     messages: null,
-    leads: null,
     campaigns: null,
     potential: null,
     errors: {},
@@ -44,10 +41,9 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
   if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to)
     return { ...stats, error: "Khoảng ngày không hợp lệ." };
 
-  const [fb, campaigns, smax, potential] = await Promise.allSettled([
+  const [fb, campaigns, potential] = await Promise.allSettled([
     fetchFbAds(from, to),
     fetchFbCampaigns(from, to),
-    fetchSmaxStats(from, to),
     Promise.all([fetchInboxThreads(from, to, { byCreated: true }), fetchFbAdCampaigns(from, to)]).then(
       ([threads, ads]) => countPotential(threads, ads),
     ),
@@ -64,9 +60,6 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
 
   if (campaigns.status === "fulfilled") stats.campaigns = campaigns.value;
   else stats.errors.campaigns = normalizeError(campaigns.reason).message;
-
-  if (smax.status === "fulfilled") stats.leads = smax.value.leads;
-  else stats.errors.smax = normalizeError(smax.reason).message;
 
   return stats;
 }

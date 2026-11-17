@@ -48,22 +48,42 @@ export type InboxThread = {
   last_message_at?: string;
   /** Lúc khách nhắn lần đầu (dùng cho trang Follow up). */
   created_at?: string;
-  /** Tag kèm thời điểm gắn (dùng cho trang Follow up). */
-  customer?: { tags?: { alias?: string; time?: string }[]; instagram?: { ad_id?: string } };
+  /**
+   * Khách của hội thoại. 1 khách IG có thể có 2 hội thoại (tin nhắn + bình luận) dùng CHUNG `tags` của khách.
+   * `tags` kèm thời điểm gắn; `created_at` = lúc SMAX biết khách lần đầu.
+   */
+  customer?: { id?: string; created_at?: string; tags?: { alias?: string; time?: string }[]; instagram?: { ad_id?: string } };
   /** Trang nhận tin: `waw<số WA>` / `ig<id>`. */
   page_pid?: string;
   /** Quảng cáo IG khách bấm gần nhất. */
   instagram?: { ad_id?: string };
 };
 
+/** Mỗi khách giữ 1 hội thoại (ưu tiên hội thoại có nhiều tag hơn — thường là tin nhắn, không phải bình luận). */
+export function byCustomer(threads: InboxThread[]): InboxThread[] {
+  const out = new Map<string, InboxThread>();
+  for (const t of threads) {
+    const key = t.customer?.id ?? t.id;
+    const prev = out.get(key);
+    if (!prev || (t.tag_aliases?.length ?? 0) > (prev.tag_aliases?.length ?? 0)) out.set(key, t);
+  }
+  return [...out.values()];
+}
+
+/** Lần đầu khách xuất hiện (ms): sớm hơn giữa ngày tạo hội thoại và ngày tạo khách. */
+export function firstSeen(t: InboxThread): number {
+  const times = [t.created_at, t.customer?.created_at].map((s) => Date.parse(s ?? "")).filter((n) => !Number.isNaN(n));
+  return times.length ? Math.min(...times) : NaN;
+}
+
 export type InboxCounts = Record<InboxStatus, number> & {
-  /** Hội thoại mới (tạo trong khoảng), kể cả chưa gắn trạng thái. */
+  /** Khách mới (lần đầu xuất hiện trong khoảng; 1 khách = 1 dù có nhiều hội thoại), kể cả chưa gắn trạng thái. */
   conversations: number;
   /** Có tag Bookings deposit (đã nằm trong booking). */
   deposit: number;
   /** Hội thoại mới chưa gắn trạng thái nào. */
   untagged: number;
-  /** Booking của khách cũ (hội thoại tạo trước khoảng ngày) — đã nằm trong booking. */
+  /** Booking của khách cũ (khách xuất hiện trước khoảng ngày) — đã nằm trong booking. */
   bookingOld: number;
 };
 export type ChannelCounts = Record<InboxChannel, InboxCounts>;
@@ -103,13 +123,11 @@ export function buildInboxReport(created: InboxThread[], booked: InboxThread[], 
     [...INBOX_STAFF.map((s) => s.alias), UNASSIGNED].map((a) => [a, emptyChannels()]),
   );
 
-  // Cộng 1 hội thoại vào tổng + từng nhân viên gắn tag (2 nhân viên → tính cho cả 2; tổng vẫn đếm 1 lần).
+  // Cộng 1 khách vào tổng + từng nhân viên gắn tag (2 nhân viên → tính cho cả 2; tổng vẫn đếm 1 lần).
   const tally = (threads: InboxThread[], add: (c: InboxCounts, tags: string[], t: InboxThread) => void) => {
-    const seen = new Set<string>();
-    for (const t of threads) {
+    for (const t of byCustomer(threads)) {
       const channel = CHANNEL_OF[t.platform ?? ""];
-      if (!channel || seen.has(t.id)) continue;
-      seen.add(t.id);
+      if (!channel) continue;
       const tags = t.tag_aliases ?? [];
       const owners = INBOX_STAFF.filter((s) => tags.includes(s.alias)).map((s) => s.alias);
       add(total[channel], tags, t);
@@ -117,7 +135,8 @@ export function buildInboxReport(created: InboxThread[], booked: InboxThread[], 
     }
   };
 
-  tally(created, (c, tags) => {
+  // Khách cũ mở hội thoại mới (vd bình luận IG) không phải khách mới.
+  tally(created.filter((t) => !(firstSeen(t) < start)), (c, tags) => {
     c.conversations++;
     const status = STATUS_ALIASES.find(([, aliases]) => aliases.some((a) => tags.includes(a)))?.[0];
     if (!status) c.untagged++;
@@ -127,8 +146,8 @@ export function buildInboxReport(created: InboxThread[], booked: InboxThread[], 
     const at = taggedAt(t, BOOKING_ALIASES);
     if (!BOOKING_ALIASES.some((a) => tags.includes(a)) || !(at >= start && at <= end)) return;
     c.booking++;
-    if (tags.includes(DEPOSIT_ALIAS)) c.deposit++;
-    if (Date.parse(t.created_at ?? "") < start) c.bookingOld++;
+    if (tags.includes(DEPOSIT_ALIAS) && taggedAt(t, [DEPOSIT_ALIAS]) <= end) c.deposit++; // cọc sau kỳ → chưa tính
+    if (firstSeen(t) < start) c.bookingOld++;
   });
 
   return {
@@ -151,7 +170,10 @@ export function inboxDateRange(from: string, to: string): [string, string] {
 /*
  * Báo cáo Follow up (bào data cũ) từ hội thoại SMAX:
  * - data cũ = hội thoại tạo trước ngày bắt đầu, data mới = tạo trong khoảng;
- * - "chuyển đổi" dựa trên thời điểm gắn tag (`customer.tags[].time`) — SMAX không lưu lịch sử đổi tag.
+ * - "chuyển đổi" dựa trên thời điểm gắn tag (`customer.tags[].time`) — SMAX không lưu lịch sử đổi tag;
+ * - hội thoại lấy theo tin nhắn cuối từ đầu kỳ TỚI HÔM NAY (khách gắn tag trong kỳ có thể nhắn tiếp sau kỳ).
+ *   Số bào = data cũ có tin nhắn cuối trong kỳ HOẶC được gắn Booking/Purchase trong kỳ. SMAX chỉ có tin nhắn
+ *   cuối → xem kỳ cũ thì khách nhắn trong kỳ rồi nhắn tiếp sau kỳ (không chuyển đổi) không đếm được vào số bào.
  */
 const SHOW_UP_ALIAS = "purchase"; // "Pelanggan datang ke klinik dan melakukan pembayaran."
 
@@ -180,7 +202,7 @@ function taggedAt(t: InboxThread, aliases: string[]): number {
   return times.length ? Math.min(...times) : NaN;
 }
 
-/** `from`/`to` là ngày WIB `YYYY-MM-DD` (cùng khoảng đã dùng để lấy hội thoại). */
+/** `from`/`to` là ngày WIB `YYYY-MM-DD`; `threads` = hội thoại có tin nhắn cuối từ `from` tới hôm nay. */
 export function buildFollowupReport(threads: InboxThread[], from: string, to: string): FollowupReport {
   const [start, end] = inboxDateRange(from, to).map(Date.parse);
   const inRange = (ms: number) => ms >= start && ms <= end;
@@ -188,15 +210,14 @@ export function buildFollowupReport(threads: InboxThread[], from: string, to: st
   const staff = new Map<string, FollowupCounts>(
     [...INBOX_STAFF.map((s) => s.alias), UNASSIGNED].map((a) => [a, emptyFollowup()]),
   );
-  const seen = new Set<string>();
-
-  for (const t of threads) {
-    const created = Date.parse(t.created_at ?? "");
-    if (!CHANNEL_OF[t.platform ?? ""] || seen.has(t.id) || Number.isNaN(created)) continue;
-    seen.add(t.id);
+  for (const t of byCustomer(threads)) {
+    const created = firstSeen(t);
+    if (!CHANNEL_OF[t.platform ?? ""] || Number.isNaN(created) || created > end) continue;
     const old = created < start;
     const booked = inRange(taggedAt(t, BOOKING_ALIASES));
     const showed = inRange(taggedAt(t, [SHOW_UP_ALIAS]));
+    // Không nhắn trong kỳ và không chuyển đổi trong kỳ → không thuộc kỳ này.
+    if (!inRange(Date.parse(t.last_message_at ?? "")) && !booked && !showed) continue;
 
     const add = (c: FollowupCounts) => {
       if (old) {
@@ -230,15 +251,16 @@ export type PotentialCounts = {
   byCampaign: Record<string, number>;
   /** "WA-<4 số cuối>" → số khách tiềm năng nhắn vào số WA đó. */
   byWa: Record<string, number>;
+  /** Tổng khách tiềm năng WA + IG (kể cả không gán được chiến dịch). */
+  total: number;
 };
 
-/** `adCampaign`: ad_id → campaign_id (từ FB). Mỗi hội thoại tính tối đa 1 lần. */
+/** `adCampaign`: ad_id → campaign_id (từ FB). Mỗi khách tính tối đa 1 lần. */
 export function countPotential(threads: InboxThread[], adCampaign: Map<string, string>): PotentialCounts {
-  const out: PotentialCounts = { byCampaign: {}, byWa: {} };
-  const seen = new Set<string>();
-  for (const t of threads) {
-    if (seen.has(t.id) || !POTENTIAL_ALIASES.some((a) => t.tag_aliases?.includes(a))) continue;
-    seen.add(t.id);
+  const out: PotentialCounts = { byCampaign: {}, byWa: {}, total: 0 };
+  for (const t of byCustomer(threads)) {
+    if (!CHANNEL_OF[t.platform ?? ""] || !POTENTIAL_ALIASES.some((a) => t.tag_aliases?.includes(a))) continue;
+    out.total++;
     if (t.platform === "instagram") {
       // ad_id của hội thoại là lần bấm gần nhất; không khớp FB thì thử ad_id lưu ở khách.
       const campaign = [t.instagram?.ad_id, t.customer?.instagram?.ad_id]

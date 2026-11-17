@@ -19,6 +19,15 @@ async function loadAvatars() {
   return staffAvatars(data ?? []);
 }
 
+/**
+ * Tính theo lúc gắn tag: hội thoại gắn trong kỳ nhưng nhắn tiếp sau đó có last_message_at muộn hơn `to`
+ * → lấy theo tin nhắn từ `from` tới hôm nay (WIB) rồi lọc theo thời điểm gắn.
+ */
+function untilToday(to: string) {
+  const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
+  return today > to ? today : to;
+}
+
 /** Kiểm quyền + khoảng ngày WIB `YYYY-MM-DD`, rồi lấy hội thoại + tính báo cáo (`build`). */
 async function withRange<T>(from: string, to: string, build: () => Promise<T>): Promise<Result<T>> {
   await requirePermission("customers.view");
@@ -32,12 +41,9 @@ async function withRange<T>(from: string, to: string, build: () => Promise<T>): 
 /** Báo cáo Smax (hiệu suất khách mới) theo khoảng ngày. */
 export async function getInboxReport(from: string, to: string): Promise<Result<InboxReport>> {
   return withRange(from, to, async () => {
-    // Booking tính theo lúc gắn tag: hội thoại gắn trong khoảng nhưng nhắn tiếp sau đó có last_message_at muộn hơn `to`
-    // → lấy theo tin nhắn từ `from` tới hôm nay (WIB) rồi lọc theo thời điểm gắn.
-    const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
     const [created, booked] = await Promise.all([
       fetchInboxThreads(from, to, { byCreated: true }),
-      fetchInboxThreads(from, today > to ? today : to, { tags: BOOKING_ALIASES }),
+      fetchInboxThreads(from, untilToday(to), { tags: BOOKING_ALIASES }),
     ]);
     return buildInboxReport(created, booked, from, to);
   });
@@ -45,5 +51,5 @@ export async function getInboxReport(from: string, to: string): Promise<Result<I
 
 /** Báo cáo Follow up (bào data cũ) theo khoảng ngày. */
 export async function getFollowupReport(from: string, to: string): Promise<Result<FollowupReport>> {
-  return withRange(from, to, async () => buildFollowupReport(await fetchInboxThreads(from, to), from, to));
+  return withRange(from, to, async () => buildFollowupReport(await fetchInboxThreads(from, untilToday(to)), from, to));
 }

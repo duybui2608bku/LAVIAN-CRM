@@ -9,8 +9,6 @@
 // ponytail: 2 account id hardcode — thành config khi có nhu cầu thêm/bớt tài khoản.
 const FB_AD_ACCOUNTS = ["act_1494701561142295", "act_405282048979489"];
 const FB_API = "https://graph.facebook.com/v25.0";
-const SMAX_API =
-  "https://api.smax.ai/bizs/lavianbeautycenter/statistics-v2/customers";
 const SMAX_TAGS_API =
   "https://api.smax.ai/bizs/lavianbeautycenter/statistics-v2/tags";
 const SMAX_STAFF_RANKING_API =
@@ -356,15 +354,6 @@ export async function fetchFbAdCampaigns(
   return out;
 }
 
-type SmaxRes = {
-  status?: number;
-  message?: string;
-  data?: {
-    customer_message_total?: number;
-    customer_lead_total?: number;
-  };
-};
-
 export interface SmaxTagStat {
   name: string;
   cur: number;
@@ -453,32 +442,6 @@ function smaxPayload(from: string, to: string) {
     type: "message_and_comment",
     tag_aliases: [],
     top: 10,
-  };
-}
-
-/** Khách nhắn tin + để lại số từ SMAX statistics-v2 trong range. */
-export async function fetchSmaxStats(
-  from: string,
-  to: string,
-): Promise<{ messages: number; leads: number }> {
-  const token = process.env.SMAX_TOKEN;
-  if (!token) throw new Error("Thiếu SMAX_TOKEN.");
-  const res = await fetch(SMAX_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    cache: "no-store",
-    // Payload theo mẫu SMAX cung cấp — chỉ from/to thay đổi theo range chọn.
-    body: JSON.stringify(smaxPayload(from, to)),
-  });
-  const json = (await res.json().catch(() => null)) as SmaxRes | null;
-  if (!res.ok || !json || json.status !== 200)
-    throw new Error(json?.message ?? `SMAX API ${res.status}`);
-  return {
-    messages: Number(json.data?.customer_message_total ?? 0),
-    leads: Number(json.data?.customer_lead_total ?? 0),
   };
 }
 

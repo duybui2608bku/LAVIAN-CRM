@@ -26,8 +26,10 @@ import {
 
 import { getTelesalesReport, type TelesalesReport } from "@/app/(app)/reports/telesales/actions";
 import { DateRangeFilter, initialRange } from "@/components/common/date-range-filter";
+import { MetricList } from "@/components/common/metric-list";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { PageHeader, PageToolbar } from "@/components/layout/page";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { FunnelChart, TrendChart } from "@/components/reports/telesales-charts";
 import { change, ratio } from "@/lib/reports";
 import {
@@ -364,6 +366,7 @@ function StaffTable({
   pct: (v: number | null) => string;
 }) {
   const t = useTranslations("telesales");
+  const mobile = useIsMobile();
   const rows: StaffRow[] = [
     ...staff.map((s) => ({ ...s, key: s.id })),
     ...(other ? [{ ...other, id: "__other" as const, conversations: null, key: "__other" }] : []),
@@ -392,6 +395,52 @@ function StaffTable({
       <span className="text-muted-foreground"> ({pct(ratio(r.arrived, r.scheduled))})</span>
     </span>
   );
+
+  if (mobile) {
+    // `convBookings`: booking dùng cho tỉ lệ/KPI (dòng Tổng chỉ tính NV đã ghép SMAX — giống bảng desktop).
+    const card = (r: StaffCounts & { conversations: number | null }, key: string, title: React.ReactNode, strong = false, convBookings = r.bookings) => ({
+      key,
+      title,
+      strong,
+      metrics: [
+        { label: t("col.conversations"), value: r.conversations != null ? num(r.conversations) : "-" },
+        { label: t("col.bookings"), value: num(r.bookings) },
+        { label: t("col.bookingRate"), value: pct(ratio(convBookings, r.conversations)) },
+        { label: t("col.showUp"), value: num(r.arrived), sub: `(${pct(ratio(r.arrived, r.scheduled))})` },
+      ],
+      footer:
+        r.conversations != null ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="shrink-0">{t("col.kpi", { kpi: pct(KPI_BOOKING_RATE) })}</span>
+            <div className="min-w-0 flex-1">{kpiCell(convBookings, r.conversations)}</div>
+          </div>
+        ) : undefined,
+    });
+    return (
+      <MetricList
+        className="-mx-4"
+        loading={loading}
+        empty={t("noStaff")}
+        rows={[
+          ...rows.map((r) =>
+            card(
+              r,
+              r.key,
+              "name" in r ? (
+                <span className="flex min-w-0 items-center gap-2">
+                  <UserAvatar src={r.avatar_url} size={22} />
+                  <span className="truncate">{r.name || "-"}</span>
+                </span>
+              ) : (
+                <span className="text-muted-foreground">{t("other")}</span>
+              ),
+            ),
+          ),
+          ...(rows.length ? [card(total, "__total", t("total"), true, total.convBookings)] : []),
+        ]}
+      />
+    );
+  }
 
   const columns: TableProps<StaffRow>["columns"] = [
     {

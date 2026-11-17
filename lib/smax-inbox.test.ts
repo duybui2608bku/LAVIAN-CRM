@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildInboxReport, countPotential, inboxDateRange, statusTotal, sumChannels, UNASSIGNED } from "./smax-inbox.ts";
+import { buildFollowupReport, buildInboxReport, countPotential, inboxDateRange, statusTotal, sumChannels, UNASSIGNED } from "./smax-inbox.ts";
 
 const t = (id: string, platform: string, tags: string[]) => ({ id, platform, tag_aliases: tags });
 
@@ -97,5 +97,54 @@ test("countPotential: 1 hội thoại tính 1 lần, IG theo ad_id, WA theo số
     ],
     ads,
   );
-  assert.deepEqual(r, { byCampaign: { c1: 2, c2: 1 }, byWa: { "WA-3455": 2 } });
+  assert.deepEqual(r, { byCampaign: { c1: 2, c2: 1 }, byWa: { "WA-3455": 2 }, total: 6 }); // gồm khách IG không có quảng cáo
+});
+
+test("buildInboxReport: cọc gắn sau kỳ chưa tính deposit", () => {
+  const r = buildInboxReport(
+    [],
+    [
+      {
+        id: "1",
+        platform: "whatsappweb",
+        created_at: "2026-11-16T03:00:00.000Z",
+        tag_aliases: ["booking", "bookings-deposit"],
+        customer: {
+          tags: [
+            { alias: "booking", time: "2026-11-16T05:00:00.000Z" },
+            { alias: "bookings-deposit", time: "2026-11-17T05:00:00.000Z" },
+          ],
+        },
+      },
+    ],
+    "2026-11-16",
+    "2026-11-16",
+  );
+  assert.equal(r.total.wa.booking, 1);
+  assert.equal(r.total.wa.deposit, 0);
+});
+
+test("1 khách IG có tin nhắn + bình luận chỉ tính 1; khách cũ bình luận lại không phải khách mới", () => {
+  const D16 = "2026-11-16T03:00:00.000Z";
+  const cust = (id: string, created = D16) => ({ id, created_at: created, tags: [{ alias: "booking", time: D16 }] });
+  const dm = { id: "dm", platform: "instagram", created_at: D16, last_message_at: D16, tag_aliases: ["zila", "booking"], customer: cust("A") };
+  const cmt = { id: "cmt", platform: "instagram", created_at: D16, last_message_at: D16, tag_aliases: [], customer: cust("A") };
+  const oldCmt = { id: "old", platform: "instagram", created_at: D16, last_message_at: D16, tag_aliases: [], customer: { id: "B", created_at: "2026-10-01T00:00:00.000Z" } };
+
+  const r = buildInboxReport([cmt, dm, oldCmt], [dm], "2026-11-16", "2026-11-16");
+  assert.deepEqual(r.total.ig, { ...zero, conversations: 1, booking: 1 }); // không có "untagged" từ bình luận / khách cũ
+  assert.equal(r.staff.find((s) => s.alias === "zila")!.counts.ig.conversations, 1);
+
+  assert.deepEqual(buildFollowupReport([cmt, dm, oldCmt], "2026-11-16", "2026-11-16").total, {
+    worked: 1, // khách B (cũ) bình luận trong kỳ
+    converted: 0,
+    bookingOld: 0,
+    showUp: 0,
+    bookingNew: 1, // khách A tính 1 lần
+  });
+  assert.deepEqual(countPotential([{ ...cmt, tag_aliases: ["phone"], instagram: { ad_id: "x" } }, { ...dm, instagram: { ad_id: "x" } }], new Map([["x", "c"]])), {
+    byCampaign: { c: 1 },
+    byWa: {},
+    total: 1,
+  });
 });

@@ -7,6 +7,8 @@ import { RefreshCw } from "lucide-react";
 
 import { getInboxReport } from "@/app/(app)/customers/smax-report/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { MetricList } from "@/components/common/metric-list";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { initialRange } from "@/components/common/date-range-filter";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -170,7 +172,7 @@ export function SmaxReportView() {
           <Section
             title={t("byStaff")}
             extra={
-              <span className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground max-sm:hidden">
                 {INBOX_STATUSES.map((s) => (
                   <span key={s} className="flex items-center gap-1.5">
                     <span className="size-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
@@ -200,12 +202,24 @@ function Section({ title, extra, children }: { title: string; extra?: React.Reac
   );
 }
 
+/** Nhãn trạng thái kèm chấm màu (dùng trong lưới số điện thoại). */
+function StatusLabel({ status }: { status: InboxStatus }) {
+  const t = useTranslations("smaxReport");
+  return (
+    <span className="flex items-center gap-1">
+      <span className="size-1.5 shrink-0 rounded-full" style={{ background: STATUS_COLOR[status] }} />
+      <span className="truncate">{t(`status.${status}`)}</span>
+    </span>
+  );
+}
+
 type ChannelRow = { key: string; label: string; counts: InboxCounts; strong?: boolean };
 
 /** Bảng theo kênh (mẫu "Inbox destination"): WA / IG / Tổng × trạng thái, ô kèm % theo dòng. */
 function ChannelTable({ scope, channel, loading }: { scope: ChannelCounts | null; channel: InboxChannel | ""; loading: boolean }) {
   const t = useTranslations("smaxReport");
   const { num, pct } = useFormat();
+  const mobile = useIsMobile();
   // Lọc nguồn → chỉ còn dòng kênh đó (không cần dòng Tổng).
   const rows: ChannelRow[] = !scope
     ? []
@@ -215,6 +229,30 @@ function ChannelTable({ scope, channel, loading }: { scope: ChannelCounts | null
           ...INBOX_CHANNELS.map((c) => ({ key: c, label: CHANNEL_LABEL[c], counts: scope[c] })),
           { key: "total", label: t("total"), counts: sumChannels(scope), strong: true },
         ];
+
+  if (mobile)
+    return (
+      <MetricList
+        className="-mx-4"
+        loading={loading}
+        rows={rows.map((r) => ({
+          key: r.key,
+          title: r.label,
+          strong: r.strong,
+          aside: (
+            <span className="text-sm">
+              <span className="font-semibold">{num(r.counts.conversations)}</span>{" "}
+              <span className="text-xs text-muted-foreground">{t("card.total")}</span>
+            </span>
+          ),
+          metrics: INBOX_STATUSES.map((s) => ({
+            label: <StatusLabel status={s} />,
+            value: num(r.counts[s]),
+            sub: pct(r.counts[s], r.counts.conversations),
+          })),
+        }))}
+      />
+    );
 
   const columns: TableProps<ChannelRow>["columns"] = [
     { key: "label", title: t("channel"), render: (_, r) => <span className={cn(r.strong ? "font-semibold" : "font-medium")}>{r.label}</span> },
@@ -269,6 +307,7 @@ function StaffTable({
 }) {
   const t = useTranslations("smaxReport");
   const { num, pct } = useFormat();
+  const mobile = useIsMobile();
   const rows: StaffRow[] = (report?.staff ?? [])
     .map((s) => {
       const sum = pickChannel(s.counts, channel);
@@ -277,16 +316,55 @@ function StaffTable({
     // Nhiều hội thoại mới nhất lên đầu; "Chưa gán" luôn cuối.
     .sort((a, b) => Number(a.alias === UNASSIGNED) - Number(b.alias === UNASSIGNED) || b.all - a.all || b.sum.booking - a.sum.booking);
 
+  const bar = (r: StaffRow) =>
+    r.bar ? (
+      <Tooltip title={INBOX_STATUSES.map((s) => `${t(`status.${s}`)}: ${num(r.sum[s])}`).join(" · ")}>
+        <div className="flex h-2 w-full min-w-32 overflow-hidden rounded-full bg-muted">
+          {INBOX_STATUSES.map((s) => (
+            <div key={s} style={{ width: `${(r.sum[s] / r.bar) * 100}%`, background: STATUS_COLOR[s] }} />
+          ))}
+        </div>
+      </Tooltip>
+    ) : (
+      <div className="h-2 w-full min-w-32 rounded-full bg-muted" />
+    );
+  const name = (r: StaffRow) => (
+    <span className={cn("flex min-w-0 items-center gap-2 whitespace-nowrap font-medium", r.alias === UNASSIGNED && "text-muted-foreground")}>
+      {r.alias === UNASSIGNED ? null : <UserAvatar src={avatars?.[r.alias]} size={24} />}
+      <span className="truncate">{r.name}</span>
+    </span>
+  );
+
+  if (mobile)
+    return (
+      <MetricList
+        className="-mx-4"
+        loading={loading}
+        rows={rows.map((r) => ({
+          key: r.alias,
+          title: name(r),
+          onClick: () => onPick(r.alias),
+          aside: (
+            <span className="text-sm">
+              <span className="font-semibold">{num(r.all)}</span>{" "}
+              <span className="text-xs text-muted-foreground">{t("card.total")}</span>
+            </span>
+          ),
+          metrics: [
+            { label: <StatusLabel status="booking" />, value: num(r.sum.booking), sub: pct(r.sum.booking, r.all) },
+            { label: t("bookingOld"), value: num(r.sum.bookingOld) },
+            ...INBOX_STATUSES.slice(1).map((s) => ({ label: <StatusLabel status={s} />, value: num(r.sum[s]) })),
+          ],
+          footer: bar(r),
+        }))}
+      />
+    );
+
   const columns: TableProps<StaffRow>["columns"] = [
     {
       key: "name",
       title: t("staff"),
-      render: (_, r) => (
-        <span className={cn("flex items-center gap-2 whitespace-nowrap font-medium", r.alias === UNASSIGNED && "text-muted-foreground")}>
-          {r.alias === UNASSIGNED ? null : <UserAvatar src={avatars?.[r.alias]} size={24} />}
-          {r.name}
-        </span>
-      ),
+      render: (_, r) => name(r),
     },
     // Cột Old Booking ngay sau Booking (đã nằm trong số Booking).
     ...[...INBOX_STATUSES.slice(0, 1), "bookingOld" as const, ...INBOX_STATUSES.slice(1)].map((s) => ({
@@ -306,18 +384,7 @@ function StaffTable({
       key: "bar",
       title: t("distribution"),
       width: 200,
-      render: (_, r) =>
-        r.bar ? (
-          <Tooltip title={INBOX_STATUSES.map((s) => `${t(`status.${s}`)}: ${num(r.sum[s])}`).join(" · ")}>
-            <div className="flex h-2 w-full min-w-32 overflow-hidden rounded-full bg-muted">
-              {INBOX_STATUSES.map((s) => (
-                <div key={s} style={{ width: `${(r.sum[s] / r.bar) * 100}%`, background: STATUS_COLOR[s] }} />
-              ))}
-            </div>
-          </Tooltip>
-        ) : (
-          <div className="h-2 w-full min-w-32 rounded-full bg-muted" />
-        ),
+      render: (_, r) => bar(r),
     },
   ];
 
