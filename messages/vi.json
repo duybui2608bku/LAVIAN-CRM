@@ -726,6 +726,22 @@
     "deleteCommentConfirm": "Xoá bình luận này?",
     "reply": "Trả lời",
     "replyPlaceholder": "Trả lời {name}…",
-    "deleteThreadConfirm": "Xoá bình luận này và các câu trả lời?"
+    "deleteThreadConfirm": "Xoá bình luận này và các câu trả lời?",
+    "category": "Danh mục",
+    "categoryPlaceholder": "Chọn danh mục",
+    "categoryRequired": "Vui lòng chọn danh mục",
+    "allCategories": "Mọi danh mục",
+    "colTitle": "Tiêu đề",
+    "colDepartments": "Bộ phận xem",
+    "colAuthor": "Người tạo",
+    "colCreated": "Ngày tạo",
+    "colEngagement": "Tương tác",
+    "cat_regulation": "Quy định",
+    "cat_charter": "Quy chế",
+    "cat_training": "Học tập",
+    "cat_process": "Quy trình",
+    "cat_form": "Biểu mẫu",
+    "cat_announcement": "Thông báo",
+    "cat_other": "Khác"
   }
 }

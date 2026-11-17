@@ -13,7 +13,7 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("documents")
-    .select(`id, title, content, pdf_path, departments, created_at, updated_at, ${DOCUMENT_AUTHOR}`)
+    .select(`id, title, category, content, pdf_path, departments, created_at, updated_at, ${DOCUMENT_AUTHOR}`)
     .eq("id", id)
     .maybeSingle();
   // id sai định dạng uuid (22P02) = không tồn tại; lỗi khác thì hiện trang lỗi.

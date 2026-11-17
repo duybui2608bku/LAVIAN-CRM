@@ -1,5 +1,6 @@
 import type { JSONContent } from "@tiptap/react";
 
+import type { DocumentCategory } from "@/lib/document-categories";
 import type { UserDepartment } from "@/types/user";
 
 type Author = { user_name: string; avatar_url: string | null } | null;
@@ -8,9 +9,10 @@ type Author = { user_name: string; avatar_url: string | null } | null;
 export interface DocumentListItem {
   id: string;
   title: string;
+  category: DocumentCategory;
   pdf_path: string | null;
   departments: UserDepartment[]; // rỗng = mọi bộ phận
-  updated_at: string;
+  created_at: string;
   author: Author;
   likes: { count: number }[];
   comments: { count: number }[];
@@ -20,6 +22,7 @@ export interface DocumentListItem {
 export interface DocumentRecord {
   id: string;
   title: string;
+  category: DocumentCategory;
   content: JSONContent | null; // JSON Tiptap
   pdf_path: string | null; // object name trong bucket private `documents`
   departments: UserDepartment[];
@@ -39,6 +42,7 @@ export interface DocumentComment {
 
 export interface DocumentInput {
   title: string;
+  category: DocumentCategory;
   content: JSONContent | null;
   pdf_path: string | null;
   departments: UserDepartment[];

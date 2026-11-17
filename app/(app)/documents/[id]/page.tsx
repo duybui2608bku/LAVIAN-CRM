@@ -19,7 +19,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
   // RLS: tài liệu khác bộ phận → không có dòng → 404 (id sai định dạng cũng vậy).
   const { data, error } = await supabase
     .from("documents")
-    .select(`id, title, content, pdf_path, departments, created_at, updated_at, ${DOCUMENT_AUTHOR}`)
+    .select(`id, title, category, content, pdf_path, departments, created_at, updated_at, ${DOCUMENT_AUTHOR}`)
     .eq("id", id)
     .maybeSingle();
   // Lỗi truy vấn thật → trang lỗi (trước đây bị nuốt thành 404).

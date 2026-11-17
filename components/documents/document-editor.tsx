@@ -10,13 +10,14 @@ import { FileText, FileUp, Trash2 } from "lucide-react";
 import { Page, PageHeader } from "@/components/layout/page";
 import { RichTextEditor, useRichEditor } from "@/components/documents/rich-text";
 import { importGoogleDoc, saveDocument } from "@/app/(app)/documents/actions";
+import { DOCUMENT_CATEGORIES, type DocumentCategory } from "@/lib/document-categories";
 import { normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/lib/toast";
 import { DOCUMENTS_BUCKET, type DocumentRecord } from "@/types/document";
 import { DEPARTMENTS, type UserDepartment } from "@/types/user";
 
-type Values = { title: string; departments: UserDepartment[]; pdf_path: string | null };
+type Values = { title: string; category: DocumentCategory; departments: UserDepartment[]; pdf_path: string | null };
 
 const MAX_PDF_MB = 30; // khớp file_size_limit của bucket
 
@@ -72,7 +73,7 @@ export function DocumentEditor({ doc }: { doc: DocumentRecord | null }) {
         form={form}
         layout="vertical"
         requiredMark={false}
-        initialValues={{ title: doc?.title ?? "", departments: doc?.departments ?? [], pdf_path: doc?.pdf_path ?? null }}
+        initialValues={{ title: doc?.title ?? "", category: doc?.category, departments: doc?.departments ?? [], pdf_path: doc?.pdf_path ?? null }}
         className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]"
       >
         <div className="flex min-w-0 flex-col gap-3">
@@ -87,6 +88,12 @@ export function DocumentEditor({ doc }: { doc: DocumentRecord | null }) {
         </div>
 
         <aside className="surface flex flex-col gap-1 p-4 lg:sticky lg:top-18">
+          <Form.Item name="category" label={t("category")} rules={[{ required: true, message: t("categoryRequired") }]}>
+            <Select
+              placeholder={t("categoryPlaceholder")}
+              options={DOCUMENT_CATEGORIES.map((c) => ({ value: c.value, label: t(`cat_${c.value}`) }))}
+            />
+          </Form.Item>
           <Form.Item name="departments" label={t("departments")} extra={t("departmentsHint")}>
             <Select
               mode="multiple"

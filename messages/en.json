@@ -726,6 +726,22 @@
     "deleteCommentConfirm": "Delete this comment?",
     "reply": "Reply",
     "replyPlaceholder": "Reply to {name}…",
-    "deleteThreadConfirm": "Delete this comment and its replies?"
+    "deleteThreadConfirm": "Delete this comment and its replies?",
+    "category": "Category",
+    "categoryPlaceholder": "Select a category",
+    "categoryRequired": "Please select a category",
+    "allCategories": "All categories",
+    "colTitle": "Title",
+    "colDepartments": "Visible to",
+    "colAuthor": "Created by",
+    "colCreated": "Created",
+    "colEngagement": "Engagement",
+    "cat_regulation": "Regulations",
+    "cat_charter": "Bylaws",
+    "cat_training": "Training",
+    "cat_process": "Procedures",
+    "cat_form": "Forms",
+    "cat_announcement": "Announcements",
+    "cat_other": "Other"
   }
 }

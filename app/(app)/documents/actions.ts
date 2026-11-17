@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentProfile, requireAdmin } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
+import { isDocumentCategory } from "@/lib/document-categories";
 import { googleDocId, googleImageSources, parseGoogleDocHtml } from "@/lib/google-docs";
 import { createClient } from "@/lib/supabase/server";
 import { uploadToCdn } from "@/lib/upload";
@@ -35,10 +36,12 @@ export async function saveDocument(id: string | null, input: DocumentInput): Pro
     await requireAdmin();
     const title = input.title.trim();
     if (!title) return { error: "Vui lòng nhập tiêu đề." };
+    if (!isDocumentCategory(input.category)) return { error: "Vui lòng chọn danh mục." };
     const content = input.content?.type === "doc" ? input.content : null;
     if (!content && !input.pdf_path) return { error: "Tài liệu cần có nội dung hoặc file PDF." };
     const row = {
       title,
+      category: input.category,
       content,
       pdf_path: input.pdf_path || null,
       departments: input.departments.filter((d) => DEPARTMENTS.includes(d)),

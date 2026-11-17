@@ -1,0 +1,6 @@
+- [x] 1. Migration cột `category` + check (thử trong transaction + rollback)
+- [x] 2. Chạy migration trên Supabase (project Lavian)
+- [x] 3. `lib/document-categories.ts` + types + `saveDocument` kiểm danh mục
+- [x] 4. Editor: ô chọn danh mục
+- [x] 5. `/documents` dạng bảng + lọc danh mục; trang xem hiện tag danh mục
+- [x] 6. i18n vi/en, tsc + eslint + test

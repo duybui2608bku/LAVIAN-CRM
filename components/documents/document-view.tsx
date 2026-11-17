@@ -3,7 +3,7 @@
 import { startTransition, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Button, Input } from "antd";
+import { Button, Input, Tag } from "antd";
 import dayjs from "dayjs";
 import { ArrowLeft, ExternalLink, FileText, Heart, Pencil, SendHorizontal, Trash2 } from "lucide-react";
 
@@ -12,6 +12,7 @@ import { UserAvatar } from "@/components/common/user-avatar";
 import { RichTextView } from "@/components/documents/rich-text";
 import { Page } from "@/components/layout/page";
 import { addComment, deleteComment, setLike } from "@/app/(app)/documents/actions";
+import { categoryColor } from "@/lib/document-categories";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { DocumentComment, DocumentRecord } from "@/types/document";
@@ -63,6 +64,9 @@ export function DocumentView({
             <span>{doc.author?.user_name ?? "—"}</span>
             <span aria-hidden>·</span>
             <span>{t("updatedAt", { date: when(doc.updated_at) })}</span>
+            <Tag color={categoryColor(doc.category)} variant="filled" className="m-0! ms-1!">
+              {t(`cat_${doc.category}`)}
+            </Tag>
           </p>
         </header>
 
