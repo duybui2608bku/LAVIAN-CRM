@@ -41,7 +41,6 @@
     "messages": "Messages",
     "viewMessages": "View messages",
     "messagesTitle": "Messages with {name}",
-    "messagesHint": "Latest {count} messages",
     "openSmax": "Open in SMAX",
     "noMessages": "No messages yet",
     "attachment": "Attachment",
