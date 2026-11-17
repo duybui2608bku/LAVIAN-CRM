@@ -9,9 +9,9 @@ export default async function DocumentsPage() {
   const { data, error } = await supabase
     .from("documents")
     .select(
-      `id, title, pdf_path, departments, updated_at, ${DOCUMENT_AUTHOR}, likes:document_likes(count), comments:document_comments(count)`,
+      `id, title, category, pdf_path, departments, created_at, ${DOCUMENT_AUTHOR}, likes:document_likes(count), comments:document_comments(count)`,
     )
-    .order("updated_at", { ascending: false });
+    .order("created_at", { ascending: false });
   if (error) throw error; // hiện trang lỗi thay vì danh sách trống giả
 
   return (

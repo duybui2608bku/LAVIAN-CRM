@@ -4,15 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Button, Empty, Input, Tag } from "antd";
+import { Button, Input, Tag, type TableColumnsType } from "antd";
 import dayjs from "dayjs";
-import { FileText, Heart, MessageSquare, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Heart, MessageSquare, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
+import { ClearableSelect } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
+import { DataTable } from "@/components/common/data-table";
 import { RowActions } from "@/components/common/row-actions";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Page, PageToolbar } from "@/components/layout/page";
 import { deleteDocument } from "@/app/(app)/documents/actions";
+import { DOCUMENT_CATEGORIES, categoryColor } from "@/lib/document-categories";
 import { toast } from "@/lib/toast";
 import type { DocumentListItem } from "@/types/document";
 
@@ -25,8 +28,13 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
   const router = useRouter();
   const confirm = useConfirm();
   const [q, setQ] = useState("");
+  const [category, setCategory] = useState("");
+  const [page, setPage] = useState(1);
 
-  const shown = q.trim() ? documents.filter((d) => fold(d.title).includes(fold(q.trim()))) : documents;
+  const needle = fold(q.trim());
+  const shown = documents.filter(
+    (d) => (!category || d.category === category) && (!needle || fold(d.title).includes(needle)),
+  );
 
   const remove = (d: DocumentListItem) =>
     confirm({
@@ -41,18 +49,120 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
       },
     });
 
+  const columns: TableColumnsType<DocumentListItem> = [
+    {
+      key: "title",
+      title: t("colTitle"),
+      render: (_, d) => (
+        <span className="flex min-w-60 items-center gap-2">
+          <Link href={`/documents/${d.id}`} className="line-clamp-2 font-medium">
+            {d.title}
+          </Link>
+          {d.pdf_path ? (
+            <Tag color="red" variant="filled" className="m-0! shrink-0">
+              PDF
+            </Tag>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      key: "category",
+      title: t("category"),
+      render: (_, d) => (
+        <Tag color={categoryColor(d.category)} variant="filled" className="m-0!">
+          {t(`cat_${d.category}`)}
+        </Tag>
+      ),
+    },
+    {
+      key: "departments",
+      title: t("colDepartments"),
+      hidden: !isAdmin,
+      render: (_, d) => (
+        <span className="flex flex-wrap gap-1">
+          {(d.departments.length ? d.departments.map((dep) => tu(`dept_${dep}`)) : [t("allDepartments")]).map((l) => (
+            <Tag key={l} variant="filled" className="m-0!">
+              {l}
+            </Tag>
+          ))}
+        </span>
+      ),
+    },
+    {
+      key: "author",
+      title: t("colAuthor"),
+      render: (_, d) => (
+        <span className="flex items-center gap-2 whitespace-nowrap">
+          <UserAvatar src={d.author?.avatar_url} size={22} />
+          {d.author?.user_name ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "created_at",
+      title: t("colCreated"),
+      sorter: (a, b) => a.created_at.localeCompare(b.created_at),
+      render: (_, d) => <span className="whitespace-nowrap tabular-nums">{dayjs(d.created_at).format("DD/MM/YYYY")}</span>,
+    },
+    {
+      key: "engagement",
+      title: t("colEngagement"),
+      render: (_, d) => (
+        <span className="flex items-center gap-3 text-muted-foreground tabular-nums">
+          <span className="flex items-center gap-1" title={t("likes")}>
+            <Heart className="size-3.5" />
+            {d.likes[0]?.count ?? 0}
+          </span>
+          <span className="flex items-center gap-1" title={t("comments")}>
+            <MessageSquare className="size-3.5" />
+            {d.comments[0]?.count ?? 0}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      width: 48,
+      hidden: !isAdmin,
+      render: (_, d) => (
+        <RowActions
+          label={t("actions")}
+          items={[
+            { icon: <Pencil className="size-4" />, label: t("edit"), onSelect: () => router.push(`/documents/${d.id}/edit`) },
+            { icon: <Trash2 className="size-4" />, label: t("delete"), danger: true, onSelect: () => remove(d) },
+          ]}
+        />
+      ),
+    },
+  ];
+
   return (
     <Page>
-      {/* Không tiêu đề trang — menu đã nói đây là "Tài liệu"; chỉ ô tìm + nút thêm. */}
+      {/* Không tiêu đề trang — menu đã nói đây là "Tài liệu"; chỉ ô tìm, lọc danh mục + nút thêm. */}
       <PageToolbar>
         <Input
           allowClear
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setPage(1);
+          }}
           placeholder={t("search")}
           aria-label={t("search")}
           prefix={<Search className="size-4 text-muted-foreground" />}
           className="sm:max-w-80"
+        />
+        <ClearableSelect
+          value={category}
+          onChange={(v) => {
+            setCategory(v);
+            setPage(1);
+          }}
+          placeholder={t("allCategories")}
+          ariaLabel={t("category")}
+          options={DOCUMENT_CATEGORIES.map((c) => ({ value: c.value, label: t(`cat_${c.value}`) }))}
+          className="sm:w-48"
         />
         {isAdmin ? (
           <Link href="/documents/new" className="sm:ms-auto">
@@ -63,83 +173,13 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
         ) : null}
       </PageToolbar>
 
-      {shown.length === 0 ? (
-        <div className="surface py-12">
-          <Empty description={q ? t("noMatch") : t("empty")} />
-        </div>
-      ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {shown.map((d) => (
-            <li
-              key={d.id}
-              className="surface relative flex flex-col gap-3 p-4 transition-colors hover:border-primary/50"
-            >
-              <div className="flex items-start gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
-                  <FileText className="size-4.5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  {/* Link phủ cả thẻ (after:inset-0); menu admin nằm trên (z-10) nên bấm được riêng. */}
-                  <Link
-                    href={`/documents/${d.id}`}
-                    className="line-clamp-2 font-medium text-foreground! after:absolute after:inset-0 after:rounded-xl"
-                  >
-                    {d.title}
-                  </Link>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {d.pdf_path ? <Tag color="red" variant="filled" className="m-0!">PDF</Tag> : null}
-                    {isAdmin &&
-                      (d.departments.length ? (
-                        d.departments.map((dep) => (
-                          <Tag key={dep} variant="filled" className="m-0!">
-                            {tu(`dept_${dep}`)}
-                          </Tag>
-                        ))
-                      ) : (
-                        <Tag variant="filled" className="m-0!">
-                          {t("allDepartments")}
-                        </Tag>
-                      ))}
-                  </div>
-                </div>
-                {isAdmin ? (
-                  <div className="relative z-10 -me-1 -mt-1">
-                    <RowActions
-                      label={t("actions")}
-                      items={[
-                        {
-                          icon: <Pencil className="size-4" />,
-                          label: t("edit"),
-                          onSelect: () => router.push(`/documents/${d.id}/edit`),
-                        },
-                        { icon: <Trash2 className="size-4" />, label: t("delete"), danger: true, onSelect: () => remove(d) },
-                      ]}
-                    />
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="mt-auto flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <UserAvatar src={d.author?.avatar_url} size={18} />
-                  <span className="truncate">{d.author?.user_name ?? "—"}</span>
-                </span>
-                <span className="shrink-0">{dayjs(d.updated_at).format("DD/MM/YYYY")}</span>
-                <span className="ms-auto flex shrink-0 items-center gap-3 tabular-nums">
-                  <span className="flex items-center gap-1" title={t("likes")}>
-                    <Heart className="size-3.5" />
-                    {d.likes[0]?.count ?? 0}
-                  </span>
-                  <span className="flex items-center gap-1" title={t("comments")}>
-                    <MessageSquare className="size-3.5" />
-                    {d.comments[0]?.count ?? 0}
-                  </span>
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <DataTable<DocumentListItem>
+        columns={columns}
+        dataSource={shown}
+        page={page}
+        onPageChange={setPage}
+        empty={q || category ? t("noMatch") : t("empty")}
+      />
     </Page>
   );
 }
