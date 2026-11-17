@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Switch, Table, Tag, type TableColumnType } from "antd";
+import { Switch, Table, Tag, Tooltip, type TableColumnType } from "antd";
 
 import { StatCard } from "@/components/common/stat-card";
 import { AlertCircle, RefreshCw } from "lucide-react";
@@ -102,6 +102,18 @@ export function AdsStatsView() {
   const accounts = [...new Set(campaigns.map((c) => c.accountName))];
   // Tin nhắn theo số WA (theo tên chiến dịch) trong khoảng ngày đang chọn.
   const byWa = summarizeByWa(campaigns);
+  // Khách tiềm năng: IG theo chiến dịch (ad_id), WA theo số WA của chiến dịch (nhiều camp chung 1 số → cùng số liệu).
+  const potential = stats?.potential;
+  const waCampaigns = new Map<string, number>();
+  for (const c of campaigns) {
+    const wa = campaignWa(c.name);
+    if (wa) waCampaigns.set(wa, (waCampaigns.get(wa) ?? 0) + 1);
+  }
+  const potentialOf = (c: FbCampaign) => {
+    if (!potential) return null;
+    const wa = campaignWa(c.name);
+    return (potential.byCampaign[c.id] ?? 0) + (wa ? (potential.byWa[wa] ?? 0) : 0);
+  };
 
   const statusLabel = (status: string) =>
     t.has(`status_${status}`) ? t(`status_${status}`) : status;
@@ -199,6 +211,31 @@ export function AdsStatsView() {
       sorter: (a, b) =>
         (ratio(a.spend, a.messages) ?? Infinity) -
         (ratio(b.spend, b.messages) ?? Infinity),
+    },
+    {
+      key: "potential",
+      title: t("colPotential"),
+      align: "right",
+      width: 140,
+      render: (_, r) => {
+        const n = potentialOf(r);
+        if (n == null)
+          return (
+            <Tooltip title={e?.potential}>
+              <span className="text-muted-foreground">—</span>
+            </Tooltip>
+          );
+        const wa = campaignWa(r.name);
+        const shared = wa ? (waCampaigns.get(wa) ?? 0) : 0;
+        return shared > 1 ? (
+          <Tooltip title={t("potentialSharedWa", { wa: wa!, count: shared })}>
+            <span className="underline decoration-dotted underline-offset-4">{n.toLocaleString(locale)}</span>
+          </Tooltip>
+        ) : (
+          n.toLocaleString(locale)
+        );
+      },
+      sorter: (a, b) => (potentialOf(a) ?? -1) - (potentialOf(b) ?? -1),
     },
     {
       key: "impressions",
@@ -332,7 +369,7 @@ export function AdsStatsView() {
               showTotal: (total, [from, to]) =>
                 t("totalCampaigns", { from, to, total }),
             }}
-            scroll={{ x: 1350 }}
+            scroll={{ x: 1490 }}
             size="middle"
             locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
           />

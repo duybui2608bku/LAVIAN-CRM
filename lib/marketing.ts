@@ -323,6 +323,39 @@ export async function fetchFbCampaigns(
     .sort((a, b) => b.spend - a.spend);
 }
 
+/** ad_id → campaign_id của các quảng cáo có số liệu trong range (dùng ghép ad_id hội thoại IG của SMAX). */
+export async function fetchFbAdCampaigns(
+  from: string,
+  to: string,
+): Promise<Map<string, string>> {
+  const token = process.env.FB_TOKEN;
+  if (!token) throw new Error("Thiếu FB_TOKEN.");
+  const out = new Map<string, string>();
+  await Promise.all(
+    FB_AD_ACCOUNTS.map(async (act) => {
+      const qs = new URLSearchParams({
+        level: "ad",
+        fields: "ad_id,campaign_id",
+        time_range: JSON.stringify({ since: from, until: to }),
+        limit: "500",
+        access_token: token,
+      });
+      let url: string | undefined = `${FB_API}/${act}/insights?${qs}`;
+      while (url) {
+        const json: {
+          data?: { ad_id?: string; campaign_id?: string }[];
+          paging?: { next?: string };
+          error?: { message?: string };
+        } = await fbGet(url);
+        for (const r of json.data ?? [])
+          if (r.ad_id && r.campaign_id) out.set(r.ad_id, r.campaign_id);
+        url = json.paging?.next;
+      }
+    }),
+  );
+  return out;
+}
+
 type SmaxRes = {
   status?: number;
   message?: string;

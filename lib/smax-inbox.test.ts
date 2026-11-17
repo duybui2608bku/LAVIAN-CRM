@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildInboxReport, inboxDateRange, statusTotal, sumChannels, UNASSIGNED } from "./smax-inbox.ts";
+import { buildInboxReport, countPotential, inboxDateRange, statusTotal, sumChannels, UNASSIGNED } from "./smax-inbox.ts";
 
 const t = (id: string, platform: string, tags: string[]) => ({ id, platform, tag_aliases: tags });
 
@@ -66,4 +66,27 @@ test("inboxDateRange: 00:00 WIB = 17:00 UTC hôm trước", () => {
     "2026-11-15T17:00:00.000Z",
     "2026-11-16T16:59:59.999Z",
   ]);
+});
+
+test("countPotential: 1 hội thoại tính 1 lần, IG theo ad_id, WA theo số", () => {
+  const ads = new Map([
+    ["ad1", "c1"],
+    ["ad2", "c1"],
+    ["ad3", "c2"],
+  ]);
+  const r = countPotential(
+    [
+      { id: "1", platform: "instagram", tag_aliases: ["phone", "booking"], instagram: { ad_id: "ad1" } }, // 2 tag → 1
+      { id: "1", platform: "instagram", tag_aliases: ["phone"], instagram: { ad_id: "ad1" } }, // trùng id → bỏ
+      { id: "2", platform: "instagram", tag_aliases: ["purchase"], instagram: { ad_id: "ad2" } },
+      { id: "3", platform: "instagram", tag_aliases: ["bookings-deposit"], instagram: { ad_id: "x" }, customer: { instagram: { ad_id: "ad3" } } }, // fallback ad của khách
+      { id: "4", platform: "instagram", tag_aliases: ["follow-up"], instagram: { ad_id: "ad3" } }, // không phải tiềm năng
+      { id: "5", platform: "instagram", tag_aliases: ["phone"] }, // không có quảng cáo
+      { id: "6", platform: "whatsappweb", page_pid: "waw6281918453455", tag_aliases: ["phone", "purchase"] },
+      { id: "7", platform: "whatsappweb", page_pid: "waw6281918453455", tag_aliases: ["booking"] },
+      { id: "8", platform: "whatsappweb", page_pid: "waw6281111858630", tag_aliases: ["spam"] },
+    ],
+    ads,
+  );
+  assert.deepEqual(r, { byCampaign: { c1: 2, c2: 1 }, byWa: { "WA-3455": 2 } });
 });

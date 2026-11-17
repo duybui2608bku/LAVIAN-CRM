@@ -522,7 +522,9 @@
     "status_WITH_ISSUES": "Có lỗi",
     "status_DELETED": "Đã xoá",
     "status_ARCHIVED": "Đã lưu trữ",
-    "status_UNKNOWN": "Không rõ"
+    "status_UNKNOWN": "Không rõ",
+    "colPotential": "KH tiềm năng",
+    "potentialSharedWa": "{count} chiến dịch dùng chung số {wa} — số này là tổng khách tiềm năng của cả số WA"
   },
   "reports": {
     "title": "Báo cáo",

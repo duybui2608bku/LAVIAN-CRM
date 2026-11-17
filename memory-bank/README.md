@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — /marketing: cột "KH tiềm năng" theo chiến dịch
+- **Thay đổi:** Bảng chiến dịch thêm cột **KH tiềm năng** = hội thoại SMAX tạo trong khoảng ngày có tag `phone` (Phone/WA) / `booking` / `bookings-deposit` / `purchase`, mỗi hội thoại tính 1 lần (`countPotential` trong `lib/smax-inbox.ts`). IG: ghép `instagram.ad_id` (fallback `customer.instagram.ad_id`) với `ad_id → campaign_id` từ FB insights `level=ad` (`fetchFbAdCampaigns`). WA: theo số WA của chiến dịch (cột WA) ↔ `page_pid` hội thoại; nhiều camp chung 1 số → mỗi dòng hiện tổng của số, tooltip cảnh báo. Lỗi → "—" + tooltip lỗi. Số thật 10–17/11: 172 tiềm năng (WA 161: 3455=65, 1791=52, 8630=28, 4943=16; IG 11).
+- **File ảnh hưởng:** `lib/smax-inbox.ts` (+ test), `lib/marketing.ts`, `app/(app)/marketing/actions.ts`, `components/marketing/ads-stats.tsx`, `messages/{vi,en}.json`, `openspec/changes/marketing-potential-leads/`.
+- **Còn dở / ghi chú:** `FB_TOKEN` trong `.env.local` hết hạn ("Invalid OAuth access token") → chưa kiểm được phần ghép ad_id IG với FB; chưa xem trên trình duyệt. Chỉ 4/11 khách tiềm năng IG có ad_id (còn lại nhắn tự nhiên, không gán được camp). WA đếm mọi hội thoại vào số đó (kể cả không đến từ quảng cáo).
+
 ### 2026-11-17 — Tăng tốc tải hội thoại SMAX (Báo cáo Smax + Follow up)
 - **Thay đổi:** `fetchInboxThreads` chia khoảng ngày thành lát 24h (00:00 WIB), tải song song 8 luồng/truy vấn, `limit` 200 → 500 (1000 bị SMAX từ chối), thử lại 3 lần khi 429/5xx/lỗi mạng (16 luồng từng gặp 502). Đo API thật 30 ngày: Follow up 20s → ~3s, Báo cáo Smax ~12s → ~2s; số hội thoại khớp cách cũ (5006 / 4399 / 145).
 - **File ảnh hưởng:** `lib/smax-threads.ts`, `openspec/changes/smax-fetch-parallel/`.

@@ -522,7 +522,9 @@
     "status_WITH_ISSUES": "With issues",
     "status_DELETED": "Deleted",
     "status_ARCHIVED": "Archived",
-    "status_UNKNOWN": "Unknown"
+    "status_UNKNOWN": "Unknown",
+    "colPotential": "Potential leads",
+    "potentialSharedWa": "{count} campaigns share {wa} — this is the total for the whole WA number"
   },
   "reports": {
     "title": "Reports",
