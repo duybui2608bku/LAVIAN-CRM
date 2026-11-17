@@ -16,7 +16,6 @@ import {
   Headset,
   Inbox,
   Languages,
-  LayoutDashboard,
   LayoutGrid,
   LockKeyhole,
   MessageSquareReply,
@@ -59,6 +58,8 @@ const ITEMS = [
       { key: "customersList", href: "/customers", icon: UsersRound, perm: "customers.view" },
       { key: "smaxReport", href: "/customers/smax-report", icon: Inbox, perm: "customers.view" },
       { key: "smaxFollowup", href: "/customers/smax-followup", icon: MessageSquareReply, perm: "customers.view" },
+      // URL giữ /reports/telesales (proxy + MODULE_PATHS dựa vào đó), chỉ đặt menu dưới Khách hàng.
+      { key: "telesales", href: "/reports/telesales", icon: Headset, perm: "telesales.view" },
     ],
   },
   { key: "appointments", href: "/appointments", icon: CalendarDays },
@@ -67,15 +68,7 @@ const ITEMS = [
 ] as const;
 
 const ADMIN_ITEMS = [
-  {
-    key: "reports",
-    href: "/reports",
-    icon: ChartColumn,
-    children: [
-      { key: "reportsOverview", href: "/reports", icon: LayoutDashboard, perm: "reports.view" },
-      { key: "telesales", href: "/reports/telesales", icon: Headset, perm: "telesales.view" },
-    ],
-  },
+  { key: "reports", href: "/reports", icon: ChartColumn },
   { key: "marketing", href: "/marketing", icon: Megaphone },
   {
     key: "users",

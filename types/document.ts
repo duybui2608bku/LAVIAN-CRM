@@ -44,3 +44,8 @@ export interface DocumentInput {
 }
 
 export const DOCUMENTS_BUCKET = "documents";
+
+// Phải chỉ rõ khoá ngoại: document_likes nối documents ↔ profiles nên PostgREST còn thấy quan hệ
+// nhiều–nhiều → `profiles(...)` trơn bị lỗi PGRST201 (mơ hồ).
+export const DOCUMENT_AUTHOR = "author:profiles!documents_created_by_fkey(user_name, avatar_url)";
+export const COMMENT_AUTHOR = "author:profiles!document_comments_user_id_fkey(user_name, avatar_url)";

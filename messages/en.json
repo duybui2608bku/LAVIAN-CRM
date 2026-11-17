@@ -174,7 +174,6 @@
     "groupMain": "Workspace",
     "groupAdmin": "Admin",
     "more": "Menu",
-    "reportsOverview": "Overview",
     "telesales": "Leader Telesales",
     "customersList": "List",
     "smaxReport": "Smax report",
@@ -666,7 +665,6 @@
   },
   "documents": {
     "title": "Documents",
-    "description": "Internal procedures, guides and documents",
     "new": "New document",
     "search": "Search by title",
     "empty": "No documents yet",

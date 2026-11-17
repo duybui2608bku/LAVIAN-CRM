@@ -11,7 +11,7 @@ import { FileText, Heart, MessageSquare, Pencil, Plus, Search, Trash2 } from "lu
 import { useConfirm } from "@/components/common/confirm-action";
 import { RowActions } from "@/components/common/row-actions";
 import { UserAvatar } from "@/components/common/user-avatar";
-import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
+import { Page, PageToolbar } from "@/components/layout/page";
 import { deleteDocument } from "@/app/(app)/documents/actions";
 import { toast } from "@/lib/toast";
 import type { DocumentListItem } from "@/types/document";
@@ -43,28 +43,24 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
 
   return (
     <Page>
-      <PageHeader
-        title={t("title")}
-        description={t("description")}
-        actions={
-          isAdmin ? (
-            <Link href="/documents/new">
-              <Button type="primary" icon={<Plus className="size-4" />} className="w-full">
-                {t("new")}
-              </Button>
-            </Link>
-          ) : null
-        }
-      />
+      {/* Không tiêu đề trang — menu đã nói đây là "Tài liệu"; chỉ ô tìm + nút thêm. */}
       <PageToolbar>
         <Input
           allowClear
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("search")}
+          aria-label={t("search")}
           prefix={<Search className="size-4 text-muted-foreground" />}
           className="sm:max-w-80"
         />
+        {isAdmin ? (
+          <Link href="/documents/new" className="sm:ms-auto">
+            <Button type="primary" icon={<Plus className="size-4" />} className="w-full">
+              {t("new")}
+            </Button>
+          </Link>
+        ) : null}
       </PageToolbar>
 
       {shown.length === 0 ? (
