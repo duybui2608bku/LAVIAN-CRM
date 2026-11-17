@@ -623,13 +623,13 @@
     "allSources": "All sources",
     "unassigned": "Unassigned",
     "card": {
-      "total": "Total conversations",
-      "bookingOld": "Old-lead bookings"
+      "total": "New conversations",
+      "bookingOld": "Returning-lead bookings"
     },
     "hint": {
-      "total": "+{untagged} without status",
+      "total": "{untagged} without status",
       "deposit": "{n} deposit",
-      "bookingOld": "Old leads tagged Booking in range (re-engaged)"
+      "bookingOld": "Leads from before the range with messages in it"
     },
     "status": {
       "booking": "Booking",

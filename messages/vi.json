@@ -623,13 +623,13 @@
     "allSources": "Tất cả nguồn",
     "unassigned": "Chưa gán Telesales",
     "card": {
-      "total": "Tổng hội thoại",
-      "bookingOld": "Booking cũ"
+      "total": "Hội thoại mới",
+      "bookingOld": "Booking khách cũ"
     },
     "hint": {
-      "total": "+{untagged} chưa gắn trạng thái",
+      "total": "{untagged} chưa gắn trạng thái",
       "deposit": "{n} deposit",
-      "bookingOld": "Data cũ được gắn Booking trong khoảng (bào được)"
+      "bookingOld": "Khách nhắn từ trước kỳ, có tin nhắn trong kỳ"
     },
     "status": {
       "booking": "Booking",

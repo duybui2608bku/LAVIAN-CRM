@@ -1,6 +1,7 @@
 /**
- * Báo cáo Inbox SMAX (+ báo cáo Follow up ở cuối file; Booking cũ dùng chung định nghĩa với Follow up): đếm hội thoại có tin nhắn trong khoảng ngày theo kênh (WA/IG),
- * trạng thái (tag Booking / Potential / Follow up / Pending 24h / Spam) và nhân viên (tag tên nhân viên).
+ * Báo cáo Inbox SMAX (+ báo cáo Follow up ở cuối file) — hiệu suất KHÁCH MỚI theo kênh (WA/IG) và nhân viên (tag tên):
+ * - hội thoại mới = tạo trong khoảng ngày; trạng thái Potential / Follow up / Pending 24h / Spam đếm trên tập này;
+ * - Booking lấy riêng = hội thoại gắn tag booking có tin nhắn trong khoảng (gồm cả khách cũ quay lại đặt lịch).
  * Tag là trạng thái HIỆN TẠI của hội thoại (SMAX không lưu lịch sử tag theo ngày).
  */
 export const INBOX_CHANNELS = ["wa", "ig"] as const;
@@ -9,7 +10,7 @@ const CHANNEL_OF: Record<string, InboxChannel> = { whatsappweb: "wa", instagram:
 
 export const INBOX_STATUSES = ["booking", "potential", "followUp", "pending", "spam"] as const;
 export type InboxStatus = (typeof INBOX_STATUSES)[number];
-const BOOKING_ALIASES = ["booking", "bookings-deposit"];
+export const BOOKING_ALIASES = ["booking", "bookings-deposit"];
 // Thứ tự = ưu tiên khi 1 hội thoại lỡ gắn nhiều trạng thái.
 const STATUS_ALIASES: [InboxStatus, string[]][] = [
   ["booking", BOOKING_ALIASES],
@@ -51,21 +52,33 @@ export type InboxThread = {
 };
 
 export type InboxCounts = Record<InboxStatus, number> & {
+  /** Hội thoại mới (tạo trong khoảng), kể cả chưa gắn trạng thái. */
+  conversations: number;
   /** Có tag Bookings deposit (đã nằm trong booking). */
   deposit: number;
-  /** Hội thoại chưa gắn trạng thái nào. */
+  /** Hội thoại mới chưa gắn trạng thái nào. */
   untagged: number;
-  /** Booking cũ (bào được): data cũ được gắn Booking trong khoảng — cùng định nghĩa "Booking follow-up" trang Follow up. */
+  /** Booking của khách cũ (hội thoại tạo trước khoảng ngày) — đã nằm trong booking. */
   bookingOld: number;
 };
 export type ChannelCounts = Record<InboxChannel, InboxCounts>;
 export type InboxStaffRow = { alias: string; name: string; counts: ChannelCounts };
-export type InboxReport = { total: ChannelCounts; staff: InboxStaffRow[]; threads: number };
+export type InboxReport = { total: ChannelCounts; staff: InboxStaffRow[] };
 
-const emptyCounts = (): InboxCounts => ({ booking: 0, potential: 0, followUp: 0, pending: 0, spam: 0, deposit: 0, untagged: 0, bookingOld: 0 });
+const emptyCounts = (): InboxCounts => ({
+  booking: 0,
+  potential: 0,
+  followUp: 0,
+  pending: 0,
+  spam: 0,
+  conversations: 0,
+  deposit: 0,
+  untagged: 0,
+  bookingOld: 0,
+});
 const emptyChannels = (): ChannelCounts => ({ wa: emptyCounts(), ig: emptyCounts() });
 
-/** Tổng các trạng thái (= cột "all total" của mẫu, không tính hội thoại chưa gắn). */
+/** Tổng các trạng thái (dùng cho thanh phân bổ). */
 export const statusTotal = (c: InboxCounts) => INBOX_STATUSES.reduce((n, s) => n + c[s], 0);
 /** Cộng WA + IG. */
 export const sumChannels = (c: ChannelCounts): InboxCounts => {
@@ -74,41 +87,46 @@ export const sumChannels = (c: ChannelCounts): InboxCounts => {
   return out;
 };
 
-/** `from`/`to` là ngày WIB `YYYY-MM-DD` (cùng khoảng đã dùng để lấy hội thoại) — dùng cho Booking cũ. */
-export function buildInboxReport(threads: InboxThread[], from: string, to: string): InboxReport {
-  const [start, end] = inboxDateRange(from, to).map(Date.parse);
+/**
+ * `created` = hội thoại tạo trong khoảng (khách mới), `booked` = hội thoại gắn tag booking có tin nhắn trong khoảng.
+ * `from`/`to` là ngày WIB `YYYY-MM-DD` cùng khoảng đã dùng để lấy — dùng tách Booking khách cũ.
+ */
+export function buildInboxReport(created: InboxThread[], booked: InboxThread[], from: string, to: string): InboxReport {
+  const [start] = inboxDateRange(from, to).map(Date.parse);
   const total = emptyChannels();
   const staff = new Map<string, ChannelCounts>(
     [...INBOX_STAFF.map((s) => s.alias), UNASSIGNED].map((a) => [a, emptyChannels()]),
   );
-  const seen = new Set<string>();
-  let count = 0;
 
-  for (const t of threads) {
-    const channel = CHANNEL_OF[t.platform ?? ""];
-    if (!channel || seen.has(t.id)) continue;
-    seen.add(t.id);
-    count++;
-    const tags = t.tag_aliases ?? [];
+  // Cộng 1 hội thoại vào tổng + từng nhân viên gắn tag (2 nhân viên → tính cho cả 2; tổng vẫn đếm 1 lần).
+  const tally = (threads: InboxThread[], add: (c: InboxCounts, tags: string[], t: InboxThread) => void) => {
+    const seen = new Set<string>();
+    for (const t of threads) {
+      const channel = CHANNEL_OF[t.platform ?? ""];
+      if (!channel || seen.has(t.id)) continue;
+      seen.add(t.id);
+      const tags = t.tag_aliases ?? [];
+      const owners = INBOX_STAFF.filter((s) => tags.includes(s.alias)).map((s) => s.alias);
+      add(total[channel], tags, t);
+      for (const o of owners.length ? owners : [UNASSIGNED]) add(staff.get(o)![channel], tags, t);
+    }
+  };
+
+  tally(created, (c, tags) => {
+    c.conversations++;
     const status = STATUS_ALIASES.find(([, aliases]) => aliases.some((a) => tags.includes(a)))?.[0];
-    const owners = INBOX_STAFF.filter((s) => tags.includes(s.alias)).map((s) => s.alias);
-    const bookedAt = taggedAt(t, BOOKING_ALIASES);
-    const bookingOld = Date.parse(t.created_at ?? "") < start && bookedAt >= start && bookedAt <= end;
-
-    const add = (c: InboxCounts) => {
-      if (status) c[status]++;
-      else c.untagged++;
-      if (tags.includes(DEPOSIT_ALIAS)) c.deposit++;
-      if (bookingOld) c.bookingOld++;
-    };
-    add(total[channel]);
-    // Hội thoại gắn 2 nhân viên → tính cho cả 2 (tổng vẫn đếm 1 lần).
-    for (const o of owners.length ? owners : [UNASSIGNED]) add(staff.get(o)![channel]);
-  }
+    if (!status) c.untagged++;
+    else if (status !== "booking") c[status]++; // Booking đếm từ `booked` (tránh đếm 2 lần)
+  });
+  tally(booked, (c, tags, t) => {
+    if (!BOOKING_ALIASES.some((a) => tags.includes(a))) return;
+    c.booking++;
+    if (tags.includes(DEPOSIT_ALIAS)) c.deposit++;
+    if (Date.parse(t.created_at ?? "") < start) c.bookingOld++;
+  });
 
   return {
     total,
-    threads: count,
     staff: [
       ...INBOX_STAFF.map((s) => ({ alias: s.alias, name: s.name, counts: staff.get(s.alias)! })),
       { alias: UNASSIGNED, name: "", counts: staff.get(UNASSIGNED)! },

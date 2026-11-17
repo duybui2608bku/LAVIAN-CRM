@@ -17,11 +17,20 @@ const MAX_PAGES = 50; // 10.000 hội thoại — vượt thì báo lỗi thay v
 
 type ThreadsRes = { status?: number; message?: string; data?: InboxThread[] };
 
-/** Toàn bộ hội thoại WA + IG có tin nhắn trong khoảng ngày (phân trang `after` = last_message_at). */
-export async function fetchInboxThreads(from: string, to: string): Promise<InboxThread[]> {
+export type ThreadsQuery = {
+  /** true: lọc/sắp theo NGÀY TẠO hội thoại (khách mới); false: theo tin nhắn mới nhất. */
+  byCreated?: boolean;
+  /** Chỉ hội thoại có 1 trong các tag (OR). */
+  tags?: string[];
+};
+
+/** Hội thoại WA + IG trong khoảng ngày (theo ngày tạo hoặc theo tin nhắn mới nhất), đã bỏ trùng. */
+export async function fetchInboxThreads(from: string, to: string, { byCreated = false, tags = [] }: ThreadsQuery = {}): Promise<InboxThread[]> {
   const token = process.env.SMAX_TOKEN;
   if (!token) throw new Error("Thiếu SMAX_TOKEN.");
-  const out: InboxThread[] = [];
+  const [start, rangeEnd] = inboxDateRange(from, to);
+  const out = new Map<string, InboxThread>();
+  let end = rangeEnd;
   let after = "";
   for (let page = 0; page < MAX_PAGES; page++) {
     const res = await fetch(THREADS_API, {
@@ -32,11 +41,13 @@ export async function fetchInboxThreads(from: string, to: string): Promise<Inbox
         page_pids: PAGE_PIDS,
         group_id: null,
         keyword: null,
-        tags: [],
+        tags,
+        ...(tags.length ? { tags_condition: "OR" } : {}),
         tags_to_exclude: [],
         sort: "desc",
+        sort_by_created_at: byCreated,
         types: [],
-        dateRange: inboxDateRange(from, to),
+        dateRange: [start, end],
         post_ids: null,
         ad_ids: [],
         users: [],
@@ -51,10 +62,23 @@ export async function fetchInboxThreads(from: string, to: string): Promise<Inbox
         res.status === 401 ? "SMAX_TOKEN hết hạn hoặc sai — cập nhật biến môi trường." : (json?.message ?? `SMAX API ${res.status}`),
       );
     const data = json.data;
-    out.push(...data);
-    const last = data.at(-1)?.last_message_at;
-    if (data.length < PAGE_SIZE || !last) return out;
-    after = last;
+    let added = 0;
+    for (const t of data)
+      if (!out.has(t.id)) {
+        out.set(t.id, t);
+        added++;
+      }
+    const last = data.at(-1);
+    if (data.length < PAGE_SIZE || !last) return [...out.values()];
+    if (byCreated) {
+      // SMAX áp `after` lên last_message_at kể cả khi sắp theo ngày tạo → rớt khách mới đã nhắn tiếp.
+      // Phân trang bằng cách lùi mốc cuối dateRange về created_at của dòng cuối (trùng biên đã bỏ ở trên).
+      if (!added || !last.created_at) throw new Error("Không phân trang được hội thoại SMAX.");
+      end = last.created_at;
+    } else {
+      if (!last.last_message_at) return [...out.values()];
+      after = last.last_message_at;
+    }
   }
   throw new Error("Quá nhiều hội thoại — chọn khoảng ngày ngắn hơn.");
 }

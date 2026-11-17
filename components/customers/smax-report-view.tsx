@@ -77,7 +77,7 @@ export function SmaxReportView() {
       : report.total
     : null;
   const sum = scope ? pickChannel(scope, channel) : null;
-  const all = sum ? statusTotal(sum) : 0;
+  const all = sum?.conversations ?? 0;
   const loading = !result;
 
   const staffOptions = [
@@ -234,7 +234,7 @@ function ChannelTable({ scope, channel, loading }: { scope: ChannelCounts | null
       render: (_: unknown, r: ChannelRow) => (
         <span className="whitespace-nowrap tabular-nums">
           <span className={cn(r.strong && "font-semibold")}>{num(r.counts[s])}</span>
-          <span className="ml-1.5 text-xs text-muted-foreground">{pct(r.counts[s], statusTotal(r.counts))}</span>
+          <span className="ml-1.5 text-xs text-muted-foreground">{pct(r.counts[s], r.counts.conversations)}</span>
         </span>
       ),
     })),
@@ -242,7 +242,7 @@ function ChannelTable({ scope, channel, loading }: { scope: ChannelCounts | null
       key: "all",
       title: t("total"),
       align: "right",
-      render: (_, r) => <span className="font-semibold tabular-nums">{num(statusTotal(r.counts))}</span>,
+      render: (_, r) => <span className="font-semibold tabular-nums">{num(r.counts.conversations)}</span>,
     },
   ];
 
@@ -260,7 +260,7 @@ function ChannelTable({ scope, channel, loading }: { scope: ChannelCounts | null
   );
 }
 
-type StaffRow = { alias: string; name: string; sum: InboxCounts; all: number };
+type StaffRow = { alias: string; name: string; sum: InboxCounts; all: number; bar: number };
 
 /** Bảng theo Telesales: số theo trạng thái + thanh phân bổ; bấm dòng để lọc theo người đó. */
 function StaffTable({
@@ -281,10 +281,10 @@ function StaffTable({
   const rows: StaffRow[] = (report?.staff ?? [])
     .map((s) => {
       const sum = pickChannel(s.counts, channel);
-      return { alias: s.alias, name: s.alias === UNASSIGNED ? t("unassigned") : s.name, sum, all: statusTotal(sum) };
+      return { alias: s.alias, name: s.alias === UNASSIGNED ? t("unassigned") : s.name, sum, all: sum.conversations, bar: statusTotal(sum) };
     })
-    // Nhiều hội thoại nhất lên đầu; "Chưa gán" luôn cuối.
-    .sort((a, b) => Number(a.alias === UNASSIGNED) - Number(b.alias === UNASSIGNED) || b.all - a.all);
+    // Nhiều hội thoại mới nhất lên đầu; "Chưa gán" luôn cuối.
+    .sort((a, b) => Number(a.alias === UNASSIGNED) - Number(b.alias === UNASSIGNED) || b.all - a.all || b.sum.booking - a.sum.booking);
 
   const columns: TableProps<StaffRow>["columns"] = [
     {
@@ -315,11 +315,11 @@ function StaffTable({
       title: t("distribution"),
       width: 200,
       render: (_, r) =>
-        r.all ? (
+        r.bar ? (
           <Tooltip title={INBOX_STATUSES.map((s) => `${t(`status.${s}`)}: ${num(r.sum[s])}`).join(" · ")}>
             <div className="flex h-2 w-full min-w-32 overflow-hidden rounded-full bg-muted">
               {INBOX_STATUSES.map((s) => (
-                <div key={s} style={{ width: `${(r.sum[s] / r.all) * 100}%`, background: STATUS_COLOR[s] }} />
+                <div key={s} style={{ width: `${(r.sum[s] / r.bar) * 100}%`, background: STATUS_COLOR[s] }} />
               ))}
             </div>
           </Tooltip>
