@@ -38,18 +38,27 @@ test("buildInboxReport: khách mới theo kênh, trạng thái, nhân viên", ()
   assert.equal(row(UNASSIGNED).ig.untagged, 1);
 });
 
-test("buildInboxReport: Booking từ tập booked (gồm khách cũ), tách deposit + khách cũ", () => {
+test("buildInboxReport: Booking theo lúc gắn tag trong khoảng (gồm khách cũ), tách deposit + khách cũ", () => {
   const OLD = "2026-11-10T03:00:00.000Z";
   const TODAY = "2026-11-16T03:00:00.000Z";
-  const th = (id: string, created: string, tags: string[], platform = "whatsappweb") => ({ id, platform, tag_aliases: tags, created_at: created });
+  const th = (id: string, created: string, tags: string[], taggedAt = TODAY, platform = "whatsappweb") => ({
+    id,
+    platform,
+    tag_aliases: tags,
+    created_at: created,
+    customer: { tags: tags.map((alias) => ({ alias, time: taggedAt })) },
+  });
   const r = buildInboxReport(
     [],
     [
       th("1", TODAY, ["bulan", "booking"]),
       th("2", OLD, ["bulan", "bookings-deposit"]), // khách cũ + deposit
-      th("3", OLD, ["booking"], "instagram"), // khách cũ, chưa gán
+      th("3", OLD, ["booking"], TODAY, "instagram"), // khách cũ, chưa gán
       th("4", TODAY, ["potential"]), // không có tag booking → bỏ
       th("1", TODAY, ["bulan", "booking"]), // trùng id → bỏ
+      th("5", OLD, ["booking"], "2026-11-12T03:00:00.000Z"), // gắn từ trước, hôm nay chỉ nhắn lại → bỏ
+      th("6", TODAY, ["booking"], "2026-11-16T18:00:00.000Z"), // gắn sau khoảng (01:00 WIB 17/11) → bỏ
+      { id: "7", platform: "whatsappweb", tag_aliases: ["booking"], created_at: TODAY }, // không có thời điểm gắn → bỏ
     ],
     "2026-11-16",
     "2026-11-16",

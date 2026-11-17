@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — Báo cáo Smax: Booking đếm theo lúc GẮN tag
+- **Thay đổi:** Thẻ/cột Booking không còn đếm "hội thoại có tag Booking + có tin nhắn trong kỳ" (khách booking hôm trước nhắn lại bị tính lặp). Giờ Booking = lần gắn `booking`/`bookings-deposit` sớm nhất (`customer.tags[].time`, hàm `taggedAt`) nằm trong kỳ; không có thời điểm gắn → bỏ. Truy vấn booking lấy tin nhắn từ `from` tới **hôm nay WIB** (khách gắn trong kỳ có thể nhắn tiếp sau kỳ). Số thật 17/11: 12 → 3 (1 deposit, 1 khách cũ); 16/11 = 14; 10–17/11 = 87.
+- **File ảnh hưởng:** `lib/smax-inbox.ts` (+ test), `app/(app)/customers/smax-report/actions.ts`, `openspec/changes/smax-booking-tag-time/`.
+- **Còn dở / ghi chú:** SMAX chỉ lưu lần gắn gần nhất của mỗi tag — gỡ rồi gắn lại sẽ tính theo lần sau. Xem kỳ cũ thì truy vấn booking quét tới hôm nay (nhiều lát ngày hơn, vẫn nhanh vì có lọc tag). Trang Follow up vẫn lấy hội thoại theo tin nhắn trong kỳ (chưa đổi). Chưa xem trên trình duyệt.
+
 ### 2026-11-17 — /marketing: cột "KH tiềm năng" theo chiến dịch
 - **Thay đổi:** Bảng chiến dịch thêm cột **KH tiềm năng** = hội thoại SMAX tạo trong khoảng ngày có tag `phone` (Phone/WA) / `booking` / `bookings-deposit` / `purchase`, mỗi hội thoại tính 1 lần (`countPotential` trong `lib/smax-inbox.ts`). IG: ghép `instagram.ad_id` (fallback `customer.instagram.ad_id`) với `ad_id → campaign_id` từ FB insights `level=ad` (`fetchFbAdCampaigns`). WA: theo số WA của chiến dịch (cột WA) ↔ `page_pid` hội thoại; nhiều camp chung 1 số → mỗi dòng hiện tổng của số, tooltip cảnh báo. Lỗi → "—" + tooltip lỗi. Số thật 10–17/11: 172 tiềm năng (WA 161: 3455=65, 1791=52, 8630=28, 4943=16; IG 11).
 - **File ảnh hưởng:** `lib/smax-inbox.ts` (+ test), `lib/marketing.ts`, `app/(app)/marketing/actions.ts`, `components/marketing/ads-stats.tsx`, `messages/{vi,en}.json`, `openspec/changes/marketing-potential-leads/`.
