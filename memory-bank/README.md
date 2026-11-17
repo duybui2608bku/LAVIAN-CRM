@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — Lịch hẹn: sửa vặt sau PR #72
+- **Thay đổi:** Drawer Thêm lịch hẹn: ô Ngày giờ hẹn full width (`AppointmentDate className="w-full"`). **Tạm ẩn cột Người tạo** trên bảng (column comment lại; `created_by` vẫn ghi + vẫn tải), `scroll.x` 1950. Modal Tin nhắn: bỏ dòng "Latest 20 messages" (xoá key `appointments.messagesHint`), rộng 800px.
+- **File ảnh hưởng:** `components/appointments/{appointments-manager,messages-modal}.tsx`, `messages/{vi,en}.json`
+- **Còn dở / ghi chú:** PR #72 đã merge trước khi 2 commit này được push → mở PR mới từ nhánh `claude/appointments-ui-fixes`. Chưa xem trên trình duyệt.
+
 ### 2026-11-17 — Lịch hẹn: cột Sales + Người tạo; drawer Thêm lịch hẹn tạo nhanh khách
 - **Thay đổi:** Migration `20261117160000_appointment_sales_created_by.sql`: `clinic_appointments.sales_id` (FK profiles) + `created_by` (FK profiles, default `auth.uid()`), backfill người tạo từ log "create" rồi tới `staff_id`; trigger log theo dõi thêm `sales_id`, log "create" không có auth.uid → actor = `created_by`. Bảng `/appointments`: cột **Sales** (InlineSelect user bộ phận `sales`, server kiểm `department = 'sales'`) + **Người tạo** (chỉ xem); `staffOptions(staff, current, depts)` dùng chung. Drawer Thêm lịch hẹn: **bỏ Xác nhận tại phòng khám** (bỏ luôn prop `canShowUp` của drawer + `CustomersManager`), **Telesales + Ngày giờ hẹn cùng 1 hàng**, **tạo nhanh khách** (link "+ Khách mới? Tạo nhanh" dưới ô khách / nút trong dropdown khi tìm không thấy, điền sẵn từ chữ đang tìm): tên + SĐT, stage `booked`; server `createAppointment(customerRef: id | {full_name, phone}, …)` chặn trùng SĐT, lỗi tạo lịch → xoá khách vừa tạo. Mọi lịch tạo từ CRM ghi `created_by = profile.id`; lead-form (admin client) ghi `created_by` = Telesales đã chọn. Lịch sử lịch hẹn hiện thay đổi Sales.
 - **File ảnh hưởng:** `supabase/migrations/20261117160000_appointment_sales_created_by.sql`, `app/(app)/appointments/{actions,page}.ts(x)`, `app/lead-form/actions.ts`, `app/(app)/customers/{actions.ts,customers-view.tsx}`, `components/appointments/appointments-manager.tsx`, `components/customers/{customers-manager,appointment-history-drawer}.tsx`, `lib/appointments.ts`, `types/appointment.ts`, `messages/{vi,en}.json`
