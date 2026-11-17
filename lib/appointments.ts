@@ -16,6 +16,7 @@ export const appointmentPatchSchema = z.object({
   checked_in: z.boolean(),
   service_ids: z.array(z.uuid()).max(100).transform((ids) => [...new Set(ids)]),
   staff_id: z.uuid().nullable(),
+  sales_id: z.uuid().nullable(),
   note: z.string().trim().max(10000),
 }).partial().strict()
   .refine((patch) => Object.keys(patch).length > 0);

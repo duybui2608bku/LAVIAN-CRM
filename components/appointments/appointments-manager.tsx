@@ -1,23 +1,22 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Button, Form, Input, Select, Switch, Tag, type TableProps } from "antd";
-import { CalendarPlus, Search, Trash2 } from "lucide-react";
+import { Button, Form, Input, Select, Tag, type TableProps } from "antd";
+import { CalendarPlus, MessageCircleMore, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
-import { createAppointment, deleteAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
+import { createAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
+import { MessagesModal } from "@/components/appointments/messages-modal";
 import { DataTable } from "@/components/common/data-table";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
-import { RowActions } from "@/components/common/row-actions";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
-import { useConfirm } from "@/components/common/confirm-action";
 import { useCan } from "@/components/common/permissions";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { matchesNameOrPhone, serviceName } from "@/lib/customers";
-import { waColor } from "@/lib/wa";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { BOOKING_STATUSES, BOOKING_STATUS_COLORS, type Appointment, type AppointmentCustomer, type AppointmentPatch } from "@/types/appointment";
 import type { Service } from "@/types/service";
@@ -25,9 +24,9 @@ import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
 
-// Chỉ chọn Telesales (giữ người đang gán để vẫn hiển thị).
-const staffOptions = (staff: AppointmentStaff[], current?: string | null) => staff
-  .filter((s) => s.id === current || (s.status === "active" && TELESALES_DEPARTMENTS.includes(s.department ?? "")))
+// Chỉ chọn user đang hoạt động của bộ phận (mặc định Telesales); giữ người đang gán để vẫn hiển thị.
+const staffOptions = (staff: AppointmentStaff[], current?: string | null, depts = TELESALES_DEPARTMENTS) => staff
+  .filter((s) => s.id === current || (s.status === "active" && depts.includes(s.department ?? "")))
   .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
 export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, canShowUp }: {
@@ -41,7 +40,6 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
-  const confirm = useConfirm();
   const can = useCan();
   const canEdit = can("appointments.edit");
   const [, start] = useTransition();
@@ -52,6 +50,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [booking, setBooking] = useState("all");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [chatFor, setChatFor] = useState<AppointmentCustomer | null>(null);
   const [rows, patchOptimistic] = useOptimistic(appointments,
     (state: Appointment[], patch: AppointmentPatch & { id: string }) =>
       state.map((row) => row.id === patch.id ? { ...row, ...patch } : row));
@@ -70,6 +69,11 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const inRange = (day: string) => !dates.from || (day >= dates.from && day <= (dates.to || dates.from));
   const statusOptions = BOOKING_STATUSES.map((value) => ({ value, label: t(`bookingStatus.${value}`) }));
   const customerMap = new Map(customers.map((customer) => [customer.id, customer]));
+  // Avatar + tên nhân viên; chưa có → placeholder mờ ("Chọn…" cho ô sửa được, "—" cho ô chỉ xem).
+  const staffCell = (id: string | null, empty = t("choose")) => {
+    const member = id ? staff.find((s) => s.id === id) : undefined;
+    return member ? staffLabel(member) : <span className="text-muted-foreground">{empty}</span>;
+  };
   const filtered = rows.filter((row) => {
     const customer = customerMap.get(row.customer_id);
     return customer && (!customerFilter || row.customer_id === customerFilter)
@@ -80,15 +84,19 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   });
   const resetPage = () => setPage(1);
   const columns: TableProps<Appointment>["columns"] = [
+    { title: t("date"), width: 220, fixed: "left", sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
+      render: (_, row) => <AppointmentDate inline disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
     { title: t("name"), width: 180, fixed: "left", render: (_, row) =>
       <span className="font-medium">{customerMap.get(row.customer_id)?.full_name}</span> },
     { title: t("phone"), width: 160, render: (_, row) => customerMap.get(row.customer_id)?.phone },
-    { title: t("wa"), width: 100, render: (_, row) => {
-      const wa = customerMap.get(row.customer_id)?.wa;
-      return wa ? <Tag color={waColor(wa)} className="me-0">{wa}</Tag> : <span className="text-muted-foreground">—</span>;
+    // Thay cột Số WA: icon mở modal 20 tin SMAX gần nhất (khách chưa có hội thoại → "—").
+    { title: t("messages"), width: 100, align: "center", render: (_, row) => {
+      const customer = customerMap.get(row.customer_id);
+      return customer?.thread_link
+        ? <Button type="text" size="small" aria-label={t("viewMessages")} title={t("viewMessages")}
+          icon={<MessageCircleMore className="size-4" />} onClick={() => setChatFor(customer)} />
+        : <span className="text-muted-foreground">—</span>;
     } },
-    { title: t("date"), width: 220, sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
-      render: (_, row) => <AppointmentDate inline disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
     { title: t("bookingConfirm"), width: 160, render: (_, row) => <InlineSelect
       value={row.booking_confirm} ariaLabel={t("bookingConfirm")} disabled={!canEdit}
       display={<Tag color={BOOKING_STATUS_COLORS[row.booking_confirm]} className="me-0">{t(`bookingStatus.${row.booking_confirm}`)}</Tag>}
@@ -109,25 +117,18 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       onSave={(service_ids) => save(row.id, { service_ids })} /> },
     { title: t("staff"), width: 170, render: (_, row) => <InlineSelect value={row.staff_id ?? ""}
       ariaLabel={t("staff")} noneLabel={t("choose")} disabled={!canEdit}
-      display={(() => {
-        const member = staff.find((s) => s.id === row.staff_id);
-        return member ? staffLabel(member) : <span className="text-muted-foreground">{t("choose")}</span>;
-      })()}
+      display={staffCell(row.staff_id)}
       options={staffOptions(staff, row.staff_id)}
       onSave={(value) => save(row.id, { staff_id: value || null })} /> },
+    { title: t("sales"), width: 170, render: (_, row) => <InlineSelect value={row.sales_id ?? ""}
+      ariaLabel={t("sales")} noneLabel={t("choose")} disabled={!canEdit}
+      display={staffCell(row.sales_id)}
+      options={staffOptions(staff, row.sales_id, ["sales"])}
+      onSave={(value) => save(row.id, { sales_id: value || null })} /> },
+    { title: t("createdBy"), width: 170, render: (_, row) => staffCell(row.created_by, "—") },
     { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note}
       label={t("note")} disabled={!canEdit} onSave={(note) => save(row.id, { note })} /> },
-    { key: "actions", width: 56, align: "right", fixed: "right", render: (_, row) => can("appointments.delete") && <RowActions label={t("remove")}
-      items={[{ icon: <Trash2 className="size-4" />, label: t("remove"), danger: true, onSelect: () => confirm({
-        title: t("removeTitle"), content: t("removeBody", { name: customerMap.get(row.customer_id)?.full_name ?? "" }),
-        okText: t("remove"), cancelText: t("cancel"), onOk: async () => {
-          try {
-            const result = await deleteAppointment(row.id);
-            if (result.error) toast.error(result.error);
-            else toast.success(t("removed"));
-          } catch { toast.error(t("saveError")); }
-        },
-      }) }]} /> },
+    // Cột Thao tác (xoá lịch) đã bỏ khỏi UI — server action deleteAppointment vẫn giữ (gác appointments.delete).
   ];
 
   return <Page>
@@ -145,11 +146,12 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
         onClick={() => setCreating(true)}>{t("create")}</Button>}
     </PageToolbar>
-    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1800 }} empty={t("empty")}
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2100 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
-      customers={customers} staff={staff} services={services} canShowUp={canShowUp}
+      customers={customers} staff={staff} services={services}
       onCreated={() => { setCreating(false); setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setArrival("all"); setBooking("all"); setPage(1); }} />
+    <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
   </Page>;
 }
 
@@ -167,11 +169,14 @@ function AppointmentNote({ value, label, disabled, onSave }: {
 }
 
 type CreateValues = Required<Pick<AppointmentPatch, "scheduled_at">> & Omit<AppointmentPatch, "scheduled_at"> & {
-  customer_id: string;
+  customer_id?: string;
+  /** Tạo nhanh khách mới (stage Booking) — thay cho customer_id. */
+  new_name?: string;
+  new_phone?: string;
 };
 
 // Dùng chung: /appointments (nút Thêm) và /customers (nút thêm lịch ở cột Lịch hẹn).
-export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff, services, canShowUp }: {
+export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff, services }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
@@ -179,48 +184,79 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
   customers: AppointmentCustomer[];
   staff: AppointmentStaff[];
   services: Service[];
-  canShowUp: boolean;
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
   const [form] = Form.useForm<CreateValues>();
   const [pending, start] = useTransition();
+  const [quick, setQuick] = useState(false); // khách chưa có trong CRM → nhập tên + SĐT
+  const [search, setSearch] = useState("");
   const staffId = Form.useWatch("staff_id", form);
   const customerStaff = (id?: string) => customers.find((c) => c.id === id)?.staff_id ?? undefined;
 
-  const onFinish = ({ customer_id, ...values }: CreateValues) => start(async () => {
+  // Chuyển sang tạo nhanh: điền sẵn từ ô tìm (toàn số → SĐT, còn lại → tên).
+  const startQuick = () => {
+    const q = search.trim();
+    form.setFieldsValue(/^[ds+().-]+$/.test(q) ? { new_phone: normalizePhone(q) } : { new_name: q });
+    setQuick(true);
+  };
+  const close = () => { setQuick(false); onClose(); };
+
+  const onFinish = ({ customer_id, new_name, new_phone, ...values }: CreateValues) => start(async () => {
     try {
-      const result = await createAppointment(customer_id, { ...values, note: values.note ?? "" });
+      const customer = quick ? { full_name: new_name ?? "", phone: new_phone ?? "" } : customer_id ?? "";
+      const result = await createAppointment(customer, { ...values, note: values.note ?? "" });
       if (result.error) toast.error(result.error);
-      else { toast.success(t("saved")); onCreated(); }
+      else { toast.success(t("saved")); setQuick(false); onCreated(); }
     } catch { toast.error(t("saveError")); }
   });
 
-  return <FormDrawer open={open} onClose={onClose} title={t("create")} submitText={t("create")}
+  const toggle = (label: string, onClick: () => void) =>
+    <Button type="link" size="small" className="h-auto p-0" onClick={onClick}>{label}</Button>;
+
+  return <FormDrawer open={open} onClose={close} title={t("create")} submitText={t("create")}
     pending={pending} onSubmit={() => form.submit()}>
     <Form form={form} layout="vertical" requiredMark={false} disabled={pending} onFinish={onFinish}
-      // Chọn khách → CSKH tự điền theo khách (vẫn đổi được).
+      // Chọn khách → Telesales tự điền theo khách (vẫn đổi được).
       onValuesChange={(changed: Partial<CreateValues>) => {
         if ("customer_id" in changed) form.setFieldValue("staff_id", customerStaff(changed.customer_id));
       }}
-      initialValues={{ customer_id: initialCustomer || undefined, staff_id: customerStaff(initialCustomer), checked_in: false }}>
-      <Form.Item name="customer_id" label={t("name")} rules={[{ required: true, message: t("chooseCustomer") }]}>
-        <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("chooseCustomer")}
+      initialValues={{ customer_id: initialCustomer || undefined, staff_id: customerStaff(initialCustomer) }}>
+      {quick ? <>
+        <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
+          <Form.Item name="new_name" label={t("name")} rules={[{ required: true, whitespace: true, message: t("enterName") }, { max: 200 }]}>
+            <Input autoFocus />
+          </Form.Item>
+          <Form.Item name="new_phone" label={t("phone")} normalize={normalizePhone} rules={[
+            { required: true, message: t("enterPhone") },
+            { validator: (_, v?: string) => !v || isValidPhone(v) ? Promise.resolve() : Promise.reject(new Error(t("phoneInvalid"))) },
+          ]}>
+            <Input inputMode="tel" autoComplete="off" />
+          </Form.Item>
+        </div>
+        <div className="-mt-3 mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>{t("quickHint")}</span>
+          {toggle(t("pickExisting"), () => setQuick(false))}
+        </div>
+      </> : <Form.Item name="customer_id" label={t("name")} rules={[{ required: true, message: t("chooseCustomer") }]}
+        extra={toggle(t("quickCustomer"), startQuick)}>
+        <Select showSearch={{ optionFilterProp: "label", onSearch: setSearch }} placeholder={t("chooseCustomer")}
+          // Tìm không thấy → nút tạo nhanh ngay trong dropdown.
+          notFoundContent={search.trim() ? toggle(t("quickCreate", { name: search.trim() }), startQuick) : undefined}
           options={customers.map((c) => ({ value: c.id, label: `${c.full_name} · ${c.phone}` }))} />
-      </Form.Item>
-      <Form.Item name="scheduled_at" label={t("date")} trigger="onSave" rules={[{ required: true, message: t("chooseDate") }]}>
-        <AppointmentDate onSave={() => {}} />
-      </Form.Item>
-      {canShowUp && <Form.Item name="checked_in" label={t("confirmation")} valuePropName="checked">
-        <Switch checkedChildren={t("showUp")} unCheckedChildren={t("notShowUp")} />
       </Form.Item>}
+      <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
+        <Form.Item name="staff_id" label={t("staff")}>
+          <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("choose")}
+            options={staffOptions(staff, staffId)} />
+        </Form.Item>
+        <Form.Item name="scheduled_at" label={t("date")} trigger="onSave" rules={[{ required: true, message: t("chooseDate") }]}>
+          <AppointmentDate onSave={() => {}} />
+        </Form.Item>
+      </div>
       <Form.Item name="service_ids" label={t("services")}>
         <Select mode="multiple" allowClear placeholder={t("choose")} optionFilterProp="label"
           options={services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />
-      </Form.Item>
-      <Form.Item name="staff_id" label={t("staff")}>
-        <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("choose")}
-          options={staffOptions(staff, staffId)} />
       </Form.Item>
       <Form.Item name="note" label={t("note")} className="mb-0">
         <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />

@@ -194,6 +194,7 @@ export async function submitLead(
           checked_in: false,
           service_ids: appointment.service_ids,
           staff_id: d.staff_id,
+          created_by: d.staff_id, // lead-form không có user đăng nhập → người tạo = Telesales đã chọn
           note: "",
         });
         if (apptError) {
@@ -284,6 +285,7 @@ export async function createLeadAppointment(
       service_ids: serviceIds,
       // Không chọn CSKH → lấy CSKH đang phụ trách khách.
       staff_id: d.staff_id || customer.staff_id || null,
+      created_by: d.staff_id || customer.staff_id || null, // không có user đăng nhập → Telesales của lịch
       note: d.note ?? "",
     });
     if (error) throw error;

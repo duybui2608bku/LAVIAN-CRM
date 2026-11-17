@@ -18,6 +18,8 @@ export interface Appointment {
   checked_in: boolean;
   service_ids: string[];
   staff_id: string | null; // chăm sóc khách hàng
+  sales_id: string | null; // nhân viên bộ phận Sales phụ trách lịch
+  created_by: string | null; // người tạo lịch (lịch cũ không truy được → null)
   note: string;
 }
 
@@ -27,11 +29,11 @@ export type AppointmentCustomer = {
   phone: string;
   source: string | null;
   staff_id?: string | null; // CSKH của khách — mặc định cho lịch hẹn mới
-  wa?: string | null; // "WA-xxxx" rút từ thread SMAX (dẫn xuất, không phải cột DB)
+  thread_link?: string | null; // link hội thoại SMAX (customers.thread->>link)
 };
 
 /** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`). */
-export type AppointmentLogField = "scheduled_at" | "booking_confirm" | "checked_in" | "service_ids" | "staff_id" | "note";
+export type AppointmentLogField = "scheduled_at" | "booking_confirm" | "checked_in" | "service_ids" | "staff_id" | "sales_id" | "note";
 
 /** 1 dòng `clinic_appointment_logs` — actor_id null = ghi qua admin client (Form SMAX). */
 export interface AppointmentLog {
@@ -45,5 +47,5 @@ export interface AppointmentLog {
 }
 
 export type AppointmentPatch =Partial<Pick<Appointment,
-  "scheduled_at" | "booking_confirm" | "checked_in" | "service_ids" | "staff_id" | "note"
+  "scheduled_at" | "booking_confirm" | "checked_in" | "service_ids" | "staff_id" | "sales_id" | "note"
 >>;
