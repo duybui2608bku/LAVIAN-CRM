@@ -174,7 +174,6 @@
     "groupMain": "Vận hành",
     "groupAdmin": "Quản trị",
     "more": "Menu",
-    "reportsOverview": "Tổng quan",
     "telesales": "Leader Telesales",
     "customersList": "Danh sách",
     "smaxReport": "Báo cáo Smax",
@@ -666,7 +665,6 @@
   },
   "documents": {
     "title": "Tài liệu",
-    "description": "Quy trình, hướng dẫn và tài liệu nội bộ",
     "new": "Thêm tài liệu",
     "search": "Tìm theo tên tài liệu",
     "empty": "Chưa có tài liệu nào",
