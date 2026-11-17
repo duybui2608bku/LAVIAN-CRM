@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { normalizeError } from "@/lib/errors";
+import { uploadToCdn } from "@/lib/upload";
 
-// Proxy upload ảnh sang cfig.ibytecdn.org — không cần API key, không set header
-// thủ công (fetch tự gắn multipart boundary).
+// Proxy upload ảnh sang CDN (lib/upload.ts).
 // Người chưa đăng nhập đã bị proxy.ts chặn trước khi tới đây.
-
-const UPLOAD_URL = "https://cfig.ibytecdn.org/upload";
-
-/** Shape response mà upstream trả về. */
-type UploadPayload = {
-  success?: boolean;
-  results?: { success?: boolean; filename?: string; url?: string; server?: string }[];
-};
 
 const meta = () => ({ timestamp: new Date().toISOString() });
 
@@ -28,18 +20,8 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) return fail("Vui lòng chọn tệp ảnh.", 400);
   const server = form.get("server");
 
-  const body = new FormData();
-  body.append("images[]", file, file.name);
-  body.append("server", typeof server === "string" && server ? server : "server_1");
-
   try {
-    const res = await fetch(UPLOAD_URL, { method: "POST", body });
-    const payload = (await res.json().catch(() => ({}))) as UploadPayload;
-    const url = payload.results?.[0]?.url;
-
-    if (!res.ok || payload.success !== true || !url) {
-      return fail("Upload ảnh thất bại.", 502);
-    }
+    const url = await uploadToCdn(file, file.name, typeof server === "string" && server ? server : undefined);
     return NextResponse.json({ success: true, data: { url }, meta: meta() });
   } catch (e) {
     return fail(normalizeError(e).message, 502);
