@@ -30,12 +30,14 @@ const staffOptions = (staff: AppointmentStaff[], current?: string | null) => sta
   .filter((s) => s.id === current || (s.status === "active" && TELESALES_DEPARTMENTS.includes(s.department ?? "")))
   .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
-export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer }: {
+export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, canShowUp }: {
   appointments: Appointment[];
   customers: AppointmentCustomer[];
   staff: AppointmentStaff[];
   services: Service[];
   initialCustomer: string;
+  /** Clinic confirmation (Show-up) chỉ bộ phận Sales. */
+  canShowUp: boolean;
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
@@ -72,7 +74,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     const customer = customerMap.get(row.customer_id);
     return customer && (!customerFilter || row.customer_id === customerFilter)
       && inRange(dayjs(row.scheduled_at).format("YYYY-MM-DD"))
-      && (arrival === "all" || row.checked_in === (arrival === "arrived"))
+      && (arrival === "all" || row.checked_in === (arrival === "show_up"))
       && (booking === "all" || row.booking_confirm === booking)
       && matchesNameOrPhone(customer.full_name, customer.phone, search);
   });
@@ -93,10 +95,10 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       options={statusOptions}
       onSave={(value) => save(row.id, { booking_confirm: value as Appointment["booking_confirm"] })} /> },
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
-      value={row.checked_in ? "arrived" : "waiting"} ariaLabel={t("confirmation")} disabled={!canEdit}
-      display={<Tag color={row.checked_in ? "green" : "default"} className="me-0">{row.checked_in ? t("arrived") : t("notArrived")}</Tag>}
-      options={[{ value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]}
-      onSave={(value) => save(row.id, { checked_in: value === "arrived" })} /> },
+      value={row.checked_in ? "show_up" : "waiting"} ariaLabel={t("confirmation")} disabled={!canEdit || !canShowUp}
+      display={<Tag color={row.checked_in ? "green" : "default"} className="me-0">{row.checked_in ? t("showUp") : t("notShowUp")}</Tag>}
+      options={[{ value: "show_up", label: t("showUp") }, { value: "waiting", label: t("notShowUp") }]}
+      onSave={(value) => save(row.id, { checked_in: value === "show_up" })} /> },
     { title: t("services"), width: 220, render: (_, row) => <InlineMultiSelect
       value={row.service_ids} ariaLabel={t("services")} disabled={!canEdit}
       display={row.service_ids.length ? <div className="flex flex-wrap gap-1">{row.service_ids.map((id) => {
@@ -136,7 +138,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <DateRangePicker from={dates.from} to={dates.to} onChange={(r) => { setDates(r); resetPage(); }} placeholder={t("allDates")} />
       <Button onClick={() => { const d = dayjs().format("YYYY-MM-DD"); setDates({ from: d, to: d }); resetPage(); }}>{t("today")}</Button>
       <Select value={arrival} aria-label={t("confirmation")} className="min-w-40" onChange={(v) => { setArrival(v); resetPage(); }}
-        options={[{ value: "all", label: t("allArrivals") }, { value: "arrived", label: t("arrived") }, { value: "waiting", label: t("notArrived") }]} />
+        options={[{ value: "all", label: t("allArrivals") }, { value: "show_up", label: t("showUp") }, { value: "waiting", label: t("notShowUp") }]} />
       <Select value={booking} aria-label={t("bookingConfirm")} className="min-w-40" onChange={(v) => { setBooking(v); resetPage(); }}
         options={[{ value: "all", label: t("allBookingConfirms") }, ...statusOptions]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
@@ -146,7 +148,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1800 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
-      customers={customers} staff={staff} services={services}
+      customers={customers} staff={staff} services={services} canShowUp={canShowUp}
       onCreated={() => { setCreating(false); setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setArrival("all"); setBooking("all"); setPage(1); }} />
   </Page>;
 }
@@ -169,7 +171,7 @@ type CreateValues = Required<Pick<AppointmentPatch, "scheduled_at">> & Omit<Appo
 };
 
 // Dùng chung: /appointments (nút Thêm) và /customers (nút thêm lịch ở cột Lịch hẹn).
-export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff, services }: {
+export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff, services, canShowUp }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
@@ -177,6 +179,7 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
   customers: AppointmentCustomer[];
   staff: AppointmentStaff[];
   services: Service[];
+  canShowUp: boolean;
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
@@ -208,9 +211,9 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
       <Form.Item name="scheduled_at" label={t("date")} trigger="onSave" rules={[{ required: true, message: t("chooseDate") }]}>
         <AppointmentDate onSave={() => {}} />
       </Form.Item>
-      <Form.Item name="checked_in" label={t("confirmation")} valuePropName="checked">
-        <Switch checkedChildren={t("arrived")} unCheckedChildren={t("notArrived")} />
-      </Form.Item>
+      {canShowUp && <Form.Item name="checked_in" label={t("confirmation")} valuePropName="checked">
+        <Switch checkedChildren={t("showUp")} unCheckedChildren={t("notShowUp")} />
+      </Form.Item>}
       <Form.Item name="service_ids" label={t("services")}>
         <Select mode="multiple" allowClear placeholder={t("choose")} optionFilterProp="label"
           options={services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />

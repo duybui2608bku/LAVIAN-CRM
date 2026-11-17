@@ -14,8 +14,7 @@ const base: Customer = {
   tags: [],
   thread: null,
   source: "instagrams",
-  stage: "new_lead",
-  lost_reason: null,
+  stage: "consulting",
   staff_id: "staff-1",
   sales_id: "sales-1",
   technician_id: "tech-1",
@@ -37,8 +36,8 @@ test("tìm theo tên và theo phone (không phân biệt hoa thường)", () => 
 });
 
 test("lọc stage / source / staff", () => {
-  assert.equal(matchesCustomerFilters(base, { stage: "new_lead" }), true);
-  assert.equal(matchesCustomerFilters(base, { stage: "lost" }), false);
+  assert.equal(matchesCustomerFilters(base, { stage: "consulting" }), true);
+  assert.equal(matchesCustomerFilters(base, { stage: "show_up" }), false);
   assert.equal(matchesCustomerFilters(base, { source: "whatsapp" }), false);
   assert.equal(matchesCustomerFilters(base, { staffId: "staff-2" }), false);
 });

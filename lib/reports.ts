@@ -4,9 +4,9 @@
  */
 
 /** Từ "Đã đặt cọc" trở về sau trong phễu (dùng chung với pipeline /customers). */
-export const DEPOSITED_OR_LATER = new Set(["deposited", "booked", "visited", "returning"]);
+export const DEPOSITED_OR_LATER = new Set(["deposited", "booked", "show_up"]);
 /** Giai đoạn chắc chắn đã đặt lịch (kể cả khi chưa nhập lịch hẹn vào hệ thống). */
-const BOOKED_OR_LATER = new Set(["booked", "visited", "returning"]);
+const BOOKED_OR_LATER = new Set(["booked", "show_up"]);
 
 export const METRICS = [
   "spend",

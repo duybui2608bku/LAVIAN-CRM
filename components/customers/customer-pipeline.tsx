@@ -52,7 +52,7 @@ type Card = {
 /**
  * Pipeline trên bảng /customers.
  * - Nhóm Data: theo khoảng ngày tạo đang lọc (chưa lọc → hôm nay).
- *   Đặt cọc/Lịch hẹn/Đã đến đếm dồn trong số khách Data của khoảng đó.
+ *   Đặt cọc/Lịch hẹn/Show-up đếm dồn trong số khách Data của khoảng đó.
  * - Nhóm Lịch hẹn: tổng theo khoảng đang lọc; hôm nay/ngày mai cố định theo giờ hiện tại.
  */
 export function CustomerPipeline({
@@ -88,7 +88,7 @@ export function CustomerPipeline({
 
   const data = customers.filter((c) => matchesCustomerFilters(c, { from: rangeFrom, to: rangeTo }));
   const booked = new Set(appointments.map((a) => a.customer_id));
-  const visited = new Set(appointments.filter((a) => a.checked_in).map((a) => a.customer_id));
+  const showUp = new Set(appointments.filter((a) => a.checked_in).map((a) => a.customer_id));
   const dayOf = (a: PipelineAppointment) => dayjs(a.scheduled_at).format("YYYY-MM-DD");
   const countDay = (from: string, to: string) =>
     appointments.filter((a) => {
@@ -121,10 +121,10 @@ export function CustomerPipeline({
       extra: `${deposited.reduce((s, c) => s + Number(c.deposit_amount ?? 0), 0).toLocaleString("en-US")} IDR`,
     },
     {
-      key: "visited",
+      key: "showUp",
       icon: CircleCheck,
       tone: "success",
-      value: data.filter((c) => visited.has(c.id)).length,
+      value: data.filter((c) => showUp.has(c.id)).length,
     },
   ];
 

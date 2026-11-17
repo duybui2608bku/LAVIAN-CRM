@@ -13,7 +13,7 @@ const AUTH_PAGES = ["/login", "/banned"];
 // người đã đăng nhập vẫn mở được (không redirect như trang auth).
 const PUBLIC_PATHS = [...AUTH_PAGES, "/lead-form"];
 // Route chỉ admin (không nằm trong cây phân quyền).
-const ADMIN_PATHS = ["/users", "/enums"];
+const ADMIN_PATHS = ["/users"];
 
 export async function proxy(request: NextRequest) {
   // /lead-form hướng tới khách quốc tế: luôn tiếng Anh (form không có switcher).

@@ -1,13 +1,10 @@
 import type { EnumKind, EnumOption } from "@/types/customer";
 
 const definitions: [EnumKind, string, string, string, string][] = [
-  ["stage", "new_lead", "Khách mới", "New lead", "blue"],
   ["stage", "consulting", "Đang tư vấn", "Consulting", "cyan"],
   ["stage", "deposited", "Đã đặt cọc", "Deposited", "gold"],
   ["stage", "booked", "Đã đặt lịch", "Booked", "geekblue"],
-  ["stage", "visited", "Đã đến", "Visited", "green"],
-  ["stage", "returning", "Khách quay lại", "Returning", "purple"],
-  ["stage", "lost", "Đã mất", "Lost", "red"],
+  ["stage", "show_up", "Show-up", "Show-up", "green"], // tự động theo Clinic confirmation — không cho chọn tay
   ["rating", "potential", "Tiềm năng", "Potential", "green"],
   ["rating", "price_only", "Chỉ hỏi giá", "Price only", "gold"],
   ["rating", "far", "Ở xa", "Far away", "orange"],
@@ -15,6 +12,14 @@ const definitions: [EnumKind, string, string, string, string][] = [
   ["source", "instagrams", "Instagram", "Instagram", "magenta"],
   ["source", "whatsapp", "WhatsApp", "WhatsApp", "green"],
 ];
+
+/** Stage tự chuyển khi lịch hẹn được đánh dấu Show-up (trigger DB) — ẩn khỏi ô chọn stage. */
+export const SHOW_UP_STAGE = "show_up";
+
+/** Stage hợp lệ (kể cả show_up đang giữ nguyên khi sửa khách). */
+export function isStage(v: string | null | undefined): boolean {
+  return CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === v);
+}
 
 /** Giá trị đánh giá hợp lệ → giữ; "" / lạ → null (chưa đánh giá). */
 export function validRating(v: string | null | undefined): string | null {

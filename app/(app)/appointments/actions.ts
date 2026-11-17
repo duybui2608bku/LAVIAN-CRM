@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { getCurrentProfile, requirePermission } from "@/lib/auth";
-import { appointmentPatchSchema } from "@/lib/appointments";
-import { normalizeError } from "@/lib/errors";
+import { appointmentPatchSchema, canConfirmShowUp } from "@/lib/appointments";
+import { AppError, normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { AppointmentPatch } from "@/types/appointment";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
@@ -26,6 +26,9 @@ async function failure(error: unknown) {
   return { error: error && typeof error === "object" && "code" in error && error.code === "23505"
     ? t("duplicate") : normalizeError(error).message };
 }
+
+const onlySales = () =>
+  new AppError("Chỉ bộ phận Sales được xác nhận Show-up.", { code: "FORBIDDEN", status: 403 });
 
 // Các kiểm tra độc lập → chạy song song.
 async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch: AppointmentPatch) {
@@ -49,10 +52,11 @@ export async function createAppointment(
   input: AppointmentPatch & { scheduled_at: string },
 ): Promise<{ error?: string }> {
   try {
-    await requirePermission("appointments.edit");
+    const profile = await requirePermission("appointments.edit");
     z.uuid().parse(customerId);
     const patch = appointmentPatchSchema.parse(input);
     if (!patch.scheduled_at) throw new Error("Missing date");
+    if (patch.checked_in && !canConfirmShowUp(profile)) throw onlySales();
     const db = await client();
     await validateReferences(db, patch);
     const { data: customer, error: customerError } = await db.from("customers")
@@ -74,9 +78,10 @@ export async function createAppointment(
 
 export async function patchAppointment(id: string, input: AppointmentPatch): Promise<{ error?: string }> {
   try {
-    await requirePermission("appointments.edit");
+    const profile = await requirePermission("appointments.edit");
     z.uuid().parse(id);
     const patch = appointmentPatchSchema.parse(input);
+    if (patch.checked_in !== undefined && !canConfirmShowUp(profile)) throw onlySales();
     const db = await client();
     await validateReferences(db, patch);
     const { error } = await db.from("clinic_appointments").update(patch)

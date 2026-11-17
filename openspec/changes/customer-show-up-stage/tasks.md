@@ -1,0 +1,5 @@
+- [x] 1. Migration: đổi stage, check, bỏ default, trigger đồng bộ Show-up, backfill
+- [x] 2. Stage cố định: show_up + bỏ new_lead/returning/lost; ẩn Show-up khỏi ô chọn; form bắt buộc chọn
+- [x] 3. Clinic confirmation: nhãn Show-up, chỉ Sales/admin sửa (UI + server)
+- [x] 4. Bỏ Lý do mất khách + module /enums
+- [x] 5. i18n vi/en, tsc + eslint + test

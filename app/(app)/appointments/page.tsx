@@ -1,4 +1,6 @@
 import { AppointmentsManager, type AppointmentStaff } from "@/components/appointments/appointments-manager";
+import { getCurrentProfile } from "@/lib/auth";
+import { canConfirmShowUp } from "@/lib/appointments";
 import { createClient } from "@/lib/supabase/server";
 import { waNumber } from "@/lib/wa";
 import type { Appointment, AppointmentCustomer } from "@/types/appointment";
@@ -8,13 +10,14 @@ export default async function AppointmentsPage({ searchParams }: {
   searchParams: Promise<{ customer?: string }>;
 }) {
   const db = await createClient();
-  const [appointments, customers, staff, services, params] = await Promise.all([
+  const [appointments, customers, staff, services, params, profile] = await Promise.all([
     db.from("clinic_appointments").select("id,customer_id,scheduled_at,booking_confirm,checked_in,service_ids,staff_id,note")
       .is("deleted_at", null).order("scheduled_at"),
     db.from("customers").select("id,full_name,phone,source,staff_id,wa_link:thread->>link").is("deleted_at", null).order("full_name"),
     db.from("profiles").select("id,user_name,avatar_url,status,department").order("user_name"),
     db.from("services").select("*").order("sort_order"),
     searchParams,
+    getCurrentProfile(),
   ]);
   for (const result of [appointments, customers, staff, services]) {
     if (result.error) throw new Error(result.error.message);
@@ -28,5 +31,6 @@ export default async function AppointmentsPage({ searchParams }: {
     staff={(staff.data ?? []) as AppointmentStaff[]}
     services={(services.data ?? []) as Service[]}
     initialCustomer={params.customer ?? ""}
+    canShowUp={canConfirmShowUp(profile)}
   />;
 }
