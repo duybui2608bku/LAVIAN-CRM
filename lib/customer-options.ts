@@ -3,7 +3,7 @@ import type { EnumKind, EnumOption } from "@/types/customer";
 const definitions: [EnumKind, string, string, string, string][] = [
   ["stage", "consulting", "Đang tư vấn", "Consulting", "cyan"],
   ["stage", "deposited", "Đã đặt cọc", "Deposited", "gold"],
-  ["stage", "booked", "Đã đặt lịch", "Booked", "geekblue"],
+  ["stage", "booked", "Booking", "Booking", "geekblue"], // tạo mới ở lead form bắt buộc kèm lịch hẹn
   ["stage", "show_up", "Show-up", "Show-up", "green"], // tự động theo Clinic confirmation — không cho chọn tay
   ["rating", "potential", "Tiềm năng", "Potential", "green"],
   ["rating", "price_only", "Chỉ hỏi giá", "Price only", "gold"],
@@ -15,6 +15,9 @@ const definitions: [EnumKind, string, string, string, string][] = [
 
 /** Stage tự chuyển khi lịch hẹn được đánh dấu Show-up (trigger DB) — ẩn khỏi ô chọn stage. */
 export const SHOW_UP_STAGE = "show_up";
+
+/** Stage "Booking" — khách mới ở lead form chọn stage này phải kèm lịch hẹn. */
+export const BOOKED_STAGE = "booked";
 
 /** Stage hợp lệ (kể cả show_up đang giữ nguyên khi sửa khách). */
 export function isStage(v: string | null | undefined): boolean {

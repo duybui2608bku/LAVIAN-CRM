@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, ConfigProvider, Form, Input, InputNumber, Result, Segmented, Tooltip, type ThemeConfig } from "antd";
+import { Button, ConfigProvider, Form, Input, InputNumber, Result, Segmented, Select, Tooltip, type ThemeConfig } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import { Bug, CircleAlert } from "lucide-react";
 
@@ -13,6 +13,7 @@ import {
   type LeadInput,
   type LeadMode,
 } from "@/app/lead-form/actions";
+import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { EnumTag } from "@/components/common/enum-tag";
 import { LeadAppointmentForm, type LeadService } from "@/components/lead-form/lead-appointment-form";
 import { ClearableSelect } from "@/components/common/clearable-select";
@@ -20,8 +21,8 @@ import { ImageUpload } from "@/components/common/image-upload";
 import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
-import { optionLabel } from "@/lib/customers";
-import { SHOW_UP_STAGE } from "@/lib/customer-options";
+import { optionLabel, serviceName } from "@/lib/customers";
+import { BOOKED_STAGE, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,9 @@ type Values = {
   region_code: string;
   address_detail: string;
   note: string;
+  // Lịch hẹn kèm theo — chỉ khi tạo khách mới ở stage Booking.
+  scheduled_at: string;
+  service_ids: string[];
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
 
@@ -72,6 +76,8 @@ const DEFAULTS: Values = {
   deposit_amount: null,
   payment_confirm_url: null,
   note: "",
+  scheduled_at: "",
+  service_ids: [],
   website: "",
 };
 
@@ -107,6 +113,7 @@ export function LeadForm(props: LeadFormProps) {
 
 function LeadFormInner({ staff, stages, services }: LeadFormProps) {
   const t = useTranslations("leadForm");
+  const ta = useTranslations("appointments");
   const locale = useLocale();
   const params = useSearchParams();
   const integrationId = params.get("integration_id") ?? "";
@@ -124,7 +131,10 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
   );
 
   const [form] = Form.useForm<Values>();
-  const isDeposited = Form.useWatch("stage", form) === "deposited";
+  const stage = Form.useWatch("stage", form);
+  const isDeposited = stage === "deposited";
+  // Khách mới chọn Booking → bắt buộc chọn lịch hẹn ngay trong form (khách cũ dùng tab Lịch hẹn).
+  const needAppointment = stage === BOOKED_STAGE && !existing;
 
   const smaxIdRef = useRef<string | null>(null);
   const [smaxMeta, setSmaxMeta] = useState<SmaxMeta>(EMPTY_META);
@@ -212,10 +222,12 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
 
   const onSubmit = (mode: LeadMode) => () =>
     void form.validateFields().then((raw) => start(async () => {
-      const values = { ...raw, full_name: raw.full_name.trim(), phone: formatPhone(raw.phone) };
+      const { scheduled_at, service_ids, ...values } = { ...raw, full_name: raw.full_name.trim(), phone: formatPhone(raw.phone) };
       const res = await submitLead(
         {
           ...values,
+          // Khách mới + Booking: server tạo khách rồi tạo luôn lịch hẹn này.
+          appointment: needAppointment ? { scheduled_at, service_ids: service_ids ?? [] } : null,
           customer_id: customerId,
           ...smaxMeta,
         },
@@ -371,6 +383,18 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
             <ImageUpload paste label={t("uploadImage")} className="aspect-auto h-20 w-full" />
           </Form.Item>
         </div>
+        {needAppointment && (
+          <div className="grid grid-cols-2 gap-x-3">
+            <Form.Item name="scheduled_at" label={ta("date")} trigger="onSave"
+              rules={[{ required: true, message: ta("chooseDate") }]}>
+              <AppointmentDate className="w-full" onSave={() => {}} />
+            </Form.Item>
+            <Form.Item name="service_ids" label={ta("services")}>
+              <Select mode="multiple" allowClear placeholder={ta("choose")} optionFilterProp="label"
+                options={services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />
+            </Form.Item>
+          </div>
+        )}
         <Form.Item
           name="note"
           label={t("note")}
