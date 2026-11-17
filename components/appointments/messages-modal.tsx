@@ -7,10 +7,9 @@ import { ExternalLink, Paperclip } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { getCustomerMessages } from "@/app/(app)/appointments/actions";
-import { MESSAGE_LIMIT } from "@/lib/smax-messages";
 import { cn } from "@/lib/utils";
 
-/** Modal xem nhanh 20 tin SMAX gần nhất với khách: khách bên trái, Lavian bên phải, cũ → mới. */
+/** Modal xem nhanh các tin SMAX gần nhất với khách (MESSAGE_LIMIT): khách bên trái, Lavian bên phải, cũ → mới. */
 export function MessagesModal({ customer, onClose }: {
   customer: { id: string; full_name: string; thread_link?: string | null } | null;
   onClose: () => void;
@@ -28,12 +27,9 @@ export function MessagesModal({ customer, onClose }: {
     },
   });
 
-  return <Modal open={!!customer} onCancel={onClose} footer={null} width={560}
+  return <Modal open={!!customer} onCancel={onClose} footer={null} width={800}
     title={<div className="flex items-center gap-3 pe-8">
-      <div className="min-w-0 flex-1">
-        <div className="truncate">{t("messagesTitle", { name: customer?.full_name ?? "" })}</div>
-        <div className="text-xs font-normal text-muted-foreground">{t("messagesHint", { count: MESSAGE_LIMIT })}</div>
-      </div>
+      <div className="min-w-0 flex-1 truncate">{t("messagesTitle", { name: customer?.full_name ?? "" })}</div>
       {customer?.thread_link && <Button size="small" type="link" href={customer.thread_link} target="_blank" rel="noreferrer"
         icon={<ExternalLink className="size-3.5" />} iconPlacement="end">{t("openSmax")}</Button>}
     </div>}>

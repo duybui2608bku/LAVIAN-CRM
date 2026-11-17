@@ -41,7 +41,6 @@
     "messages": "Tin nhắn",
     "viewMessages": "Xem tin nhắn",
     "messagesTitle": "Tin nhắn với {name}",
-    "messagesHint": "{count} tin gần nhất",
     "openSmax": "Mở trong SMAX",
     "noMessages": "Chưa có tin nhắn",
     "attachment": "Tệp đính kèm",
