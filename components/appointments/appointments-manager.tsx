@@ -2,18 +2,16 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { Button, Form, Input, Select, Switch, Tag, type TableProps } from "antd";
-import { CalendarPlus, MessageCircleMore, Search, Trash2 } from "lucide-react";
+import { CalendarPlus, MessageCircleMore, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
-import { createAppointment, deleteAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
+import { createAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { MessagesModal } from "@/components/appointments/messages-modal";
 import { DataTable } from "@/components/common/data-table";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
-import { RowActions } from "@/components/common/row-actions";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
-import { useConfirm } from "@/components/common/confirm-action";
 import { useCan } from "@/components/common/permissions";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
@@ -41,7 +39,6 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
-  const confirm = useConfirm();
   const can = useCan();
   const canEdit = can("appointments.edit");
   const [, start] = useTransition();
@@ -122,17 +119,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       onSave={(value) => save(row.id, { staff_id: value || null })} /> },
     { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note}
       label={t("note")} disabled={!canEdit} onSave={(note) => save(row.id, { note })} /> },
-    { key: "actions", width: 56, align: "right", fixed: "right", render: (_, row) => can("appointments.delete") && <RowActions label={t("remove")}
-      items={[{ icon: <Trash2 className="size-4" />, label: t("remove"), danger: true, onSelect: () => confirm({
-        title: t("removeTitle"), content: t("removeBody", { name: customerMap.get(row.customer_id)?.full_name ?? "" }),
-        okText: t("remove"), cancelText: t("cancel"), onOk: async () => {
-          try {
-            const result = await deleteAppointment(row.id);
-            if (result.error) toast.error(result.error);
-            else toast.success(t("removed"));
-          } catch { toast.error(t("saveError")); }
-        },
-      }) }]} /> },
+    // Cột Thao tác (xoá lịch) đã bỏ khỏi UI — server action deleteAppointment vẫn giữ (gác appointments.delete).
   ];
 
   return <Page>
