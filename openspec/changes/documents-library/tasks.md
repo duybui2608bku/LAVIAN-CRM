@@ -1,0 +1,8 @@
+- [x] 1. Migration bảng `documents` / `document_likes` / `document_comments` + `can_view_document` + RLS + bucket `documents`
+- [x] 2. Chạy migration trên Supabase (project Lavian)
+- [x] 3. Cài Tiptap; `types/document.ts`; tách `lib/upload.ts` từ `/api/upload`
+- [x] 4. `lib/google-docs.ts` (parse id, inline style, bỏ link redirect, ảnh) + test
+- [x] 5. Server actions: lưu/xoá tài liệu, import Google Docs, like, comment
+- [x] 6. Editor admin `/documents/new`, `/documents/[id]/edit` (toolbar, ảnh, PDF, bộ phận, import)
+- [x] 7. `/documents` danh sách + `/documents/[id]` xem, like, bình luận
+- [x] 8. Menu "Tài liệu", i18n vi/en, tsc + eslint + test + build

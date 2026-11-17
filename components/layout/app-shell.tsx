@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { Button, Drawer, Dropdown, Layout, Menu, Segmented, Switch, type MenuProps } from "antd";
 import {
+  BookOpen,
   Briefcase,
   CalendarDays,
   ChartColumn,
@@ -62,6 +63,7 @@ const ITEMS = [
   },
   { key: "appointments", href: "/appointments", icon: CalendarDays },
   { key: "tour", href: "/tour", icon: Wallet },
+  { key: "documents", href: "/documents", icon: BookOpen },
 ] as const;
 
 const ADMIN_ITEMS = [
@@ -132,6 +134,8 @@ export function AppShell({
   const visible = (items: readonly NavItem[]): NavItem[] =>
     items.flatMap<NavItem>((i) => {
       if (i.key === "users") return isAdmin ? [i] : [];
+      // Tài liệu: mọi user — RLS lọc theo bộ phận ở từng tài liệu.
+      if (i.key === "documents") return [i];
       if (!("children" in i)) return permissions.includes(`${i.key}.view` as Permission) ? [i] : [];
       const kids = i.children.filter((c) => !c.perm || permissions.includes(c.perm));
       return kids.length ? [{ ...i, href: kids[0].href, children: kids }] : [];
