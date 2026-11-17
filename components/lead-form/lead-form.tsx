@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, ConfigProvider, Form, Input, InputNumber, Result, Segmented, Select, Tooltip, type ThemeConfig } from "antd";
+import { Button, ConfigProvider, Form, Input, InputNumber, Result, Select, Tooltip, type ThemeConfig } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import { Bug, CircleAlert } from "lucide-react";
 
@@ -15,18 +15,18 @@ import {
 } from "@/app/lead-form/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { EnumTag } from "@/components/common/enum-tag";
-import { LeadAppointmentForm, type LeadService } from "@/components/lead-form/lead-appointment-form";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { ImageUpload } from "@/components/common/image-upload";
 import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel, serviceName } from "@/lib/customers";
-import { BOOKED_STAGE, SHOW_UP_STAGE } from "@/lib/customer-options";
+import { BOOKED_STAGE, BOOKING_PAGE_STAGES, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { EnumOption } from "@/types/customer";
+import type { Service } from "@/types/service";
 
 const requestCustomer = (integrationId: string) =>
   window.parent.postMessage(
@@ -87,7 +87,7 @@ const parseIdr = (v: string | undefined) =>
   sanitizeCurrencyInput(v ?? "") as unknown as number;
 
 
-type Tab = "customer" | "appointment";
+export type LeadService = Pick<Service, "id" | "name_vi" | "name_en" | "name_id" | "is_active">;
 
 type LeadFormProps = {
   staff: StaffRef[];
@@ -125,7 +125,6 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
   // Khách đã có trong CRM (giai đoạn + CSKH hiện tại) hoặc null.
   const [existing, setExisting] = useState<LeadCustomer | null>(null);
   const [checkingCustomer, setCheckingCustomer] = useState(false);
-  const [tab, setTab] = useState<Tab>("customer");
   const [embedded] = useState(
     () => typeof window !== "undefined" && window.parent !== window,
   );
@@ -133,8 +132,10 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
   const [form] = Form.useForm<Values>();
   const stage = Form.useWatch("stage", form);
   const isDeposited = stage === "deposited";
-  // Khách mới chọn Booking → bắt buộc chọn lịch hẹn ngay trong form (khách cũ dùng tab Lịch hẹn).
-  const needAppointment = stage === BOOKED_STAGE && !existing;
+  // Booking / Deposit → hiện ô lịch hẹn + dịch vụ; vừa ĐỔI sang Booking thì bắt buộc có lịch hẹn
+  // (khách đang Booking sẵn chỉ cập nhật thông tin thì không bắt tạo lịch mới).
+  const showAppointment = (BOOKING_PAGE_STAGES as readonly string[]).includes(stage ?? "");
+  const needAppointment = stage === BOOKED_STAGE && existing?.stage !== BOOKED_STAGE;
 
   const smaxIdRef = useRef<string | null>(null);
   const [smaxMeta, setSmaxMeta] = useState<SmaxMeta>(EMPTY_META);
@@ -201,8 +202,8 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
           form.setFieldValue("phone", formatPhone(String(phone)));
         }
       } else if (id !== prev) {
-        // Đổi sang khách khác: reset luôn giai đoạn/CSKH của khách trước.
-        form.resetFields([...CRM_FIELDS]);
+        // Đổi sang khách khác: reset luôn giai đoạn/CSKH/lịch hẹn đang nhập của khách trước.
+        form.resetFields([...CRM_FIELDS, "scheduled_at", "service_ids"]);
         form.setFieldsValue({
           full_name: c.name ? String(c.name) : "",
           phone: phone ? formatPhone(String(phone)) : "",
@@ -226,8 +227,8 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
       const res = await submitLead(
         {
           ...values,
-          // Khách mới + Booking: server tạo khách rồi tạo luôn lịch hẹn này.
-          appointment: needAppointment ? { scheduled_at, service_ids: service_ids ?? [] } : null,
+          // Có chọn ngày giờ → server tạo lịch hẹn kèm (bắt buộc khi vừa đổi sang Booking).
+          appointment: showAppointment && scheduled_at ? { scheduled_at, service_ids: service_ids ?? [] } : null,
           customer_id: customerId,
           ...smaxMeta,
         },
@@ -256,10 +257,6 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
     });
   }
 
-  // Tab Lịch hẹn chỉ mở khi khách đã có trong CRM; đổi sang khách chưa có → về tab Khách hàng.
-  const appointmentEnabled = !!existing && !checkingCustomer;
-  const activeTab: Tab = appointmentEnabled ? tab : "customer";
-
   if (done) {
     return (
       <Result
@@ -285,28 +282,7 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <Segmented<Tab>
-        block
-        value={activeTab}
-        onChange={setTab}
-        options={[
-          { value: "customer", label: t("tabCustomer") },
-          { value: "appointment", label: t("tabAppointment"), disabled: !appointmentEnabled },
-        ]}
-      />
-      {/* 2 tab chỉ ẩn (không unmount) để giữ dữ liệu đang nhập khi chuyển tab. */}
-      {existing && (
-        <div className={activeTab === "appointment" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-          <LeadAppointmentForm
-            key={customerId}
-            smaxCustomerId={customerId}
-            defaultStaffId={existing.staff_id}
-            staffOptions={staffOptions}
-            services={services}
-          />
-        </div>
-      )}
-      <FitToHeight hidden={activeTab !== "customer"}>
+      <FitToHeight>
       <Form form={form} layout="vertical" requiredMark={false} initialValues={DEFAULTS}>
         <div className="grid grid-cols-2 gap-x-3">
           <Form.Item
@@ -383,10 +359,10 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
             <ImageUpload paste label={t("uploadImage")} className="aspect-auto h-20 w-full" />
           </Form.Item>
         </div>
-        {needAppointment && (
+        {showAppointment && (
           <div className="grid grid-cols-2 gap-x-3">
             <Form.Item name="scheduled_at" label={ta("date")} trigger="onSave"
-              rules={[{ required: true, message: ta("chooseDate") }]}>
+              rules={[{ required: needAppointment, message: ta("chooseDate") }]}>
               <AppointmentDate className="w-full" onSave={() => {}} />
             </Form.Item>
             <Form.Item name="service_ids" label={ta("services")}>
@@ -455,7 +431,7 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
  * (scale, giữ nguyên bề ngang). Nhỏ hơn MIN_SCALE mới cho cuộn để chữ vẫn đọc được.
  */
 const MIN_SCALE = 0.7;
-function FitToHeight({ hidden, children }: { hidden?: boolean; children: ReactNode }) {
+function FitToHeight({ children }: { children: ReactNode }) {
   const outer = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -468,7 +444,7 @@ function FitToHeight({ hidden, children }: { hidden?: boolean; children: ReactNo
     const ro = new ResizeObserver(() => {
       const avail = o.clientHeight;
       const natural = i.offsetHeight;
-      if (!avail || !natural) return; // đang ẩn (tab khác)
+      if (!avail || !natural) return; // chưa layout
       setScale(natural > avail ? Math.max(Math.floor((avail / natural) * 1000) / 1000, MIN_SCALE) : 1);
     });
     ro.observe(o);
@@ -479,7 +455,7 @@ function FitToHeight({ hidden, children }: { hidden?: boolean; children: ReactNo
   return (
     <div
       ref={outer}
-      className={hidden ? "hidden" : cn("min-h-0 flex-1", scale > MIN_SCALE ? "overflow-hidden" : "overflow-y-auto")}
+      className={cn("min-h-0 flex-1", scale > MIN_SCALE ? "overflow-hidden" : "overflow-y-auto")}
     >
       <div
         ref={inner}
