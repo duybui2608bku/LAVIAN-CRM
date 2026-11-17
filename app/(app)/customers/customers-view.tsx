@@ -1,5 +1,3 @@
-import { getCurrentProfile } from "@/lib/auth";
-import { canConfirmShowUp } from "@/lib/appointments";
 import { createClient } from "@/lib/supabase/server";
 import { CustomersManager } from "@/components/customers/customers-manager";
 import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
@@ -23,7 +21,7 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
     .select(CUSTOMER_LIST_FIELDS)
     .is("deleted_at", null);
   if (stages) customersQuery = customersQuery.in("stage", stages);
-  const [customersRes, staffRes, appointmentsRes, servicesRes, profile] = await Promise.all([
+  const [customersRes, staffRes, appointmentsRes, servicesRes] = await Promise.all([
     customersQuery.order("created_at", { ascending: false }),
     supabase
       .from("profiles")
@@ -36,7 +34,6 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
       .is("deleted_at", null),
     // Dịch vụ cho drawer tạo lịch hẹn (nút ở cột Lịch hẹn).
     supabase.from("services").select("*").order("sort_order", { ascending: true }),
-    getCurrentProfile(),
   ]);
 
   const customers = ((customersRes.data ?? []) as unknown as Customer[]).map((c) => ({
@@ -51,7 +48,6 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
       options={CUSTOMER_OPTIONS}
       appointments={(appointmentsRes.data as PipelineAppointment[]) ?? []}
       services={(servicesRes.data as Service[]) ?? []}
-      canShowUp={canConfirmShowUp(profile)}
       stages={stages}
       title={title}
     />

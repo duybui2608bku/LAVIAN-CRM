@@ -44,7 +44,17 @@
     "messagesHint": "{count} tin gần nhất",
     "openSmax": "Mở trong SMAX",
     "noMessages": "Chưa có tin nhắn",
-    "attachment": "Tệp đính kèm"
+    "attachment": "Tệp đính kèm",
+    "sales": "Sales",
+    "createdBy": "Người tạo",
+    "quickCustomer": "+ Khách mới? Tạo nhanh",
+    "quickCreate": "+ Tạo nhanh khách “{name}”",
+    "pickExisting": "Chọn khách có sẵn",
+    "quickHint": "Khách mới được tạo với trạng thái Booking.",
+    "enterName": "Nhập tên khách hàng",
+    "enterPhone": "Nhập số điện thoại",
+    "phoneInvalid": "Số điện thoại không hợp lệ",
+    "phoneExists": "SĐT này đã thuộc khách {name} — hãy chọn khách có sẵn."
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -372,6 +382,7 @@
         "checked_in": "Đã đến",
         "service_ids": "Dịch vụ",
         "staff_id": "Telesales",
+        "sales_id": "Sales",
         "note": "Ghi chú"
       }
     },

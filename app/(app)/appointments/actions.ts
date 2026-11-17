@@ -5,7 +5,9 @@ import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { getCurrentProfile, requirePermission } from "@/lib/auth";
 import { appointmentPatchSchema, canConfirmShowUp } from "@/lib/appointments";
+import { BOOKED_STAGE } from "@/lib/customer-options";
 import { AppError, normalizeError } from "@/lib/errors";
+import { formatPhone, isValidPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
 import type { AppointmentPatch } from "@/types/appointment";
@@ -39,6 +41,10 @@ async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch:
     checks.push(db.from("profiles").select("id").eq("id", patch.staff_id).eq("status", "active")
       .in("department", TELESALES_DEPARTMENTS).single().then(({ error }) => { if (error) throw error; }));
   }
+  if (patch.sales_id) {
+    checks.push(db.from("profiles").select("id").eq("id", patch.sales_id).eq("status", "active")
+      .eq("department", "sales").single().then(({ error }) => { if (error) throw error; }));
+  }
   const serviceIds = patch.service_ids;
   if (serviceIds?.length) {
     checks.push(db.from("services").select("id").in("id", serviceIds).then(({ data, error }) => {
@@ -49,28 +55,64 @@ async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch:
   await Promise.all(checks);
 }
 
+/** Khách tạo nhanh từ drawer Thêm lịch hẹn — chỉ tên + SĐT, stage mặc định Booking. */
+const newCustomerSchema = z.object({
+  full_name: z.string().trim().min(1).max(200),
+  phone: z.string().refine(isValidPhone).transform(formatPhone),
+}).strict();
+
 export async function createAppointment(
-  customerId: string,
+  customerRef: string | { full_name: string; phone: string },
   input: AppointmentPatch & { scheduled_at: string },
 ): Promise<{ error?: string }> {
   try {
     const profile = await requirePermission("appointments.edit");
-    z.uuid().parse(customerId);
     const patch = appointmentPatchSchema.parse(input);
     if (!patch.scheduled_at) throw new Error("Missing date");
     if (patch.checked_in && !canConfirmShowUp(profile)) throw onlySales();
     const db = await client();
     await validateReferences(db, patch);
-    const { data: customer, error: customerError } = await db.from("customers")
-      .select("staff_id").eq("id", customerId).is("deleted_at", null).single();
-    if (customerError) throw customerError;
+
+    // Khách có sẵn: Telesales mặc định = Telesales đang phụ trách khách.
+    // Khách mới: chặn trùng SĐT (DB không unique) rồi tạo với stage Booking.
+    let customerId: string;
+    let createdCustomer = false;
+    let customerStaff: string | null = null;
+    if (typeof customerRef === "string") {
+      customerId = z.uuid().parse(customerRef);
+      const { data, error } = await db.from("customers")
+        .select("staff_id").eq("id", customerId).is("deleted_at", null).single();
+      if (error) throw error;
+      customerStaff = data.staff_id;
+    } else {
+      const c = newCustomerSchema.parse(customerRef);
+      const { data: dup, error: dupError } = await db.from("customers")
+        .select("full_name").eq("phone", c.phone).is("deleted_at", null).limit(1).maybeSingle();
+      if (dupError) throw dupError;
+      if (dup) {
+        const t = await getTranslations("appointments");
+        return { error: t("phoneExists", { name: dup.full_name }) };
+      }
+      const { data, error } = await db.from("customers").insert({
+        ...c, stage: BOOKED_STAGE, staff_id: patch.staff_id ?? null,
+        first_contact: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }),
+      }).select("id").single();
+      if (error) throw error;
+      customerId = data.id;
+      createdCustomer = true;
+    }
+
     // Dịch vụ chỉ chọn trên lịch hẹn (khách không còn gắn dịch vụ).
     const { error } = await db.from("clinic_appointments").insert({
       customer_id: customerId, ...patch, service_ids: patch.service_ids ?? [],
-      // Không chọn CSKH → lấy CSKH đang phụ trách khách.
-      staff_id: patch.staff_id || customer.staff_id || null,
+      staff_id: patch.staff_id || customerStaff || null,
+      created_by: profile.id,
     });
-    if (error) throw error;
+    if (error) {
+      // Không để khách Booking mồ côi (không lịch) — gỡ khách vừa tạo nhanh.
+      if (createdCustomer) await db.from("customers").delete().eq("id", customerId);
+      throw error;
+    }
     refresh();
     return {};
   } catch (error) {

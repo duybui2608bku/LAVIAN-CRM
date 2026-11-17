@@ -112,7 +112,6 @@ export function CustomersManager({
   options,
   appointments,
   services,
-  canShowUp,
   stages,
   title,
 }: {
@@ -124,7 +123,6 @@ export function CustomersManager({
   options: EnumOption[];
   appointments: PipelineAppointment[];
   services: Service[];
-  canShowUp: boolean;
 }) {
   const t = useTranslations("customers");
   const tc = useTranslations("common");
@@ -547,7 +545,6 @@ export function CustomersManager({
         customers={rowsData}
         staff={staff}
         services={services}
-        canShowUp={canShowUp}
         onClose={() => setCreateFor(null)}
         onCreated={() => setCreateFor(null)}
       />
