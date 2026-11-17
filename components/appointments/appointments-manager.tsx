@@ -125,7 +125,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       display={staffCell(row.sales_id)}
       options={staffOptions(staff, row.sales_id, ["sales"])}
       onSave={(value) => save(row.id, { sales_id: value || null })} /> },
-    { title: t("createdBy"), width: 170, render: (_, row) => staffCell(row.created_by, "—") },
+    // Cột Người tạo tạm ẩn — dữ liệu created_by vẫn ghi + vẫn tải; bật lại:
+    // { title: t("createdBy"), width: 170, render: (_, row) => staffCell(row.created_by, "—") },
     { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note}
       label={t("note")} disabled={!canEdit} onSave={(note) => save(row.id, { note })} /> },
     // Cột Thao tác (xoá lịch) đã bỏ khỏi UI — server action deleteAppointment vẫn giữ (gác appointments.delete).
@@ -146,7 +147,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
         onClick={() => setCreating(true)}>{t("create")}</Button>}
     </PageToolbar>
-    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2100 }} empty={t("empty")}
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1950 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff} services={services}
@@ -251,7 +252,7 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
             options={staffOptions(staff, staffId)} />
         </Form.Item>
         <Form.Item name="scheduled_at" label={t("date")} trigger="onSave" rules={[{ required: true, message: t("chooseDate") }]}>
-          <AppointmentDate onSave={() => {}} />
+          <AppointmentDate className="w-full" onSave={() => {}} />
         </Form.Item>
       </div>
       <Form.Item name="service_ids" label={t("services")}>
