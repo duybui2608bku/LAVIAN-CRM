@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — Fix: lưu tài liệu xong ra 404, admin không thấy tài liệu
+- **Thay đổi:** Tài liệu vẫn lưu được, lỗi nằm ở bước đọc: `author:profiles(...)` bị PostgREST báo **PGRST201** (mơ hồ) vì `document_likes` (PK `document_id, user_id`) nối documents ↔ profiles nên có thêm quan hệ nhiều–nhiều. Trang đọc nuốt lỗi → `/documents/[id]` ra 404, `/documents` trống. Sửa: hằng `DOCUMENT_AUTHOR` = `profiles!documents_created_by_fkey`, `COMMENT_AUTHOR` = `profiles!document_comments_user_id_fkey` (`types/document.ts`); 3 page ném lỗi truy vấn thật (trừ `22P02` id sai định dạng → 404) thay vì coi như không có dữ liệu. **Bài học:** bảng nối 2 FK tới profiles (likes, …) làm mọi embed `profiles(...)` từ bảng cha bị mơ hồ — luôn ghi `!<fkey>`.
+- **File ảnh hưởng:** `types/document.ts`, `app/(app)/documents/{page.tsx,[id]/page.tsx,[id]/edit/page.tsx}`.
+- **Còn dở / ghi chú:** đã kiểm truy vấn trên REST thật (hết PGRST201) + RLS admin thấy 2 tài liệu TEST; tsc + eslint sạch; chưa xem trên trình duyệt. Trong DB còn 2 tài liệu "TEST" do user tạo khi thử.
+
 ### 2026-11-17 — Menu: Leader Telesales vào Khách hàng; /documents bỏ tiêu đề
 - **Thay đổi:** Mục menu "Leader Telesales" chuyển từ menu con Báo cáo sang menu con **Khách hàng** (URL vẫn `/reports/telesales`, quyền `telesales.view` — proxy/`MODULE_PATHS` không đổi). Báo cáo còn 1 trang → thành mục menu thẳng `/reports` (bỏ con "Tổng quan", key i18n `nav.reportsOverview`). Trang `/documents` bỏ tiêu đề + mô tả, ô tìm và nút "Thêm tài liệu" chung 1 hàng toolbar.
 - **File ảnh hưởng:** `components/layout/app-shell.tsx`, `components/documents/documents-list.tsx`, `messages/{vi,en}.json`.
