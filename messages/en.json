@@ -608,9 +608,9 @@
       "showUpSameDay": "Same-day show-up: {n}"
     },
     "rate": {
-      "bookingTotal": "Total Booking / (New + re-engaged customers)",
+      "bookingTotal": "Total Booking / New customers",
       "bookingNew": "New Booking / New customers",
-      "showUp": "Showed up / Total Booking"
+      "showUp": "Showed up / New customers"
     },
     "status": {
       "booking": "Booking",

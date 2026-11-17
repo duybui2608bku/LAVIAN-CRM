@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — Smax report: mọi tỉ lệ thẻ số chia cho Khách mới
+- **Thay đổi:** Nhánh `claude/smax-rates-new-customers`. Tỉ lệ Total Booking / New Booking / Showed up đều = số đó ÷ **Khách mới** (`conversations`). Trước đó Showed up chia cho Tổng Booking ra 200% (khách đến gồm cả khách booking từ trước kỳ). Tooltip `smaxReport.rate.*` cập nhật theo.
+- **File ảnh hưởng:** `components/customers/smax-report-view.tsx`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** Total Booking / Showed up vẫn có thể >100% khi khách cũ booking/đến nhiều hơn số khách mới (tử số gồm cả khách cũ).
+
 ### 2026-11-17 — Smax report: thẻ số có tỉ lệ + Show-up trong ngày; tách file bảng
 - **Thay đổi:** Nhánh `claude/smax-report-rates` (commit sót khỏi PR #74 vì PR merge trước khi push). Thẻ số bỏ dòng "WA x · IG y"; thêm tỉ lệ (tooltip `smaxReport.rate.*`): Tổng Booking / (Khách mới + Re-engaged), Booking mới / Khách mới, Khách đến / Tổng Booking; note dưới Khách đến = **Show-up trong ngày** (`InboxCounts.showUpSameDay`: gắn purchase cùng ngày WIB với lần đầu xuất hiện). Tách view: `smax-report-view.tsx` (trang + thẻ + donut) và `smax-report-tables.tsx` (3 bảng + `useFormat`/`STATUS_COLOR`/`pickChannel`/`bookingNew`).
 - **File ảnh hưởng:** `lib/smax-inbox.ts` (+ test), `components/customers/smax-report-{view,tables}.tsx`, `messages/{vi,en}.json`.

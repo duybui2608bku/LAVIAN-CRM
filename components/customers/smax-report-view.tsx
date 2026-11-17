@@ -32,7 +32,7 @@ const CHANNEL_COLOR: Record<InboxChannel, string> = { wa: "var(--chart-3)", ig: 
 type Card = {
   key: string;
   value: (c: InboxCounts) => number;
-  /** Tỉ lệ = value / mẫu số (tooltip giải thích ở `smaxReport.rate.<key>`). */
+  /** Tỉ lệ = value / mẫu số (đều chia cho Khách mới; tooltip ở `smaxReport.rate.<key>`). */
   of?: (c: InboxCounts) => number;
   hint?: (c: InboxCounts) => string;
 };
@@ -73,11 +73,11 @@ export function SmaxReportView() {
     {
       key: "bookingTotal",
       value: (c) => c.booking,
-      of: (c) => c.conversations + c.reEngaged,
+      of: (c) => c.conversations,
       hint: (c) => t("hint.deposit", { n: num(c.deposit) }),
     },
     { key: "bookingNew", value: bookingNew, of: (c) => c.conversations, hint: (c) => t("hint.bookingOld", { n: num(c.bookingOld) }) },
-    { key: "showUp", value: (c) => c.showUp, of: (c) => c.booking, hint: (c) => t("hint.showUpSameDay", { n: num(c.showUpSameDay) }) },
+    { key: "showUp", value: (c) => c.showUp, of: (c) => c.conversations, hint: (c) => t("hint.showUpSameDay", { n: num(c.showUpSameDay) }) },
   ];
 
   const staffOptions = [
