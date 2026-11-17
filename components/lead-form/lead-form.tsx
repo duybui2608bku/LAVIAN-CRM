@@ -326,16 +326,12 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
             <Input type="text" inputMode="tel" autoComplete="tel" />
           </Form.Item>
         </div>
-        {/* Tỉnh + Huyện/TP trên 1 hàng 2 cột. */}
-        <Form.Item name="region_code" label={t("region")}>
-          <RegionSelect provinceLabel={t("province")} cityLabel={t("city")} />
-        </Form.Item>
         {/* Tạm ẩn "Địa chỉ chi tiết" (2026-11-16) — bỏ comment để hiện lại. Không gửi field → server giữ giá trị cũ.
         <Form.Item name="address_detail" label={t("addressDetail")} rules={[{ max: 500 }]}>
           <Input placeholder={t("noteOptional")} />
         </Form.Item>
         */}
-        {/* Lưới 2x2: Telesales | Giai đoạn, Tiền cọc | Ảnh xác nhận thanh toán. */}
+        {/* Lưới 2x2: Telesales | Status, Tiền cọc | Ảnh xác nhận thanh toán. */}
         <div className="grid grid-cols-2 gap-x-3">
           <Form.Item name="staff_id" label={t("staff")} rules={[{ required: true, message: t("staffRequired") }]}>
             <ClearableSelect
@@ -381,6 +377,10 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
           rules={[{ max: 1000, message: t("noteTooLong") }]}
         >
           <Input.TextArea rows={2} placeholder={t("noteOptional")} />
+        </Form.Item>
+        {/* Khu vực để cuối form. Tỉnh + Huyện/TP trên 1 hàng 2 cột. */}
+        <Form.Item name="region_code" label={t("region")}>
+          <RegionSelect provinceLabel={t("province")} cityLabel={t("city")} />
         </Form.Item>
         {embedded && showLog && (
           <Form.Item label={t("log")}>

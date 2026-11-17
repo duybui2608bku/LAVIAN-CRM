@@ -434,7 +434,7 @@
     "staff": "Telesales",
     "staffRequired": "Please choose a Telesales",
     "source": "Source",
-    "stage": "Stage",
+    "stage": "Status",
     "note": "Note",
     "noteOptional": "Optional",
     "noteTooLong": "Note must be at most 1000 characters",
@@ -449,7 +449,7 @@
     "currency": "Currency",
     "existingCustomer": "This customer already exists. You can update the record but cannot add it again.",
     "update": "Update",
-    "stageRequired": "Please choose a stage"
+    "stageRequired": "Please choose a status"
   },
   "marketing": {
     "title": "Marketing",
