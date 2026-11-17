@@ -18,7 +18,7 @@ import {
   CalendarPlus,
   History,
   Info,
-  Pencil,
+  PanelRightOpen,
   Search,
   UserPlus,
   X,
@@ -33,6 +33,7 @@ import {
 import { CreateAppointmentDrawer, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useCan } from "@/components/common/permissions";
+import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
 import { DataTable } from "@/components/common/data-table";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
@@ -42,7 +43,6 @@ import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
 import { EnumTag } from "@/components/common/enum-tag";
 import { InlineSelect } from "@/components/common/inline-select";
 import { RegionSelect } from "@/components/common/region-select";
-import { RowActions } from "@/components/common/row-actions";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
@@ -68,6 +68,9 @@ const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
     .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
 const DASH = <span className="text-muted-foreground">—</span>;
+
+// Rộng drawer theo số cột form (1 cột giữ 560 như các drawer khác).
+const DRAWER_WIDTH = { 1: 560, 2: 720, 3: 1000 } as const;
 
 // Màu tag Ngày tạo theo độ mới: hôm nay / ≤3 / ≤7 / ≤14 ngày / cũ hơn.
 const AGE_COLORS = ["green", "cyan", "blue", "purple", "default"] as const;
@@ -245,21 +248,36 @@ export function CustomersManager({
     {
       title: t("colName"),
       dataIndex: "full_name",
-      render: (_, c) =>
-        // Có hội thoại SMAX → tên chính là link mở hội thoại.
-        c.thread?.link ? (
-          <a
-            href={c.thread.link}
-            target="_blank"
-            rel="noreferrer"
-            title={t("openThread")}
-            className="font-medium"
-          >
-            {c.full_name}
-          </a>
-        ) : (
-          <span className="font-medium">{c.full_name}</span>
-        ),
+      render: (_, c) => (
+        // Hover ô tên → hiện nút mở drawer sửa (thay cột Thao tác). Cảm ứng: luôn hiện.
+        <div className="group flex items-center gap-1">
+          {/* Có hội thoại SMAX → tên chính là link mở hội thoại. */}
+          {c.thread?.link ? (
+            <a
+              href={c.thread.link}
+              target="_blank"
+              rel="noreferrer"
+              title={t("openThread")}
+              className="font-medium"
+            >
+              {c.full_name}
+            </a>
+          ) : (
+            <span className="font-medium">{c.full_name}</span>
+          )}
+          {canEdit && (
+            <Button
+              type="text"
+              size="small"
+              aria-label={t("editTitle")}
+              title={t("editTitle")}
+              icon={<PanelRightOpen className="size-4" />}
+              className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
+              onClick={() => setTarget(c)}
+            />
+          )}
+        </div>
+      ),
     },
     { title: t("colPhone"), dataIndex: "phone" },
     {
@@ -414,20 +432,6 @@ export function CustomersManager({
           </Tooltip>
         );
       },
-    },
-    {
-      title: t("colActions"),
-      key: "actions",
-      align: "right",
-      fixed: "right",
-      render: (_, c) =>
-        // Xoá khách đã ẩn với mọi vai trò (kể cả admin) — chỉ còn Sửa.
-        canEdit ? (
-          <RowActions
-            label={t("colActions")}
-            items={[{ icon: <Pencil className="size-4" />, label: t("edit"), onSelect: () => setTarget(c) }]}
-          />
-        ) : null,
     },
   ];
 
@@ -716,11 +720,18 @@ function CustomerDialog({
 
   const required = [{ required: true, whitespace: true, message: t("required") }];
 
+  // Màn càng thấp → càng nhiều cột (drawer rộng ra) để form không phải cuộn dọc.
+  // ponytail: ngưỡng đo tay theo bộ field hiện tại — thêm/bớt field thì chỉnh lại.
+  const mobile = useIsMobile();
+  const tall = useMedia("(min-height: 1000px)", false);
+  const mid = useMedia("(min-height: 720px)", true);
+  const cols = mobile || tall ? 1 : mid ? 2 : 3;
+
   return (
     <FormDrawer
       open={open}
       onClose={onClose}
-      width={560}
+      width={DRAWER_WIDTH[cols]}
       pending={pending}
       title={editing ? t("editTitle") : t("createTitle")}
       submitText={editing ? t("save") : t("createSubmit")}
@@ -731,6 +742,8 @@ function CustomerDialog({
         layout="vertical"
         requiredMark={false}
         onFinish={onFinish}
+        className="grid gap-x-4"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
         initialValues={{
           full_name: editing?.full_name ?? "",
           phone: editing?.phone ?? "",
@@ -761,12 +774,7 @@ function CustomerDialog({
         <Form.Item name="social_name" label={t("socialName")}>
           <Input />
         </Form.Item>
-        <Form.Item name="region_code" label={t("region")}>
-          <RegionSelect provinceLabel={t("province")} cityLabel={t("city")} />
-        </Form.Item>
-        <Form.Item name="address_detail" label={t("addressDetail")} rules={[{ max: 500 }]}>
-          <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} />
-        </Form.Item>
+        {/* Thứ tự xếp theo hàng: 2–3 cột vẫn đọc tự nhiên (định danh → trạng thái → địa chỉ/ảnh). */}
         <Form.Item name="stage" label={t("colStage")} rules={required}>
           <ClearableSelect
             clearable={false}
@@ -790,6 +798,12 @@ function CustomerDialog({
         </Form.Item>
         <Form.Item name="first_contact" label={t("colFirstContact")}>
           <DatePicker placeholder={t("pickDate")} />
+        </Form.Item>
+        <Form.Item name="region_code" label={t("region")}>
+          <RegionSelect provinceLabel={t("province")} cityLabel={t("city")} />
+        </Form.Item>
+        <Form.Item name="address_detail" label={t("addressDetail")} rules={[{ max: 500 }]}>
+          <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} />
         </Form.Item>
         <Form.Item name="payment_confirm_url" label={t("paymentConfirm")} className="mb-0">
           <ImageUpload paste label={t("uploadImage")} />

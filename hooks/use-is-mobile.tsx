@@ -7,7 +7,7 @@ import type { UiHints } from "@/lib/ui-hints";
 /** Gợi ý từ User-Agent (root layout) — dùng cho SSR + lượt hydrate để không lệch. */
 export const UiHintContext = createContext<Pick<UiHints, "mobile" | "touch">>({ mobile: false, touch: false });
 
-function useMedia(query: string, serverHint: boolean) {
+export function useMedia(query: string, serverHint: boolean) {
   return useSyncExternalStore(
     (cb) => {
       const mq = window.matchMedia(query);

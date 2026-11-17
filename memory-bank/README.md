@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — /customers: bỏ cột Thao tác, sửa qua icon hover ở cột Họ tên; drawer khách co giãn theo chiều cao
+- **Thay đổi:** Xoá cột Thao tác (RowActions). Ô Họ tên bọc `group`: hover/focus hiện nút `PanelRightOpen` mở drawer sửa (thiết bị cảm ứng `pointer-coarse:` luôn hiện). Drawer `CustomerDialog` (tạo + sửa) chia cột theo chiều cao viewport: ≥1000px → 1 cột (560), ≥720px → 2 cột (720), thấp hơn → 3 cột (1000); mobile luôn 1 cột. Form dùng CSS grid, sắp lại thứ tự field theo hàng (tên/SĐT/social → stage/nhân viên/liên hệ đầu → khu vực/địa chỉ/ảnh). Export `useMedia` từ `hooks/use-is-mobile.tsx`. Xoá key i18n `customers.colActions`.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `hooks/use-is-mobile.tsx`, `messages/{vi,en}.json`
+- **Còn dở / ghi chú:** Ngưỡng chiều cao là ước lượng theo bộ field hiện tại — thêm/bớt field thì chỉnh `DRAWER_WIDTH`/ngưỡng `min-height`. Chưa kiểm tra trên trình duyệt (cần đăng nhập).
+
 ### 2026-11-17 — Fix vặt bảng /customers (nhánh `claude/misc-fixes`)
 - **Thay đổi:** Ẩn Rating (cột, bộ lọc, ô trong form — form giữ `Form.Item name="rating" hidden` để lưu không xoá giá trị cũ). Ẩn cột Region (form + lọc tỉnh vẫn giữ). Gộp Source + WA Number + Instagram thành 1 cột Source: icon nguồn + tag `WA-xxxx` (WhatsApp) hoặc link username IG; xoá cột WA Number và Instagram. Ẩn hành động Xoá khách với mọi vai trò (kể cả admin) — menu dòng chỉ còn Sửa; server action `deleteCustomer` vẫn còn (gác `customers.delete`).
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`.
