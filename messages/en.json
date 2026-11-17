@@ -723,6 +723,9 @@
     "commentPlaceholder": "Write a comment… (Ctrl+Enter to send)",
     "send": "Send",
     "deleteComment": "Delete comment",
-    "deleteCommentConfirm": "Delete this comment?"
+    "deleteCommentConfirm": "Delete this comment?",
+    "reply": "Reply",
+    "replyPlaceholder": "Reply to {name}…",
+    "deleteThreadConfirm": "Delete this comment and its replies?"
   }
 }

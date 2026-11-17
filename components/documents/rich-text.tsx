@@ -28,6 +28,7 @@ import {
 import { uploadImage } from "@/components/common/image-upload";
 import { normalizeError } from "@/lib/errors";
 import { toast } from "@/lib/toast";
+import { isolateSelectedLines } from "@/lib/rich-text-lines";
 import { cn } from "@/lib/utils";
 
 // Dùng chung cho editor + trang xem: nội dung luôn đi qua schema này (thẻ/thuộc tính lạ bị bỏ, link `javascript:` bị chặn)
@@ -144,6 +145,12 @@ function Toolbar({ editor }: { editor: Editor | null }) {
 
   if (!editor || !state) return <div className="h-11 border-b border-border" />;
   const chain = () => editor.chain().focus();
+  // Đổi kiểu khối (tiêu đề, danh sách, trích dẫn): tách các dòng ngăn bằng ngắt dòng trước, để chỉ dòng đang chọn đổi.
+  const lines = () =>
+    chain().command(({ tr }) => {
+      isolateSelectedLines(tr);
+      return true;
+    });
 
   const btn = (label: string, icon: React.ReactNode, onClick: () => void, active = false, disabled = false) => (
     <Tooltip title={label} key={label}>
@@ -168,18 +175,18 @@ function Toolbar({ editor }: { editor: Editor | null }) {
       {btn(t("undo"), <Undo2 className={i} />, () => chain().undo().run(), false, !state.canUndo)}
       {btn(t("redo"), <Redo2 className={i} />, () => chain().redo().run(), false, !state.canRedo)}
       {sep("s1")}
-      {btn(t("h1"), <Heading1 className={i} />, () => chain().toggleHeading({ level: 1 }).run(), state.h1)}
-      {btn(t("h2"), <Heading2 className={i} />, () => chain().toggleHeading({ level: 2 }).run(), state.h2)}
-      {btn(t("h3"), <Heading3 className={i} />, () => chain().toggleHeading({ level: 3 }).run(), state.h3)}
+      {btn(t("h1"), <Heading1 className={i} />, () => lines().toggleHeading({ level: 1 }).run(), state.h1)}
+      {btn(t("h2"), <Heading2 className={i} />, () => lines().toggleHeading({ level: 2 }).run(), state.h2)}
+      {btn(t("h3"), <Heading3 className={i} />, () => lines().toggleHeading({ level: 3 }).run(), state.h3)}
       {sep("s2")}
       {btn(t("bold"), <Bold className={i} />, () => chain().toggleBold().run(), state.bold)}
       {btn(t("italic"), <Italic className={i} />, () => chain().toggleItalic().run(), state.italic)}
       {btn(t("underline"), <Underline className={i} />, () => chain().toggleUnderline().run(), state.underline)}
       {btn(t("strike"), <Strikethrough className={i} />, () => chain().toggleStrike().run(), state.strike)}
       {sep("s3")}
-      {btn(t("bulletList"), <List className={i} />, () => chain().toggleBulletList().run(), state.bullet)}
-      {btn(t("orderedList"), <ListOrdered className={i} />, () => chain().toggleOrderedList().run(), state.ordered)}
-      {btn(t("quote"), <Quote className={i} />, () => chain().toggleBlockquote().run(), state.quote)}
+      {btn(t("bulletList"), <List className={i} />, () => lines().toggleBulletList().run(), state.bullet)}
+      {btn(t("orderedList"), <ListOrdered className={i} />, () => lines().toggleOrderedList().run(), state.ordered)}
+      {btn(t("quote"), <Quote className={i} />, () => lines().toggleBlockquote().run(), state.quote)}
       {btn(t("divider"), <Minus className={i} />, () => chain().setHorizontalRule().run())}
       {sep("s4")}
       <LinkButton key="link" editor={editor} active={state.link} href={state.href} />

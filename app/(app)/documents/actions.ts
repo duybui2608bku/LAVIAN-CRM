@@ -137,7 +137,8 @@ export async function setLike(documentId: string, liked: boolean): Promise<Resul
   }
 }
 
-export async function addComment(documentId: string, body: string): Promise<Result> {
+/** `parentId`: trả lời 1 bình luận — trigger DB tự gắn vào bình luận gốc nếu đó là 1 câu trả lời. */
+export async function addComment(documentId: string, body: string, parentId: string | null = null): Promise<Result> {
   try {
     const profile = await requireActive();
     const text = body.trim();
@@ -146,7 +147,7 @@ export async function addComment(documentId: string, body: string): Promise<Resu
     const supabase = await createClient();
     const { error } = await supabase
       .from("document_comments")
-      .insert({ document_id: documentId, user_id: profile.id, body: text });
+      .insert({ document_id: documentId, user_id: profile.id, body: text, parent_id: parentId });
     if (error) throw error;
     revalidatePath(VIEW, "page");
     revalidatePath(LIST);
