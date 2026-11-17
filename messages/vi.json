@@ -646,17 +646,17 @@
     "distribution": "Phân bổ"
   },
   "smaxFollowup": {
-    "worked": "Số bào",
-    "quality": "Chất lượng bào",
+    "worked": "Chăm khách cũ",
+    "quality": "Chăm khách cũ thành công",
     "showUp": "Show-up",
     "bookingNew": "Booking mới",
     "bookingOld": "Booking follow-up",
     "bookingTotal": "Tổng booking",
     "hint": {
-      "worked": "Data cũ có tin nhắn trong khoảng",
+      "worked": "Khách cũ có tin nhắn trong khoảng",
       "quality": "{booking} Booking · {showUp} Show-up",
       "bookingNew": "Từ data mới trong khoảng",
-      "bookingOld": "Từ data cũ (chăm sóc, nuôi dưỡng)",
+      "bookingOld": "Từ khách cũ được chăm",
       "bookingTotal": "Booking mới + Booking follow-up"
     }
   }
