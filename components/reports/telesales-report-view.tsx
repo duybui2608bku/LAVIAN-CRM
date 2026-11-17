@@ -420,7 +420,10 @@ function StaffTable({
         { label: t("col.conversations"), value: r.conversations != null ? num(r.conversations) : "-" },
         { label: t("col.bookings"), value: num(r.bookings) },
         { label: t("col.bookingRate"), value: pct(ratio(convBookings, r.conversations)) },
-        { label: t("col.showUp"), value: num(r.arrived), sub: `(${pct(ratio(r.arrived, r.scheduled))})` },
+        // Không có lịch hẹn → chỉ "-" (giống bảng desktop).
+        r.scheduled
+          ? { label: t("col.showUp"), value: num(r.arrived), sub: `(${pct(ratio(r.arrived, r.scheduled))})` }
+          : { label: t("col.showUp"), value: "-" },
       ],
       footer:
         r.conversations != null ? (
