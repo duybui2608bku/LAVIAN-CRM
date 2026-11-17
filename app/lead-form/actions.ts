@@ -4,13 +4,11 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
-import { appointmentPatchSchema } from "@/lib/appointments";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BOOKED_STAGE, isStage, leadSource } from "@/lib/customer-options";
+import { BOOKED_STAGE, BOOKING_PAGE_STAGES, isStage, leadSource } from "@/lib/customer-options";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
-import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 const schema = z.object({
   customer_id: z.string().trim().max(200),
@@ -22,7 +20,7 @@ const schema = z.object({
   // Tiền cọc (IDR, số nguyên) — chỉ lưu khi giai đoạn là "deposited".
   deposit_amount: z.number().int().min(0).max(1e12).nullable().catch(null),
   website: z.string(),
-  // Lịch hẹn kèm khi tạo khách mới ở stage Booking. Hỏng/thiếu → null (server báo thiếu lịch).
+  // Lịch hẹn kèm khi stage Booking / Deposit. Hỏng/thiếu → null (vừa đổi sang Booking thì báo thiếu lịch).
   appointment: z
     .object({
       scheduled_at: z.iso.datetime({ offset: true }),
@@ -128,9 +126,8 @@ export async function submitLead(
 
   try {
     const supabase = createAdminClient();
-    const existing = d.customer_id
-      ? (await checkLeadCustomer(d.customer_id)) !== null
-      : false;
+    const current = d.customer_id ? await checkLeadCustomer(d.customer_id) : null;
+    const existing = current !== null;
     if (mode === "create" && existing) {
       return { error: "Khách hàng đã tồn tại. Chỉ được cập nhật thông tin." };
     }
@@ -141,12 +138,21 @@ export async function submitLead(
     // Stage bắt buộc chọn (không còn mặc định "Khách mới").
     if (!isStage(d.stage)) return { error: "Vui lòng chọn trạng thái." };
     if (!d.staff_id) return { error: "Vui lòng chọn Telesales." };
-    // Khách mới ở Booking phải kèm lịch hẹn: tạo khách trước rồi tạo lịch (khách cũ dùng tab Lịch hẹn).
-    const appointment = mode === "create" && d.stage === BOOKED_STAGE ? d.appointment : null;
-    if (mode === "create" && d.stage === BOOKED_STAGE) {
-      if (!appointment) return { error: "Vui lòng chọn lịch hẹn." };
-      await assertServices(supabase, appointment.service_ids);
-    }
+    // Booking / Deposit có thể kèm lịch hẹn; vừa đổi sang Booking (khách mới hoặc khách cũ chưa Booking) thì bắt buộc.
+    const appointment = (BOOKING_PAGE_STAGES as readonly string[]).includes(d.stage) ? d.appointment : null;
+    if (d.stage === BOOKED_STAGE && current?.stage !== BOOKED_STAGE && !appointment)
+      return { error: "Vui lòng chọn lịch hẹn." };
+    if (appointment) await assertServices(supabase, appointment.service_ids);
+    const insertAppointment = (customerId: string) =>
+      supabase.from("clinic_appointments").insert({
+        customer_id: customerId,
+        scheduled_at: appointment!.scheduled_at,
+        checked_in: false,
+        service_ids: appointment!.service_ids,
+        staff_id: d.staff_id,
+        created_by: d.staff_id, // lead-form không có user đăng nhập → người tạo = Telesales đã chọn
+        note: "",
+      });
     const stage = d.stage;
     const customer = {
       full_name: d.full_name,
@@ -188,46 +194,47 @@ export async function submitLead(
       if (error) throw error;
 
       if (appointment) {
-        const { error: apptError } = await supabase.from("clinic_appointments").insert({
-          customer_id: created.id,
-          scheduled_at: appointment.scheduled_at,
-          checked_in: false,
-          service_ids: appointment.service_ids,
-          staff_id: d.staff_id,
-          created_by: d.staff_id, // lead-form không có user đăng nhập → người tạo = Telesales đã chọn
-          note: "",
-        });
+        const { error: apptError } = await insertAppointment(created.id);
         if (apptError) {
           // Không để khách Booking mà không có lịch: gỡ khách vừa tạo rồi báo lỗi.
           await supabase.from("customers").delete().eq("id", created.id);
           throw apptError;
         }
-        revalidatePath("/appointments");
       }
     } else {
-      const { data: current, error: readError } = await supabase
+      const { data: row, error: readError } = await supabase
         .from("customers")
-        .select("notes")
+        .select("id, notes")
         .eq("smax_customer_id", d.customer_id)
         .is("deleted_at", null)
         .single();
       if (readError) throw readError;
+      // Tạo lịch TRƯỚC khi đổi stage: lịch lỗi thì khách giữ nguyên, không thành Booking mà thiếu lịch.
+      if (appointment) {
+        const { error: apptError } = await insertAppointment(row.id);
+        if (apptError) throw apptError;
+      }
 
       const { error } = await supabase
         .from("customers")
         .update({
           ...customer,
-          notes: notes.length ? [...(current.notes ?? []), ...notes] : current.notes,
+          notes: notes.length ? [...(row.notes ?? []), ...notes] : row.notes,
         })
         .eq("smax_customer_id", d.customer_id)
         .is("deleted_at", null);
       if (error) throw error;
     }
+    if (appointment) revalidatePath("/appointments");
     return {};
   } catch (e) {
+    if (isDuplicate(e)) return { error: (await getTranslations("appointments"))("duplicate") };
     return { error: normalizeError(e).message };
   }
 }
+
+/** Trùng lịch hẹn (unique khách + giờ hẹn). */
+const isDuplicate = (e: unknown) => !!e && typeof e === "object" && "code" in e && e.code === "23505";
 
 // Mọi id dịch vụ phải tồn tại (lịch hẹn lưu mảng uuid, không có FK).
 async function assertServices(db: ReturnType<typeof createAdminClient>, ids: string[]) {
@@ -235,117 +242,4 @@ async function assertServices(db: ReturnType<typeof createAdminClient>, ids: str
   const { data, error } = await db.from("services").select("id").in("id", ids);
   if (error) throw error;
   if (data?.length !== ids.length) throw new Error("Invalid services");
-}
-
-const appointmentSchema = appointmentPatchSchema.safeExtend({
-  scheduled_at: z.iso.datetime({ offset: true }),
-});
-
-export type LeadAppointmentInput = {
-  scheduled_at: string;
-  service_ids?: string[];
-  staff_id?: string | null;
-  note?: string;
-};
-
-// Tạo lịch hẹn cho khách đang mở trong SMAX (trang public → admin client).
-// Không chọn khách (lấy theo smax_customer_id), luôn "chưa đến" (checked_in = false).
-export async function createLeadAppointment(
-  smaxCustomerId: string,
-  input: LeadAppointmentInput,
-): Promise<{ error?: string }> {
-  try {
-    const smaxId = z.string().trim().min(1).max(200).parse(smaxCustomerId);
-    const d = appointmentSchema.parse({ ...input, staff_id: input.staff_id || null });
-    const db = createAdminClient();
-
-    const { data: customer, error: customerError } = await db
-      .from("customers")
-      .select("id, staff_id")
-      .eq("smax_customer_id", smaxId)
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (customerError) throw customerError;
-    if (!customer) return { error: "Khách hàng chưa có trong CRM." };
-
-    const serviceIds = d.service_ids ?? [];
-    await Promise.all([
-      d.staff_id
-        ? db.from("profiles").select("id").eq("id", d.staff_id).eq("status", "active")
-            .in("department", TELESALES_DEPARTMENTS).single()
-            .then(({ error }) => { if (error) throw error; })
-        : null,
-      assertServices(db, serviceIds),
-    ]);
-
-    const { error } = await db.from("clinic_appointments").insert({
-      customer_id: customer.id,
-      scheduled_at: d.scheduled_at,
-      checked_in: false,
-      service_ids: serviceIds,
-      // Không chọn CSKH → lấy CSKH đang phụ trách khách.
-      staff_id: d.staff_id || customer.staff_id || null,
-      created_by: d.staff_id || customer.staff_id || null, // không có user đăng nhập → Telesales của lịch
-      note: d.note ?? "",
-    });
-    if (error) throw error;
-    revalidatePath("/appointments");
-    return {};
-  } catch (e) {
-    if (e && typeof e === "object" && "code" in e && e.code === "23505") {
-      return { error: (await getTranslations("appointments"))("duplicate") };
-    }
-    return { error: normalizeError(e).message };
-  }
-}
-
-export type LeadAppointment = {
-  id: string;
-  scheduled_at: string;
-  checked_in: boolean;
-  service_ids: string[];
-  staff_name: string;
-  staff_avatar: string | null;
-  note: string;
-};
-
-// Lịch sử lịch hẹn của khách đang mở trong SMAX (mới nhất trước) — hiện dưới tab Appointment.
-export async function listLeadAppointments(
-  smaxCustomerId: string,
-): Promise<LeadAppointment[]> {
-  const id = z.string().trim().min(1).max(200).safeParse(smaxCustomerId);
-  if (!id.success) return [];
-
-  const { data, error } = await createAdminClient()
-    .from("clinic_appointments")
-    .select(
-      "id, scheduled_at, checked_in, service_ids, note, " +
-        "customer:customers!inner(smax_customer_id), staff:profiles!staff_id(user_name, avatar_url)",
-    )
-    .eq("customer.smax_customer_id", id.data)
-    .is("customer.deleted_at", null)
-    .is("deleted_at", null)
-    .order("scheduled_at", { ascending: false })
-    .limit(50);
-  if (error) throw error;
-
-  return (data ?? []).map((row) => {
-    const r = row as unknown as {
-      id: string;
-      scheduled_at: string;
-      checked_in: boolean;
-      service_ids: string[] | null;
-      note: string | null;
-      staff: { user_name: string; avatar_url: string | null } | null;
-    };
-    return {
-      id: r.id,
-      scheduled_at: r.scheduled_at,
-      checked_in: r.checked_in,
-      service_ids: r.service_ids ?? [],
-      staff_name: r.staff?.user_name ?? "",
-      staff_avatar: r.staff?.avatar_url ?? null,
-      note: r.note ?? "",
-    };
-  });
 }

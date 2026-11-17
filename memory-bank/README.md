@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — Lead form: bỏ tab Appointment, lịch hẹn theo Status
+- **Thay đổi:** Nhánh `claude/lead-form-booking-appointment`. Bỏ `Segmented` 2 tab + `components/lead-form/lead-appointment-form.tsx` (cùng 2 action `createLeadAppointment` / `listLeadAppointments` và key i18n `leadForm.{tabCustomer,tabAppointment,history,historyEmpty}`) — mất luôn danh sách lịch sử lịch hẹn trong form. Status = **Booking hoặc Deposit** (`BOOKING_PAGE_STAGES`) → hiện ô Ngày giờ hẹn + Dịch vụ cho **cả khách mới và khách cũ**; Ngày giờ hẹn **bắt buộc khi vừa đổi sang Booking** (khách mới, hoặc khách cũ đang ở stage khác) — khách đang Booking sẵn bấm Cập nhật thì không bắt tạo lịch mới; Deposit không bắt buộc. Có chọn ngày giờ → `submitLead` tạo `clinic_appointments` (staff/created_by = Telesales đã chọn): Submit = tạo khách rồi tạo lịch (lịch lỗi → xoá khách vừa tạo); Cập nhật = tạo lịch TRƯỚC rồi mới cập nhật khách (lịch lỗi → khách giữ nguyên). Trùng giờ (23505) → `appointments.duplicate`. Đổi khách A→B trong SMAX reset luôn ô lịch hẹn. `LeadService` chuyển vào `lead-form.tsx`.
+- **File ảnh hưởng:** `components/lead-form/lead-form.tsx`, `app/lead-form/actions.ts`, `messages/{vi,en}.json`; xoá `components/lead-form/lead-appointment-form.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch. Chưa xem trên trình duyệt / iframe SMAX thật (máy không có `.env.local`). Không đổi DB.
+
 ### 2026-11-17 — Lịch hẹn: sửa vặt sau PR #72
 - **Thay đổi:** Drawer Thêm lịch hẹn: ô Ngày giờ hẹn full width (`AppointmentDate className="w-full"`). **Tạm ẩn cột Người tạo** trên bảng (column comment lại; `created_by` vẫn ghi + vẫn tải), `scroll.x` 1950. Modal Tin nhắn: bỏ dòng "Latest 20 messages" (xoá key `appointments.messagesHint`), rộng 800px.
 - **File ảnh hưởng:** `components/appointments/{appointments-manager,messages-modal}.tsx`, `messages/{vi,en}.json`
