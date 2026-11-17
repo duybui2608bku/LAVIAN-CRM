@@ -1,0 +1,6 @@
+- [x] 1. Migration `parent_id` + trigger gắn về bình luận gốc (đã thử trong transaction + rollback)
+- [x] 2. Chạy migration trên Supabase (project Lavian)
+- [x] 3. `addComment(documentId, body, parentId?)`
+- [x] 4. Trang xem: nhóm luồng, nút Trả lời, ô trả lời, avatar người đang viết
+- [x] 5. PDF iframe không thanh công cụ
+- [x] 6. i18n vi/en, tsc + eslint + test

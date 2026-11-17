@@ -30,7 +30,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
   const [comments, likes, mine, pdf] = await Promise.all([
     supabase
       .from("document_comments")
-      .select(`id, user_id, body, created_at, ${COMMENT_AUTHOR}`)
+      .select(`id, user_id, parent_id, body, created_at, ${COMMENT_AUTHOR}`)
       .eq("document_id", id)
       .order("created_at", { ascending: true }),
     supabase.from("document_likes").select("user_id", { count: "exact", head: true }).eq("document_id", id),
@@ -48,7 +48,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
       likeCount={likes.count ?? 0}
       liked={!!mine.data}
       pdfUrl={pdf?.data?.signedUrl ?? null}
-      currentUserId={profile.id}
+      currentUser={{ id: profile.id, user_name: profile.user_name || profile.email, avatar_url: profile.avatar_url }}
       isAdmin={profile.role === "admin"}
     />
   );

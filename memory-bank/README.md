@@ -50,6 +50,16 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-17 — Fix editor: bấm H1 cho 1 dòng mà cả loạt dòng đổi theo
+- **Thay đổi:** Nguyên nhân: nội dung dán từ web/Word (hoặc Shift+Enter) để nhiều dòng trong CÙNG 1 đoạn, ngăn bằng ngắt dòng `hardBreak` → đổi khối áp cả đoạn. `lib/rich-text-lines.ts` `isolateSelectedLines(tr)`: tách đoạn tại ngắt dòng bao quanh + nằm trong vùng chọn (ngắt dòng → đoạn mới). Toolbar gọi trước H1/H2/H3, danh sách chấm/số, trích dẫn (`lines()` trong `components/documents/rich-text.tsx`). Test 4 ca (con trỏ 1 dòng, bôi 1 phần, bôi 2 dòng → mỗi dòng 1 tiêu đề, đoạn không ngắt dòng giữ nguyên).
+- **File ảnh hưởng:** `lib/rich-text-lines.ts` (+ test), `components/documents/rich-text.tsx`.
+- **Còn dở / ghi chú:** Không lấy được dữ liệu lỗi gốc (tài liệu đã bị xoá) — nguyên nhân suy từ triệu chứng. 73 test + tsc + eslint sạch; chưa thử trên trình duyệt. Vùng chọn trải nhiều đoạn giữ hành vi cũ. Phím tắt Ctrl+Alt+1 của Tiptap không đi qua hàm này.
+
+### 2026-11-17 — Tài liệu: trả lời bình luận + PDF không thanh công cụ
+- **Thay đổi:** (OpenSpec `document-comment-replies`) Cột `document_comments.parent_id` (FK tự trỏ, cascade) — trả lời **1 cấp** kiểu Facebook; trigger BEFORE INSERT `document_comment_set_parent` kiểm tra cha cùng tài liệu và gắn trả-lời-của-trả-lời về bình luận gốc (không làm trong policy được: policy tự truy vấn bảng mình → lỗi 42P17 đệ quy RLS). `addComment(documentId, body, parentId?)`. Trang xem: bình luận dạng bong bóng (avatar + tên + nội dung, dưới là giờ · Trả lời · xoá), trả lời thụt dưới bình luận gốc, ô trả lời mở ngay dưới luồng ("Trả lời <tên>…", Esc huỷ), ô viết có avatar người đang đăng nhập; xoá bình luận gốc hỏi "xoá kèm các trả lời". PDF iframe thêm `#toolbar=0&navpanes=0&view=FitH` (Chrome/Edge ẩn thanh công cụ + ô ảnh trang).
+- **File ảnh hưởng:** `supabase/migrations/20261117100000_document_comment_replies.sql`, `types/document.ts`, `app/(app)/documents/{actions.ts,[id]/page.tsx}`, `components/documents/document-view.tsx`, `messages/{vi,en}.json`, `openspec/changes/document-comment-replies/`.
+- **Còn dở / ghi chú:** Migration đã thử trong transaction + rollback (trả lời, trả lời lồng → gắn về gốc, cascade đều đúng) rồi **đã chạy thật** trên DB Lavian qua MCP (2026-11-17), advisors không có cảnh báo mới. tsc + eslint + test sạch; chưa xem trên trình duyệt. Firefox vẫn hiện thanh công cụ pdf.js của nó.
+
 ### 2026-11-17 — Fix: lưu tài liệu xong ra 404, admin không thấy tài liệu
 - **Thay đổi:** Tài liệu vẫn lưu được, lỗi nằm ở bước đọc: `author:profiles(...)` bị PostgREST báo **PGRST201** (mơ hồ) vì `document_likes` (PK `document_id, user_id`) nối documents ↔ profiles nên có thêm quan hệ nhiều–nhiều. Trang đọc nuốt lỗi → `/documents/[id]` ra 404, `/documents` trống. Sửa: hằng `DOCUMENT_AUTHOR` = `profiles!documents_created_by_fkey`, `COMMENT_AUTHOR` = `profiles!document_comments_user_id_fkey` (`types/document.ts`); 3 page ném lỗi truy vấn thật (trừ `22P02` id sai định dạng → 404) thay vì coi như không có dữ liệu. **Bài học:** bảng nối 2 FK tới profiles (likes, …) làm mọi embed `profiles(...)` từ bảng cha bị mơ hồ — luôn ghi `!<fkey>`.
 - **File ảnh hưởng:** `types/document.ts`, `app/(app)/documents/{page.tsx,[id]/page.tsx,[id]/edit/page.tsx}`.

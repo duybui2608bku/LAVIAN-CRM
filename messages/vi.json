@@ -723,6 +723,9 @@
     "commentPlaceholder": "Viết bình luận… (Ctrl+Enter để gửi)",
     "send": "Gửi",
     "deleteComment": "Xoá bình luận",
-    "deleteCommentConfirm": "Xoá bình luận này?"
+    "deleteCommentConfirm": "Xoá bình luận này?",
+    "reply": "Trả lời",
+    "replyPlaceholder": "Trả lời {name}…",
+    "deleteThreadConfirm": "Xoá bình luận này và các câu trả lời?"
   }
 }

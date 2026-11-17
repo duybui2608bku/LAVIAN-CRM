@@ -31,6 +31,7 @@ export interface DocumentRecord {
 export interface DocumentComment {
   id: string;
   user_id: string;
+  parent_id: string | null; // null = bình luận gốc; có = trả lời (chỉ 1 cấp)
   body: string;
   created_at: string;
   author: Author;
