@@ -4,7 +4,6 @@
     "create": "Add appointment",
     "name": "Customer name",
     "phone": "Phone",
-    "wa": "WA number",
     "date": "Appointment date & time",
     "bookingConfirm": "Booking confirmation",
     "allBookingConfirms": "All booking confirmations",
@@ -15,8 +14,8 @@
     "choose": "Choose…",
     "chooseCustomer": "Choose a name or search by phone",
     "chooseDate": "Choose date and time",
-    "showUp": "Show-up",
-    "notShowUp": "No show-up yet",
+    "showUp": "Showed up",
+    "notShowUp": "Not arrived",
     "allArrivals": "All confirmations",
     "allDates": "All dates",
     "allCustomers": "Show all customers",
@@ -38,7 +37,14 @@
       "confirmed": "Confirmed",
       "cancelled": "Cancelled",
       "rescheduled": "Rescheduled"
-    }
+    },
+    "messages": "Messages",
+    "viewMessages": "View messages",
+    "messagesTitle": "Messages with {name}",
+    "messagesHint": "Latest {count} messages",
+    "openSmax": "Open in SMAX",
+    "noMessages": "No messages yet",
+    "attachment": "Attachment"
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -327,7 +333,7 @@
       "data": "Data",
       "deposited": "Deposited",
       "booked": "Appointments",
-      "showUp": "Show-up",
+      "showUp": "Showed up",
       "total": "Total appointments ({range})",
       "todayAppointments": "Today's appointments",
       "tomorrow": "Tomorrow"
@@ -352,8 +358,8 @@
       "noHistory": "No changes recorded yet",
       "systemActor": "SMAX form",
       "upcoming": "Upcoming",
-      "checkedIn": "Show-up",
-      "notCheckedIn": "No show-up yet",
+      "checkedIn": "Showed up",
+      "notCheckedIn": "Not arrived",
       "yes": "Yes",
       "no": "No",
       "action": {
@@ -364,7 +370,7 @@
       "field": {
         "scheduled_at": "Date & time",
         "booking_confirm": "Booking confirmed",
-        "checked_in": "Show-up",
+        "checked_in": "Showed up",
         "service_ids": "Services",
         "staff_id": "Telesales",
         "note": "Note"
@@ -526,7 +532,7 @@
       "bookings": "Bookings",
       "newBookings": "New bookings",
       "confirmed": "Confirmed",
-      "arrived": "Show-up",
+      "arrived": "Showed up",
       "cancelled": "Cancelled / Rescheduled"
     },
     "hint": {
@@ -535,7 +541,7 @@
       "bookingRate": "Booking rate: {value} / message",
       "newShare": "{value} of bookings",
       "confirmRate": "Confirm rate: {value}",
-      "showUp": "Show-up: {value} / {scheduled} appointments",
+      "showUp": "Showed up: {value} / {scheduled} appointments",
       "cancel": "Cancelled {cancelled} · Rescheduled {rescheduled} · {value} / booking"
     },
     "tip": {
@@ -543,12 +549,12 @@
       "bookings": "Appointments CREATED in the period. Booking rate = Bookings / Messages.",
       "newBookings": "Bookings of customers created in the same period (new customers).",
       "confirmed": "Bookings created in the period with status “Confirmed”.",
-      "arrived": "Appointments SCHEDULED in the period marked Show-up. Show-up rate = Show-up / scheduled appointments.",
+      "arrived": "Appointments SCHEDULED in the period where the customer showed up. Show rate = Showed up / scheduled appointments.",
       "cancelled": "Bookings created in the period with status “Cancelled” or “Rescheduled”. Lower is better.",
-      "funnel": "Messages → Bookings → Confirmed → Show-up; % of Messages.",
-      "trend": "New bookings by created date, Show-up by appointment date.",
+      "funnel": "Messages → Bookings → Confirmed → Showed up; % of Messages.",
+      "trend": "New bookings by created date, Showed up by appointment date.",
       "sources": "Bookings created in the period by customer source.",
-      "staff": "Bookings/Show-up by the appointment's assigned staff. KPI completion = Booking rate / {kpi}.",
+      "staff": "Bookings/Showed up by the appointment's assigned staff. KPI completion = Booking rate / {kpi}.",
       "conversations": "Conversations handled by the staff member on SMAX in the period."
     },
     "funnel": "Conversion funnel",
@@ -562,7 +568,7 @@
       "conversations": "Conversations",
       "bookings": "Bookings",
       "bookingRate": "Booking rate",
-      "showUp": "Show-up",
+      "showUp": "Showed up",
       "kpi": "KPI completion ({kpi})"
     },
     "other": "Other / unassigned",
@@ -610,13 +616,13 @@
   "smaxFollowup": {
     "worked": "Re-engaged",
     "quality": "Re-engage quality",
-    "showUp": "Show-up",
+    "showUp": "Showed up",
     "bookingNew": "New bookings",
     "bookingOld": "Follow-up bookings",
     "bookingTotal": "Total bookings",
     "hint": {
       "worked": "Old leads with messages in range",
-      "quality": "{booking} Booking · {showUp} Show-up",
+      "quality": "{booking} Booking · {showUp} showed up",
       "bookingNew": "From new leads in range",
       "bookingOld": "From old (nurtured) leads",
       "bookingTotal": "New + follow-up bookings"

@@ -27,7 +27,7 @@ export type AppointmentCustomer = {
   phone: string;
   source: string | null;
   staff_id?: string | null; // CSKH của khách — mặc định cho lịch hẹn mới
-  wa?: string | null; // "WA-xxxx" rút từ thread SMAX (dẫn xuất, không phải cột DB)
+  thread_link?: string | null; // link hội thoại SMAX (customers.thread->>link)
 };
 
 /** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`). */

@@ -2,11 +2,12 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { Button, Form, Input, Select, Switch, Tag, type TableProps } from "antd";
-import { CalendarPlus, Search, Trash2 } from "lucide-react";
+import { CalendarPlus, MessageCircleMore, Search, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { createAppointment, deleteAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
+import { MessagesModal } from "@/components/appointments/messages-modal";
 import { DataTable } from "@/components/common/data-table";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
@@ -17,7 +18,6 @@ import { useCan } from "@/components/common/permissions";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { matchesNameOrPhone, serviceName } from "@/lib/customers";
-import { waColor } from "@/lib/wa";
 import { toast } from "@/lib/toast";
 import { BOOKING_STATUSES, BOOKING_STATUS_COLORS, type Appointment, type AppointmentCustomer, type AppointmentPatch } from "@/types/appointment";
 import type { Service } from "@/types/service";
@@ -52,6 +52,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [booking, setBooking] = useState("all");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [chatFor, setChatFor] = useState<AppointmentCustomer | null>(null);
   const [rows, patchOptimistic] = useOptimistic(appointments,
     (state: Appointment[], patch: AppointmentPatch & { id: string }) =>
       state.map((row) => row.id === patch.id ? { ...row, ...patch } : row));
@@ -80,15 +81,19 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   });
   const resetPage = () => setPage(1);
   const columns: TableProps<Appointment>["columns"] = [
+    { title: t("date"), width: 220, fixed: "left", sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
+      render: (_, row) => <AppointmentDate inline disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
     { title: t("name"), width: 180, fixed: "left", render: (_, row) =>
       <span className="font-medium">{customerMap.get(row.customer_id)?.full_name}</span> },
     { title: t("phone"), width: 160, render: (_, row) => customerMap.get(row.customer_id)?.phone },
-    { title: t("wa"), width: 100, render: (_, row) => {
-      const wa = customerMap.get(row.customer_id)?.wa;
-      return wa ? <Tag color={waColor(wa)} className="me-0">{wa}</Tag> : <span className="text-muted-foreground">—</span>;
+    // Thay cột Số WA: icon mở modal 20 tin SMAX gần nhất (khách chưa có hội thoại → "—").
+    { title: t("messages"), width: 100, align: "center", render: (_, row) => {
+      const customer = customerMap.get(row.customer_id);
+      return customer?.thread_link
+        ? <Button type="text" size="small" aria-label={t("viewMessages")} title={t("viewMessages")}
+          icon={<MessageCircleMore className="size-4" />} onClick={() => setChatFor(customer)} />
+        : <span className="text-muted-foreground">—</span>;
     } },
-    { title: t("date"), width: 220, sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
-      render: (_, row) => <AppointmentDate inline disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
     { title: t("bookingConfirm"), width: 160, render: (_, row) => <InlineSelect
       value={row.booking_confirm} ariaLabel={t("bookingConfirm")} disabled={!canEdit}
       display={<Tag color={BOOKING_STATUS_COLORS[row.booking_confirm]} className="me-0">{t(`bookingStatus.${row.booking_confirm}`)}</Tag>}
@@ -150,6 +155,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff} services={services} canShowUp={canShowUp}
       onCreated={() => { setCreating(false); setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setArrival("all"); setBooking("all"); setPage(1); }} />
+    <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
   </Page>;
 }
 

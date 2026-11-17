@@ -7,6 +7,7 @@ import { getCurrentProfile, requirePermission } from "@/lib/auth";
 import { appointmentPatchSchema, canConfirmShowUp } from "@/lib/appointments";
 import { AppError, normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
+import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
 import type { AppointmentPatch } from "@/types/appointment";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
@@ -29,7 +30,7 @@ async function failure(error: unknown) {
 }
 
 const onlySales = () =>
-  new AppError("Chỉ bộ phận Sales được xác nhận Show-up.", { code: "FORBIDDEN", status: 403 });
+  new AppError("Chỉ bộ phận Sales được xác nhận khách đã đến.", { code: "FORBIDDEN", status: 403 });
 
 // Các kiểm tra độc lập → chạy song song.
 async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch: AppointmentPatch) {
@@ -107,5 +108,19 @@ export async function deleteAppointment(id: string): Promise<{ error?: string }>
     return {};
   } catch (error) {
     return failure(error);
+  }
+}
+
+/** 20 tin SMAX gần nhất với khách (modal Tin nhắn). Link hội thoại đọc từ DB — không nhận link từ client. */
+export async function getCustomerMessages(customerId: string): Promise<{ messages?: ChatMessage[]; error?: string }> {
+  try {
+    await requirePermission("appointments.view");
+    z.uuid().parse(customerId);
+    const db = await createClient();
+    const { data, error } = await db.from("customers").select("link:thread->>link").eq("id", customerId).single();
+    if (error) throw error;
+    return { messages: await fetchThreadMessages(data.link as string | null) };
+  } catch (error) {
+    return { error: normalizeError(error).message };
   }
 }
