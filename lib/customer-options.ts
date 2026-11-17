@@ -20,6 +20,9 @@ export const SHOW_UP_STAGE = "show_up";
 /** Stage "Booking" — khách mới ở lead form chọn stage này phải kèm lịch hẹn. */
 export const BOOKED_STAGE = "booked";
 
+/** Stage hiện ở trang Booking management (/customers/bookings). */
+export const BOOKING_PAGE_STAGES = [BOOKED_STAGE, "deposited"] as const;
+
 /** Stage hợp lệ (kể cả show_up đang giữ nguyên khi sửa khách). */
 export function isStage(v: string | null | undefined): boolean {
   return CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === v);

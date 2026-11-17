@@ -9,6 +9,7 @@ import { Button, Drawer, Dropdown, Layout, Menu, Segmented, Switch, type MenuPro
 import {
   BookOpen,
   Briefcase,
+  CalendarCheck,
   CalendarDays,
   ChartColumn,
   Check,
@@ -56,6 +57,7 @@ const ITEMS = [
     icon: Users,
     children: [
       { key: "customersList", href: "/customers", icon: UsersRound, perm: "customers.view" },
+      { key: "bookings", href: "/customers/bookings", icon: CalendarCheck, perm: "customers.view" },
       { key: "smaxReport", href: "/customers/smax-report", icon: Inbox, perm: "customers.view" },
       { key: "smaxFollowup", href: "/customers/smax-followup", icon: MessageSquareReply, perm: "customers.view" },
       // URL giữ /reports/telesales (proxy + MODULE_PATHS dựa vào đó), chỉ đặt menu dưới Khách hàng.

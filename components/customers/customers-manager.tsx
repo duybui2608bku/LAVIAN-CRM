@@ -110,7 +110,12 @@ export function CustomersManager({
   appointments,
   services,
   canShowUp,
+  stages,
+  title,
 }: {
+  /** Trang con lọc sẵn theo stage (vd Booking management): ẩn pipeline, ô lọc stage chỉ còn các stage này. */
+  stages?: readonly string[];
+  title?: string;
   customers: Customer[];
   staff: Staff[];
   options: EnumOption[];
@@ -434,14 +439,16 @@ export function CustomersManager({
 
   return (
     <Page>
-      <PageHeader title={t("title")} />
+      <PageHeader title={title ?? t("title")} />
 
-      <CustomerPipeline
-        customers={rowsData}
-        appointments={appointments}
-        from={filters.from}
-        to={filters.to}
-      />
+      {!stages && (
+        <CustomerPipeline
+          customers={rowsData}
+          appointments={appointments}
+          from={filters.from}
+          to={filters.to}
+        />
+      )}
 
       {/* Thanh lọc: hiện thẳng mọi bộ lọc (ít trường, không cần gom vào popover). */}
       <PageToolbar>
@@ -462,7 +469,7 @@ export function CustomersManager({
           className="min-w-36"
           value={filters.stage}
           onChange={(v) => setFilter("stage", v)}
-          options={kindOptions("stage")}
+          options={kindOptions("stage").filter((o) => !stages || stages.includes(String(o.value)))}
           placeholder={t("allStage")}
           ariaLabel={t("colStage")}
         />
