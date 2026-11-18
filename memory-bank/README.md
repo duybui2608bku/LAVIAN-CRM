@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-18 — Thu hẹp quyền Telesales / Sales
+- **Thay đổi:** Migration `20261118140000_restrict_telesales_sales_permissions.sql`: Telesales bỏ `appointments.view` (không vào /appointments) nhưng giữ `appointments.edit` (tạo / xác nhận lịch ở Khách hàng, Booking, Khách tiềm năng — cùng bảng `clinic_appointments` nên xác nhận ở Booking hiện luôn ở /appointments). Sales chỉ còn `appointments.view/edit/delete`. `normalizePermissions` không ép Xem cho module trong `EDIT_WITHOUT_VIEW` (= appointments) để admin chỉnh ở /users/permissions không tự bật lại Xem.
+- **File ảnh hưởng:** `supabase/migrations/20261118140000_restrict_telesales_sales_permissions.sql`, `lib/permissions.ts`, `lib/permissions.test.ts`.
+- **Còn dở / ghi chú:** Migration ĐÃ CHẠY trên Lavian 2026-11-18. Telesales Leader + Technician giữ nguyên. Menu Tài liệu vẫn hiện cho mọi bộ phận (RLS lọc theo bộ phận). tsc + eslint + 95 test sạch.
+
 ### 2026-11-18 — Booking management lấy theo lịch hẹn
 - **Thay đổi:** OpenSpec `bookings-from-appointments`. `/customers/bookings` không còn dùng `CustomersView` lọc stage Booking/Deposited — giờ liệt kê **`clinic_appointments`** (`BookingsManager` mới). Header "Booking Management" + nút Tạo lịch hẹn (`CreateAppointmentDrawer`); 4 card: Lịch hôm nay, Chưa xác nhận (hôm nay, pending), Cần xử lý (từ hôm nay, chưa đến, pending/rescheduled), Đã đến (hôm nay); tab Hôm nay/Ngày mai/Cần xử lý/Tất cả; tìm tên/SĐT/dịch vụ, lọc trạng thái + Tele. Cột: Lịch hẹn (giờ sửa inline + ngày), Khách hàng / Dịch vụ (DV chi tiết, chưa có thì nhóm DV), Deposit (`customers.deposit_amount`, chỉ xem), Tele, Nguồn (`SourceCell`), Trạng thái (`checked_in` → Đã đến chỉ xem; còn lại sửa `booking_confirm`), Ghi chú (ghi chú lịch hẹn). **Không** có cột Nhắc lịch. Không đổi DB.
 - **File ảnh hưởng:** `app/(app)/customers/bookings/page.tsx`, `components/appointments/{bookings-manager,appointments-manager,appointment-date}.tsx` (export `staffOptions`, `AppointmentNote`; prop `format`), `messages/{vi,en}.json` (namespace `bookings`), `openspec/changes/bookings-from-appointments/`.

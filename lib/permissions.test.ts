@@ -34,3 +34,11 @@ test("chọn Sửa/Xoá tự thêm Xem, bỏ Xem thì bỏ cả module", () => {
   );
   assert.deepEqual(normalizePermissions([], ["x.y", "customers.view"]), ["customers.view"]);
 });
+
+test("lịch hẹn: Sửa không kéo theo Xem, bỏ Xem vẫn giữ Sửa", () => {
+  assert.deepEqual(normalizePermissions([], ["appointments.edit"]), ["appointments.edit"]);
+  assert.deepEqual(
+    normalizePermissions(["appointments.view", "appointments.edit"], ["appointments.edit"]),
+    ["appointments.edit"],
+  );
+});

@@ -52,12 +52,19 @@ export function homePath(permissions: readonly Permission[]): string | null {
 }
 
 /**
+ * Module được Sửa/Xoá mà không cần Xem: lịch hẹn tạo / xác nhận được ở trang Khách hàng, Booking,
+ * Khách tiềm năng (vd Telesales) mà không vào menu /appointments.
+ */
+export const EDIT_WITHOUT_VIEW: readonly PermissionModule[] = ["appointments"];
+
+/**
  * Chuẩn hoá sau khi tick: chọn Sửa/Xoá → tự thêm Xem (thiếu Xem thì không vào được trang);
- * bỏ Xem → bỏ luôn Sửa/Xoá của module đó. Trả về theo thứ tự ALL_PERMISSIONS.
+ * bỏ Xem → bỏ luôn Sửa/Xoá của module đó (trừ EDIT_WITHOUT_VIEW). Trả về theo thứ tự ALL_PERMISSIONS.
  */
 export function normalizePermissions(prev: readonly string[], next: readonly string[]): Permission[] {
   const set = new Set(next);
   for (const m of MODULES) {
+    if (EDIT_WITHOUT_VIEW.includes(m)) continue;
     const keys = PERMISSION_MODULES[m].map((a) => `${m}.${a}`);
     if (prev.includes(`${m}.view`) && !set.has(`${m}.view`)) keys.forEach((k) => set.delete(k));
     else if (keys.some((k) => set.has(k))) set.add(`${m}.view`);
