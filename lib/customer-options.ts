@@ -40,6 +40,16 @@ export function validPotentialStatus(v: string | null | undefined): string | nul
     : null;
 }
 
+/** Stage mà lead form bắt buộc kèm lịch hẹn. */
+const APPOINTMENT_STAGES: readonly string[] = [BOOKED_STAGE, POTENTIAL_STAGE, "consider"];
+
+/**
+ * Lead form: bắt buộc lịch hẹn khi VỪA chọn stage Booking / Tiềm năng / Cân nhắc (khách mới
+ * hoặc khách cũ đổi stage). Khách đang ở sẵn stage đó chỉ cập nhật thông tin → không bắt tạo lịch mới.
+ */
+export const needsAppointment = (stage: string | null | undefined, currentStage?: string | null) =>
+  !!stage && APPOINTMENT_STAGES.includes(stage) && currentStage !== stage;
+
 /** Stage hiện ở trang Booking management (/customers/bookings). */
 export const BOOKING_PAGE_STAGES = [BOOKED_STAGE, "deposited"] as const;
 
