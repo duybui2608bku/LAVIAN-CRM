@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-18 — Lead form: Tiềm năng / Cân nhắc là LỊCH NHẮC follow-up, không phải lịch hẹn
+- **Thay đổi:** OpenSpec `lead-form-follow-up`. Sếp làm rõ: ngày chọn khi Tiềm năng / Cân nhắc = lịch nhắc Telesales liên hệ lại. Lead form: 2 stage này hiện ô **Lịch nhắc follow-up** (bắt buộc, điền sẵn `follow_up_at` từ CRM) → lưu `customers.follow_up_at`, ẩn Ngày hẹn + Nhóm DV, **không** tạo `clinic_appointments`. `needsAppointment` giờ chỉ Booking; helper mới `FOLLOW_UP_STAGES` / `isFollowUpStage`. `/customers/potential` + `convertPotentialCustomer` lấy cả stage `consider` (tag "Cân nhắc" ở cột Tình trạng). Migration `20261118150000_follow_up_include_consider.sql`: cron báo đúng giờ + digest 8:00 quét cả `consider`.
+- **File ảnh hưởng:** `lib/customer-options.ts`, `app/lead-form/actions.ts`, `components/lead-form/lead-form.tsx`, `app/(app)/customers/{actions.ts,potential/page.tsx}`, `components/customers/potential-manager.tsx`, `messages/{vi,en}.json`, `supabase/migrations/20261118150000_follow_up_include_consider.sql`, `openspec/changes/lead-form-follow-up/`.
+- **Còn dở / ghi chú:** Migration ĐÃ CHẠY trên Lavian 2026-11-18 (qua MCP; 2 function quét consider, authenticated không execute được, 2 cron active). DB kiểm tra: 0 lịch hẹn tạo nhầm cho khách Tiềm năng / Cân nhắc. tsc + eslint sạch; chưa test tay trên trình duyệt / Smax. Chưa commit.
+
 ### 2026-11-18 — Lịch hẹn: thêm cột Nguồn
 - **Thay đổi:** `/appointments` thêm cột **Nguồn** (sau Tên khách) dùng chung `SourceCell` như Booking management / Khách hàng (icon WA/IG + số WA nhận tin hoặc username IG). Page query thêm `instagram_username:smax_data->customer->instagram->>username` (lọc qua `instagramUsername()`); `AppointmentCustomer` có thêm `instagram_username?`. i18n `appointments.source` (vi/en). `scroll.x` 1900 → 2050.
 - **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`, `app/(app)/appointments/page.tsx`, `types/appointment.ts`, `messages/{vi,en}.json`.

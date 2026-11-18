@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isStage, leadSource, needsAppointment } from "@/lib/customer-options";
+import { isFollowUpStage, isStage, leadSource, needsAppointment } from "@/lib/customer-options";
 import { serviceCategoriesSchema } from "@/lib/appointments";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
@@ -21,7 +21,9 @@ const schema = z.object({
   // Tiền cọc (IDR, số nguyên) — chỉ lưu khi giai đoạn là "deposited".
   deposit_amount: z.number().int().min(0).max(1e12).nullable().catch(null),
   website: z.string(),
-  // Lịch hẹn kèm (mọi stage). Hỏng/thiếu → null (stage bắt buộc lịch thì báo thiếu).
+  // Lịch nhắc follow-up (Tiềm năng / Cân nhắc) — KHÔNG phải lịch hẹn. Hỏng/thiếu → null.
+  follow_up_at: z.iso.datetime({ offset: true }).nullable().optional().catch(null),
+  // Lịch hẹn tới chi nhánh (stage khác Tiềm năng / Cân nhắc). Hỏng/thiếu → null (Booking thì báo thiếu).
   appointment: z
     .object({
       scheduled_at: z.iso.datetime({ offset: true }),
@@ -79,6 +81,7 @@ export type LeadCustomer = {
   payment_confirm_url: string | null;
   region_code: string;
   address_detail: string;
+  follow_up_at: string | null;
 };
 
 // Khách đã có trong CRM → trả giai đoạn + CSKH hiện tại để form fill sẵn,
@@ -91,7 +94,7 @@ export async function checkLeadCustomer(
 
   const { data, error } = await createAdminClient()
     .from("customers")
-    .select("stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, staff:profiles!staff_id(user_name, avatar_url)")
+    .select("stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, follow_up_at, staff:profiles!staff_id(user_name, avatar_url)")
     .eq("smax_customer_id", id.data)
     .is("deleted_at", null)
     .maybeSingle();
@@ -111,6 +114,7 @@ export async function checkLeadCustomer(
     payment_confirm_url: data.payment_confirm_url ?? null,
     region_code: data.region_code ?? "",
     address_detail: data.address_detail ?? "",
+    follow_up_at: data.follow_up_at ?? null,
   };
 }
 
@@ -140,8 +144,11 @@ export async function submitLead(
     // Stage bắt buộc chọn (không còn mặc định "Khách mới").
     if (!isStage(d.stage)) return { error: "Vui lòng chọn trạng thái." };
     if (!d.staff_id) return { error: "Vui lòng chọn Telesales." };
-    // Stage nào cũng có thể kèm lịch hẹn; vừa chọn Booking / Tiềm năng / Cân nhắc thì bắt buộc.
-    const appointment = d.appointment ?? null;
+    // Tiềm năng / Cân nhắc: bắt buộc lịch nhắc follow-up, không tạo lịch hẹn tới chi nhánh.
+    // Stage khác: có thể kèm lịch hẹn; vừa chọn Booking thì bắt buộc.
+    const followUp = isFollowUpStage(d.stage);
+    if (followUp && !d.follow_up_at) return { error: "Vui lòng chọn lịch nhắc." };
+    const appointment = followUp ? null : (d.appointment ?? null);
     if (needsAppointment(d.stage, current?.stage) && !appointment)
       return { error: "Vui lòng chọn lịch hẹn." };
     const insertAppointment = (customerId: string) =>
@@ -177,6 +184,7 @@ export async function submitLead(
       ...(d.payment_confirm_url !== undefined
         ? { payment_confirm_url: d.payment_confirm_url }
         : {}),
+      ...(followUp ? { follow_up_at: new Date(d.follow_up_at!).toISOString() } : {}),
     };
 
     if (mode === "create") {
@@ -227,6 +235,7 @@ export async function submitLead(
       if (error) throw error;
     }
     if (appointment) revalidatePath("/appointments");
+    if (followUp) revalidatePath("/customers/potential");
     return {};
   } catch (e) {
     if (isDuplicate(e)) return { error: (await getTranslations("appointments"))("duplicate") };

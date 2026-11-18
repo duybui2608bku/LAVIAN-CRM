@@ -469,7 +469,9 @@
     "currency": "Loại tiền",
     "existingCustomer": "Khách hàng đã tồn tại. Không thể thêm mới; bạn chỉ có thể cập nhật thông tin.",
     "update": "Cập nhật",
-    "stageRequired": "Vui lòng chọn trạng thái"
+    "stageRequired": "Vui lòng chọn trạng thái",
+    "followUpAt": "Lịch nhắc follow-up",
+    "followUpRequired": "Vui lòng chọn lịch nhắc"
   },
   "marketing": {
     "title": "Marketing",
