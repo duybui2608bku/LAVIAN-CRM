@@ -3,8 +3,8 @@
 import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { dayCount } from "@/lib/reports";
-import { buildFollowupReport, buildInboxReport, staffAvatars, type FollowupReport, type InboxReport } from "@/lib/smax-inbox";
-import { fetchInboxThreads } from "@/lib/smax-threads";
+import { buildFollowupReport, buildInboxReport, createdIn, staffAvatars, type FollowupReport, type InboxReport } from "@/lib/smax-inbox";
+import { fetchIgByPhone, fetchInboxThreads } from "@/lib/smax-threads";
 import { createClient } from "@/lib/supabase/server";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -40,13 +40,16 @@ async function withRange<T>(from: string, to: string, build: () => Promise<T>): 
 
 export type SmaxReport = { inbox: InboxReport; followup: FollowupReport };
 
-/** Báo cáo Smax (khách mới + Follow up khách cũ) theo khoảng ngày — 2 lượt tải hội thoại dùng chung cho cả 2 báo cáo. */
+/** Báo cáo Smax (khách mới + Follow up khách cũ) theo khoảng ngày — 1 lượt tải hội thoại dùng chung cho cả 2 báo cáo. */
 export async function getSmaxReport(from: string, to: string): Promise<Result<SmaxReport>> {
   return withRange(from, to, async () => {
-    const [created, active] = await Promise.all([
-      fetchInboxThreads(from, to, { byCreated: true }),
-      fetchInboxThreads(from, untilToday(to)),
-    ]);
-    return { inbox: buildInboxReport(created, active, from, to), followup: buildFollowupReport(active, from, to) };
+    // 1 lượt tải theo tin nhắn; khách mới lọc từ đó theo ngày tạo (`createdIn`).
+    const activeP = fetchInboxThreads(from, untilToday(to));
+    // Khách IG chuyển sang WA → gộp theo SĐT (1 người, kênh = bên nhắn trước).
+    const [active, igByPhone] = await Promise.all([activeP, fetchIgByPhone(from, [activeP])]);
+    return {
+      inbox: buildInboxReport(createdIn(active, from, to), active, from, to, igByPhone),
+      followup: buildFollowupReport(active, from, to, igByPhone),
+    };
   });
 }

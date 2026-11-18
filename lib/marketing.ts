@@ -245,44 +245,13 @@ async function fbGet<T extends { error?: { message?: string } }>(url: string) {
   return json;
 }
 
-/** Chiến dịch có lượt hiển thị > 0 trong range (gộp các tài khoản ads), kèm trạng thái hiện tại. */
-export async function fetchFbCampaigns(
-  from: string,
-  to: string,
-): Promise<FbCampaign[]> {
-  const token = process.env.FB_TOKEN;
-  if (!token) throw new Error("Thiếu FB_TOKEN.");
-  const time_range = JSON.stringify({ since: from, until: to });
-
-  const byAccount = await Promise.all(
-    FB_AD_ACCOUNTS.map(async (act) => {
-      const qs = new URLSearchParams({
-        level: "campaign",
-        fields:
-          "campaign_id,campaign_name,account_name,spend,impressions,reach,actions",
-        time_range,
-        limit: "500",
-        access_token: token,
-      });
-      const out: NonNullable<FbCampaignInsightsRes["data"]> = [];
-      let url: string | undefined = `${FB_API}/${act}/insights?${qs}`;
-      while (url) {
-        const json: FbCampaignInsightsRes = await fbGet(url);
-        out.push(...(json.data ?? []));
-        url = json.paging?.next;
-      }
-      return out.filter(
-        (r) => r.campaign_id && Number(r.impressions ?? 0) > 0,
-      );
-    }),
-  );
-  const rows = byAccount.flat();
-
-  // Trạng thái: liệt kê /act_x/campaigns (tham số mặc định, không filtering —
-  // Graph API hay từ chối filter/ids với "Invalid parameter"). Best-effort:
-  // lỗi hoặc thiếu (chiến dịch đã xoá) → "UNKNOWN", bảng vẫn hiện số liệu.
+/**
+ * campaign_id → trạng thái hiện tại: liệt kê /act_x/campaigns (tham số mặc định, không filtering —
+ * Graph API hay từ chối filter/ids với "Invalid parameter"). Best-effort: lỗi hoặc thiếu
+ * (chiến dịch đã xoá) → "UNKNOWN", bảng vẫn hiện số liệu.
+ */
+async function fetchFbCampaignStatus(token: string): Promise<Map<string, string>> {
   const status = new Map<string, string>();
-  const wanted = new Set(rows.map((r) => r.campaign_id!));
   await Promise.all(
     FB_AD_ACCOUNTS.map(async (act) => {
       const qs = new URLSearchParams({
@@ -295,8 +264,7 @@ export async function fetchFbCampaigns(
         while (url) {
           const json: FbCampaignsRes = await fbGet(url);
           for (const c of json.data ?? [])
-            if (c.id && c.effective_status && wanted.has(c.id))
-              status.set(c.id, c.effective_status);
+            if (c.id && c.effective_status) status.set(c.id, c.effective_status);
           url = json.paging?.next;
         }
       } catch (err) {
@@ -304,6 +272,45 @@ export async function fetchFbCampaigns(
       }
     }),
   );
+  return status;
+}
+
+/** Chiến dịch có lượt hiển thị > 0 trong range (gộp các tài khoản ads), kèm trạng thái hiện tại. */
+export async function fetchFbCampaigns(
+  from: string,
+  to: string,
+): Promise<FbCampaign[]> {
+  const token = process.env.FB_TOKEN;
+  if (!token) throw new Error("Thiếu FB_TOKEN.");
+  const time_range = JSON.stringify({ since: from, until: to });
+
+  // Insights + trạng thái chạy song song (trước đây chờ insights xong mới lấy trạng thái).
+  const [byAccount, status] = await Promise.all([
+    Promise.all(
+      FB_AD_ACCOUNTS.map(async (act) => {
+        const qs = new URLSearchParams({
+          level: "campaign",
+          fields:
+            "campaign_id,campaign_name,account_name,spend,impressions,reach,actions",
+          time_range,
+          limit: "500",
+          access_token: token,
+        });
+        const out: NonNullable<FbCampaignInsightsRes["data"]> = [];
+        let url: string | undefined = `${FB_API}/${act}/insights?${qs}`;
+        while (url) {
+          const json: FbCampaignInsightsRes = await fbGet(url);
+          out.push(...(json.data ?? []));
+          url = json.paging?.next;
+        }
+        return out.filter(
+          (r) => r.campaign_id && Number(r.impressions ?? 0) > 0,
+        );
+      }),
+    ),
+    fetchFbCampaignStatus(token),
+  ]);
+  const rows = byAccount.flat();
 
   return rows
     .map((r) => ({

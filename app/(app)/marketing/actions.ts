@@ -10,7 +10,7 @@ import {
   type FbCampaign,
 } from "@/lib/marketing";
 import { countPotential, type PotentialCounts } from "@/lib/smax-inbox";
-import { fetchInboxThreads } from "@/lib/smax-threads";
+import { fetchIgByPhone, fetchInboxThreads } from "@/lib/smax-threads";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -27,6 +27,13 @@ export interface AdsStats {
 }
 
 /** Số liệu trang Marketing theo khoảng ngày Việt Nam `YYYY-MM-DD`. */
+/** KH tiềm năng theo chiến dịch (SMAX + ad_id → chiến dịch FB); khách IG chuyển sang WA tính 1 lần, về IG. */
+async function fetchPotential(from: string, to: string): Promise<PotentialCounts> {
+  const threadsP = fetchInboxThreads(from, to, { byCreated: true });
+  const [threads, ads, igByPhone] = await Promise.all([threadsP, fetchFbAdCampaigns(from, to), fetchIgByPhone(from, [threadsP])]);
+  return countPotential(threads, ads, { from, igByPhone });
+}
+
 export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
   await requirePermission("marketing.view");
 
@@ -44,9 +51,7 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
   const [fb, campaigns, potential] = await Promise.allSettled([
     fetchFbAds(from, to),
     fetchFbCampaigns(from, to),
-    Promise.all([fetchInboxThreads(from, to, { byCreated: true }), fetchFbAdCampaigns(from, to)]).then(
-      ([threads, ads]) => countPotential(threads, ads),
-    ),
+    fetchPotential(from, to),
   ]);
 
   if (potential.status === "fulfilled") stats.potential = potential.value;
