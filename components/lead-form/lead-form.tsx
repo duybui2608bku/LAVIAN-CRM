@@ -14,7 +14,6 @@ import {
   type LeadMode,
 } from "@/app/lead-form/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
-import { EnumTag } from "@/components/common/enum-tag";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { ImageUpload } from "@/components/common/image-upload";
 import { RegionSelect } from "@/components/common/region-select";
@@ -267,9 +266,6 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
       setDone(true);
     }), () => {}); // thiếu dữ liệu: antd đã hiện lỗi dưới từng ô
 
-  const tagOptions = (opts: EnumOption[]) =>
-    opts.map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }));
-
   // CSKH hiện tại có thể đã nghỉ/khác bộ phận → vẫn hiện tên thay vì uuid.
   const staffOptions = staff.map((s) => ({ value: s.id, label: staffLabel(s) }));
   if (existing?.staff_id && !staff.some((s) => s.id === existing.staff_id)) {
@@ -312,7 +308,13 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
       <Form
         form={form}
         layout="vertical"
-        requiredMark={false}
+        // Ô bắt buộc (theo rules.required, kể cả điều kiện như ngày hẹn) → dấu sao đỏ sau nhãn.
+        requiredMark={(label, { required }) => (
+          <>
+            {label}
+            {required && <span aria-hidden className="ms-1 text-destructive">*</span>}
+          </>
+        )}
         initialValues={DEFAULTS}
         // Chỉ chạy khi người dùng tự chọn (setFieldValue không kích hoạt) → không lưu nhầm CSKH của khách.
         onValuesChange={(changed: Partial<Values>) => {
@@ -354,7 +356,16 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
           <Input placeholder={t("noteOptional")} />
         </Form.Item>
         */}
-        {/* Lưới 2x2: Telesales | Status, Tiền cọc | Ảnh xác nhận thanh toán. */}
+        {/* Tỉnh | Huyện/TP: 2 ô nhãn riêng, cùng 1 giá trị region_code. */}
+        <Form.Item name="region_code" noStyle>
+          <RegionSelect
+            provinceLabel={t("province")}
+            cityLabel={t("city")}
+            className="grid grid-cols-2 gap-x-3"
+            field={(label, control) => <Form.Item label={label}>{control}</Form.Item>}
+          />
+        </Form.Item>
+        {/* Thứ tự hàng: Telesales | Status → Ngày hẹn | Nhóm dịch vụ → Tiền cọc | Ảnh xác nhận thanh toán. */}
         <div className="grid grid-cols-2 gap-x-3">
           <Form.Item name="staff_id" label={t("staff")} rules={[{ required: true, message: t("staffRequired") }]}>
             <ClearableSelect
@@ -371,10 +382,24 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
               clearable={false}
               placeholder={t("stageRequired")}
               // Show-up tự chuyển theo Clinic confirmation — chỉ hiện khi khách đang ở Show-up.
-              options={tagOptions(stages.filter((o) => o.value !== SHOW_UP_STAGE || o.value === existing?.stage))}
+              // Chữ thường, không tag màu.
+              options={stages
+                .filter((o) => o.value !== SHOW_UP_STAGE || o.value === existing?.stage)
+                .map((o) => ({ value: o.value, label: optionLabel(o, locale) }))}
               ariaLabel={t("stage")}
             />
           </Form.Item>
+          {showAppointment && (
+            <>
+              <Form.Item name="scheduled_at" label={ta("date")} trigger="onSave"
+                rules={[{ required: needAppointment, message: ta("chooseDate") }]}>
+                <AppointmentDate className="w-full" onSave={() => {}} />
+              </Form.Item>
+              <Form.Item name="service_categories" label={ta("serviceCategories")}>
+                <Select mode="multiple" allowClear placeholder={ta("choose")} options={SERVICE_CATEGORY_OPTIONS} />
+              </Form.Item>
+            </>
+          )}
           {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
           <Form.Item name="deposit_amount" label={t("deposit")}>
             <InputNumber<number>
@@ -394,27 +419,12 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
             <ImageUpload paste label={t("uploadImage")} className="aspect-auto h-20 w-full" />
           </Form.Item>
         </div>
-        {showAppointment && (
-          <div className="grid grid-cols-2 gap-x-3">
-            <Form.Item name="scheduled_at" label={ta("date")} trigger="onSave"
-              rules={[{ required: needAppointment, message: ta("chooseDate") }]}>
-              <AppointmentDate className="w-full" onSave={() => {}} />
-            </Form.Item>
-            <Form.Item name="service_categories" label={ta("serviceCategories")}>
-              <Select mode="multiple" allowClear placeholder={ta("choose")} options={SERVICE_CATEGORY_OPTIONS} />
-            </Form.Item>
-          </div>
-        )}
         <Form.Item
           name="note"
           label={t("note")}
           rules={[{ max: 1000, message: t("noteTooLong") }]}
         >
           <Input.TextArea rows={2} placeholder={t("noteOptional")} />
-        </Form.Item>
-        {/* Khu vực để cuối form. Tỉnh + Huyện/TP trên 1 hàng 2 cột. */}
-        <Form.Item name="region_code" label={t("region")}>
-          <RegionSelect provinceLabel={t("province")} cityLabel={t("city")} />
         </Form.Item>
         {embedded && showLog && (
           <Form.Item label={t("log")}>
