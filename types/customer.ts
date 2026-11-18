@@ -1,5 +1,5 @@
 // Danh mục khách hàng cố định trong code (lib/customer-options.ts).
-export const ENUM_KINDS = ["stage", "source", "rating"] as const;
+export const ENUM_KINDS = ["stage", "source", "rating", "potential_status"] as const;
 export type EnumKind = (typeof ENUM_KINDS)[number];
 
 /** Một giá trị danh mục (stage/source/rating) — định nghĩa trong `CUSTOMER_OPTIONS`. */
@@ -84,6 +84,10 @@ export interface Customer {
   region_code: string | null; // mã vùng Kemendagri: tỉnh "31" | huyện/TP "31.71"
   address_detail: string | null; // địa chỉ chi tiết (text tự do)
   notes: CustomerNote[];
+  /** Trang Khách tiềm năng: tình trạng (CUSTOMER_OPTIONS kind "potential_status"). */
+  potential_status?: string | null;
+  /** Ngày giờ liên hệ lại (ISO) — tới giờ báo Telesales. */
+  follow_up_at?: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

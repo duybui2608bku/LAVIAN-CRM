@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { Button, Drawer, Dropdown, Layout, Menu, Segmented, Switch, type MenuProps } from "antd";
 import {
   BellRing,
+  Sparkles,
   BookOpen,
   Briefcase,
   CalendarCheck,
@@ -59,6 +60,7 @@ const ITEMS = [
     icon: Users,
     perm: "customers.view",
     children: [
+      { key: "potential", href: "/customers/potential", icon: Sparkles, perm: "customers.view" },
       { key: "bookings", href: "/customers/bookings", icon: CalendarCheck, perm: "customers.view" },
       { key: "reminders", href: "/customers/reminders", icon: BellRing, perm: "customers.view" },
       { key: "smaxReport", href: "/customers/smax-report", icon: Inbox, perm: "customers.view" },
@@ -129,7 +131,7 @@ export function AppShell({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const openProfile = () => setProfileOpen(true);
-  const notifications = useNotifications(REMINDERS_ENABLED ? userId : null);
+  const notifications = useNotifications(userId);
 
   const toggle = () => {
     setCollapsed(!collapsed);
@@ -247,7 +249,7 @@ export function AppShell({
             onClick={toggle}
           />
           <div className="ms-auto flex items-center gap-1">
-            {REMINDERS_ENABLED && <NotificationBell state={notifications} />}
+            <NotificationBell state={notifications} />
             <AccountMenu userName={userName} avatarUrl={avatarUrl} onProfile={openProfile} />
           </div>
         </header>
@@ -259,7 +261,9 @@ export function AppShell({
               {logo}
               {brand}
             </Link>
-            <span className="ms-auto">{REMINDERS_ENABLED && <NotificationBell state={notifications} />}</span>
+            <span className="ms-auto">
+              <NotificationBell state={notifications} />
+            </span>
             <button
               type="button"
               aria-label={t("common.account")}

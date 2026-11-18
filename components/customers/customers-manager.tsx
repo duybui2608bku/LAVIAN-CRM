@@ -426,23 +426,7 @@ export function CustomersManager({
       title: t("colSource"),
       key: "source",
       width: 170,
-      // Chỉ xem — icon nguồn + số WA nhận tin (WhatsApp) hoặc username IG (Instagram).
-      render: (_, c) => {
-        const wa = waNumber(c.thread?.link);
-        const ig = c.instagram_username;
-        return (
-          <div className="flex items-center gap-1.5">
-            <SourceIcon source={c.source} />
-            {wa ? (
-              <Tag color={waColor(wa)} className="me-0">{wa}</Tag>
-            ) : ig ? (
-              <a href={`https://www.instagram.com/${ig}`} target="_blank" rel="noreferrer" className="truncate">
-                {ig}
-              </a>
-            ) : null}
-          </div>
-        );
-      },
+      render: (_, c) => <SourceCell customer={c} />,
     },
     ...(
       [
@@ -621,6 +605,24 @@ export function CustomersManager({
 }
 
 
+/** Ô Nguồn (chỉ xem): icon nguồn + số WA nhận tin (WhatsApp) hoặc username IG (Instagram). */
+export function SourceCell({ customer: c }: { customer: Customer }) {
+  const wa = waNumber(c.thread?.link);
+  const ig = c.instagram_username;
+  return (
+    <div className="flex items-center gap-1.5">
+      <SourceIcon source={c.source} />
+      {wa ? (
+        <Tag color={waColor(wa)} className="me-0">{wa}</Tag>
+      ) : ig ? (
+        <a href={`https://www.instagram.com/${ig}`} target="_blank" rel="noreferrer" className="truncate">
+          {ig}
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 /** Nội dung tooltip: ghi chú gần nhất (người ghi · thời gian + nội dung). */
 function NotePreview({ note }: { note: Customer["notes"][number] }) {
   return (
@@ -635,7 +637,7 @@ function NotePreview({ note }: { note: Customer["notes"][number] }) {
 }
 
 /** Modal ghi chú của 1 khách: thêm ghi chú mới ở trên, lịch sử bên dưới. */
-function NotesModal({
+export function NotesModal({
   customer,
   avatarOf,
   onClose,

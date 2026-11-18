@@ -7,7 +7,7 @@ import { REMINDERS_ENABLED } from "@/lib/reminders";
 import type { Reminder } from "@/types/reminder";
 import { CUSTOMER_OPTIONS, instagramUsername } from "@/lib/customer-options";
 
-const CUSTOMER_LIST_FIELDS =
+export const CUSTOMER_LIST_FIELDS =
   "id, smax_customer_id, full_name, phone, social_name, picture, thread, source, stage, " +
   "staff_id, sales_id, technician_id, first_contact, notes, created_at, updated_at, deleted_at, deposit_amount, payment_confirm_url, region_code, address_detail, rating, " +
   "instagram_username:smax_data->customer->instagram->>username";

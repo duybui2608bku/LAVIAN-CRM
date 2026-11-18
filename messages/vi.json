@@ -194,7 +194,8 @@
     "bookings": "Quản lý Booking",
     "smaxReport": "Báo cáo Smax",
     "documents": "Tài liệu",
-    "reminders": "Lịch nhắc hẹn"
+    "reminders": "Lịch nhắc hẹn",
+    "potential": "Khách tiềm năng"
   },
   "theme": {
     "toggle": "Chuyển giao diện sáng/tối"
@@ -774,5 +775,34 @@
     "noTelesales": "Khách chưa có Telesales phụ trách nên lịch nhắc này sẽ không gửi thông báo cho ai.",
     "notePlaceholder": "Ghi chú (không bắt buộc)",
     "notifyTo": "Thông báo cho"
+  },
+  "potential": {
+    "title": "Khách hàng tiềm năng",
+    "description": "Quản lý khách hàng chưa Booking",
+    "kpiTotal": "Tổng khách tiềm năng",
+    "kpiOverdue": "Quá hạn liên hệ",
+    "kpiToday": "Cần liên hệ hôm nay",
+    "kpiConverted": "Chuyển đổi booking hôm nay",
+    "searchPlaceholder": "Tìm tên, SĐT, ghi chú…",
+    "allTele": "Tất cả Tele",
+    "allStatus": "Tất cả tình trạng",
+    "tab": {
+      "all": "Tất cả",
+      "overdue": "Quá hạn",
+      "today": "Hôm nay",
+      "upcoming": "Sắp tới"
+    },
+    "colCustomer": "Khách hàng",
+    "colTele": "Tele",
+    "colStatus": "Tình trạng",
+    "colFollowUp": "Ngày giờ liên hệ lại",
+    "followUps": "{n} lần follow-up",
+    "empty": "Không có khách tiềm năng nào",
+    "convertedOk": "Đã chuyển khách sang Booking",
+    "notify": {
+      "due": "Tới giờ liên hệ lại {customer} ({time})",
+      "digestToday": "Hôm nay {n} khách cần liên hệ",
+      "digestOverdue": "{n} khách quá hạn liên hệ"
+    }
   }
 }

@@ -1,0 +1,46 @@
+import type { AppointmentStaff } from "@/components/appointments/appointments-manager";
+import { PotentialManager } from "@/components/customers/potential-manager";
+import { CUSTOMER_OPTIONS, instagramUsername, POTENTIAL_STAGE } from "@/lib/customer-options";
+import { createClient } from "@/lib/supabase/server";
+import type { Customer } from "@/types/customer";
+
+import { CUSTOMER_LIST_FIELDS } from "../customers-view";
+
+// Khách tiềm năng: chỉ khách stage Potential + số khách chuyển đổi sang Booking hôm nay (giờ VN).
+export default async function PotentialCustomersPage() {
+  const supabase = await createClient();
+  const todayVN = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  const startOfToday = new Date(`${todayVN}T00:00:00+07:00`).toISOString();
+
+  const [customersRes, staffRes, convertedRes] = await Promise.all([
+    supabase
+      .from("customers")
+      .select(`${CUSTOMER_LIST_FIELDS}, potential_status, follow_up_at`)
+      .eq("stage", POTENTIAL_STAGE)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("id, user_name, avatar_url, department, status")
+      .order("user_name", { ascending: true }),
+    supabase
+      .from("customers")
+      .select("id", { count: "exact", head: true })
+      .gte("converted_at", startOfToday)
+      .is("deleted_at", null),
+  ]);
+
+  const customers = ((customersRes.data ?? []) as unknown as Customer[]).map((c) => ({
+    ...c,
+    instagram_username: instagramUsername(c.instagram_username),
+  }));
+
+  return (
+    <PotentialManager
+      customers={customers}
+      staff={(staffRes.data as AppointmentStaff[]) ?? []}
+      options={CUSTOMER_OPTIONS}
+      convertedToday={convertedRes.count ?? 0}
+    />
+  );
+}

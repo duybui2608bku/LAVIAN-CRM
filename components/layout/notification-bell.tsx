@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Empty, Popover } from "antd";
 import dayjs from "dayjs";
-import { Bell, BellRing, CalendarClock } from "lucide-react";
+import { Bell, BellRing, CalendarClock, PhoneCall } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { createClient } from "@/lib/supabase/client";
@@ -75,6 +75,7 @@ export type NotificationsState = ReturnType<typeof useNotifications>;
 export function NotificationBell({ state }: { state: NotificationsState }) {
   const t = useTranslations("common");
   const tr = useTranslations("reminders.notify");
+  const tp = useTranslations("potential.notify");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const { items, unread, markAllRead, clearUnread } = state;
@@ -87,6 +88,19 @@ export function NotificationBell({ state }: { state: NotificationsState }) {
       return [today ? tr("digestToday", { n: today }) : null, overdue ? tr("digestOverdue", { n: overdue }) : null]
         .filter(Boolean)
         .join(" · ");
+    }
+    if (n.kind === "follow_up_digest") {
+      const today = Number(d.today ?? 0);
+      const overdue = Number(d.overdue ?? 0);
+      return [today ? tp("digestToday", { n: today }) : null, overdue ? tp("digestOverdue", { n: overdue }) : null]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    if (n.kind === "follow_up_due") {
+      return tp("due", {
+        customer: String(d.customer ?? "—"),
+        time: d.follow_up_at ? dayjs(String(d.follow_up_at)).format("DD-MM HH:mm") : "—",
+      });
     }
     if (n.kind === "reminder_assigned") {
       return tr("assigned", {
@@ -117,7 +131,7 @@ export function NotificationBell({ state }: { state: NotificationsState }) {
           {items.length ? (
             <ul className="m-0 list-none p-0">
               {items.map((n) => {
-                const Icon = n.kind === "reminder_digest" ? BellRing : CalendarClock;
+                const Icon = n.kind.endsWith("_digest") ? BellRing : n.kind === "follow_up_due" ? PhoneCall : CalendarClock;
                 return (
                   <li key={n.id}>
                     <button
