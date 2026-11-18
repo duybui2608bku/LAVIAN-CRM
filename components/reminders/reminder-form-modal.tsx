@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Form, Input, Modal, Select } from "antd";
+import { Alert, Form, Input, Modal } from "antd";
 import { useTranslations } from "next-intl";
 
 import { createReminder, updateReminder } from "@/app/(app)/customers/reminders/actions";
@@ -11,14 +11,17 @@ import { toast } from "@/lib/toast";
 import type { Reminder, ReminderInput } from "@/types/reminder";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
-/** Người phụ trách: Telesales đang hoạt động + người đang gán (đổi bộ phận vẫn hiện). */
-export const assigneeOptions = (staff: StaffRef[], current?: string | null) =>
+/** Telesales đang hoạt động — option lọc nhân viên ở trang calendar. */
+export const telesalesOptions = (staff: StaffRef[]) =>
   staff
-    .filter(
-      (s) =>
-        (s.status !== "banned" && TELESALES_DEPARTMENTS.includes(s.department ?? "")) || s.id === current,
-    )
-    .map((s) => ({ value: s.id, label: staffLabel(s), search: s.user_name }));
+    .filter((s) => s.status !== "banned" && TELESALES_DEPARTMENTS.includes(s.department ?? ""))
+    .map((s) => ({ value: s.id, label: staffLabel(s) }));
+
+/** Telesales phụ trách khách — người duy nhất nhận thông báo (khớp điều kiện trong DB). */
+export const customerTelesales = (staff: StaffRef[], staffId: string | null | undefined) => {
+  const s = staffId ? staff.find((x) => x.id === staffId) : undefined;
+  return s && s.status !== "banned" && TELESALES_DEPARTMENTS.includes(s.department ?? "") ? s : undefined;
+};
 
 /**
  * Modal thêm/sửa lịch nhắc. `editing` = sửa; không thì tạo mới cho `customerId` với `defaults`.
@@ -28,6 +31,7 @@ export function ReminderFormModal({
   open,
   customerId,
   customerName,
+  customerStaffId,
   editing,
   defaults,
   staff,
@@ -36,6 +40,8 @@ export function ReminderFormModal({
   open: boolean;
   customerId: string;
   customerName: string;
+  /** Telesales phụ trách khách (customers.staff_id) — hiện để biết ai nhận thông báo. */
+  customerStaffId: string | null;
   editing?: Reminder | null;
   defaults: ReminderInput;
   staff: StaffRef[];
@@ -45,8 +51,9 @@ export function ReminderFormModal({
   const tc = useTranslations("common");
   const [form] = Form.useForm<ReminderInput>();
   const [pending, start] = useTransition();
+  const telesales = customerTelesales(staff, customerStaffId);
   const initial: ReminderInput = editing
-    ? { remind_at: editing.remind_at, assignee_id: editing.assignee_id, note: editing.note }
+    ? { remind_at: editing.remind_at, note: editing.note }
     : defaults;
 
   const submit = (values: ReminderInput) =>
@@ -82,15 +89,12 @@ export function ReminderFormModal({
           >
             <AppointmentDate className="w-full" onSave={() => {}} />
           </Form.Item>
-          <Form.Item name="assignee_id" label={t("assignee")}>
-            <Select
-              allowClear
-              showSearch={{ optionFilterProp: "search" }}
-              placeholder={t("unassigned")}
-              options={assigneeOptions(staff, editing?.assignee_id ?? defaults.assignee_id)}
-            />
+          {/* Không chọn tay: thông báo chỉ gửi Telesales phụ trách khách (đổi ở cột Nhân viên). */}
+          <Form.Item label={t("assignee")} tooltip={t("assigneeHint")}>
+            <div className="flex h-8 items-center">{telesales ? staffLabel(telesales) : "—"}</div>
           </Form.Item>
         </div>
+        {!telesales && <Alert type="warning" showIcon className="mb-4" message={t("noTelesales")} />}
         <Form.Item name="note" label={t("note")} extra={t("noteHint")} className="mb-0">
           <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={5000} />
         </Form.Item>

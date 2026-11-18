@@ -37,7 +37,7 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
     supabase.from("services").select("*").order("sort_order", { ascending: true }),
     // Booking management: lịch nhắc hẹn cho cột Nhắc hẹn (trang /customers không dùng).
     stages
-      ? supabase.from("customer_reminders").select("id, customer_id, assignee_id, remind_at, note, done_at, created_by, created_at")
+      ? supabase.from("customer_reminders").select("id, customer_id, remind_at, note, done_at, created_by, created_at")
       : null,
   ]);
 

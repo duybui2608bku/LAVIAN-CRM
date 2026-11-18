@@ -10,7 +10,7 @@ import { ClearableSelect } from "@/components/common/clearable-select";
 import { useCan, useCurrentUserId } from "@/components/common/permissions";
 import type { StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { ReminderFormModal, assigneeOptions } from "@/components/reminders/reminder-form-modal";
+import { ReminderFormModal, telesalesOptions } from "@/components/reminders/reminder-form-modal";
 import { ReminderItem } from "@/components/reminders/reminder-item";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { reminderState } from "@/lib/reminders";
@@ -53,8 +53,9 @@ export function RemindersCalendar({
   const [now] = useState(() => Date.now());
 
   const [selected, setSelected] = useState(() => dayjs(initialDate ?? undefined));
-  // Mặc định "Của tôi" nếu mình có lịch nhắc được giao; không thì xem tất cả.
-  const [assignee, setAssignee] = useState(() => (me && reminders.some((r) => r.assignee_id === me) ? me : ""));
+  // Lọc theo Telesales phụ trách khách. Mặc định "Của tôi" nếu mình phụ trách khách có lịch nhắc.
+  const ownerOf = (r: ReminderWithCustomer) => r.customer?.staff_id ?? null;
+  const [assignee, setAssignee] = useState(() => (me && reminders.some((r) => ownerOf(r) === me) ? me : ""));
   const [status, setStatus] = useState<Status>("");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<ReminderWithCustomer | null>(null);
@@ -62,7 +63,7 @@ export function RemindersCalendar({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return reminders.filter((r) => {
-      if (assignee && r.assignee_id !== assignee) return false;
+      if (assignee && ownerOf(r) !== assignee) return false;
       const s = reminderState(r, now);
       if (status === "pending" && s === "done") return false;
       if (status === "overdue" && s !== "overdue") return false;
@@ -89,7 +90,7 @@ export function RemindersCalendar({
     let today = 0;
     let overdue = 0;
     for (const r of reminders) {
-      if (assignee && r.assignee_id !== assignee) continue;
+      if (assignee && ownerOf(r) !== assignee) continue;
       const s = reminderState(r, now);
       if (s === "overdue") overdue++;
       else if (s === "today") today++;
@@ -164,7 +165,7 @@ export function RemindersCalendar({
           onChange={setAssignee}
           options={[
             ...(me ? [{ value: me, label: t("mine") }] : []),
-            ...assigneeOptions(staff).filter((o) => o.value !== me),
+            ...telesalesOptions(staff).filter((o) => o.value !== me),
           ]}
           placeholder={t("allStaff")}
           ariaLabel={t("assignee")}
@@ -246,6 +247,7 @@ export function RemindersCalendar({
           open
           customerId={editing.customer_id}
           customerName={editing.customer?.full_name ?? ""}
+          customerStaffId={editing.customer?.staff_id ?? null}
           editing={editing}
           defaults={editing}
           staff={staff}

@@ -19,7 +19,6 @@ function clean(input: ReminderInput): ReminderInput {
   if (!input.remind_at || Number.isNaN(Date.parse(input.remind_at))) throw new Error("Missing date");
   return {
     remind_at: new Date(input.remind_at).toISOString(),
-    assignee_id: input.assignee_id || null,
     note: (input.note ?? "").trim().slice(0, 5000),
   };
 }

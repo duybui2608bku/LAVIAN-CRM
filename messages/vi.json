@@ -728,8 +728,8 @@
     "editTitle": "Sửa nhắc hẹn",
     "remindAt": "Thời điểm nhắc",
     "chooseDate": "Chọn thời điểm nhắc",
-    "assignee": "Người phụ trách",
-    "unassigned": "Chưa giao",
+    "assignee": "Telesales phụ trách",
+    "unassigned": "Chưa có Telesales",
     "note": "Tin nhắn gửi khách",
     "noteHint": "Bấm nút sao chép ở lịch nhắc để dán vào hội thoại.",
     "defaultMessage": "Chào {name}, Lavian xin nhắc lịch hẹn của bạn lúc {time}. Hẹn gặp bạn tại cơ sở!",
@@ -746,8 +746,8 @@
     "delete": "Xoá",
     "deleteConfirm": "Xoá lịch nhắc này?",
     "today": "Hôm nay",
-    "mine": "Của tôi",
-    "allStaff": "Tất cả nhân viên",
+    "mine": "Khách của tôi",
+    "allStaff": "Mọi Telesales",
     "statusLabel": "Trạng thái",
     "searchPlaceholder": "Tìm tên / SĐT khách",
     "more": "+{n} lịch nữa",
@@ -768,7 +768,9 @@
     "notify": {
       "digestToday": "Hôm nay bạn có {n} lịch nhắc hẹn",
       "digestOverdue": "{n} lịch quá hạn",
-      "assigned": "{by} giao bạn nhắc khách {customer} lúc {time}"
-    }
+      "assigned": "{by} tạo lịch nhắc cho khách {customer} của bạn lúc {time}"
+    },
+    "assigneeHint": "Chỉ Telesales phụ trách khách nhận thông báo. Đổi ở cột Nhân viên của khách.",
+    "noTelesales": "Khách chưa có Telesales phụ trách nên lịch nhắc này sẽ không gửi thông báo cho ai."
   }
 }

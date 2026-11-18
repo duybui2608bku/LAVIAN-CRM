@@ -14,8 +14,8 @@ export default async function RemindersPage({ searchParams }: { searchParams: Pr
       supabase
         .from("customer_reminders")
         .select(
-          "id, customer_id, assignee_id, remind_at, note, done_at, created_by, created_at, " +
-            "customer:customers(id, full_name, phone, thread)",
+          "id, customer_id, remind_at, note, done_at, created_by, created_at, " +
+            "customer:customers(id, full_name, phone, thread, staff_id)",
         )
         .order("remind_at", { ascending: true })
         .range(from, to) as unknown as PromiseLike<{ data: ReminderWithCustomer[] | null; error: { message: string } | null }>,

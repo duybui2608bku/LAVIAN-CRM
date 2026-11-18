@@ -17,4 +17,5 @@
 ## 5. Kiểm chứng
 - [x] 5.1 i18n vi/en (repo chỉ còn 2 locale), tsc + eslint + test
 - [x] 5.2 Chạy migration trên Supabase
-- [ ] 5.3 Xem tay
+- [x] 5.3 Siết người nhận thông báo = Telesales của khách (migration `20261118100000`, đã chạy + thử rollback)
+- [ ] 5.4 Xem tay

@@ -9,6 +9,7 @@ import { Copy, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { deleteReminder, setReminderDone } from "@/app/(app)/customers/reminders/actions";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { customerTelesales } from "@/components/reminders/reminder-form-modal";
 import { REMINDER_COLORS, reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,7 @@ export function ReminderItem({
   const t = useTranslations("reminders");
   const [pending, start] = useTransition();
   const state = reminderState(r, now);
-  const assignee = r.assignee_id ? staff.find((s) => s.id === r.assignee_id) : undefined;
+  const assignee = customerTelesales(staff, customer?.staff_id);
   const link = customer?.thread?.link;
 
   const act = (fn: () => Promise<{ error?: string }>) =>

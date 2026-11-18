@@ -12,15 +12,13 @@ import { ReminderItem } from "@/components/reminders/reminder-item";
 import { suggestRemindAt } from "@/lib/reminders";
 import type { Reminder, ReminderCustomer, ReminderInput } from "@/types/reminder";
 
-export type ReminderTarget = ReminderCustomer & { staff_id: string | null };
+export type ReminderTarget = ReminderCustomer;
 
 /** Tin nhắn mẫu: có lịch hẹn sắp tới thì kèm giờ hẹn. */
 export function useDefaultReminder() {
   const t = useTranslations("reminders");
-  return (customer: ReminderTarget, me: string | null, appointmentAt: string | undefined, now: number): ReminderInput => ({
+  return (customer: ReminderTarget, appointmentAt: string | undefined, now: number): ReminderInput => ({
     remind_at: suggestRemindAt(appointmentAt, now),
-    // Mặc định giao CSKH của khách; khách chưa có CSKH → chính mình.
-    assignee_id: customer.staff_id ?? me,
     note:
       appointmentAt && Date.parse(appointmentAt) > now
         ? t("defaultMessage", { name: customer.full_name, time: dayjs(appointmentAt).format("HH:mm DD-MM-YYYY") })
@@ -33,7 +31,6 @@ export function CustomerRemindersDrawer({
   customer,
   reminders,
   staff,
-  me,
   appointmentAt,
   now,
   canEdit,
@@ -42,7 +39,6 @@ export function CustomerRemindersDrawer({
   customer: ReminderTarget | null;
   reminders: Reminder[];
   staff: StaffRef[];
-  me: string | null;
   /** Lịch hẹn sắp tới của khách — gợi ý giờ nhắc + tin nhắn mẫu. */
   appointmentAt?: string;
   now: number;
@@ -98,8 +94,9 @@ export function CustomerRemindersDrawer({
           open
           customerId={customer.id}
           customerName={customer.full_name}
+          customerStaffId={customer.staff_id}
           editing={editing === "new" ? null : editing}
-          defaults={defaultFor(customer, me, appointmentAt, now)}
+          defaults={defaultFor(customer, appointmentAt, now)}
           staff={staff}
           onClose={() => setEditing(null)}
         />

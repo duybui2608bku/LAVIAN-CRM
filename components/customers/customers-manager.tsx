@@ -33,7 +33,7 @@ import {
 } from "@/app/(app)/customers/actions";
 import { CreateAppointmentDrawer, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
-import { useCan, useCurrentUserId } from "@/components/common/permissions";
+import { useCan } from "@/components/common/permissions";
 import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
 import { DataTable } from "@/components/common/data-table";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
@@ -147,7 +147,6 @@ export function CustomersManager({
   const [apptFor, setApptFor] = useState<Customer | null>(null);
   const [createFor, setCreateFor] = useState<string | null>(null); // id khách đang tạo lịch hẹn
   const [remindersFor, setRemindersFor] = useState<string | null>(null); // id khách đang mở drawer nhắc hẹn
-  const me = useCurrentUserId();
   const [page, setPage] = useState(1);
 
   // Sửa inline hiện ngay, không chờ server. React tự trả về dữ liệu server khi
@@ -609,7 +608,6 @@ export function CustomersManager({
             customer={c}
             reminders={c ? remindersOf.get(c.id) ?? [] : []}
             staff={staff}
-            me={me}
             appointmentAt={c ? upcomingAppt(c.id) : undefined}
             now={now}
             canEdit={canEdit}
