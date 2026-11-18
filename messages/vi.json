@@ -4,6 +4,7 @@
     "create": "Thêm lịch hẹn",
     "name": "Tên khách hàng",
     "phone": "Số điện thoại",
+    "source": "Nguồn",
     "date": "Ngày giờ hẹn",
     "bookingConfirm": "Xác nhận lịch",
     "allBookingConfirms": "Tất cả xác nhận lịch",

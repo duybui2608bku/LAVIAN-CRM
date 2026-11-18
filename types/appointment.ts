@@ -33,6 +33,7 @@ export type AppointmentCustomer = {
   source: string | null;
   staff_id?: string | null; // CSKH của khách — mặc định cho lịch hẹn mới
   thread_link?: string | null; // link hội thoại SMAX (customers.thread->>link)
+  instagram_username?: string | null; // username IG (smax_data->customer->instagram->>username) — cột Nguồn
 };
 
 /** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`). */

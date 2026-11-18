@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-18 — Lịch hẹn: thêm cột Nguồn
+- **Thay đổi:** `/appointments` thêm cột **Nguồn** (sau Tên khách) dùng chung `SourceCell` như Booking management / Khách hàng (icon WA/IG + số WA nhận tin hoặc username IG). Page query thêm `instagram_username:smax_data->customer->instagram->>username` (lọc qua `instagramUsername()`); `AppointmentCustomer` có thêm `instagram_username?`. i18n `appointments.source` (vi/en). `scroll.x` 1900 → 2050.
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`, `app/(app)/appointments/page.tsx`, `types/appointment.ts`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** chưa xem trên trình duyệt. `appointments-manager` ↔ `customers-manager` import lẫn nhau (chỉ dùng lúc render, như bookings-manager).
+
 ### 2026-11-18 — Lịch hẹn: cột Ngày hiển thị giờ trên, ngày dưới
 - **Thay đổi:** cột Ngày ở `/appointments` hiển thị giống cột lịch Booking management: `AppointmentDate inline format="HH:mm"` (giờ, bấm để sửa) + dòng `DD/MM/YYYY` nhỏ màu muted bên dưới. Cột 220 → 130px, `scroll.x` 1990 → 1900.
 - **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.

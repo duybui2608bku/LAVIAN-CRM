@@ -14,6 +14,7 @@ import { DateRangePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
 import { useCan } from "@/components/common/permissions";
+import { SourceCell } from "@/components/customers/customers-manager";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { matchesNameOrPhone, serviceName } from "@/lib/customers";
@@ -21,6 +22,7 @@ import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { BOOKING_STATUSES, BOOKING_STATUS_COLORS, type Appointment, type AppointmentCustomer, type AppointmentPatch } from "@/types/appointment";
 import { SERVICE_CATEGORY_COLORS, SERVICE_CATEGORY_LABELS, SERVICE_CATEGORY_OPTIONS, type Service, type ServiceCategory } from "@/types/service";
+import type { Customer } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
@@ -95,6 +97,11 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       const customer = customerMap.get(row.customer_id);
       return <NamePhone name={customer?.full_name} phone={customer?.phone} />;
     } },
+    // Nguồn: icon + số WA nhận tin / username IG — giống Booking management & Khách hàng.
+    { title: t("source"), width: 150, render: (_, row) => {
+      const c = customerMap.get(row.customer_id);
+      return c ? <SourceCell customer={{ ...c, thread: c.thread_link ? { link: c.thread_link } : null } as unknown as Customer} /> : null;
+    } },
     // Thay cột Số WA: icon mở modal 20 tin SMAX gần nhất (khách chưa có hội thoại → "—").
     { title: t("messages"), width: 100, align: "center", render: (_, row) => {
       const customer = customerMap.get(row.customer_id);
@@ -163,7 +170,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
         options={[{ value: "all", label: t("allBookingConfirms") }, ...statusOptions]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
     </PageToolbar>
-    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1900 }} empty={t("empty")}
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2050 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}
