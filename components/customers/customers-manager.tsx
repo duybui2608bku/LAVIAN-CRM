@@ -36,6 +36,7 @@ import { ClearableSelect, type SelectOption } from "@/components/common/clearabl
 import { useCan } from "@/components/common/permissions";
 import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
 import { DataTable } from "@/components/common/data-table";
+import { NamePhone } from "@/components/common/name-phone";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
 import { CustomerRemindersPopover } from "@/components/reminders/customer-reminders-popover";
@@ -268,20 +269,20 @@ export function CustomersManager({
       render: (_, c) => (
         // Hover ô tên → hiện nút mở drawer sửa (thay cột Thao tác). Cảm ứng: luôn hiện.
         <div className="group flex items-center gap-1">
-          {/* Có hội thoại SMAX → tên chính là link mở hội thoại. */}
-          {c.thread?.link ? (
-            <a
-              href={c.thread.link}
-              target="_blank"
-              rel="noreferrer"
-              title={t("openThread")}
-              className="font-medium"
-            >
-              {c.full_name}
-            </a>
-          ) : (
-            <span className="font-medium">{c.full_name}</span>
-          )}
+          {/* Gộp Tên + SĐT; có hội thoại SMAX → tên chính là link mở hội thoại. */}
+          <NamePhone
+            phone={c.phone}
+            title={c.full_name}
+            name={
+              c.thread?.link ? (
+                <a href={c.thread.link} target="_blank" rel="noreferrer" title={t("openThread")}>
+                  {c.full_name}
+                </a>
+              ) : (
+                c.full_name
+              )
+            }
+          />
           {canEdit && (
             <Button
               type="text"
@@ -296,7 +297,6 @@ export function CustomersManager({
         </div>
       ),
     },
-    { title: t("colPhone"), dataIndex: "phone" },
     {
       title: t("colStage"),
       dataIndex: "stage",

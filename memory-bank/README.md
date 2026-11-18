@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-18 — Gộp cột Tên + SĐT ở mọi bảng
+- **Thay đổi:** OpenSpec `merge-name-phone-column`. Component dùng chung `NamePhone` (`components/common/name-phone.tsx`): tên đậm 1 dòng (cắt "…", hover ra tên), SĐT `text-xs` màu phụ ngay dưới, `leading-tight` để hàng không cao thêm nhiều. `/customers` (mọi trang dùng `CustomersManager`) và `/appointments` bỏ cột SĐT riêng, gộp vào cột tên (giữ link hội thoại SMAX + nút mở drawer sửa); `/tour` đổi sang `NamePhone` cho đồng nhất. Giữ tiêu đề cột cũ, không thêm i18n. `/appointments` scroll x 1950 → 1790. Không đụng danh sách nhắc hẹn / chi tiết tour (đã tên · SĐT 1 dòng) và dropdown chọn khách.
+- **File ảnh hưởng:** `components/common/name-phone.tsx` (mới), `components/customers/customers-manager.tsx`, `components/appointments/appointments-manager.tsx`, `components/tour/tour-view.tsx`, `openspec/changes/merge-name-phone-column/`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt; chưa commit.
+
 ### 2026-11-18 — Marketing: thêm cột Booking + Show up theo chiến dịch
 - **Thay đổi:** OpenSpec `marketing-booking-showup` (nhánh `claude/smax-ig-wa-merge`). `countPotential` giờ trả phễu `{ potential, booking, showUp }` cho mỗi chiến dịch / số WA / tổng (`FUNNEL_KEYS`, `Funnel`). Cùng tập người với KH tiềm năng (khách mới trong kỳ, gộp IG↔WA theo SĐT, 1 người = 1), cùng cách gán (IG theo ad_id, WA theo số trong tên chiến dịch): Booking = tag `booking`/`bookings-deposit`, Show up = tag `purchase` — xét tag hiện tại, không lọc thời điểm gắn tag. Bảng chiến dịch + danh sách mobile thêm 2 cột (hàm `funnelColumn` dùng chung tooltip WA chung số / lỗi). Card "KH tiềm năng" đọc `total.potential`.
 - **File ảnh hưởng:** `lib/smax-inbox.ts` (+ test), `components/marketing/ads-stats.tsx`, `messages/{vi,en}.json`, `openspec/changes/marketing-booking-showup/`.

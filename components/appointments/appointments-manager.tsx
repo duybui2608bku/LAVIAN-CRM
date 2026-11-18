@@ -9,6 +9,7 @@ import { createAppointment, patchAppointment } from "@/app/(app)/appointments/ac
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { MessagesModal } from "@/components/appointments/messages-modal";
 import { DataTable } from "@/components/common/data-table";
+import { NamePhone } from "@/components/common/name-phone";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
@@ -86,9 +87,10 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const columns: TableProps<Appointment>["columns"] = [
     { title: t("date"), width: 220, fixed: "left", sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
       render: (_, row) => <AppointmentDate inline disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
-    { title: t("name"), width: 180, fixed: "left", render: (_, row) =>
-      <span className="font-medium">{customerMap.get(row.customer_id)?.full_name}</span> },
-    { title: t("phone"), width: 160, render: (_, row) => customerMap.get(row.customer_id)?.phone },
+    { title: t("name"), width: 180, fixed: "left", render: (_, row) => {
+      const customer = customerMap.get(row.customer_id);
+      return <NamePhone name={customer?.full_name} phone={customer?.phone} />;
+    } },
     // Thay cột Số WA: icon mở modal 20 tin SMAX gần nhất (khách chưa có hội thoại → "—").
     { title: t("messages"), width: 100, align: "center", render: (_, row) => {
       const customer = customerMap.get(row.customer_id);
@@ -147,7 +149,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
         onClick={() => setCreating(true)}>{t("create")}</Button>}
     </PageToolbar>
-    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1950 }} empty={t("empty")}
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1790 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff} services={services}
