@@ -55,6 +55,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 - **File ảnh hưởng:** `components/lead-form/lead-form.tsx`, `openspec/changes/lead-form-remember-telesales/`.
 - **Còn dở / ghi chú:** tsc + eslint + 87 test sạch. Chưa test tay trong iframe Smax. Cookie ngôn ngữ `NEXT_LOCALE` (`sameSite: lax`, `i18n/actions.ts`) có thể không lưu được trong iframe Smax — chưa sửa. Không đổi DB.
 
+### 2026-11-18 — Booking management: khoá Stage, cột Lịch hẹn lên đầu
+- **Thay đổi:** OpenSpec `bookings-lock-stage-columns`, nhánh `claude/bookings-columns`. Chỉ trang `/customers/bookings` (`CustomersManager` có prop `stages`): ô Stage trên bảng `disabled`; drawer sửa khách nhận `lockStage` → khoá ô Stage và gửi lại `editing.stage` (tạo khách mới vẫn chọn được). Cột `appointment` lên đầu, cột Ngày tạo (thêm `key: "created"`) xuống cuối bằng sort ổn định. `/customers` giữ nguyên.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `openspec/changes/bookings-lock-stage-columns/`.
+- **Còn dở / ghi chú:** tsc + eslint sạch. Chưa xem trên trình duyệt. Chỉ khoá ở UI (server `updateCustomer` vẫn nhận stage). Không đổi DB.
+
 ### 2026-11-17 — Smax report: mọi tỉ lệ thẻ số chia cho Khách mới
 - **Thay đổi:** Nhánh `claude/smax-rates-new-customers`. Tỉ lệ Total Booking / New Booking / Showed up đều = số đó ÷ **Khách mới** (`conversations`). Trước đó Showed up chia cho Tổng Booking ra 200% (khách đến gồm cả khách booking từ trước kỳ). Tooltip `smaxReport.rate.*` cập nhật theo.
 - **File ảnh hưởng:** `components/customers/smax-report-view.tsx`, `messages/{vi,en}.json`.
