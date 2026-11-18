@@ -16,7 +16,7 @@ import { InlineSelect } from "@/components/common/inline-select";
 import { useCan } from "@/components/common/permissions";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel } from "@/components/common/user-avatar";
-import { NotesModal, SourceCell } from "@/components/customers/customers-manager";
+import { NotesDrawer, SourceCell } from "@/components/customers/customers-manager";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { CONVERTED_STATUS } from "@/lib/customer-options";
 import { matchesNameOrPhone, optionLabel } from "@/lib/customers";
@@ -86,8 +86,6 @@ export function PotentialManager({
     const s = id ? staff.find((x) => x.id === id) : undefined;
     return s ? staffLabel(s) : DASH;
   };
-  const avatarByName = (name: string | null | undefined) =>
-    name ? staff.find((s) => s.user_name === name)?.avatar_url : undefined;
 
   // Card số liệu tính trên toàn bộ khách tiềm năng (không theo bộ lọc).
   const counts = useMemo(() => {
@@ -305,9 +303,9 @@ export function PotentialManager({
 
       <DataTable columns={columns} dataSource={filtered} page={page} onPageChange={setPage} empty={t("empty")} />
 
-      <NotesModal
+      <NotesDrawer
         customer={rows.find((c) => c.id === notesFor) ?? null}
-        avatarOf={avatarByName}
+        staff={staff}
         onClose={() => setNotesFor(null)}
       />
 

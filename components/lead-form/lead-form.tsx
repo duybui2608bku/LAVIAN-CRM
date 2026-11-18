@@ -20,7 +20,7 @@ import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
-import { BOOKED_STAGE, BOOKING_PAGE_STAGES, SHOW_UP_STAGE } from "@/lib/customer-options";
+import { needsAppointment, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -150,10 +150,8 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
   const [form] = Form.useForm<Values>();
   const stage = Form.useWatch("stage", form);
   const isDeposited = stage === "deposited";
-  // Booking / Deposit → hiện ô lịch hẹn + dịch vụ; vừa ĐỔI sang Booking thì bắt buộc có lịch hẹn
-  // (khách đang Booking sẵn chỉ cập nhật thông tin thì không bắt tạo lịch mới).
-  const showAppointment = (BOOKING_PAGE_STAGES as readonly string[]).includes(stage ?? "");
-  const needAppointment = stage === BOOKED_STAGE && existing?.stage !== BOOKED_STAGE;
+  // Ô lịch hẹn + dịch vụ luôn hiện; bắt buộc khi vừa chọn Booking / Tiềm năng / Cân nhắc.
+  const needAppointment = needsAppointment(stage, existing?.stage);
 
   const smaxIdRef = useRef<string | null>(null);
   const [smaxMeta, setSmaxMeta] = useState<SmaxMeta>(EMPTY_META);
@@ -252,8 +250,8 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
       const res = await submitLead(
         {
           ...values,
-          // Có chọn ngày giờ → server tạo lịch hẹn kèm (bắt buộc khi vừa đổi sang Booking).
-          appointment: showAppointment && scheduled_at ? { scheduled_at, service_categories: service_categories ?? [] } : null,
+          // Có chọn ngày giờ → server tạo lịch hẹn kèm (bắt buộc khi vừa chọn Booking / Tiềm năng / Cân nhắc).
+          appointment: scheduled_at ? { scheduled_at, service_categories: service_categories ?? [] } : null,
           customer_id: customerId,
           ...smaxMeta,
         },
@@ -389,17 +387,14 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
               ariaLabel={t("stage")}
             />
           </Form.Item>
-          {showAppointment && (
-            <>
-              <Form.Item name="scheduled_at" label={ta("date")} trigger="onSave"
-                rules={[{ required: needAppointment, message: ta("chooseDate") }]}>
-                <AppointmentDate className="w-full" onSave={() => {}} />
-              </Form.Item>
-              <Form.Item name="service_categories" label={ta("serviceCategories")}>
-                <Select mode="multiple" allowClear placeholder={ta("choose")} options={SERVICE_CATEGORY_OPTIONS} />
-              </Form.Item>
-            </>
-          )}
+          {/* dependencies: đổi stage → kiểm tra lại (bỏ lỗi "chọn ngày" khi stage không còn bắt buộc). */}
+          <Form.Item name="scheduled_at" label={ta("date")} trigger="onSave" dependencies={["stage"]}
+            rules={[{ required: needAppointment, message: ta("chooseDate") }]}>
+            <AppointmentDate className="w-full" onSave={() => {}} />
+          </Form.Item>
+          <Form.Item name="service_categories" label={ta("serviceCategories")}>
+            <Select mode="multiple" allowClear placeholder={ta("choose")} options={SERVICE_CATEGORY_OPTIONS} />
+          </Form.Item>
           {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
           <Form.Item name="deposit_amount" label={t("deposit")}>
             <InputNumber<number>

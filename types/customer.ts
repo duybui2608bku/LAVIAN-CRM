@@ -23,6 +23,7 @@ export interface CustomerNote {
   text: string;
   at: string; // ISO timestamp
   by?: string | null; // tên người ghi (server stamp) — note cũ không có
+  by_id?: string | null; // id profile người ghi → tra tên/avatar hiện tại (note cũ không có)
 }
 
 /** Tag SMAX gắn cho khách — lưu nguyên mảng từ event `__SM_FORM_CUSTOMER`. */

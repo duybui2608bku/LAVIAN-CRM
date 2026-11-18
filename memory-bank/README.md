@@ -50,6 +50,16 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-18 — Lead form: luôn hiện Lịch hẹn, bắt buộc với Tiềm năng / Cân nhắc
+- **Thay đổi:** ô Ngày hẹn + Nhóm dịch vụ ở lead form **luôn hiện** (trước chỉ Booking/Deposited); server nhận lịch hẹn kèm ở mọi stage. Helper chung `needsAppointment(stage, currentStage)` (`lib/customer-options.ts`): bắt buộc lịch khi **vừa chọn** Booking / Tiềm năng / Cân nhắc (khách mới hoặc khách cũ đổi stage) — khách đang ở sẵn stage đó bấm Cập nhật thì không bắt tạo lịch mới (tránh lịch trùng). Ô ngày `dependencies={["stage"]}` để đổi stage là kiểm tra lại.
+- **File ảnh hưởng:** `components/lead-form/lead-form.tsx`, `app/lead-form/actions.ts`, `lib/customer-options.ts`.
+- **Còn dở / ghi chú:** chưa test trên trình duyệt. Khách Tiềm năng có lịch hẹn vẫn giữ stage Tiềm năng (không tự chuyển Booking).
+
+### 2026-11-18 — Ghi chú khách: Modal → Drawer + avatar/tên người ghi
+- **Thay đổi:** `NotesModal` → **`NotesDrawer`** (antd `Drawer` phải `size={480}`, dùng ở /customers + /customers/potential), mỗi note hiện avatar 32px + tên người ghi + thời gian, nội dung trong bubble. Note giờ server stamp thêm **`by_id`** (id profile) và `by` fallback email khi `user_name` rỗng (trước đó note có `by: ""` nên không hiện người tạo). Drawer tra người ghi theo `by_id` → `by` (tên) → tên thô; nhận prop `staff` thay cho `avatarOf`. Không đổi DB (jsonb).
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`, `app/(app)/customers/actions.ts`, `types/customer.ts`.
+- **Còn dở / ghi chú:** note cũ có `by: ""` và không có `by_id` vẫn hiện "—" (không suy ra được người ghi). Profile có `user_name` rỗng nên được admin điền tên.
+
 ### 2026-11-18 — Thu hẹp quyền Telesales / Sales
 - **Thay đổi:** Migration `20261118140000_restrict_telesales_sales_permissions.sql`: Telesales bỏ `appointments.view` (không vào /appointments) nhưng giữ `appointments.edit` (tạo / xác nhận lịch ở Khách hàng, Booking, Khách tiềm năng — cùng bảng `clinic_appointments` nên xác nhận ở Booking hiện luôn ở /appointments). Sales chỉ còn `appointments.view/edit/delete`. `normalizePermissions` không ép Xem cho module trong `EDIT_WITHOUT_VIEW` (= appointments) để admin chỉnh ở /users/permissions không tự bật lại Xem.
 - **File ảnh hưởng:** `supabase/migrations/20261118140000_restrict_telesales_sales_permissions.sql`, `lib/permissions.ts`, `lib/permissions.test.ts`.

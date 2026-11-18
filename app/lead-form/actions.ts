@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BOOKED_STAGE, BOOKING_PAGE_STAGES, isStage, leadSource } from "@/lib/customer-options";
+import { isStage, leadSource, needsAppointment } from "@/lib/customer-options";
 import { serviceCategoriesSchema } from "@/lib/appointments";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
@@ -21,7 +21,7 @@ const schema = z.object({
   // Tiền cọc (IDR, số nguyên) — chỉ lưu khi giai đoạn là "deposited".
   deposit_amount: z.number().int().min(0).max(1e12).nullable().catch(null),
   website: z.string(),
-  // Lịch hẹn kèm khi stage Booking / Deposit. Hỏng/thiếu → null (vừa đổi sang Booking thì báo thiếu lịch).
+  // Lịch hẹn kèm (mọi stage). Hỏng/thiếu → null (stage bắt buộc lịch thì báo thiếu).
   appointment: z
     .object({
       scheduled_at: z.iso.datetime({ offset: true }),
@@ -140,9 +140,9 @@ export async function submitLead(
     // Stage bắt buộc chọn (không còn mặc định "Khách mới").
     if (!isStage(d.stage)) return { error: "Vui lòng chọn trạng thái." };
     if (!d.staff_id) return { error: "Vui lòng chọn Telesales." };
-    // Booking / Deposit có thể kèm lịch hẹn; vừa đổi sang Booking (khách mới hoặc khách cũ chưa Booking) thì bắt buộc.
-    const appointment = (BOOKING_PAGE_STAGES as readonly string[]).includes(d.stage) ? d.appointment : null;
-    if (d.stage === BOOKED_STAGE && current?.stage !== BOOKED_STAGE && !appointment)
+    // Stage nào cũng có thể kèm lịch hẹn; vừa chọn Booking / Tiềm năng / Cân nhắc thì bắt buộc.
+    const appointment = d.appointment ?? null;
+    if (needsAppointment(d.stage, current?.stage) && !appointment)
       return { error: "Vui lòng chọn lịch hẹn." };
     const insertAppointment = (customerId: string) =>
       supabase.from("clinic_appointments").insert({

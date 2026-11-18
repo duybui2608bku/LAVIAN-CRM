@@ -70,7 +70,13 @@ export async function getCustomerAppointments(
 // Note mới do server stamp thời điểm + người ghi (không tin client).
 async function stampNote(text: string): Promise<CustomerNote> {
   const profile = await getCurrentProfile();
-  return { text, at: new Date().toISOString(), by: profile?.user_name ?? null };
+  return {
+    text,
+    at: new Date().toISOString(),
+    // user_name có thể rỗng → fallback email để vẫn biết ai ghi.
+    by: profile?.user_name || profile?.email || null,
+    by_id: profile?.id ?? null,
+  };
 }
 
 // Không gửi source: nguồn tự tính từ số WA (lead form), tạo tay → default DB 'instagrams'.
