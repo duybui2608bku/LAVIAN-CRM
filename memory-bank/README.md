@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-18 — Lead form: nhớ Telesales đã chọn trên máy
+- **Thay đổi:** OpenSpec `lead-form-remember-telesales`, nhánh `claude/lead-form-remember-telesales`. Người dùng tự chọn Telesales (`Form.onValuesChange`, không kích hoạt bởi `setFieldValue`) → lưu id vào localStorage `lavian-lead-staff` (try/catch, iframe chặn storage thì chỉ là không nhớ). Ô Telesales trống → `fillSavedStaff` điền lại nếu id còn trong danh sách Telesales: sau mount, sau "Gửi tiếp", khi đổi khách Smax, khi khách CRM không có CSKH. Khách CRM đã có CSKH → giữ CSKH hiện tại. Lưu theo trình duyệt từng máy; trong iframe Smax là kho riêng theo smax.ai (không chung với mở `/lead-form` trực tiếp).
+- **File ảnh hưởng:** `components/lead-form/lead-form.tsx`, `openspec/changes/lead-form-remember-telesales/`.
+- **Còn dở / ghi chú:** tsc + eslint + 87 test sạch. Chưa test tay trong iframe Smax. Cookie ngôn ngữ `NEXT_LOCALE` (`sameSite: lax`, `i18n/actions.ts`) có thể không lưu được trong iframe Smax — chưa sửa. Không đổi DB.
+
 ### 2026-11-17 — Smax report: mọi tỉ lệ thẻ số chia cho Khách mới
 - **Thay đổi:** Nhánh `claude/smax-rates-new-customers`. Tỉ lệ Total Booking / New Booking / Showed up đều = số đó ÷ **Khách mới** (`conversations`). Trước đó Showed up chia cho Tổng Booking ra 200% (khách đến gồm cả khách booking từ trước kỳ). Tooltip `smaxReport.rate.*` cập nhật theo.
 - **File ảnh hưởng:** `components/customers/smax-report-view.tsx`, `messages/{vi,en}.json`.

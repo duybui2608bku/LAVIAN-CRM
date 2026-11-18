@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, ConfigProvider, Form, Input, InputNumber, Result, Select, Tooltip, type ThemeConfig } from "antd";
+import { Button, ConfigProvider, Form, Input, InputNumber, Result, Select, Tooltip, type FormInstance, type ThemeConfig } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import { Bug, CircleAlert } from "lucide-react";
 
@@ -81,7 +81,29 @@ const DEFAULTS: Values = {
   website: "",
 };
 
-const formatIdr = (v: number | string | undefined) =>
+// Form không đăng nhập → nhớ Telesales đã chọn trên máy này (trong iframe Smax là kho riêng theo smax.ai).
+// try/catch: trình duyệt chặn storage trong iframe sẽ throw — khi đó chỉ là không nhớ.
+const STAFF_KEY = "lavian-lead-staff";
+const readSavedStaff = () => {
+  try {
+    return localStorage.getItem(STAFF_KEY) ?? "";
+  } catch {
+    return "";
+  }
+};
+const saveStaff = (id: string) => {
+  try {
+    if (id) localStorage.setItem(STAFF_KEY, id);
+  } catch {}
+};
+/** Ô Telesales đang trống → điền người đã lưu (nếu còn trong danh sách Telesales). */
+const fillSavedStaff = (form: FormInstance<Values>, staff: StaffRef[]) => {
+  if (form.getFieldValue("staff_id")) return;
+  const id = readSavedStaff();
+  if (staff.some((s) => s.id === id)) form.setFieldValue("staff_id", id);
+};
+
+const formatIdr =(v: number | string | undefined) =>
   v === undefined || v === "" ? "" : Number(v).toLocaleString("id-ID");
 const parseIdr = (v: string | undefined) =>
   sanitizeCurrencyInput(v ?? "") as unknown as number;
@@ -140,6 +162,11 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
   const smaxIdRef = useRef<string | null>(null);
   const [smaxMeta, setSmaxMeta] = useState<SmaxMeta>(EMPTY_META);
 
+  // localStorage chỉ có ở client → điền sau khi Form mount (lần đầu + sau "Gửi tiếp").
+  useEffect(() => {
+    if (!done) fillSavedStaff(form, staff);
+  }, [done, form, staff]);
+
   useEffect(() => {
     if (!embedded) return;
 
@@ -184,6 +211,7 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
               for (const f of CRM_FIELDS) {
                 if (!form.isFieldTouched(f)) form.setFieldValue(f, found[f]);
               }
+              fillSavedStaff(form, staff); // khách chưa có CSKH → dùng Telesales đã lưu
             }
           })
           .catch(() => {
@@ -208,6 +236,7 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
           full_name: c.name ? String(c.name) : "",
           phone: phone ? formatPhone(String(phone)) : "",
         });
+        fillSavedStaff(form, staff);
       }
     };
 
@@ -219,7 +248,7 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
       clearInterval(timer);
       window.removeEventListener("message", onMessage);
     };
-  }, [embedded, form, integrationId]);
+  }, [embedded, form, integrationId, staff]);
 
   const onSubmit = (mode: LeadMode) => () =>
     void form.validateFields().then((raw) => start(async () => {
@@ -283,7 +312,16 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <FitToHeight>
-      <Form form={form} layout="vertical" requiredMark={false} initialValues={DEFAULTS}>
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={DEFAULTS}
+        // Chỉ chạy khi người dùng tự chọn (setFieldValue không kích hoạt) → không lưu nhầm CSKH của khách.
+        onValuesChange={(changed: Partial<Values>) => {
+          if (changed.staff_id) saveStaff(changed.staff_id);
+        }}
+      >
         <div className="grid grid-cols-2 gap-x-3">
           <Form.Item
             name="full_name"
