@@ -1,9 +1,15 @@
 import { z } from "zod";
 
 import type { BookingStatus } from "@/types/appointment";
+import type { ServiceCategory } from "@/types/service";
 
 // Literal (không import giá trị từ types/ — node --test không hiểu alias "@/"); test đối chiếu BOOKING_STATUSES.
 export const BOOKING_STATUS_VALUES = ["pending", "confirmed", "cancelled", "rescheduled"] as const satisfies readonly BookingStatus[];
+export const SERVICE_CATEGORY_VALUES = ["alis", "bibir", "laser"] as const satisfies readonly ServiceCategory[];
+
+/** Nhóm dịch vụ (chọn nhiều): bỏ trùng. Dùng chung CRM + lead-form. */
+export const serviceCategoriesSchema = z.array(z.enum(SERVICE_CATEGORY_VALUES)).max(10)
+  .transform((cats) => [...new Set(cats)]);
 
 /** Clinic confirmation (Show-up) chỉ bộ phận Sales được đổi (admin luôn toàn quyền). */
 export function canConfirmShowUp(profile: { role: string; department: string | null } | null | undefined): boolean {
@@ -14,6 +20,7 @@ export const appointmentPatchSchema = z.object({
   scheduled_at: z.iso.datetime({ offset: true }),
   booking_confirm: z.enum(BOOKING_STATUS_VALUES),
   checked_in: z.boolean(),
+  service_categories: serviceCategoriesSchema,
   service_ids: z.array(z.uuid()).max(100).transform((ids) => [...new Set(ids)]),
   staff_id: z.uuid().nullable(),
   sales_id: z.uuid().nullable(),

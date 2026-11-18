@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import { claimTour, confirmTour, deleteTour } from "@/app/(app)/tour/actions";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
+import { NamePhone } from "@/components/common/name-phone";
 import { RowActions } from "@/components/common/row-actions";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
@@ -189,10 +190,7 @@ function TourTable({ me, month, tours, services, staff, customers, onOpen, onPho
 
   const columns: TableProps<TourItem>["columns"] = [
     { title: t("date"), width: 110, render: (_, r) => dayjs(r.tour_date).format("DD/MM/YYYY") },
-    { title: t("customer"), width: 200, render: (_, r) => <div className="min-w-0">
-      <p className="font-medium">{r.customer?.full_name ?? "—"}</p>
-      <p className="text-xs text-muted-foreground">{r.customer?.phone}</p>
-    </div> },
+    { title: t("customer"), width: 200, render: (_, r) => <NamePhone name={r.customer?.full_name ?? "—"} phone={r.customer?.phone} /> },
     { title: t("service"), width: 140, render: (_, r) => serviceLabel(r.service_id) },
     { title: t("serviceDetail"), width: 130, render: (_, r) => r.service_detail
       ? <Tag color="cyan" className="me-0">{detailText(t, r)}</Tag> : DASH },

@@ -1,3 +1,5 @@
+import type { ServiceCategory } from "./service";
+
 // Lịch hẹn chỉ lưu lịch đến của khách (tính doanh số Telesales). Tour KTV ở bảng `tours` (types/tour.ts).
 
 /** Trạng thái xác nhận lịch (cột `booking_confirm`, check constraint ở DB). */
@@ -16,7 +18,8 @@ export interface Appointment {
   scheduled_at: string;
   booking_confirm: BookingStatus; // Telesales gọi lại xác nhận lịch
   checked_in: boolean;
-  service_ids: string[];
+  service_categories: ServiceCategory[]; // nhóm dịch vụ Telesales chọn khi tạo lịch
+  service_ids: string[]; // dịch vụ chi tiết — điền sau
   staff_id: string | null; // chăm sóc khách hàng
   sales_id: string | null; // nhân viên bộ phận Sales phụ trách lịch
   created_by: string | null; // người tạo lịch (lịch cũ không truy được → null)
@@ -33,7 +36,7 @@ export type AppointmentCustomer = {
 };
 
 /** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`). */
-export type AppointmentLogField = "scheduled_at" | "booking_confirm" | "checked_in" | "service_ids" | "staff_id" | "sales_id" | "note";
+export type AppointmentLogField = "scheduled_at" | "booking_confirm" | "checked_in" | "service_categories" | "service_ids" | "staff_id" | "sales_id" | "note";
 
 /** 1 dòng `clinic_appointment_logs` — actor_id null = ghi qua admin client (Form SMAX). */
 export interface AppointmentLog {
@@ -47,5 +50,5 @@ export interface AppointmentLog {
 }
 
 export type AppointmentPatch =Partial<Pick<Appointment,
-  "scheduled_at" | "booking_confirm" | "checked_in" | "service_ids" | "staff_id" | "sales_id" | "note"
+  "scheduled_at" | "booking_confirm" | "checked_in" | "service_categories" | "service_ids" | "staff_id" | "sales_id" | "note"
 >>;

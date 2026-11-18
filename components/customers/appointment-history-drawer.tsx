@@ -8,9 +8,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { getCustomerAppointments, type CustomerAppointmentsData } from "@/app/(app)/customers/actions";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { serviceName } from "@/lib/customers";
+import { SERVICE_CATEGORY_LABELS, type ServiceCategory } from "@/types/service";
 import { BOOKING_STATUSES, type Appointment, type AppointmentLog, type AppointmentLogField, type BookingStatus } from "@/types/appointment";
 
-const FIELDS: AppointmentLogField[] = ["scheduled_at", "booking_confirm", "checked_in", "service_ids", "staff_id", "sales_id", "note"];
+const FIELDS: AppointmentLogField[] = ["scheduled_at", "booking_confirm", "checked_in", "service_categories", "service_ids", "staff_id", "sales_id", "note"];
 const ACTION_COLOR = { create: "green", update: "blue", delete: "red" } as const;
 const fmt = (v: string, f = "DD-MM-YYYY HH:mm") => dayjs(v).format(f);
 
@@ -56,6 +57,10 @@ export function AppointmentHistoryDrawer({
       })
       .join(", ");
   };
+  const categoriesOf = (cats: unknown) =>
+    Array.isArray(cats) && cats.length
+      ? cats.map((c) => SERVICE_CATEGORY_LABELS[c as ServiceCategory] ?? String(c)).join(", ")
+      : "—";
   const valueOf = (field: AppointmentLogField, v: unknown): React.ReactNode => {
     if (v === null || v === undefined || v === "") return "—";
     switch (field) {
@@ -65,6 +70,8 @@ export function AppointmentHistoryDrawer({
         return BOOKING_STATUSES.includes(v as BookingStatus) ? tStatus(v as BookingStatus) : String(v);
       case "checked_in":
         return v ? t("yes") : t("no");
+      case "service_categories":
+        return categoriesOf(v);
       case "service_ids":
         return servicesOf(v);
       case "staff_id":
@@ -105,6 +112,10 @@ export function AppointmentHistoryDrawer({
             {upcoming ? t("upcoming") : a.checked_in ? t("checkedIn") : t("notCheckedIn")}
           </span>
         </div>
+        <p className="text-sm">
+          <span className="text-muted-foreground">{t("field.service_categories")}: </span>
+          {categoriesOf(a.service_categories)}
+        </p>
         <p className="text-sm">
           <span className="text-muted-foreground">{t("field.service_ids")}: </span>
           {servicesOf(a.service_ids)}

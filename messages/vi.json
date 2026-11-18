@@ -9,6 +9,8 @@
     "allBookingConfirms": "Tất cả xác nhận lịch",
     "confirmation": "Xác nhận tại phòng khám",
     "services": "Dịch vụ",
+    "serviceCategories": "Nhóm dịch vụ",
+    "serviceDetails": "DV chi tiết",
     "staff": "Telesales",
     "note": "Ghi chú",
     "choose": "Chọn…",
@@ -302,6 +304,7 @@
     "colVi": "Tiếng Việt",
     "colEn": "English",
     "colId": "Bahasa",
+    "colCategory": "Nhóm",
     "colSort": "Thứ tự",
     "colActive": "Kích hoạt",
     "colActions": "Thao tác",
@@ -379,7 +382,8 @@
         "scheduled_at": "Ngày giờ",
         "booking_confirm": "Xác nhận lịch",
         "checked_in": "Đã đến",
-        "service_ids": "Dịch vụ",
+        "service_categories": "Nhóm dịch vụ",
+        "service_ids": "DV chi tiết",
         "staff_id": "Telesales",
         "sales_id": "Sales",
         "note": "Ghi chú"
@@ -497,7 +501,9 @@
     "status_ARCHIVED": "Đã lưu trữ",
     "status_UNKNOWN": "Không rõ",
     "colPotential": "KH tiềm năng",
-    "potentialSharedWa": "{count} chiến dịch dùng chung số {wa} — số này là tổng khách tiềm năng của cả số WA",
+    "colBooking": "Booking",
+    "colShowUp": "Show up",
+    "potentialSharedWa": "{count} chiến dịch dùng chung số {wa} — số này là tổng của cả số WA",
     "showMore": "Xem thêm ({n})"
   },
   "reports": {

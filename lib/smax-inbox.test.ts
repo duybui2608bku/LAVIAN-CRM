@@ -109,7 +109,9 @@ test("countPotential: 1 hội thoại tính 1 lần, IG theo ad_id, WA theo số
     ],
     ads,
   );
-  assert.deepEqual(r, { byCampaign: { c1: 2, c2: 1 }, byWa: { "WA-3455": 2 }, total: 6 }); // gồm khách IG không có quảng cáo
+  const f = (potential: number, booking: number, showUp: number) => ({ potential, booking, showUp });
+  // Booking = booking/cọc, Show up = purchase — tập con của tiềm năng; total gồm khách IG không có quảng cáo.
+  assert.deepEqual(r, { byCampaign: { c1: f(2, 1, 1), c2: f(1, 1, 0) }, byWa: { "WA-3455": f(2, 1, 1) }, total: f(6, 3, 2) });
 });
 
 test("buildInboxReport: cọc gắn sau kỳ chưa tính deposit", () => {
@@ -155,9 +157,9 @@ test("1 khách IG có tin nhắn + bình luận chỉ tính 1; khách cũ bình 
     bookingNew: 1, // khách A tính 1 lần
   });
   assert.deepEqual(countPotential([{ ...cmt, tag_aliases: ["phone"], instagram: { ad_id: "x" } }, { ...dm, instagram: { ad_id: "x" } }], new Map([["x", "c"]])), {
-    byCampaign: { c: 1 },
+    byCampaign: { c: { potential: 1, booking: 1, showUp: 0 } },
     byWa: {},
-    total: 1,
+    total: { potential: 1, booking: 1, showUp: 0 },
   });
 });
 
@@ -256,8 +258,8 @@ test("Khách IG chuyển sang WA cùng SĐT: 1 người, kênh = bên nhắn tr�
 
   // KH tiềm năng: 1 người về chiến dịch IG; người có phần IG từ kỳ trước không tính lại.
   const ads = new Map([["ad1", "camp"]]);
-  assert.deepEqual(countPotential([igNew, waNew], ads, { from: "2026-11-15", igByPhone: idx }), { byCampaign: { camp: 1 }, byWa: {}, total: 1 });
-  assert.deepEqual(countPotential([waNew], ads, { from: "2026-11-16", igByPhone: igPhoneIndex([igOld]) }), { byCampaign: {}, byWa: {}, total: 0 });
+  assert.deepEqual(countPotential([igNew, waNew], ads, { from: "2026-11-15", igByPhone: idx }), { byCampaign: { camp: { potential: 1, booking: 1, showUp: 0 } }, byWa: {}, total: { potential: 1, booking: 1, showUp: 0 } });
+  assert.deepEqual(countPotential([waNew], ads, { from: "2026-11-16", igByPhone: igPhoneIndex([igOld]) }), { byCampaign: {}, byWa: {}, total: { potential: 0, booking: 0, showUp: 0 } });
 });
 
 test("createdIn: lọc hội thoại tạo trong khoảng ngày WIB", () => {
