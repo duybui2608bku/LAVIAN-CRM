@@ -229,6 +229,7 @@ export function CustomersManager({
   const columns: TableProps<Customer>["columns"] = [
     {
       title: t("colCreated"),
+      key: "created",
       dataIndex: "created_at",
       render: (v: string) => {
         const d = new Date(v);
@@ -289,7 +290,8 @@ export function CustomersManager({
           // Show-up tự chuyển theo Clinic confirmation → không chọn tay (chỉ hiện khi khách đang ở Show-up).
           options={tagOptions("stage", c.stage).filter((o) => o.value !== SHOW_UP_STAGE || o.value === c.stage)}
           ariaLabel={t("colStage")}
-          disabled={!canEdit}
+          // Trang lọc theo stage (Booking management): chỉ xem stage, không đổi.
+          disabled={!canEdit || !!stages}
           onSave={(v) => patchField(c.id, { stage: v })}
         />
       ),
@@ -433,6 +435,10 @@ export function CustomersManager({
     },
   ];
 
+  // Booking management: Lịch hẹn lên cột đầu, Ngày tạo xuống cuối (sort ổn định giữ thứ tự còn lại).
+  const rank = (key: unknown) => (key === "appointment" ? -1 : key === "created" ? 1 : 0);
+  const tableColumns = stages ? [...columns].sort((a, b) => rank(a.key) - rank(b.key)) : columns;
+
   const editing = target && target !== "new" ? target : null;
   // Số lọc đang bật (khoảng ngày tính 1) — có lọc thì hiện nút "Xoá bộ lọc".
   const activeCount =
@@ -513,7 +519,7 @@ export function CustomersManager({
       </PageToolbar>
 
       <DataTable
-        columns={columns}
+        columns={tableColumns}
         dataSource={filtered}
         page={page}
         onPageChange={setPage}
@@ -523,6 +529,7 @@ export function CustomersManager({
       <CustomerDialog
         open={target !== null}
         editing={editing}
+        lockStage={!!stages}
         staff={staff}
         options={options}
         onClose={() => setTarget(null)}
@@ -665,12 +672,15 @@ type Values = {
 function CustomerDialog({
   open,
   editing,
+  lockStage,
   staff,
   options,
   onClose,
 }: {
   open: boolean;
   editing: Customer | null;
+  /** Sửa khách ở trang lọc theo stage → không đổi stage (tạo mới vẫn chọn được). */
+  lockStage: boolean;
   staff: Staff[];
   options: EnumOption[];
   onClose: () => void;
@@ -693,7 +703,7 @@ function CustomerDialog({
         full_name: v.full_name.trim(),
         phone: formatPhone(v.phone),
         social_name: v.social_name || null,
-        stage: v.stage,
+        stage: lockStage && editing ? editing.stage : v.stage,
         rating: v.rating || null,
         staff_id: v.staff_id || null,
         // Sales/KTV đã ẩn khỏi form → giữ nguyên giá trị đang có.
@@ -779,6 +789,7 @@ function CustomerDialog({
             options={selectOptions("stage", editing?.stage).filter(
               (o) => o.value !== SHOW_UP_STAGE || o.value === editing?.stage,
             )}
+            disabled={lockStage && !!editing}
             ariaLabel={t("colStage")}
           />
         </Form.Item>
