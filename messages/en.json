@@ -730,18 +730,12 @@
     "chooseDate": "Choose reminder time",
     "assignee": "Telesales in charge",
     "unassigned": "No telesales",
-    "note": "Message to customer",
-    "noteHint": "Use the copy button on the reminder to paste it into the chat.",
-    "defaultMessage": "Hi {name}, this is Lavian reminding you of your appointment at {time}. See you soon!",
-    "defaultMessageNoTime": "Hi {name}, this is Lavian — we'd like to confirm when you will visit us.",
+    "note": "Note",
     "saved": "Reminder saved",
     "empty": "No reminders for this customer",
     "emptyDay": "No reminders",
     "markDone": "Mark as messaged",
     "markUndone": "Unmark",
-    "copy": "Copy message",
-    "copied": "Message copied",
-    "copyFailed": "Could not copy",
     "openThread": "Open conversation",
     "delete": "Delete",
     "deleteConfirm": "Delete this reminder?",
@@ -771,6 +765,8 @@
       "assigned": "{by} added a reminder for your customer {customer} at {time}"
     },
     "assigneeHint": "Only the customer's telesales gets notified. Change it in the customer's Staff column.",
-    "noTelesales": "This customer has no telesales in charge, so nobody will be notified about this reminder."
+    "noTelesales": "This customer has no telesales in charge, so nobody will be notified about this reminder.",
+    "notePlaceholder": "Note (optional)",
+    "notifyTo": "Notifies"
   }
 }

@@ -12,8 +12,8 @@
 - Client: chuông tải 20 thông báo mới nhất, subscribe `postgres_changes INSERT` lọc `user_id=eq.<uid>`; mở popover → đánh dấu đã đọc tất cả.
 
 ## UI
-- Bookings: cột `reminder` ngay sau Lịch hẹn. Tag lịch nhắc kế tiếp (đỏ quá hạn / cam hôm nay / xanh sắp tới), badge số lịch chưa xong. Drawer `CustomerRemindersDrawer` = danh sách + nút thêm (Modal form).
-- Form: thời điểm (DatePicker showTime như AppointmentDate), Telesales phụ trách (chỉ hiển thị, cảnh báo nếu khách chưa có), nội dung tin nhắn (mặc định mẫu có tên khách + giờ hẹn kế tiếp). Gợi ý giờ nhắc: 1 ngày trước lịch hẹn 9:00 nếu còn ở tương lai, không thì 1 giờ sau.
+- Bookings: cột `reminder` ngay sau Lịch hẹn. Tag lịch nhắc kế tiếp (đỏ quá hạn / cam hôm nay / xanh sắp tới), badge số lịch chưa xong. `CustomerRemindersPopover` (popover tại ô): form nhanh trên cùng (thêm; bấm sửa ở 1 lịch → nạp lên form, có Huỷ) + dòng "Thông báo cho <Telesales>" + danh sách. Không mở modal trong popover (click ra ngoài sẽ đóng popover).
+- Form: thời điểm (DatePicker showTime như AppointmentDate), Telesales phụ trách (chỉ hiển thị, cảnh báo nếu khách chưa có), ghi chú tuỳ chọn (không có tin nhắn mẫu). Modal form chỉ còn dùng để sửa ở trang calendar. Gợi ý giờ nhắc: 1 ngày trước lịch hẹn 9:00 nếu còn ở tương lai, không thì 1 giờ sau.
 - Trang calendar: antd `Calendar` (desktop: chip trong ô ngày; điện thoại: chấm + số), panel phải danh sách ngày đã chọn dùng chung `ReminderItem` với drawer.
 - Lọc client-side (dữ liệu nhỏ, cùng triết lý `/customers`).
 

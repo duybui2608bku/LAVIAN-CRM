@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { Button, Checkbox, Tag, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
-import { Copy, MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { MessageCircle, Pencil, Trash2 } from "lucide-react";
 
 import { deleteReminder, setReminderDone } from "@/app/(app)/customers/reminders/actions";
 import { ConfirmAction } from "@/components/common/confirm-action";
@@ -16,14 +16,15 @@ import { cn } from "@/lib/utils";
 import type { Reminder, ReminderCustomer } from "@/types/reminder";
 
 /**
- * Một lịch nhắc: tick "đã nhắc", giờ (màu theo trạng thái), khách (trang calendar), tin nhắn,
- * người phụ trách + nút mở hội thoại / sao chép tin nhắn / sửa / xoá.
- * Dùng chung cho drawer theo khách và panel ngày ở trang calendar.
+ * Một lịch nhắc: tick "đã nhắc", giờ (màu theo trạng thái), khách (trang calendar), ghi chú,
+ * Telesales phụ trách + nút mở hội thoại / sửa / xoá.
+ * Dùng chung cho popover cột Nhắc hẹn và panel ngày ở trang calendar.
  */
 export function ReminderItem({
   reminder: r,
   customer,
   showCustomer = true,
+  showAssignee = true,
   staff,
   now,
   timeFormat = "DD-MM HH:mm",
@@ -34,6 +35,8 @@ export function ReminderItem({
   /** Khách của lịch nhắc — lấy link hội thoại SMAX; `showCustomer` hiện tên/SĐT (trang calendar). */
   customer?: ReminderCustomer | null;
   showCustomer?: boolean;
+  /** Ẩn khi nơi chứa đã hiện Telesales (popover theo khách). */
+  showAssignee?: boolean;
   staff: StaffRef[];
   now: number;
   timeFormat?: string;
@@ -51,15 +54,6 @@ export function ReminderItem({
       const res = await fn();
       if (res.error) toast.error(res.error);
     });
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(r.note);
-      toast.success(t("copied"));
-    } catch {
-      toast.error(t("copyFailed"));
-    }
-  };
 
   return (
     <div className={cn("flex gap-3 rounded-lg border border-border p-3", state === "done" && "opacity-60")}>
@@ -90,7 +84,9 @@ export function ReminderItem({
           </p>
         )}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">{assignee ? staffLabel(assignee) : t("unassigned")}</span>
+          <span className="text-xs text-muted-foreground">
+            {showAssignee && (assignee ? staffLabel(assignee) : t("unassigned"))}
+          </span>
           <div className="-me-1 flex items-center">
             {link && (
               <Button
@@ -102,16 +98,6 @@ export function ReminderItem({
                 aria-label={t("openThread")}
                 title={t("openThread")}
                 icon={<MessageCircle className="size-4" />}
-              />
-            )}
-            {r.note && (
-              <Button
-                type="text"
-                size="small"
-                aria-label={t("copy")}
-                title={t("copy")}
-                icon={<Copy className="size-4" />}
-                onClick={copy}
               />
             )}
             {canEdit && (
