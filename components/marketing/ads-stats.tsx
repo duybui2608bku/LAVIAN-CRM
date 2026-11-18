@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/layout/page";
 import { formatISODate } from "@/lib/date";
 import { toast } from "@/lib/toast";
 import type { FbCampaign } from "@/lib/marketing";
+import type { FunnelKey } from "@/lib/smax-inbox";
 import { cn } from "@/lib/utils";
 import { campaignWa, summarizeByWa, waColor } from "@/lib/wa";
 import { useCan } from "@/components/common/permissions";
@@ -78,8 +79,8 @@ export function AdsStatsView() {
     { key: "spend", value: money(s?.spend ?? null) },
     { key: "messages", value: count(s?.messages ?? null) },
     { key: "costPerMessage", value: money(ratio(s?.spend ?? null, s?.messages ?? null)) },
-    { key: "leads", value: count(s?.potential?.total ?? null) },
-    { key: "costPerLead", value: money(ratio(s?.spend ?? null, s?.potential?.total ?? null)) },
+    { key: "leads", value: count(s?.potential?.total.potential ?? null) },
+    { key: "costPerLead", value: money(ratio(s?.spend ?? null, s?.potential?.total.potential ?? null)) },
   ];
   // Lỗi từng nguồn hiện 1 lần ở đầu trang (trước đây lặp lại dưới nhiều card).
   const errorLines = [...new Set([stats?.error, e?.fb, e?.potential].filter(Boolean))] as string[];
@@ -114,11 +115,37 @@ export function AdsStatsView() {
     const wa = campaignWa(c.name);
     if (wa) waCampaigns.set(wa, (waCampaigns.get(wa) ?? 0) + 1);
   }
-  const potentialOf = (c: FbCampaign) => {
+  const funnelOf = (c: FbCampaign, key: FunnelKey) => {
     if (!potential) return null;
     const wa = campaignWa(c.name);
-    return (potential.byCampaign[c.id] ?? 0) + (wa ? (potential.byWa[wa] ?? 0) : 0);
+    return (potential.byCampaign[c.id]?.[key] ?? 0) + (wa ? (potential.byWa[wa]?.[key] ?? 0) : 0);
   };
+  // KH tiềm năng → Booking → Show up: cùng cách gán chiến dịch, cùng tooltip WA dùng chung / lỗi.
+  const funnelColumn = (key: FunnelKey, title: string, width: number): TableColumnType<FbCampaign> => ({
+    key,
+    title,
+    align: "right",
+    width,
+    render: (_, r) => {
+      const n = funnelOf(r, key);
+      if (n == null)
+        return (
+          <Tooltip title={e?.potential}>
+            <span className="text-muted-foreground">—</span>
+          </Tooltip>
+        );
+      const wa = campaignWa(r.name);
+      const shared = wa ? (waCampaigns.get(wa) ?? 0) : 0;
+      return shared > 1 ? (
+        <Tooltip title={t("potentialSharedWa", { wa: wa!, count: shared })}>
+          <span className="underline decoration-dotted underline-offset-4">{n.toLocaleString(locale)}</span>
+        </Tooltip>
+      ) : (
+        n.toLocaleString(locale)
+      );
+    },
+    sorter: (a, b) => (funnelOf(a, key) ?? -1) - (funnelOf(b, key) ?? -1),
+  });
 
   const statusLabel = (status: string) =>
     t.has(`status_${status}`) ? t(`status_${status}`) : status;
@@ -217,31 +244,9 @@ export function AdsStatsView() {
         (ratio(a.spend, a.messages) ?? Infinity) -
         (ratio(b.spend, b.messages) ?? Infinity),
     },
-    {
-      key: "potential",
-      title: t("colPotential"),
-      align: "right",
-      width: 140,
-      render: (_, r) => {
-        const n = potentialOf(r);
-        if (n == null)
-          return (
-            <Tooltip title={e?.potential}>
-              <span className="text-muted-foreground">—</span>
-            </Tooltip>
-          );
-        const wa = campaignWa(r.name);
-        const shared = wa ? (waCampaigns.get(wa) ?? 0) : 0;
-        return shared > 1 ? (
-          <Tooltip title={t("potentialSharedWa", { wa: wa!, count: shared })}>
-            <span className="underline decoration-dotted underline-offset-4">{n.toLocaleString(locale)}</span>
-          </Tooltip>
-        ) : (
-          n.toLocaleString(locale)
-        );
-      },
-      sorter: (a, b) => (potentialOf(a) ?? -1) - (potentialOf(b) ?? -1),
-    },
+    funnelColumn("potential", t("colPotential"), 140),
+    funnelColumn("booking", t("colBooking"), 110),
+    funnelColumn("showUp", t("colShowUp"), 110),
     {
       key: "impressions",
       title: t("colImpressions"),
@@ -385,7 +390,7 @@ export function AdsStatsView() {
                     </span>
                   ),
                   aside: cell("status"),
-                  metrics: (["spend", "messages", "costPerMessage", "potential", "impressions", "reach"] as const).map((k) => ({
+                  metrics: (["spend", "messages", "costPerMessage", "potential", "booking", "showUp", "impressions", "reach"] as const).map((k) => ({
                     label: columns.find((c) => c.key === k)!.title as React.ReactNode,
                     value: cell(k),
                   })),
@@ -412,7 +417,7 @@ export function AdsStatsView() {
               showTotal: (total, [from, to]) =>
                 t("totalCampaigns", { from, to, total }),
             }}
-            scroll={{ x: 1490 }}
+            scroll={{ x: 1710 }}
             size="middle"
             locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
           />

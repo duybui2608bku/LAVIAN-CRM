@@ -497,7 +497,9 @@
     "status_ARCHIVED": "Đã lưu trữ",
     "status_UNKNOWN": "Không rõ",
     "colPotential": "KH tiềm năng",
-    "potentialSharedWa": "{count} chiến dịch dùng chung số {wa} — số này là tổng khách tiềm năng của cả số WA",
+    "colBooking": "Booking",
+    "colShowUp": "Show up",
+    "potentialSharedWa": "{count} chiến dịch dùng chung số {wa} — số này là tổng của cả số WA",
     "showMore": "Xem thêm ({n})"
   },
   "reports": {

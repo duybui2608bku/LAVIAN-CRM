@@ -393,14 +393,21 @@ export function buildFollowupReport(threads: InboxThread[], from: string, to: st
 /** Khách tiềm năng (cột trang Marketing): hội thoại có 1 trong các tag này — gắn nhiều tag vẫn chỉ tính 1. */
 export const POTENTIAL_ALIASES = ["phone", "booking", "bookings-deposit", "purchase"];
 
+/** Phễu theo chiến dịch: Booking / Show up là tập con của khách tiềm năng (cùng người, xét tag hiện tại). */
+export const FUNNEL_KEYS = ["potential", "booking", "showUp"] as const;
+export type FunnelKey = (typeof FUNNEL_KEYS)[number];
+export type Funnel = Record<FunnelKey, number>;
+
 export type PotentialCounts = {
-  /** campaign_id FB → số khách tiềm năng IG (ghép qua ad_id). */
-  byCampaign: Record<string, number>;
-  /** "WA-<4 số cuối>" → số khách tiềm năng nhắn vào số WA đó. */
-  byWa: Record<string, number>;
-  /** Tổng khách tiềm năng WA + IG (kể cả không gán được chiến dịch). */
-  total: number;
+  /** campaign_id FB → phễu khách IG (ghép qua ad_id). */
+  byCampaign: Record<string, Funnel>;
+  /** "WA-<4 số cuối>" → phễu khách nhắn vào số WA đó. */
+  byWa: Record<string, Funnel>;
+  /** Tổng WA + IG (kể cả không gán được chiến dịch). */
+  total: Funnel;
 };
+
+const emptyFunnel = (): Funnel => ({ potential: 0, booking: 0, showUp: 0 });
 
 /**
  * `adCampaign`: ad_id → campaign_id (từ FB). Mỗi người tính tối đa 1 lần (gộp IG ↔ WA theo `igByPhone`).
@@ -411,21 +418,27 @@ export function countPotential(
   adCampaign: Map<string, string>,
   { from, igByPhone }: { from?: string; igByPhone?: IgByPhone } = {},
 ): PotentialCounts {
-  const out: PotentialCounts = { byCampaign: {}, byWa: {}, total: 0 };
+  const out: PotentialCounts = { byCampaign: {}, byWa: {}, total: emptyFunnel() };
   const start = from ? Date.parse(inboxDateRange(from, from)[0]) : -Infinity;
   for (const t of byCustomer(threads, igByPhone)) {
     if (firstSeen(t) < start) continue;
-    if (!CHANNEL_OF[t.platform ?? ""] || !POTENTIAL_ALIASES.some((a) => t.tag_aliases?.includes(a))) continue;
-    out.total++;
+    const tags = t.tag_aliases ?? [];
+    if (!CHANNEL_OF[t.platform ?? ""] || !POTENTIAL_ALIASES.some((a) => tags.includes(a))) continue;
+    const add = (f: Funnel) => {
+      f.potential++;
+      if (BOOKING_ALIASES.some((a) => tags.includes(a))) f.booking++;
+      if (tags.includes("purchase")) f.showUp++;
+    };
+    add(out.total);
     if (t.platform === "instagram") {
       // ad_id của hội thoại là lần bấm gần nhất; không khớp FB thì thử ad_id lưu ở khách.
       const campaign = [t.instagram?.ad_id, t.customer?.instagram?.ad_id]
         .map((id) => id && adCampaign.get(id))
         .find(Boolean);
-      if (campaign) out.byCampaign[campaign] = (out.byCampaign[campaign] ?? 0) + 1;
+      if (campaign) add((out.byCampaign[campaign] ??= emptyFunnel()));
     } else if (t.platform === "whatsappweb" && t.page_pid?.startsWith("waw")) {
       const wa = `WA-${t.page_pid.slice(-4)}`; // cùng quy ước lib/wa.ts
-      out.byWa[wa] = (out.byWa[wa] ?? 0) + 1;
+      add((out.byWa[wa] ??= emptyFunnel()));
     }
   }
   return out;

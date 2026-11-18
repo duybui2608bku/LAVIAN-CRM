@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-18 — Marketing: thêm cột Booking + Show up theo chiến dịch
+- **Thay đổi:** OpenSpec `marketing-booking-showup` (nhánh `claude/smax-ig-wa-merge`). `countPotential` giờ trả phễu `{ potential, booking, showUp }` cho mỗi chiến dịch / số WA / tổng (`FUNNEL_KEYS`, `Funnel`). Cùng tập người với KH tiềm năng (khách mới trong kỳ, gộp IG↔WA theo SĐT, 1 người = 1), cùng cách gán (IG theo ad_id, WA theo số trong tên chiến dịch): Booking = tag `booking`/`bookings-deposit`, Show up = tag `purchase` — xét tag hiện tại, không lọc thời điểm gắn tag. Bảng chiến dịch + danh sách mobile thêm 2 cột (hàm `funnelColumn` dùng chung tooltip WA chung số / lỗi). Card "KH tiềm năng" đọc `total.potential`.
+- **File ảnh hưởng:** `lib/smax-inbox.ts` (+ test), `components/marketing/ads-stats.tsx`, `messages/{vi,en}.json`, `openspec/changes/marketing-booking-showup/`.
+- **Còn dở / ghi chú:** 10 test smax-inbox + tsc + eslint sạch. Chưa xem trên trình duyệt (FB_TOKEN máy dev hết hạn → bảng chiến dịch trống). Chưa commit.
+
 ### 2026-11-18 — Rà hiệu năng: Smax report 1 lượt tải, cache IG lùi, FB song song, index FK
 - **Thay đổi:** OpenSpec `perf-smax-fb` (cùng nhánh `claude/smax-ig-wa-merge`). Đo: DB không phải nút cổ chai (customers 149 dòng, query app < 16 ms TB, advisor không báo RLS initplan); chậm ở API SMAX/FB. (1) Smax report bỏ lượt tải `byCreated`: khách mới = `createdIn(active, from, to)` (đã đối chiếu thật: tập tạo-trong-kỳ ⊆ tập có-tin-nhắn, 90/90, 1681/1681, 1678/1678). (2) `lib/smax-threads.ts`: `memo` cache trong bộ nhớ 30 phút (lưu Promise, gộp request trùng, tối đa 500 mục) cho IG lùi 30 ngày theo `from` + kết quả quét SĐT theo hội thoại. (3) `fetchFbCampaigns`: insights và trạng thái chiến dịch (`fetchFbCampaignStatus`) gọi song song. (4) Migration index 5 khoá ngoại advisor báo thiếu. Đo Smax report: 1 ngày 1,4–1,8s → 0,38s khi đã cache (lần đầu ~2s); 1 tuần 3,3s → 1,26s; 18 ngày 3,8s → 2,7s; số liệu khớp.
 - **File ảnh hưởng:** `lib/smax-inbox.ts` (`createdIn` + test), `lib/smax-threads.ts`, `lib/marketing.ts`, `app/(app)/customers/smax-report/actions.ts`, `supabase/migrations/20261118120000_fk_indexes.sql`, `openspec/changes/perf-smax-fb/`.

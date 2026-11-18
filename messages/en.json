@@ -497,6 +497,8 @@
     "status_ARCHIVED": "Archived",
     "status_UNKNOWN": "Unknown",
     "colPotential": "Potential leads",
+    "colBooking": "Bookings",
+    "colShowUp": "Show-ups",
     "potentialSharedWa": "{count} campaigns share {wa} — this is the total for the whole WA number",
     "showMore": "Show more ({n})"
   },
