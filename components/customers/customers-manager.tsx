@@ -15,6 +15,7 @@ import {
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  BellPlus,
   CalendarPlus,
   History,
   Info,
@@ -32,11 +33,12 @@ import {
 } from "@/app/(app)/customers/actions";
 import { CreateAppointmentDrawer, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
-import { useCan } from "@/components/common/permissions";
+import { useCan, useCurrentUserId } from "@/components/common/permissions";
 import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
 import { DataTable } from "@/components/common/data-table";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
+import { CustomerRemindersDrawer } from "@/components/reminders/customer-reminders-drawer";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { ImageUpload } from "@/components/common/image-upload";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
@@ -51,10 +53,12 @@ import { PROVINCES } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
 import { SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
+import { nextPending, REMINDER_COLORS, reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
 import type { Service } from "@/types/service";
+import type { Reminder } from "@/types/reminder";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 type Staff = AppointmentStaff;
@@ -114,7 +118,10 @@ export function CustomersManager({
   services,
   stages,
   title,
+  reminders,
 }: {
+  /** Có = hiện cột Nhắc hẹn (Booking management). */
+  reminders?: Reminder[];
   /** Trang con lọc sẵn theo stage (vd Booking management): ẩn pipeline, ô lọc stage chỉ còn các stage này. */
   stages?: readonly string[];
   title?: string;
@@ -139,6 +146,8 @@ export function CustomersManager({
   const [notesFor, setNotesFor] = useState<string | null>(null);
   const [apptFor, setApptFor] = useState<Customer | null>(null);
   const [createFor, setCreateFor] = useState<string | null>(null); // id khách đang tạo lịch hẹn
+  const [remindersFor, setRemindersFor] = useState<string | null>(null); // id khách đang mở drawer nhắc hẹn
+  const me = useCurrentUserId();
   const [page, setPage] = useState(1);
 
   // Sửa inline hiện ngay, không chờ server. React tự trả về dữ liệu server khi
@@ -191,6 +200,17 @@ export function CustomersManager({
     for (const a of appointments) map.set(a.customer_id, (map.get(a.customer_id) ?? 0) + 1);
     return map;
   }, [appointments]);
+
+  const remindersOf = useMemo(() => {
+    const map = new Map<string, Reminder[]>();
+    for (const r of reminders ?? []) map.set(r.customer_id, [...(map.get(r.customer_id) ?? []), r]);
+    return map;
+  }, [reminders]);
+  // Lịch hẹn sắp tới của khách (gợi ý giờ nhắc + tin nhắn mẫu).
+  const upcomingAppt = (id: string) => {
+    const a = nearestAppt.get(id);
+    return a && Date.parse(a.scheduled_at) >= now ? a.scheduled_at : undefined;
+  };
 
   const filtered = useMemo(
     () => rowsData.filter((c) => matchesCustomerFilters(c, filters)),
@@ -360,6 +380,44 @@ export function CustomersManager({
         );
       },
     },
+    ...(reminders
+      ? [
+          {
+            title: t("colReminder"),
+            key: "reminder",
+            width: 150,
+            // Lịch nhắc chưa xong sớm nhất (màu: quá hạn/hôm nay/sắp tới) + số chưa xong; bấm mở drawer.
+            render: (_: unknown, c: Customer) => {
+              const list = remindersOf.get(c.id) ?? [];
+              const next = nextPending(list);
+              const pendingCount = list.filter((r) => !r.done_at).length;
+              return next ? (
+                <Badge count={pendingCount > 1 ? pendingCount : 0} size="small">
+                  <Tag
+                    color={REMINDER_COLORS[reminderState(next, now)]}
+                    className="me-0 cursor-pointer tabular-nums"
+                    title={t("viewReminders")}
+                    onClick={() => setRemindersFor(c.id)}
+                  >
+                    {dayjs(next.remind_at).format("DD-MM HH:mm")}
+                  </Tag>
+                </Badge>
+              ) : (
+                <Badge count={list.length} size="small" color="var(--muted-foreground)">
+                  <Button
+                    type="text"
+                    size="small"
+                    aria-label={t("viewReminders")}
+                    title={t("viewReminders")}
+                    icon={<BellPlus className="size-4" />}
+                    onClick={() => setRemindersFor(c.id)}
+                  />
+                </Badge>
+              );
+            },
+          },
+        ]
+      : []),
     {
       title: t("colSource"),
       key: "source",
@@ -436,7 +494,7 @@ export function CustomersManager({
   ];
 
   // Booking management: Lịch hẹn lên cột đầu, Ngày tạo xuống cuối (sort ổn định giữ thứ tự còn lại).
-  const rank = (key: unknown) => (key === "appointment" ? -1 : key === "created" ? 1 : 0);
+  const rank = (key: unknown) => (key === "appointment" ? -2 : key === "reminder" ? -1 : key === "created" ? 1 : 0);
   const tableColumns = stages ? [...columns].sort((a, b) => rank(a.key) - rank(b.key)) : columns;
 
   const editing = target && target !== "new" ? target : null;
@@ -543,6 +601,22 @@ export function CustomersManager({
       />
 
       <AppointmentHistoryDrawer customer={apptFor} staff={staff} onClose={() => setApptFor(null)} />
+
+      {reminders && (() => {
+        const c = remindersFor ? rowsData.find((x) => x.id === remindersFor) ?? null : null;
+        return (
+          <CustomerRemindersDrawer
+            customer={c}
+            reminders={c ? remindersOf.get(c.id) ?? [] : []}
+            staff={staff}
+            me={me}
+            appointmentAt={c ? upcomingAppt(c.id) : undefined}
+            now={now}
+            canEdit={canEdit}
+            onClose={() => setRemindersFor(null)}
+          />
+        );
+      })()}
 
       {/* key theo khách: form mới mỗi lần mở (không dính khách/giá trị lần trước). */}
       <CreateAppointmentDrawer

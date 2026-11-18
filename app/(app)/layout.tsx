@@ -20,6 +20,7 @@ export default async function AppLayout({
       defaultCollapsed={collapsed}
       isAdmin={profile?.role === "admin"}
       permissions={profile?.permissions ?? []}
+      userId={profile?.id ?? null}
       userName={profile?.user_name || profile?.email}
       avatarUrl={profile?.avatar_url}
     >

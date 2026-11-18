@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { Button, Drawer, Dropdown, Layout, Menu, Segmented, Switch, type MenuProps } from "antd";
 import {
+  BellRing,
   BookOpen,
   Briefcase,
   CalendarCheck,
@@ -36,9 +37,9 @@ import { useSwitchLocale } from "@/components/common/language-switcher";
 import { LocaleFlag } from "@/components/common/locale-flag";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Logo } from "@/components/layout/logo";
-import { NotificationBell } from "@/components/layout/notification-bell";
+import { NotificationBell, useNotifications } from "@/components/layout/notification-bell";
 import { ProfileDialog } from "@/components/layout/profile-dialog";
-import { PermissionsProvider } from "@/components/common/permissions";
+import { CurrentUserProvider, PermissionsProvider } from "@/components/common/permissions";
 import { useMounted } from "@/hooks/use-mounted";
 import { localeLabels, locales, type Locale } from "@/i18n/config";
 import { signOut } from "@/lib/actions/auth";
@@ -58,6 +59,7 @@ const ITEMS = [
     perm: "customers.view",
     children: [
       { key: "bookings", href: "/customers/bookings", icon: CalendarCheck, perm: "customers.view" },
+      { key: "reminders", href: "/customers/reminders", icon: BellRing, perm: "customers.view" },
       { key: "smaxReport", href: "/customers/smax-report", icon: Inbox, perm: "customers.view" },
     ],
   },
@@ -109,6 +111,7 @@ export function AppShell({
   defaultCollapsed,
   isAdmin,
   permissions,
+  userId,
   userName,
   avatarUrl,
   children,
@@ -116,6 +119,7 @@ export function AppShell({
   defaultCollapsed: boolean;
   isAdmin: boolean;
   permissions: Permission[];
+  userId: string | null;
   children: React.ReactNode;
 } & Account) {
   const t = useTranslations();
@@ -124,6 +128,7 @@ export function AppShell({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const openProfile = () => setProfileOpen(true);
+  const notifications = useNotifications(userId);
 
   const toggle = () => {
     setCollapsed(!collapsed);
@@ -239,7 +244,7 @@ export function AppShell({
             onClick={toggle}
           />
           <div className="ms-auto flex items-center gap-1">
-            <NotificationBell />
+            <NotificationBell state={notifications} />
             <AccountMenu userName={userName} avatarUrl={avatarUrl} onProfile={openProfile} />
           </div>
         </header>
@@ -252,7 +257,7 @@ export function AppShell({
               {brand}
             </Link>
             <span className="ms-auto">
-              <NotificationBell />
+              <NotificationBell state={notifications} />
             </span>
             <button
               type="button"
@@ -267,7 +272,9 @@ export function AppShell({
 
         {/* Chừa chỗ cho thanh tab dưới trên điện thoại. */}
         <Layout.Content className="flex flex-col max-md:pb-[calc(4rem+env(safe-area-inset-bottom))]">
-          <PermissionsProvider value={permissions}>{children}</PermissionsProvider>
+          <PermissionsProvider value={permissions}>
+            <CurrentUserProvider value={userId}>{children}</CurrentUserProvider>
+          </PermissionsProvider>
         </Layout.Content>
       </Layout>
 

@@ -191,7 +191,8 @@
     "telesales": "Leader Telesales",
     "bookings": "Quản lý Booking",
     "smaxReport": "Báo cáo Smax",
-    "documents": "Tài liệu"
+    "documents": "Tài liệu",
+    "reminders": "Lịch nhắc hẹn"
   },
   "theme": {
     "toggle": "Chuyển giao diện sáng/tối"
@@ -428,7 +429,9 @@
     "createOk": "Đã thêm khách hàng",
     "colTags": "Tag",
     "openThread": "Mở hội thoại",
-    "chooseStage": "Chọn giai đoạn"
+    "chooseStage": "Chọn giai đoạn",
+    "colReminder": "Nhắc hẹn",
+    "viewReminders": "Lịch nhắc hẹn"
   },
   "leadForm": {
     "region": "Khu vực",
@@ -717,5 +720,55 @@
     "cat_form": "Biểu mẫu",
     "cat_announcement": "Thông báo",
     "cat_other": "Khác"
+  },
+  "reminders": {
+    "title": "Lịch nhắc hẹn",
+    "pageHint": "Lịch nhắc khách đến cơ sở — tick khi đã nhắn khách.",
+    "add": "Thêm nhắc hẹn",
+    "editTitle": "Sửa nhắc hẹn",
+    "remindAt": "Thời điểm nhắc",
+    "chooseDate": "Chọn thời điểm nhắc",
+    "assignee": "Người phụ trách",
+    "unassigned": "Chưa giao",
+    "note": "Tin nhắn gửi khách",
+    "noteHint": "Bấm nút sao chép ở lịch nhắc để dán vào hội thoại.",
+    "defaultMessage": "Chào {name}, Lavian xin nhắc lịch hẹn của bạn lúc {time}. Hẹn gặp bạn tại cơ sở!",
+    "defaultMessageNoTime": "Chào {name}, Lavian xin phép liên hệ để xác nhận thời gian bạn tới cơ sở.",
+    "saved": "Đã lưu lịch nhắc",
+    "empty": "Khách chưa có lịch nhắc",
+    "emptyDay": "Không có lịch nhắc",
+    "markDone": "Đánh dấu đã nhắc",
+    "markUndone": "Bỏ đánh dấu đã nhắc",
+    "copy": "Sao chép tin nhắn",
+    "copied": "Đã sao chép tin nhắn",
+    "copyFailed": "Không sao chép được",
+    "openThread": "Mở hội thoại",
+    "delete": "Xoá",
+    "deleteConfirm": "Xoá lịch nhắc này?",
+    "today": "Hôm nay",
+    "mine": "Của tôi",
+    "allStaff": "Tất cả nhân viên",
+    "statusLabel": "Trạng thái",
+    "searchPlaceholder": "Tìm tên / SĐT khách",
+    "more": "+{n} lịch nữa",
+    "count": "{n} lịch",
+    "createHint": "Thêm lịch nhắc ở cột Nhắc hẹn trang Quản lý Booking.",
+    "state": {
+      "overdue": "Quá hạn",
+      "today": "Hôm nay",
+      "upcoming": "Sắp tới",
+      "done": "Đã nhắc"
+    },
+    "status": {
+      "all": "Mọi trạng thái",
+      "pending": "Chưa nhắc",
+      "overdue": "Quá hạn",
+      "done": "Đã nhắc"
+    },
+    "notify": {
+      "digestToday": "Hôm nay bạn có {n} lịch nhắc hẹn",
+      "digestOverdue": "{n} lịch quá hạn",
+      "assigned": "{by} giao bạn nhắc khách {customer} lúc {time}"
+    }
   }
 }

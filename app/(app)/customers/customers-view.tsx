@@ -4,6 +4,7 @@ import type { PipelineAppointment } from "@/components/customers/customer-pipeli
 import type { AppointmentStaff } from "@/components/appointments/appointments-manager";
 import type { Customer } from "@/types/customer";
 import type { Service } from "@/types/service";
+import type { Reminder } from "@/types/reminder";
 import { CUSTOMER_OPTIONS, instagramUsername } from "@/lib/customer-options";
 
 const CUSTOMER_LIST_FIELDS =
@@ -21,7 +22,7 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
     .select(CUSTOMER_LIST_FIELDS)
     .is("deleted_at", null);
   if (stages) customersQuery = customersQuery.in("stage", stages);
-  const [customersRes, staffRes, appointmentsRes, servicesRes] = await Promise.all([
+  const [customersRes, staffRes, appointmentsRes, servicesRes, remindersRes] = await Promise.all([
     customersQuery.order("created_at", { ascending: false }),
     supabase
       .from("profiles")
@@ -34,6 +35,10 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
       .is("deleted_at", null),
     // Dịch vụ cho drawer tạo lịch hẹn (nút ở cột Lịch hẹn).
     supabase.from("services").select("*").order("sort_order", { ascending: true }),
+    // Booking management: lịch nhắc hẹn cho cột Nhắc hẹn (trang /customers không dùng).
+    stages
+      ? supabase.from("customer_reminders").select("id, customer_id, assignee_id, remind_at, note, done_at, created_by, created_at")
+      : null,
   ]);
 
   const customers = ((customersRes.data ?? []) as unknown as Customer[]).map((c) => ({
@@ -48,6 +53,7 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
       options={CUSTOMER_OPTIONS}
       appointments={(appointmentsRes.data as PipelineAppointment[]) ?? []}
       services={(servicesRes.data as Service[]) ?? []}
+      reminders={stages ? ((remindersRes?.data as Reminder[]) ?? []) : undefined}
       stages={stages}
       title={title}
     />
