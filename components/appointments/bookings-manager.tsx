@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Button, Input, Segmented, Tag, type TableProps } from "antd";
+import { Button, Image, Input, Segmented, Tag, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 import { CalendarPlus, Search, X } from "lucide-react";
@@ -39,6 +39,7 @@ import { TELESALES_DEPARTMENTS } from "@/types/user";
 /** Khách kèm cột cần cho bảng Booking (cọc + nguồn). */
 export type BookingCustomer = AppointmentCustomer & {
   deposit_amount: number | null;
+  payment_confirm_url: string | null; // ảnh xác nhận thanh toán cọc
   instagram_username: string | null;
 };
 
@@ -69,6 +70,7 @@ export function BookingsManager({
 }) {
   const t = useTranslations("bookings");
   const ta = useTranslations("appointments");
+  const tc = useTranslations("customers");
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const can = useCan();
@@ -217,20 +219,35 @@ export function BookingsManager({
     {
       title: t("colDeposit"),
       key: "deposit",
-      width: 140,
+      width: 170,
+      // Có ảnh xác nhận thanh toán → thumbnail nhỏ cạnh số tiền, bấm mở preview to (giống trang Khách hàng).
       render: (_, a) => {
-        const amount = customerMap.get(a.customer_id)?.deposit_amount ?? 0;
-        return amount > 0 ? (
-          <div className="leading-tight tabular-nums">
-            <div className="font-medium">{num.format(amount)}</div>
-            <div className="mt-0.5 text-xs text-success">
-              {IDR_CURRENCY} · {t("deposited")}
-            </div>
-          </div>
-        ) : (
-          <div className="leading-tight text-muted-foreground">
-            <div>{t("notDeposited")}</div>
-            <div className="mt-0.5 text-xs tabular-nums">0 {IDR_CURRENCY}</div>
+        const c = customerMap.get(a.customer_id);
+        const amount = c?.deposit_amount ?? 0;
+        return (
+          <div className="flex items-center gap-2">
+            {c?.payment_confirm_url ? (
+              <Image
+                src={c.payment_confirm_url}
+                alt={tc("paymentConfirm")}
+                width={28}
+                height={28}
+                className="rounded border border-border object-cover"
+              />
+            ) : null}
+            {amount > 0 ? (
+              <div className="leading-tight tabular-nums">
+                <div className="font-medium">{num.format(amount)}</div>
+                <div className="mt-0.5 text-xs text-success">
+                  {IDR_CURRENCY} · {t("deposited")}
+                </div>
+              </div>
+            ) : (
+              <div className="leading-tight text-muted-foreground">
+                <div>{t("notDeposited")}</div>
+                <div className="mt-0.5 text-xs tabular-nums">0 {IDR_CURRENCY}</div>
+              </div>
+            )}
           </div>
         );
       },
@@ -366,7 +383,7 @@ export function BookingsManager({
       <DataTable
         columns={columns}
         dataSource={filtered}
-        scroll={{ x: 1270 }}
+        scroll={{ x: 1300 }}
         page={page}
         onPageChange={setPage}
         pageSize={30}
