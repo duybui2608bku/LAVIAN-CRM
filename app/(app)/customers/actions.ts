@@ -1,6 +1,13 @@
 "use server";
 
-import { isStage, validRating } from "@/lib/customer-options";
+import {
+  BOOKED_STAGE,
+  CONVERTED_STATUS,
+  isStage,
+  POTENTIAL_STAGE,
+  validPotentialStatus,
+  validRating,
+} from "@/lib/customer-options";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 
@@ -12,10 +19,11 @@ import type { Appointment, AppointmentLog } from "@/types/appointment";
 import type { CustomerInput, CustomerNote } from "@/types/customer";
 import type { Service } from "@/types/service";
 
-// Trang /customers + trang con lọc sẵn (Booking management) đọc cùng dữ liệu.
+// Trang /customers + trang con lọc sẵn (Booking management, Khách tiềm năng) đọc cùng dữ liệu.
 function revalidateCustomers() {
   revalidatePath("/customers");
   revalidatePath("/customers/bookings");
+  revalidatePath("/customers/potential");
 }
 
 type Result = { error?: string };
@@ -130,6 +138,8 @@ export async function patchCustomer(
     staff_id?: string | null;
     sales_id?: string | null;
     technician_id?: string | null;
+    potential_status?: string | null;
+    follow_up_at?: string | null;
   },
 ): Promise<Result> {
   try {
@@ -143,6 +153,13 @@ export async function patchCustomer(
     if (patch.sales_id !== undefined) data.sales_id = patch.sales_id || null;
     if (patch.technician_id !== undefined)
       data.technician_id = patch.technician_id || null;
+    if (patch.potential_status !== undefined)
+      data.potential_status = validPotentialStatus(patch.potential_status);
+    if (patch.follow_up_at !== undefined) {
+      const at = patch.follow_up_at ? new Date(patch.follow_up_at) : null;
+      if (at && Number.isNaN(at.getTime())) throw new Error("Ngày giờ liên hệ lại không hợp lệ.");
+      data.follow_up_at = at?.toISOString() ?? null;
+    }
     if (Object.keys(data).length === 0) return {};
     const supabase = await createClient();
     const { error } = await supabase
@@ -182,6 +199,32 @@ export async function addCustomerNote(
       .update({ notes })
       .eq("id", id);
     if (upErr) throw upErr;
+    revalidateCustomers();
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e).message };
+  }
+}
+
+/**
+ * Khách tiềm năng đã có lịch hẹn (tạo ở drawer ngay trước đó) → sang Booking, ghi lúc chuyển đổi.
+ * Chỉ áp cho khách còn ở stage Potential.
+ */
+export async function convertPotentialCustomer(id: string): Promise<Result> {
+  try {
+    await requirePermission("customers.edit");
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("customers")
+      .update({
+        stage: BOOKED_STAGE,
+        potential_status: CONVERTED_STATUS,
+        converted_at: new Date().toISOString(),
+        follow_up_at: null,
+      })
+      .eq("id", id)
+      .eq("stage", POTENTIAL_STAGE);
+    if (error) throw error;
     revalidateCustomers();
     return {};
   } catch (e) {

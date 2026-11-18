@@ -3,6 +3,7 @@ import type { EnumKind, EnumOption } from "@/types/customer";
 const definitions: [EnumKind, string, string, string, string][] = [
   ["stage", "consulting", "Đang tư vấn", "Consulting", "cyan"],
   ["stage", "potential", "Tiềm năng", "Potential", "purple"],
+  ["stage", "consider", "Cân nhắc", "Consider", "orange"],
   ["stage", "deposited", "Đã đặt cọc", "Deposited", "gold"],
   ["stage", "booked", "Booking", "Booking", "geekblue"], // tạo mới ở lead form bắt buộc kèm lịch hẹn
   ["stage", "show_up", "Đã đến", "Showed up", "green"], // tự động theo Clinic confirmation — không cho chọn tay
@@ -13,6 +14,11 @@ const definitions: [EnumKind, string, string, string, string][] = [
   ["rating", "spam", "Spam", "Spam", "red"],
   ["source", "instagrams", "Instagram", "Instagram", "magenta"],
   ["source", "whatsapp", "WhatsApp", "WhatsApp", "green"],
+  // Tình trạng ở trang Khách tiềm năng; "converted" = mở form tạo lịch hẹn rồi chuyển Booking.
+  ["potential_status", "interested", "Quan tâm", "Interested", "blue"],
+  ["potential_status", "considering", "Cân nhắc", "Considering", "orange"],
+  ["potential_status", "no_response", "Chưa phản hồi", "No response", "default"],
+  ["potential_status", "converted", "Chuyển đổi đặt lịch", "Converted to booking", "green"],
 ];
 
 /** Stage tự chuyển khi lịch hẹn được đánh dấu Show-up (trigger DB) — ẩn khỏi ô chọn stage. */
@@ -20,6 +26,19 @@ export const SHOW_UP_STAGE = "show_up";
 
 /** Stage "Booking" — khách mới ở lead form chọn stage này phải kèm lịch hẹn. */
 export const BOOKED_STAGE = "booked";
+
+/** Stage của trang Khách tiềm năng (/customers/potential). */
+export const POTENTIAL_STAGE = "potential";
+
+/** Tình trạng "Chuyển đổi đặt lịch" — chỉ đặt qua convertPotentialCustomer sau khi tạo lịch hẹn. */
+export const CONVERTED_STATUS = "converted";
+
+/** Tình trạng khách tiềm năng hợp lệ (trừ converted); "" / lạ → null. */
+export function validPotentialStatus(v: string | null | undefined): string | null {
+  return v && v !== CONVERTED_STATUS && CUSTOMER_OPTIONS.some((o) => o.kind === "potential_status" && o.value === v)
+    ? v
+    : null;
+}
 
 /** Stage hiện ở trang Booking management (/customers/bookings). */
 export const BOOKING_PAGE_STAGES = [BOOKED_STAGE, "deposited"] as const;

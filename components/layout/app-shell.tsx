@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { Button, Drawer, Dropdown, Layout, Menu, Segmented, Switch, type MenuProps } from "antd";
 import {
   BellRing,
+  Sparkles,
   BookOpen,
   Briefcase,
   CalendarCheck,
@@ -44,6 +45,7 @@ import { useMounted } from "@/hooks/use-mounted";
 import { localeLabels, locales, type Locale } from "@/i18n/config";
 import { signOut } from "@/lib/actions/auth";
 import type { Permission } from "@/lib/permissions";
+import { REMINDERS_ENABLED } from "@/lib/reminders";
 import { cn } from "@/lib/utils";
 
 // Cookie giữ trạng thái thu gọn qua lần tải lại (layout server đọc lại → không nháy).
@@ -58,6 +60,7 @@ const ITEMS = [
     icon: Users,
     perm: "customers.view",
     children: [
+      { key: "potential", href: "/customers/potential", icon: Sparkles, perm: "customers.view" },
       { key: "bookings", href: "/customers/bookings", icon: CalendarCheck, perm: "customers.view" },
       { key: "reminders", href: "/customers/reminders", icon: BellRing, perm: "customers.view" },
       { key: "smaxReport", href: "/customers/smax-report", icon: Inbox, perm: "customers.view" },
@@ -144,7 +147,9 @@ export function AppShell({
       // Tài liệu: mọi user — RLS lọc theo bộ phận ở từng tài liệu.
       if (i.key === "documents") return [i];
       if (!("children" in i)) return permissions.includes(`${i.key}.view` as Permission) ? [i] : [];
-      const kids = i.children.filter((c) => !c.perm || permissions.includes(c.perm));
+      const kids = i.children.filter(
+        (c) => (REMINDERS_ENABLED || c.key !== "reminders") && (!c.perm || permissions.includes(c.perm)),
+      );
       // Cha có trang riêng mà user có quyền → giữ href cha; không thì cha chỉ là nhóm, href = con đầu tiên.
       const page = "perm" in i && !!i.perm && permissions.includes(i.perm);
       if (page) return [{ ...i, page, children: kids }];

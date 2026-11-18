@@ -194,7 +194,8 @@
     "bookings": "Booking management",
     "smaxReport": "Smax report",
     "documents": "Documents",
-    "reminders": "Reminders"
+    "reminders": "Reminders",
+    "potential": "Potential customers"
   },
   "theme": {
     "toggle": "Toggle theme"
@@ -774,5 +775,34 @@
     "noTelesales": "This customer has no telesales in charge, so nobody will be notified about this reminder.",
     "notePlaceholder": "Note (optional)",
     "notifyTo": "Notifies"
+  },
+  "potential": {
+    "title": "Potential customers",
+    "description": "Customers who have not booked yet",
+    "kpiTotal": "Total potential",
+    "kpiOverdue": "Overdue follow-ups",
+    "kpiToday": "Follow up today",
+    "kpiConverted": "Converted to booking today",
+    "searchPlaceholder": "Search name, phone, note…",
+    "allTele": "All Telesales",
+    "allStatus": "All statuses",
+    "tab": {
+      "all": "All",
+      "overdue": "Overdue",
+      "today": "Today",
+      "upcoming": "Upcoming"
+    },
+    "colCustomer": "Customer",
+    "colTele": "Tele",
+    "colStatus": "Status",
+    "colFollowUp": "Follow-up at",
+    "followUps": "{n, plural, one {# follow-up} other {# follow-ups}}",
+    "empty": "No potential customers",
+    "convertedOk": "Customer moved to Booking",
+    "notify": {
+      "due": "Time to follow up {customer} ({time})",
+      "digestToday": "{n} customers to follow up today",
+      "digestOverdue": "{n} overdue follow-ups"
+    }
   }
 }
