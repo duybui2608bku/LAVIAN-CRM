@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-18 — Tạm tắt tính năng nhắc hẹn
+- **Thay đổi:** Cờ `REMINDERS_ENABLED = false` trong `lib/reminders.ts`. Khi tắt: ẩn menu con "Nhắc hẹn", không tải `customer_reminders` ở `/customers/bookings` (cột Nhắc hẹn tự ẩn), `/customers/reminders` trả 404, ẩn chuông thông báo + không mở kênh realtime `notifications`. Migration `20261118120000_pause_daily_reminder_digest.sql` dừng cron `daily-reminder-digest`. Code/bảng/dữ liệu giữ nguyên.
+- **File ảnh hưởng:** `lib/reminders.ts`, `components/layout/app-shell.tsx`, `app/(app)/customers/customers-view.tsx`, `app/(app)/customers/reminders/page.tsx`, `supabase/migrations/20261118120000_pause_daily_reminder_digest.sql`.
+- **Còn dở / ghi chú:** Migration dừng cron CHƯA chạy (copy vào SQL Editor). Bật lại: đổi cờ thành `true` + chạy lại migration với `active := true`. Trigger báo khi tạo lịch nhắc vẫn còn nhưng không ai tạo được lịch khi UI ẩn. tsc + eslint sạch; chưa xem trên trình duyệt; chưa commit.
+
 ### 2026-11-18 — Lead form: sắp xếp lại bố cục, dấu sao đỏ ô bắt buộc, Status chữ thường
 - **Thay đổi:** OpenSpec `lead-form-layout`. `/lead-form` theo mẫu sếp: Full name | Phone → Province | Regency/City (tách 2 ô nhãn riêng, trước là 1 ô "Region" cuối form) → Telesales | Status → Ngày hẹn | Nhóm dịch vụ (khi Booking/Deposit) → Deposit | Payment confirm → Note. `requiredMark` tuỳ biến: dấu `*` đỏ sau nhãn, tự theo `rules.required` (ngày hẹn chỉ có sao khi vừa đổi sang Booking). Select Status bỏ `EnumTag` màu/icon → chữ thường. `RegionSelect` thêm prop tuỳ chọn `field` (bọc từng ô, vd `Form.Item` có nhãn) + `className`; `/customers` dùng như cũ.
 - **File ảnh hưởng:** `components/lead-form/lead-form.tsx`, `components/common/region-select.tsx`, `openspec/changes/lead-form-layout/`.

@@ -2,6 +2,9 @@ import dayjs from "dayjs";
 
 import type { Reminder, ReminderState } from "@/types/reminder";
 
+/** Tạm tắt tính năng nhắc hẹn (menu, cột Nhắc hẹn, trang calendar, chuông thông báo). Đổi `true` để bật lại. */
+export const REMINDERS_ENABLED = false;
+
 export const REMINDER_COLORS: Record<ReminderState, string> = {
   overdue: "red",
   today: "orange",

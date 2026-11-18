@@ -3,6 +3,7 @@ import { CustomersManager } from "@/components/customers/customers-manager";
 import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
 import type { AppointmentStaff } from "@/components/appointments/appointments-manager";
 import type { Customer } from "@/types/customer";
+import { REMINDERS_ENABLED } from "@/lib/reminders";
 import type { Reminder } from "@/types/reminder";
 import { CUSTOMER_OPTIONS, instagramUsername } from "@/lib/customer-options";
 
@@ -33,7 +34,7 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
       .select("customer_id, scheduled_at, checked_in")
       .is("deleted_at", null),
     // Booking management: lịch nhắc hẹn cho cột Nhắc hẹn (trang /customers không dùng).
-    stages
+    stages && REMINDERS_ENABLED
       ? supabase.from("customer_reminders").select("id, customer_id, remind_at, note, done_at, created_by, created_at")
       : null,
   ]);
@@ -49,7 +50,7 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
       staff={(staffRes.data as AppointmentStaff[]) ?? []}
       options={CUSTOMER_OPTIONS}
       appointments={(appointmentsRes.data as PipelineAppointment[]) ?? []}
-      reminders={stages ? ((remindersRes?.data as Reminder[]) ?? []) : undefined}
+      reminders={stages && REMINDERS_ENABLED ? ((remindersRes?.data as Reminder[]) ?? []) : undefined}
       stages={stages}
       title={title}
     />

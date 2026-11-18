@@ -44,6 +44,7 @@ import { useMounted } from "@/hooks/use-mounted";
 import { localeLabels, locales, type Locale } from "@/i18n/config";
 import { signOut } from "@/lib/actions/auth";
 import type { Permission } from "@/lib/permissions";
+import { REMINDERS_ENABLED } from "@/lib/reminders";
 import { cn } from "@/lib/utils";
 
 // Cookie giữ trạng thái thu gọn qua lần tải lại (layout server đọc lại → không nháy).
@@ -128,7 +129,7 @@ export function AppShell({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const openProfile = () => setProfileOpen(true);
-  const notifications = useNotifications(userId);
+  const notifications = useNotifications(REMINDERS_ENABLED ? userId : null);
 
   const toggle = () => {
     setCollapsed(!collapsed);
@@ -144,7 +145,9 @@ export function AppShell({
       // Tài liệu: mọi user — RLS lọc theo bộ phận ở từng tài liệu.
       if (i.key === "documents") return [i];
       if (!("children" in i)) return permissions.includes(`${i.key}.view` as Permission) ? [i] : [];
-      const kids = i.children.filter((c) => !c.perm || permissions.includes(c.perm));
+      const kids = i.children.filter(
+        (c) => (REMINDERS_ENABLED || c.key !== "reminders") && (!c.perm || permissions.includes(c.perm)),
+      );
       // Cha có trang riêng mà user có quyền → giữ href cha; không thì cha chỉ là nhóm, href = con đầu tiên.
       const page = "perm" in i && !!i.perm && permissions.includes(i.perm);
       if (page) return [{ ...i, page, children: kids }];
@@ -244,7 +247,7 @@ export function AppShell({
             onClick={toggle}
           />
           <div className="ms-auto flex items-center gap-1">
-            <NotificationBell state={notifications} />
+            {REMINDERS_ENABLED && <NotificationBell state={notifications} />}
             <AccountMenu userName={userName} avatarUrl={avatarUrl} onProfile={openProfile} />
           </div>
         </header>
@@ -256,9 +259,7 @@ export function AppShell({
               {logo}
               {brand}
             </Link>
-            <span className="ms-auto">
-              <NotificationBell state={notifications} />
-            </span>
+            <span className="ms-auto">{REMINDERS_ENABLED && <NotificationBell state={notifications} />}</span>
             <button
               type="button"
               aria-label={t("common.account")}

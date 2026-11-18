@@ -1,13 +1,16 @@
+import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import type { AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { RemindersCalendar } from "@/components/reminders/reminders-calendar";
+import { REMINDERS_ENABLED } from "@/lib/reminders";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 import type { ReminderWithCustomer } from "@/types/reminder";
 
 // Lịch nhắc hẹn dạng calendar. `?date=YYYY-MM-DD` (link từ thông báo) chọn sẵn ngày.
 export default async function RemindersPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+  if (!REMINDERS_ENABLED) notFound();
   const [{ date }, t, supabase] = await Promise.all([searchParams, getTranslations("reminders"), createClient()]);
   const [reminders, staffRes] = await Promise.all([
     fetchAll<ReminderWithCustomer>((from, to) =>
