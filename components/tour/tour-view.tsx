@@ -232,9 +232,9 @@ function TourTable({ me, month, tours, services, staff, customers, onOpen, onPho
           {t("exportSlip")}
         </Button>
       </> : null}
-      {me.canEdit ? <Button type="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>{t("create")}</Button> : null}
     </>} />
     <PageToolbar>
+      {me.canEdit ? <Button type="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>{t("create")}</Button> : null}
       <MonthPicker month={month} goMonth={goMonth} />
       <Input value={search} allowClear className="w-full sm:max-w-60" placeholder={t("search")} aria-label={t("search")}
         prefix={<Search className="size-4" />} onChange={(e) => setSearch(e.target.value)} />

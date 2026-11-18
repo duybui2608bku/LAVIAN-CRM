@@ -224,6 +224,13 @@ export function UsersManager({
       <PageHeader title={t("title")} />
 
       <PageToolbar>
+        <Button
+          type="primary"
+          icon={<UserPlus className="size-4" />}
+          onClick={() => setCreateOpen(true)}
+        >
+          {t("create")}
+        </Button>
         <Input
           allowClear
           className="w-full sm:max-w-56"
@@ -248,13 +255,6 @@ export function UsersManager({
           placeholder={t("allDepartment")}
           ariaLabel={t("colDepartment")}
         />
-        <Button
-          type="primary"
-          icon={<UserPlus className="size-4" />}
-          onClick={() => setCreateOpen(true)}
-        >
-          {t("create")}
-        </Button>
       </PageToolbar>
 
       <DataTable columns={columns} dataSource={filtered} pageSize={0} empty={t("empty")} />

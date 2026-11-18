@@ -85,8 +85,12 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   });
   const resetPage = () => setPage(1);
   const columns: TableProps<Appointment>["columns"] = [
-    { title: t("date"), width: 220, fixed: "left", sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
-      render: (_, row) => <AppointmentDate inline disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} /> },
+    // Giờ to ở trên, ngày nhỏ bên dưới — giống cột lịch ở Booking management.
+    { title: t("date"), width: 130, fixed: "left", sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
+      render: (_, row) => <div className="leading-tight tabular-nums">
+        <AppointmentDate inline format="HH:mm" disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} />
+        <div className="mt-0.5 text-xs text-muted-foreground">{dayjs(row.scheduled_at).format("DD/MM/YYYY")}</div>
+      </div> },
     { title: t("name"), width: 180, fixed: "left", render: (_, row) => {
       const customer = customerMap.get(row.customer_id);
       return <NamePhone name={customer?.full_name} phone={customer?.phone} />;
@@ -147,6 +151,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   return <Page>
     <PageHeader title={t("title")} />
     <PageToolbar>
+      {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
+        onClick={() => setCreating(true)}>{t("create")}</Button>}
       <Input value={search} allowClear className="w-full sm:max-w-64" placeholder={t("search")}
         aria-label={t("search")} prefix={<Search className="size-4" />} onChange={(e) => { setSearch(e.target.value); resetPage(); }} />
       <DateRangePicker from={dates.from} to={dates.to} onChange={(r) => { setDates(r); resetPage(); }} placeholder={t("allDates")} />
@@ -156,10 +162,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <Select value={booking} aria-label={t("bookingConfirm")} className="min-w-40" onChange={(v) => { setBooking(v); resetPage(); }}
         options={[{ value: "all", label: t("allBookingConfirms") }, ...statusOptions]} />
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
-      {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
-        onClick={() => setCreating(true)}>{t("create")}</Button>}
     </PageToolbar>
-    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1990 }} empty={t("empty")}
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1900 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}

@@ -50,6 +50,16 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-18 — Lịch hẹn: cột Ngày hiển thị giờ trên, ngày dưới
+- **Thay đổi:** cột Ngày ở `/appointments` hiển thị giống cột lịch Booking management: `AppointmentDate inline format="HH:mm"` (giờ, bấm để sửa) + dòng `DD/MM/YYYY` nhỏ màu muted bên dưới. Cột 220 → 130px, `scroll.x` 1990 → 1900.
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.
+- **Còn dở / ghi chú:** chưa xem trên trình duyệt.
+
+### 2026-11-18 — Nút tạo đặt đầu thanh lọc
+- **Thay đổi:** quy ước mới (sếp yêu cầu): nút tạo/thêm (primary) đặt **đầu `PageToolbar`, bên trái ô tìm kiếm** — không để ở `PageHeader actions` hay cuối toolbar. Áp cho Booking management, Lịch hẹn, Tour (nút xuất Excel/phiếu vẫn ở header), Tài liệu, Người dùng, Dịch vụ (không có lọc → toolbar chỉ có nút thêm). Trang Khách hàng vốn đã đúng.
+- **File ảnh hưởng:** `components/appointments/bookings-manager.tsx`, `components/appointments/appointments-manager.tsx`, `components/tour/tour-view.tsx`, `components/documents/documents-list.tsx`, `components/users/users-manager.tsx`, `components/services/services-manager.tsx`.
+- **Còn dở / ghi chú:** chưa xem trên trình duyệt. Trang mới có nút tạo: theo quy ước này.
+
 ### 2026-11-18 — Lead form: luôn hiện Lịch hẹn, bắt buộc với Tiềm năng / Cân nhắc
 - **Thay đổi:** ô Ngày hẹn + Nhóm dịch vụ ở lead form **luôn hiện** (trước chỉ Booking/Deposited); server nhận lịch hẹn kèm ở mọi stage. Helper chung `needsAppointment(stage, currentStage)` (`lib/customer-options.ts`): bắt buộc lịch khi **vừa chọn** Booking / Tiềm năng / Cân nhắc (khách mới hoặc khách cũ đổi stage) — khách đang ở sẵn stage đó bấm Cập nhật thì không bắt tạo lịch mới (tránh lịch trùng). Ô ngày `dependencies={["stage"]}` để đổi stage là kiểm tra lại.
 - **File ảnh hưởng:** `components/lead-form/lead-form.tsx`, `app/lead-form/actions.ts`, `lib/customer-options.ts`.

@@ -310,17 +310,7 @@ export function BookingsManager({
 
   return (
     <Page>
-      <PageHeader
-        title={t("title")}
-        description={t("description")}
-        actions={
-          canEdit ? (
-            <Button type="primary" icon={<CalendarPlus className="size-4" />} onClick={() => setCreating(true)}>
-              {t("create")}
-            </Button>
-          ) : null
-        }
-      />
+      <PageHeader title={t("title")} description={t("description")} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={t("kpiToday")} value={counts.today} />
@@ -340,6 +330,11 @@ export function BookingsManager({
       />
 
       <PageToolbar>
+        {canEdit && (
+          <Button type="primary" icon={<CalendarPlus className="size-4" />} onClick={() => setCreating(true)}>
+            {t("create")}
+          </Button>
+        )}
         <Input
           allowClear
           className="w-full sm:max-w-72"
