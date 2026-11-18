@@ -7,6 +7,7 @@ import { z } from "zod";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BOOKED_STAGE, BOOKING_PAGE_STAGES, isStage, leadSource } from "@/lib/customer-options";
+import { serviceCategoriesSchema } from "@/lib/appointments";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
 
@@ -24,7 +25,8 @@ const schema = z.object({
   appointment: z
     .object({
       scheduled_at: z.iso.datetime({ offset: true }),
-      service_ids: z.array(z.uuid()).max(100).transform((ids) => [...new Set(ids)]),
+      // Telesales chỉ chọn nhóm dịch vụ; dịch vụ chi tiết điền sau trong CRM.
+      service_categories: serviceCategoriesSchema,
     })
     .nullable()
     .optional()
@@ -142,13 +144,12 @@ export async function submitLead(
     const appointment = (BOOKING_PAGE_STAGES as readonly string[]).includes(d.stage) ? d.appointment : null;
     if (d.stage === BOOKED_STAGE && current?.stage !== BOOKED_STAGE && !appointment)
       return { error: "Vui lòng chọn lịch hẹn." };
-    if (appointment) await assertServices(supabase, appointment.service_ids);
     const insertAppointment = (customerId: string) =>
       supabase.from("clinic_appointments").insert({
         customer_id: customerId,
         scheduled_at: appointment!.scheduled_at,
         checked_in: false,
-        service_ids: appointment!.service_ids,
+        service_categories: appointment!.service_categories,
         staff_id: d.staff_id,
         created_by: d.staff_id, // lead-form không có user đăng nhập → người tạo = Telesales đã chọn
         note: "",
@@ -235,11 +236,3 @@ export async function submitLead(
 
 /** Trùng lịch hẹn (unique khách + giờ hẹn). */
 const isDuplicate = (e: unknown) => !!e && typeof e === "object" && "code" in e && e.code === "23505";
-
-// Mọi id dịch vụ phải tồn tại (lịch hẹn lưu mảng uuid, không có FK).
-async function assertServices(db: ReturnType<typeof createAdminClient>, ids: string[]) {
-  if (!ids.length) return;
-  const { data, error } = await db.from("services").select("id").in("id", ids);
-  if (error) throw error;
-  if (data?.length !== ids.length) throw new Error("Invalid services");
-}

@@ -7,7 +7,9 @@ import {
   Form,
   Input,
   InputNumber,
+  Select,
   Switch,
+  Tag,
   type TableProps,
 } from "antd";
 import { useTranslations } from "next-intl";
@@ -25,7 +27,14 @@ import { FormDrawer } from "@/components/common/form-drawer";
 import { RowActions } from "@/components/common/row-actions";
 import { Page, PageHeader } from "@/components/layout/page";
 import { toast } from "@/lib/toast";
-import type { Service, ServiceInput } from "@/types/service";
+import {
+  SERVICE_CATEGORY_COLORS,
+  SERVICE_CATEGORY_LABELS,
+  SERVICE_CATEGORY_OPTIONS,
+  type Service,
+  type ServiceCategory,
+  type ServiceInput,
+} from "@/types/service";
 
 // Trạng thái dialog: null = đóng; service null = tạo mới.
 type DialogState = { service: Service | null } | null;
@@ -66,6 +75,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
         name_vi: s.name_vi,
         name_en: s.name_en,
         name_id: s.name_id,
+        category: s.category,
         sort_order: s.sort_order,
         is_active: !s.is_active,
       });
@@ -75,6 +85,16 @@ export function ServicesManager({ services }: { services: Service[] }) {
   const columns: TableProps<Service>["columns"] = [
     { title: t("colVi"), dataIndex: "name_vi", ellipsis: true },
     { title: t("colEn"), dataIndex: "name_en", ellipsis: true, render: dash },
+    {
+      title: t("colCategory"),
+      dataIndex: "category",
+      width: 150,
+      render: (c: ServiceCategory) => (
+        <Tag color={SERVICE_CATEGORY_COLORS[c]} className="me-0">{SERVICE_CATEGORY_LABELS[c] ?? c}</Tag>
+      ),
+      filters: SERVICE_CATEGORY_OPTIONS.map((o) => ({ text: o.label, value: o.value })),
+      onFilter: (value, s) => s.category === value,
+    },
     {
       title: t("colActive"),
       dataIndex: "is_active",
@@ -155,6 +175,7 @@ type Values = {
   name_vi: string;
   name_en?: string | null;
   name_id?: string | null;
+  category: ServiceCategory;
   sort_order?: number | null;
   is_active: boolean;
 };
@@ -178,6 +199,7 @@ function ServiceDialog({
         // không bắt buộc — "" = chưa dịch, lưu null
         name_en: v.name_en?.trim() || null,
         name_id: v.name_id?.trim() || null,
+        category: v.category,
         sort_order: v.sort_order ?? 0,
         is_active: v.is_active,
       };
@@ -209,6 +231,7 @@ function ServiceDialog({
           name_vi: editing?.name_vi ?? "",
           name_en: editing?.name_en ?? "",
           name_id: editing?.name_id ?? "",
+          category: editing?.category,
           sort_order: editing?.sort_order ?? 0,
           is_active: editing?.is_active ?? true,
         }}
@@ -223,6 +246,13 @@ function ServiceDialog({
           </Form.Item>
           <Form.Item name="name_en" label={t("colEn")}>
             <Input placeholder={t("optional")} />
+          </Form.Item>
+          <Form.Item
+            name="category"
+            label={t("colCategory")}
+            rules={[{ required: true, message: t("required") }]}
+          >
+            <Select options={SERVICE_CATEGORY_OPTIONS} placeholder={t("colCategory")} />
           </Form.Item>
           <Form.Item name="sort_order" label={t("colSort")}>
             <InputNumber className="w-full" />

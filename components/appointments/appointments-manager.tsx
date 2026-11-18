@@ -20,7 +20,7 @@ import { matchesNameOrPhone, serviceName } from "@/lib/customers";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { BOOKING_STATUSES, BOOKING_STATUS_COLORS, type Appointment, type AppointmentCustomer, type AppointmentPatch } from "@/types/appointment";
-import type { Service } from "@/types/service";
+import { SERVICE_CATEGORY_COLORS, SERVICE_CATEGORY_LABELS, SERVICE_CATEGORY_OPTIONS, type Service, type ServiceCategory } from "@/types/service";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
@@ -109,13 +109,23 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       display={<Tag color={row.checked_in ? "green" : "default"} className="me-0">{row.checked_in ? t("showUp") : t("notShowUp")}</Tag>}
       options={[{ value: "show_up", label: t("showUp") }, { value: "waiting", label: t("notShowUp") }]}
       onSave={(value) => save(row.id, { checked_in: value === "show_up" })} /> },
-    { title: t("services"), width: 220, render: (_, row) => <InlineMultiSelect
-      value={row.service_ids} ariaLabel={t("services")} disabled={!canEdit}
+    { title: t("serviceCategories"), width: 200, render: (_, row) => <InlineMultiSelect
+      value={row.service_categories} ariaLabel={t("serviceCategories")} disabled={!canEdit}
+      display={row.service_categories.length ? <div className="flex flex-wrap gap-1">{row.service_categories.map((c) =>
+        <Tag key={c} color={SERVICE_CATEGORY_COLORS[c]} className="me-0">{SERVICE_CATEGORY_LABELS[c] ?? c}</Tag>)}</div>
+        : <span className="text-muted-foreground">{t("choose")}</span>}
+      options={SERVICE_CATEGORY_OPTIONS}
+      onSave={(cats) => save(row.id, { service_categories: cats as ServiceCategory[] })} /> },
+    // Dịch vụ chi tiết: chỉ dịch vụ thuộc nhóm đã chọn (chưa chọn nhóm → tất cả); dịch vụ đang gán luôn hiện.
+    { title: t("serviceDetails"), width: 220, render: (_, row) => <InlineMultiSelect
+      value={row.service_ids} ariaLabel={t("serviceDetails")} disabled={!canEdit}
       display={row.service_ids.length ? <div className="flex flex-wrap gap-1">{row.service_ids.map((id) => {
         const service = services.find((s) => s.id === id);
         return <Tag key={id} color="purple" className="me-0">{service ? serviceName(service, locale) : id}</Tag>;
       })}</div> : <span className="text-muted-foreground">{t("choose")}</span>}
-      options={services.filter((s) => s.is_active || row.service_ids.includes(s.id)).map((s) => ({ value: s.id, label: serviceName(s, locale) }))}
+      options={services.filter((s) => row.service_ids.includes(s.id)
+        || (s.is_active && (!row.service_categories.length || row.service_categories.includes(s.category))))
+        .map((s) => ({ value: s.id, label: serviceName(s, locale) }))}
       onSave={(service_ids) => save(row.id, { service_ids })} /> },
     { title: t("staff"), width: 170, render: (_, row) => <InlineSelect value={row.staff_id ?? ""}
       ariaLabel={t("staff")} noneLabel={t("choose")} disabled={!canEdit}
@@ -149,10 +159,10 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
         onClick={() => setCreating(true)}>{t("create")}</Button>}
     </PageToolbar>
-    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1790 }} empty={t("empty")}
+    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1990 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
-      customers={customers} staff={staff} services={services}
+      customers={customers} staff={staff}
       onCreated={() => { setCreating(false); setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setArrival("all"); setBooking("all"); setPage(1); }} />
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
   </Page>;
@@ -179,17 +189,15 @@ type CreateValues = Required<Pick<AppointmentPatch, "scheduled_at">> & Omit<Appo
 };
 
 // Dùng chung: /appointments (nút Thêm) và /customers (nút thêm lịch ở cột Lịch hẹn).
-export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff, services }: {
+export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCustomer, customers, staff }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
   initialCustomer: string;
   customers: AppointmentCustomer[];
   staff: AppointmentStaff[];
-  services: Service[];
 }) {
   const t = useTranslations("appointments");
-  const locale = useLocale();
   const [form] = Form.useForm<CreateValues>();
   const [pending, start] = useTransition();
   const [quick, setQuick] = useState(false); // khách chưa có trong CRM → nhập tên + SĐT
@@ -257,9 +265,9 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
           <AppointmentDate className="w-full" onSave={() => {}} />
         </Form.Item>
       </div>
-      <Form.Item name="service_ids" label={t("services")}>
-        <Select mode="multiple" allowClear placeholder={t("choose")} optionFilterProp="label"
-          options={services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />
+      {/* Telesales chỉ chọn nhóm; dịch vụ chi tiết điền sau trên bảng lịch hẹn / tour. */}
+      <Form.Item name="service_categories" label={t("serviceCategories")}>
+        <Select mode="multiple" allowClear placeholder={t("choose")} options={SERVICE_CATEGORY_OPTIONS} />
       </Form.Item>
       <Form.Item name="note" label={t("note")} className="mb-0">
         <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />

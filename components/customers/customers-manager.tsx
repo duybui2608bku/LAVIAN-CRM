@@ -58,7 +58,6 @@ import { nextPending, REMINDER_COLORS, reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
-import type { Service } from "@/types/service";
 import type { Reminder } from "@/types/reminder";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
@@ -116,7 +115,6 @@ export function CustomersManager({
   staff,
   options,
   appointments,
-  services,
   stages,
   title,
   reminders,
@@ -130,7 +128,6 @@ export function CustomersManager({
   staff: Staff[];
   options: EnumOption[];
   appointments: PipelineAppointment[];
-  services: Service[];
 }) {
   const t = useTranslations("customers");
   const tc = useTranslations("common");
@@ -616,7 +613,6 @@ export function CustomersManager({
         initialCustomer={createFor ?? ""}
         customers={rowsData}
         staff={staff}
-        services={services}
         onClose={() => setCreateFor(null)}
         onCreated={() => setCreateFor(null)}
       />

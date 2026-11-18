@@ -3,7 +3,6 @@ import { CustomersManager } from "@/components/customers/customers-manager";
 import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
 import type { AppointmentStaff } from "@/components/appointments/appointments-manager";
 import type { Customer } from "@/types/customer";
-import type { Service } from "@/types/service";
 import type { Reminder } from "@/types/reminder";
 import { CUSTOMER_OPTIONS, instagramUsername } from "@/lib/customer-options";
 
@@ -22,7 +21,7 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
     .select(CUSTOMER_LIST_FIELDS)
     .is("deleted_at", null);
   if (stages) customersQuery = customersQuery.in("stage", stages);
-  const [customersRes, staffRes, appointmentsRes, servicesRes, remindersRes] = await Promise.all([
+  const [customersRes, staffRes, appointmentsRes, remindersRes] = await Promise.all([
     customersQuery.order("created_at", { ascending: false }),
     supabase
       .from("profiles")
@@ -33,8 +32,6 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
       .from("clinic_appointments")
       .select("customer_id, scheduled_at, checked_in")
       .is("deleted_at", null),
-    // Dịch vụ cho drawer tạo lịch hẹn (nút ở cột Lịch hẹn).
-    supabase.from("services").select("*").order("sort_order", { ascending: true }),
     // Booking management: lịch nhắc hẹn cho cột Nhắc hẹn (trang /customers không dùng).
     stages
       ? supabase.from("customer_reminders").select("id, customer_id, remind_at, note, done_at, created_by, created_at")
@@ -52,7 +49,6 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
       staff={(staffRes.data as AppointmentStaff[]) ?? []}
       options={CUSTOMER_OPTIONS}
       appointments={(appointmentsRes.data as PipelineAppointment[]) ?? []}
-      services={(servicesRes.data as Service[]) ?? []}
       reminders={stages ? ((remindersRes?.data as Reminder[]) ?? []) : undefined}
       stages={stages}
       title={title}

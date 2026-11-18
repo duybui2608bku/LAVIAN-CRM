@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canConfirmShowUp, appointmentPatchSchema, BOOKING_STATUS_VALUES } from "./appointments.ts";
+import { canConfirmShowUp, appointmentPatchSchema, BOOKING_STATUS_VALUES, SERVICE_CATEGORY_VALUES } from "./appointments.ts";
 
 test("appointment edits validate dates, IDs and whitelist; no tour/money fields", () => {
   for (const patch of [{}, { scheduled_at: "tomorrow" }, { scheduled_at: "2026-10-31" },
@@ -24,6 +24,16 @@ test("trạng thái xác nhận lịch: 4 giá trị, khớp BOOKING_STATUSES, t
   }
   for (const v of [true, false, "unconfirmed", "", null]) {
     assert.equal(appointmentPatchSchema.safeParse({ booking_confirm: v }).success, false);
+  }
+});
+
+test("nhóm dịch vụ: khớp SERVICE_CATEGORIES, bỏ trùng, từ chối giá trị lạ", async () => {
+  const { SERVICE_CATEGORIES } = await import("../types/service.ts");
+  assert.deepEqual([...SERVICE_CATEGORY_VALUES], [...SERVICE_CATEGORIES]);
+  assert.deepEqual(appointmentPatchSchema.parse({ service_categories: ["alis", "bibir", "alis"] }), { service_categories: ["alis", "bibir"] });
+  assert.deepEqual(appointmentPatchSchema.parse({ service_categories: [] }), { service_categories: [] });
+  for (const v of [["shading"], "alis", null]) {
+    assert.equal(appointmentPatchSchema.safeParse({ service_categories: v }).success, false);
   }
 });
 

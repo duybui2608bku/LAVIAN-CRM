@@ -20,13 +20,13 @@ import { ImageUpload } from "@/components/common/image-upload";
 import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
-import { optionLabel, serviceName } from "@/lib/customers";
+import { optionLabel } from "@/lib/customers";
 import { BOOKED_STAGE, BOOKING_PAGE_STAGES, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { EnumOption } from "@/types/customer";
-import type { Service } from "@/types/service";
+import { SERVICE_CATEGORY_OPTIONS, type ServiceCategory } from "@/types/service";
 
 const requestCustomer = (integrationId: string) =>
   window.parent.postMessage(
@@ -59,7 +59,7 @@ type Values = {
   note: string;
   // Lịch hẹn kèm theo — chỉ khi tạo khách mới ở stage Booking.
   scheduled_at: string;
-  service_ids: string[];
+  service_categories: ServiceCategory[];
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
 
@@ -77,7 +77,7 @@ const DEFAULTS: Values = {
   payment_confirm_url: null,
   note: "",
   scheduled_at: "",
-  service_ids: [],
+  service_categories: [],
   website: "",
 };
 
@@ -109,12 +109,9 @@ const parseIdr = (v: string | undefined) =>
   sanitizeCurrencyInput(v ?? "") as unknown as number;
 
 
-export type LeadService = Pick<Service, "id" | "name_vi" | "name_en" | "name_id" | "is_active">;
-
 type LeadFormProps = {
   staff: StaffRef[];
   stages: EnumOption[];
-  services: LeadService[];
 };
 
 // Form nhúng trong khung SMAX hẹp → control/nhãn/khoảng cách gọn hơn phần còn lại của app.
@@ -133,7 +130,7 @@ export function LeadForm(props: LeadFormProps) {
   );
 }
 
-function LeadFormInner({ staff, stages, services }: LeadFormProps) {
+function LeadFormInner({ staff, stages }: LeadFormProps) {
   const t = useTranslations("leadForm");
   const ta = useTranslations("appointments");
   const locale = useLocale();
@@ -231,7 +228,7 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
         }
       } else if (id !== prev) {
         // Đổi sang khách khác: reset luôn giai đoạn/CSKH/lịch hẹn đang nhập của khách trước.
-        form.resetFields([...CRM_FIELDS, "scheduled_at", "service_ids"]);
+        form.resetFields([...CRM_FIELDS, "scheduled_at", "service_categories"]);
         form.setFieldsValue({
           full_name: c.name ? String(c.name) : "",
           phone: phone ? formatPhone(String(phone)) : "",
@@ -252,12 +249,12 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
 
   const onSubmit = (mode: LeadMode) => () =>
     void form.validateFields().then((raw) => start(async () => {
-      const { scheduled_at, service_ids, ...values } = { ...raw, full_name: raw.full_name.trim(), phone: formatPhone(raw.phone) };
+      const { scheduled_at, service_categories, ...values } = { ...raw, full_name: raw.full_name.trim(), phone: formatPhone(raw.phone) };
       const res = await submitLead(
         {
           ...values,
           // Có chọn ngày giờ → server tạo lịch hẹn kèm (bắt buộc khi vừa đổi sang Booking).
-          appointment: showAppointment && scheduled_at ? { scheduled_at, service_ids: service_ids ?? [] } : null,
+          appointment: showAppointment && scheduled_at ? { scheduled_at, service_categories: service_categories ?? [] } : null,
           customer_id: customerId,
           ...smaxMeta,
         },
@@ -403,9 +400,8 @@ function LeadFormInner({ staff, stages, services }: LeadFormProps) {
               rules={[{ required: needAppointment, message: ta("chooseDate") }]}>
               <AppointmentDate className="w-full" onSave={() => {}} />
             </Form.Item>
-            <Form.Item name="service_ids" label={ta("services")}>
-              <Select mode="multiple" allowClear placeholder={ta("choose")} optionFilterProp="label"
-                options={services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />
+            <Form.Item name="service_categories" label={ta("serviceCategories")}>
+              <Select mode="multiple" allowClear placeholder={ta("choose")} options={SERVICE_CATEGORY_OPTIONS} />
             </Form.Item>
           </div>
         )}
