@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CUSTOMER_OPTIONS, instagramUsername, leadSource } from "./customer-options.ts";
+import { CUSTOMER_OPTIONS, instagramUsername, isFollowUpStage, leadSource, needsAppointment } from "./customer-options.ts";
 import { isLocale, locales } from "../i18n/config.ts";
 
 test("fixed stages and sources match the requested values", () => {
@@ -26,4 +26,12 @@ test("instagram username: only valid IG characters", () => {
 test("only Vietnamese and English are selectable", () => {
   assert.deepEqual(locales, ["en", "vi"]);
   assert.equal(isLocale("id"), false);
+});
+
+test("Tiềm năng / Cân nhắc là lịch nhắc, chỉ Booking bắt lịch hẹn", () => {
+  assert.ok(isFollowUpStage("potential") && isFollowUpStage("consider"));
+  assert.ok(!isFollowUpStage("booked") && !isFollowUpStage(""));
+  assert.ok(needsAppointment("booked", "potential"));
+  assert.ok(!needsAppointment("booked", "booked"));
+  assert.ok(!needsAppointment("potential") && !needsAppointment("consider"));
 });

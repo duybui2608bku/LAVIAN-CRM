@@ -469,7 +469,9 @@
     "currency": "Currency",
     "existingCustomer": "This customer already exists. You can update the record but cannot add it again.",
     "update": "Update",
-    "stageRequired": "Please choose a status"
+    "stageRequired": "Please choose a status",
+    "followUpAt": "Follow-up reminder",
+    "followUpRequired": "Please choose a follow-up time"
   },
   "marketing": {
     "title": "Marketing",

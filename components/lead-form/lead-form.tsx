@@ -20,7 +20,7 @@ import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
-import { needsAppointment, SHOW_UP_STAGE } from "@/lib/customer-options";
+import { isFollowUpStage, needsAppointment, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -56,14 +56,16 @@ type Values = {
   region_code: string;
   address_detail: string;
   note: string;
-  // Lịch hẹn kèm theo — chỉ khi tạo khách mới ở stage Booking.
+  // Lịch nhắc follow-up — chỉ stage Tiềm năng / Cân nhắc (không phải lịch hẹn).
+  follow_up_at: string | null;
+  // Lịch hẹn tới chi nhánh kèm theo — các stage còn lại (bắt buộc khi vừa chọn Booking).
   scheduled_at: string;
   service_categories: ServiceCategory[];
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
 
 // Trường lấy theo khách đang có trong CRM — fill khi tìm thấy, reset khi đổi khách.
-const CRM_FIELDS = ["stage", "staff_id", "deposit_amount", "payment_confirm_url", "region_code", "address_detail"] as const;
+const CRM_FIELDS = ["stage", "staff_id", "deposit_amount", "payment_confirm_url", "region_code", "address_detail", "follow_up_at"] as const;
 
 const DEFAULTS: Values = {
   full_name: "",
@@ -75,6 +77,7 @@ const DEFAULTS: Values = {
   deposit_amount: null,
   payment_confirm_url: null,
   note: "",
+  follow_up_at: null,
   scheduled_at: "",
   service_categories: [],
   website: "",
@@ -150,7 +153,8 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
   const [form] = Form.useForm<Values>();
   const stage = Form.useWatch("stage", form);
   const isDeposited = stage === "deposited";
-  // Ô lịch hẹn + dịch vụ luôn hiện; bắt buộc khi vừa chọn Booking / Tiềm năng / Cân nhắc.
+  // Tiềm năng / Cân nhắc → ô Lịch nhắc (bắt buộc); stage khác → ô Lịch hẹn + dịch vụ (bắt buộc khi vừa chọn Booking).
+  const followUp = isFollowUpStage(stage);
   const needAppointment = needsAppointment(stage, existing?.stage);
 
   const smaxIdRef = useRef<string | null>(null);
@@ -246,12 +250,14 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
 
   const onSubmit = (mode: LeadMode) => () =>
     void form.validateFields().then((raw) => start(async () => {
-      const { scheduled_at, service_categories, ...values } = { ...raw, full_name: raw.full_name.trim(), phone: formatPhone(raw.phone) };
+      const { scheduled_at, service_categories, follow_up_at, ...values } = { ...raw, full_name: raw.full_name.trim(), phone: formatPhone(raw.phone) };
+      const followUpStage = isFollowUpStage(values.stage);
       const res = await submitLead(
         {
           ...values,
-          // Có chọn ngày giờ → server tạo lịch hẹn kèm (bắt buộc khi vừa chọn Booking / Tiềm năng / Cân nhắc).
-          appointment: scheduled_at ? { scheduled_at, service_categories: service_categories ?? [] } : null,
+          // Tiềm năng / Cân nhắc → lịch nhắc; còn lại có chọn ngày giờ → server tạo lịch hẹn kèm.
+          follow_up_at: followUpStage ? follow_up_at : null,
+          appointment: !followUpStage && scheduled_at ? { scheduled_at, service_categories: service_categories ?? [] } : null,
           customer_id: customerId,
           ...smaxMeta,
         },
@@ -387,14 +393,24 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
               ariaLabel={t("stage")}
             />
           </Form.Item>
-          {/* dependencies: đổi stage → kiểm tra lại (bỏ lỗi "chọn ngày" khi stage không còn bắt buộc). */}
-          <Form.Item name="scheduled_at" label={ta("date")} trigger="onSave" dependencies={["stage"]}
-            rules={[{ required: needAppointment, message: ta("chooseDate") }]}>
-            <AppointmentDate className="w-full" onSave={() => {}} />
-          </Form.Item>
-          <Form.Item name="service_categories" label={ta("serviceCategories")}>
-            <Select mode="multiple" allowClear placeholder={ta("choose")} options={SERVICE_CATEGORY_OPTIONS} />
-          </Form.Item>
+          {followUp ? (
+            // Lịch nhắc follow-up (Telesales liên hệ lại) — không phải lịch hẹn tới chi nhánh.
+            <Form.Item name="follow_up_at" label={t("followUpAt")} trigger="onSave" className="col-span-2"
+              rules={[{ required: true, message: t("followUpRequired") }]}>
+              <AppointmentDate className="w-full" onSave={() => {}} />
+            </Form.Item>
+          ) : (
+            <>
+              {/* dependencies: đổi stage → kiểm tra lại (bỏ lỗi "chọn ngày" khi stage không còn bắt buộc). */}
+              <Form.Item name="scheduled_at" label={ta("date")} trigger="onSave" dependencies={["stage"]}
+                rules={[{ required: needAppointment, message: ta("chooseDate") }]}>
+                <AppointmentDate className="w-full" onSave={() => {}} />
+              </Form.Item>
+              <Form.Item name="service_categories" label={ta("serviceCategories")}>
+                <Select mode="multiple" allowClear placeholder={ta("choose")} options={SERVICE_CATEGORY_OPTIONS} />
+              </Form.Item>
+            </>
+          )}
           {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
           <Form.Item name="deposit_amount" label={t("deposit")}>
             <InputNumber<number>

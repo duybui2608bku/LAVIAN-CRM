@@ -1,12 +1,12 @@
 import type { AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { PotentialManager } from "@/components/customers/potential-manager";
-import { CUSTOMER_OPTIONS, instagramUsername, POTENTIAL_STAGE } from "@/lib/customer-options";
+import { CUSTOMER_OPTIONS, FOLLOW_UP_STAGES, instagramUsername } from "@/lib/customer-options";
 import { createClient } from "@/lib/supabase/server";
 import type { Customer } from "@/types/customer";
 
 import { CUSTOMER_LIST_FIELDS } from "../customers-view";
 
-// Khách tiềm năng: chỉ khách stage Potential + số khách chuyển đổi sang Booking hôm nay (giờ VN).
+// Khách tiềm năng: khách stage Tiềm năng + Cân nhắc + số khách chuyển đổi sang Booking hôm nay (giờ VN).
 export default async function PotentialCustomersPage() {
   const supabase = await createClient();
   const todayVN = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
@@ -16,7 +16,7 @@ export default async function PotentialCustomersPage() {
     supabase
       .from("customers")
       .select(`${CUSTOMER_LIST_FIELDS}, potential_status, follow_up_at`)
-      .eq("stage", POTENTIAL_STAGE)
+      .in("stage", FOLLOW_UP_STAGES)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     supabase

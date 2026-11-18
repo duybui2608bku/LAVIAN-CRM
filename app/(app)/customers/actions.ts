@@ -4,7 +4,7 @@ import {
   BOOKED_STAGE,
   CONVERTED_STATUS,
   isStage,
-  POTENTIAL_STAGE,
+  FOLLOW_UP_STAGES,
   validPotentialStatus,
   validRating,
 } from "@/lib/customer-options";
@@ -214,7 +214,7 @@ export async function addCustomerNote(
 
 /**
  * Khách tiềm năng đã có lịch hẹn (tạo ở drawer ngay trước đó) → sang Booking, ghi lúc chuyển đổi.
- * Chỉ áp cho khách còn ở stage Potential.
+ * Chỉ áp cho khách còn ở stage Tiềm năng / Cân nhắc.
  */
 export async function convertPotentialCustomer(id: string): Promise<Result> {
   try {
@@ -229,7 +229,7 @@ export async function convertPotentialCustomer(id: string): Promise<Result> {
         follow_up_at: null,
       })
       .eq("id", id)
-      .eq("stage", POTENTIAL_STAGE);
+      .in("stage", FOLLOW_UP_STAGES);
     if (error) throw error;
     revalidateCustomers();
     return {};

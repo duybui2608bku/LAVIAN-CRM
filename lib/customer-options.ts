@@ -40,15 +40,16 @@ export function validPotentialStatus(v: string | null | undefined): string | nul
     : null;
 }
 
-/** Stage mà lead form bắt buộc kèm lịch hẹn. */
-const APPOINTMENT_STAGES: readonly string[] = [BOOKED_STAGE, POTENTIAL_STAGE, "consider"];
+/** Stage có lịch nhắc follow-up (`follow_up_at`) — hiện ở trang Khách tiềm năng. Không phải lịch hẹn tới chi nhánh. */
+export const FOLLOW_UP_STAGES: readonly string[] = [POTENTIAL_STAGE, "consider"];
+export const isFollowUpStage = (stage: string | null | undefined) => !!stage && FOLLOW_UP_STAGES.includes(stage);
 
 /**
- * Lead form: bắt buộc lịch hẹn khi VỪA chọn stage Booking / Tiềm năng / Cân nhắc (khách mới
- * hoặc khách cũ đổi stage). Khách đang ở sẵn stage đó chỉ cập nhật thông tin → không bắt tạo lịch mới.
+ * Lead form: bắt buộc lịch hẹn (tới chi nhánh) khi VỪA chọn Booking (khách mới hoặc khách cũ đổi stage).
+ * Khách đang ở sẵn Booking chỉ cập nhật thông tin → không bắt tạo lịch mới.
  */
 export const needsAppointment = (stage: string | null | undefined, currentStage?: string | null) =>
-  !!stage && APPOINTMENT_STAGES.includes(stage) && currentStage !== stage;
+  stage === BOOKED_STAGE && currentStage !== stage;
 
 /** Stage hiện ở trang Booking management (/customers/bookings). */
 export const BOOKING_PAGE_STAGES = [BOOKED_STAGE, "deposited"] as const;

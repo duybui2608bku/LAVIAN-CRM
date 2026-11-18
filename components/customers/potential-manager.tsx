@@ -79,6 +79,8 @@ export function PotentialManager({
     .filter((o) => o.kind === "potential_status")
     .map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} /> }));
   const statusTag = (v: string | null | undefined) => statusOptions.find((o) => o.value === v)?.label ?? DASH;
+  // Trang gộp 2 stage: khách Cân nhắc hiện tag stage để phân biệt với Tiềm năng.
+  const considerOpt = options.find((o) => o.kind === "stage" && o.value === "consider");
   const teleOptions = staff
     .filter((s) => TELESALES_DEPARTMENTS.includes(s.department ?? ""))
     .map((s) => ({ value: s.id, label: staffLabel(s) }));
@@ -209,7 +211,10 @@ export function PotentialManager({
               v === CONVERTED_STATUS ? setConvertFor(c.id) : patchField(c.id, { potential_status: v || null })
             }
           />
-          <div className="mt-0.5 text-xs text-muted-foreground">{t("followUps", { n: c.notes?.length ?? 0 })}</div>
+          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+            {c.stage === "consider" && considerOpt && <EnumTag label={optionLabel(considerOpt, locale)} color={considerOpt.color} />}
+            {t("followUps", { n: c.notes?.length ?? 0 })}
+          </div>
         </div>
       ),
     },
