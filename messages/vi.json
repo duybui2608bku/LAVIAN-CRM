@@ -804,5 +804,33 @@
       "digestToday": "Hôm nay {n} khách cần liên hệ",
       "digestOverdue": "{n} khách quá hạn liên hệ"
     }
+  },
+  "bookings": {
+    "title": "Booking Management",
+    "description": "LAVIAN · Quản lý lịch hẹn tập trung",
+    "create": "Tạo lịch hẹn",
+    "kpiToday": "Lịch hôm nay",
+    "kpiPending": "Chưa xác nhận",
+    "kpiAction": "Cần xử lý",
+    "kpiShowUp": "Đã đến",
+    "tab": {
+      "today": "Hôm nay",
+      "tomorrow": "Ngày mai",
+      "action": "Cần xử lý",
+      "all": "Tất cả"
+    },
+    "searchPlaceholder": "Tìm tên, SĐT, dịch vụ…",
+    "allStatus": "Tất cả trạng thái",
+    "allTele": "Tất cả Tele",
+    "colSchedule": "Lịch hẹn",
+    "colCustomer": "Khách hàng / Dịch vụ",
+    "colDeposit": "Deposit",
+    "colTele": "Tele",
+    "colSource": "Nguồn",
+    "colStatus": "Trạng thái",
+    "colNote": "Ghi chú",
+    "deposited": "Đã cọc",
+    "notDeposited": "Chưa cọc",
+    "empty": "Không có lịch hẹn nào"
   }
 }

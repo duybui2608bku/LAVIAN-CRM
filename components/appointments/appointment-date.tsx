@@ -7,8 +7,10 @@ import { useTranslations } from "next-intl";
 import { useIsTouch } from "@/hooks/use-is-mobile";
 
 /** Confirm date and time together; changing the day alone never writes a booking. */
-export function AppointmentDate({ value, disabled, inline, className, onSave }: {
+export function AppointmentDate({ value, disabled, inline, className, format = "DD/MM/YYYY HH:mm", onSave }: {
   value?: string | null;
+  /** Định dạng hiển thị (picker vẫn chọn cả ngày + giờ). */
+  format?: string;
   disabled?: boolean;
   /** Ô bảng: hiện như chữ thường, bấm vào mới mở picker để sửa. */
   inline?: boolean;
@@ -21,7 +23,7 @@ export function AppointmentDate({ value, disabled, inline, className, onSave }: 
     inputReadOnly={touch}
     value={value ? dayjs(value) : null}
     showTime={{ format: "HH:mm" }}
-    format="DD/MM/YYYY HH:mm"
+    format={format}
     needConfirm
     allowClear={false}
     disabled={disabled}

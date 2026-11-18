@@ -26,7 +26,7 @@ import { TELESALES_DEPARTMENTS } from "@/types/user";
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
 
 // Chỉ chọn user đang hoạt động của bộ phận (mặc định Telesales); giữ người đang gán để vẫn hiển thị.
-const staffOptions = (staff: AppointmentStaff[], current?: string | null, depts = TELESALES_DEPARTMENTS) => staff
+export const staffOptions = (staff: AppointmentStaff[], current?: string | null, depts = TELESALES_DEPARTMENTS) => staff
   .filter((s) => s.id === current || (s.status === "active" && depts.includes(s.department ?? "")))
   .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
@@ -168,7 +168,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   </Page>;
 }
 
-function AppointmentNote({ value, label, disabled, onSave }: {
+export function AppointmentNote({ value, label, disabled, onSave }: {
   value: string; label: string; disabled?: boolean; onSave: (note: string) => void;
 }) {
   const [draft, setDraft] = useState(value);

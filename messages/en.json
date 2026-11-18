@@ -804,5 +804,33 @@
       "digestToday": "{n} customers to follow up today",
       "digestOverdue": "{n} overdue follow-ups"
     }
+  },
+  "bookings": {
+    "title": "Booking Management",
+    "description": "LAVIAN · Centralized appointment management",
+    "create": "Create appointment",
+    "kpiToday": "Today's appointments",
+    "kpiPending": "Unconfirmed",
+    "kpiAction": "Needs action",
+    "kpiShowUp": "Arrived",
+    "tab": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "action": "Needs action",
+      "all": "All"
+    },
+    "searchPlaceholder": "Search name, phone, service…",
+    "allStatus": "All statuses",
+    "allTele": "All Tele",
+    "colSchedule": "Appointment",
+    "colCustomer": "Customer / Service",
+    "colDeposit": "Deposit",
+    "colTele": "Tele",
+    "colSource": "Source",
+    "colStatus": "Status",
+    "colNote": "Note",
+    "deposited": "Deposited",
+    "notDeposited": "No deposit",
+    "empty": "No appointments"
   }
 }
