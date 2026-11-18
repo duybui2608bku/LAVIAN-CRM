@@ -139,8 +139,15 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
 
   return (
     <Page>
-      {/* Không tiêu đề trang — menu đã nói đây là "Tài liệu"; chỉ ô tìm, lọc danh mục + nút thêm. */}
+      {/* Không tiêu đề trang — menu đã nói đây là "Tài liệu"; chỉ nút thêm (đầu hàng) + ô tìm, lọc danh mục. */}
       <PageToolbar>
+        {isAdmin ? (
+          <Link href="/documents/new">
+            <Button type="primary" icon={<Plus className="size-4" />} className="w-full">
+              {t("new")}
+            </Button>
+          </Link>
+        ) : null}
         <Input
           allowClear
           value={q}
@@ -164,13 +171,6 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
           options={DOCUMENT_CATEGORIES.map((c) => ({ value: c.value, label: t(`cat_${c.value}`) }))}
           className="sm:w-48"
         />
-        {isAdmin ? (
-          <Link href="/documents/new" className="sm:ms-auto">
-            <Button type="primary" icon={<Plus className="size-4" />} className="w-full">
-              {t("new")}
-            </Button>
-          </Link>
-        ) : null}
       </PageToolbar>
 
       <DataTable<DocumentListItem>

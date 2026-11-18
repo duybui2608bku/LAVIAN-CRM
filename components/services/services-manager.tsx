@@ -25,7 +25,7 @@ import { useCan } from "@/components/common/permissions";
 import { DataTable } from "@/components/common/data-table";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { RowActions } from "@/components/common/row-actions";
-import { Page, PageHeader } from "@/components/layout/page";
+import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { toast } from "@/lib/toast";
 import {
   SERVICE_CATEGORY_COLORS,
@@ -145,18 +145,16 @@ export function ServicesManager({ services }: { services: Service[] }) {
 
   return (
     <Page>
-      <PageHeader
-        title={t("title")}
-        actions={
-          canEdit && <Button
-            type="primary"
-            icon={<Plus className="size-4" />}
-            onClick={() => setDialog({ service: null })}
-          >
+      <PageHeader title={t("title")} />
+
+      {/* Không có bộ lọc — vẫn đặt nút thêm ở hàng toolbar cho đồng bộ các trang. */}
+      {canEdit && (
+        <PageToolbar>
+          <Button type="primary" icon={<Plus className="size-4" />} onClick={() => setDialog({ service: null })}>
             {t("add")}
           </Button>
-        }
-      />
+        </PageToolbar>
+      )}
 
       <DataTable
         columns={columns}

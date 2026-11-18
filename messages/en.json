@@ -4,6 +4,7 @@
     "create": "Add appointment",
     "name": "Customer name",
     "phone": "Phone",
+    "source": "Source",
     "date": "Appointment date & time",
     "bookingConfirm": "Booking confirmation",
     "allBookingConfirms": "All booking confirmations",
