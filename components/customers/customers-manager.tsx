@@ -38,7 +38,7 @@ import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
 import { DataTable } from "@/components/common/data-table";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
-import { CustomerRemindersDrawer } from "@/components/reminders/customer-reminders-drawer";
+import { CustomerRemindersPopover } from "@/components/reminders/customer-reminders-popover";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { ImageUpload } from "@/components/common/image-upload";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
@@ -146,7 +146,6 @@ export function CustomersManager({
   const [notesFor, setNotesFor] = useState<string | null>(null);
   const [apptFor, setApptFor] = useState<Customer | null>(null);
   const [createFor, setCreateFor] = useState<string | null>(null); // id khách đang tạo lịch hẹn
-  const [remindersFor, setRemindersFor] = useState<string | null>(null); // id khách đang mở drawer nhắc hẹn
   const [page, setPage] = useState(1);
 
   // Sửa inline hiện ngay, không chờ server. React tự trả về dữ liệu server khi
@@ -385,33 +384,42 @@ export function CustomersManager({
             title: t("colReminder"),
             key: "reminder",
             width: 150,
-            // Lịch nhắc chưa xong sớm nhất (màu: quá hạn/hôm nay/sắp tới) + số chưa xong; bấm mở drawer.
+            // Lịch nhắc chưa xong sớm nhất (màu: quá hạn/hôm nay/sắp tới) + số chưa xong; bấm mở popover tại chỗ.
             render: (_: unknown, c: Customer) => {
               const list = remindersOf.get(c.id) ?? [];
               const next = nextPending(list);
               const pendingCount = list.filter((r) => !r.done_at).length;
-              return next ? (
-                <Badge count={pendingCount > 1 ? pendingCount : 0} size="small">
-                  <Tag
-                    color={REMINDER_COLORS[reminderState(next, now)]}
-                    className="me-0 cursor-pointer tabular-nums"
-                    title={t("viewReminders")}
-                    onClick={() => setRemindersFor(c.id)}
-                  >
-                    {dayjs(next.remind_at).format("DD-MM HH:mm")}
-                  </Tag>
-                </Badge>
-              ) : (
-                <Badge count={list.length} size="small" color="var(--muted-foreground)">
-                  <Button
-                    type="text"
-                    size="small"
-                    aria-label={t("viewReminders")}
-                    title={t("viewReminders")}
-                    icon={<BellPlus className="size-4" />}
-                    onClick={() => setRemindersFor(c.id)}
-                  />
-                </Badge>
+              return (
+                <CustomerRemindersPopover
+                  customer={c}
+                  reminders={list}
+                  staff={staff}
+                  appointmentAt={upcomingAppt(c.id)}
+                  now={now}
+                  canEdit={canEdit}
+                >
+                  {next ? (
+                    <Badge count={pendingCount > 1 ? pendingCount : 0} size="small">
+                      <Tag
+                        color={REMINDER_COLORS[reminderState(next, now)]}
+                        className="me-0 cursor-pointer tabular-nums"
+                        title={t("viewReminders")}
+                      >
+                        {dayjs(next.remind_at).format("DD-MM HH:mm")}
+                      </Tag>
+                    </Badge>
+                  ) : (
+                    <Badge count={list.length} size="small" color="var(--muted-foreground)">
+                      <Button
+                        type="text"
+                        size="small"
+                        aria-label={t("viewReminders")}
+                        title={t("viewReminders")}
+                        icon={<BellPlus className="size-4" />}
+                      />
+                    </Badge>
+                  )}
+                </CustomerRemindersPopover>
               );
             },
           },
@@ -600,21 +608,6 @@ export function CustomersManager({
       />
 
       <AppointmentHistoryDrawer customer={apptFor} staff={staff} onClose={() => setApptFor(null)} />
-
-      {reminders && (() => {
-        const c = remindersFor ? rowsData.find((x) => x.id === remindersFor) ?? null : null;
-        return (
-          <CustomerRemindersDrawer
-            customer={c}
-            reminders={c ? remindersOf.get(c.id) ?? [] : []}
-            staff={staff}
-            appointmentAt={c ? upcomingAppt(c.id) : undefined}
-            now={now}
-            canEdit={canEdit}
-            onClose={() => setRemindersFor(null)}
-          />
-        );
-      })()}
 
       {/* key theo khách: form mới mỗi lần mở (không dính khách/giá trị lần trước). */}
       <CreateAppointmentDrawer

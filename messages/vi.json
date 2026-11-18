@@ -730,18 +730,12 @@
     "chooseDate": "Chọn thời điểm nhắc",
     "assignee": "Telesales phụ trách",
     "unassigned": "Chưa có Telesales",
-    "note": "Tin nhắn gửi khách",
-    "noteHint": "Bấm nút sao chép ở lịch nhắc để dán vào hội thoại.",
-    "defaultMessage": "Chào {name}, Lavian xin nhắc lịch hẹn của bạn lúc {time}. Hẹn gặp bạn tại cơ sở!",
-    "defaultMessageNoTime": "Chào {name}, Lavian xin phép liên hệ để xác nhận thời gian bạn tới cơ sở.",
+    "note": "Ghi chú",
     "saved": "Đã lưu lịch nhắc",
     "empty": "Khách chưa có lịch nhắc",
     "emptyDay": "Không có lịch nhắc",
     "markDone": "Đánh dấu đã nhắc",
     "markUndone": "Bỏ đánh dấu đã nhắc",
-    "copy": "Sao chép tin nhắn",
-    "copied": "Đã sao chép tin nhắn",
-    "copyFailed": "Không sao chép được",
     "openThread": "Mở hội thoại",
     "delete": "Xoá",
     "deleteConfirm": "Xoá lịch nhắc này?",
@@ -771,6 +765,8 @@
       "assigned": "{by} tạo lịch nhắc cho khách {customer} của bạn lúc {time}"
     },
     "assigneeHint": "Chỉ Telesales phụ trách khách nhận thông báo. Đổi ở cột Nhân viên của khách.",
-    "noTelesales": "Khách chưa có Telesales phụ trách nên lịch nhắc này sẽ không gửi thông báo cho ai."
+    "noTelesales": "Khách chưa có Telesales phụ trách nên lịch nhắc này sẽ không gửi thông báo cho ai.",
+    "notePlaceholder": "Ghi chú (không bắt buộc)",
+    "notifyTo": "Thông báo cho"
   }
 }

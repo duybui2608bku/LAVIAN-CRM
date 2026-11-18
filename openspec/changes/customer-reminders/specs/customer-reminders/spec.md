@@ -6,12 +6,12 @@
 User có quyền sửa khách SHALL tạo/sửa/xoá/đánh dấu xong lịch nhắc (thời điểm, nội dung) cho khách ở `/customers/bookings`.
 
 #### Scenario: Tạo lịch nhắc
-- **WHEN** user bấm cột Nhắc hẹn của khách và thêm lịch nhắc
+- **WHEN** user bấm ô Nhắc hẹn của khách (mở popover tại chỗ) và thêm lịch nhắc
 - **THEN** lịch nhắc được lưu, cột hiển thị lịch nhắc kế tiếp và số lịch chưa xong
 
 #### Scenario: Nhắn khách
 - **WHEN** user mở một lịch nhắc của khách có hội thoại SMAX
-- **THEN** có nút mở hội thoại và nút sao chép nội dung tin nhắn
+- **THEN** có nút mở hội thoại SMAX để nhắn khách
 
 ### Requirement: Trang calendar lịch nhắc
 `/customers/reminders` SHALL hiển thị lịch nhắc theo tháng và theo ngày, lọc được theo nhân viên, trạng thái (chưa xong / quá hạn / đã xong) và tên/SĐT khách.

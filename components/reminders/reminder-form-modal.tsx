@@ -95,7 +95,7 @@ export function ReminderFormModal({
           </Form.Item>
         </div>
         {!telesales && <Alert type="warning" showIcon className="mb-4" message={t("noTelesales")} />}
-        <Form.Item name="note" label={t("note")} extra={t("noteHint")} className="mb-0">
+        <Form.Item name="note" label={t("note")} className="mb-0">
           <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={5000} />
         </Form.Item>
       </Form>

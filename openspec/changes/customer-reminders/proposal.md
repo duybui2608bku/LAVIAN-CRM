@@ -7,7 +7,7 @@ Khách Booking/Deposited hay quên giờ đến cơ sở. Nhân viên cần **l�
 ## What Changes
 
 - **DB:** bảng `customer_reminders` (khách, thời điểm nhắc, nội dung tin nhắn, đã xong). Bảng `notifications` (mỗi user, đã đọc) + publication Realtime. `pg_cron` chạy 8h sáng (giờ VN) tạo thông báo "hôm nay có N lịch nhắc (M quá hạn)" cho Telesales phụ trách khách. Trigger báo Telesales của khách khi người khác tạo lịch nhắc. **Thông báo chỉ gửi Telesales phụ trách khách** (`customers.staff_id`, đang hoạt động, bộ phận Telesales).
-- **`/customers/bookings`:** cột **Nhắc hẹn** (lịch nhắc kế tiếp + số lịch chưa xong) → drawer lịch nhắc của khách: thêm/sửa/xoá, đánh dấu xong, mở hội thoại SMAX, sao chép tin nhắn.
+- **`/customers/bookings`:** cột **Nhắc hẹn** (lịch nhắc kế tiếp + số lịch chưa xong) → bấm mở **popover tại chỗ**: form nhanh (thời điểm + ghi chú tuỳ chọn, dùng cho cả thêm/sửa) + danh sách lịch nhắc (đánh dấu xong, mở hội thoại SMAX, sửa, xoá). Không có tin nhắn mẫu.
 - **Trang mới `/customers/reminders`** (menu con của Khách hàng): calendar tháng, chip lịch nhắc theo ngày; panel danh sách ngày đang chọn; bộ lọc nhanh Hôm nay / Quá hạn / Sắp tới, lọc nhân viên ("Của tôi"), trạng thái, tìm khách.
 - **Chuông header:** danh sách thông báo thật, badge chưa đọc, cập nhật realtime, bấm mở trang lịch nhắc.
 
