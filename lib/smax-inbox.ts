@@ -53,22 +53,123 @@ export type InboxThread = {
    * Khách của hội thoại. 1 khách IG có thể có 2 hội thoại (tin nhắn + bình luận) dùng CHUNG `tags` của khách.
    * `tags` kèm thời điểm gắn; `created_at` = lúc SMAX biết khách lần đầu.
    */
-  customer?: { id?: string; created_at?: string; tags?: { alias?: string; time?: string }[]; instagram?: { ad_id?: string } };
+  customer?: {
+    id?: string;
+    created_at?: string;
+    tags?: { alias?: string; time?: string }[];
+    instagram?: { ad_id?: string };
+    /** SĐT SMAX tự nhận khi khách gõ số (khách IG). */
+    phone?: string;
+    phones?: { value?: string }[];
+    /** Khách WA: `id` = `<số>@s.whatsapp.net` (nhóm: `@g.us`). */
+    whatsappweb?: { id?: string };
+  };
   /** Trang nhận tin: `waw<số WA>` / `ig<id>`. */
   page_pid?: string;
+  /** Mã hội thoại trong trang (để lấy tin nhắn). */
+  tid?: string;
   /** Quảng cáo IG khách bấm gần nhất. */
   instagram?: { ad_id?: string };
+  /** SĐT tìm thấy trong tin nhắn khách khi SMAX không tự lưu — server gắn thêm (`fetchIgByPhone`). */
+  scanned_phones?: string[];
 };
 
-/** Mỗi khách giữ 1 hội thoại (ưu tiên hội thoại có nhiều tag hơn — thường là tin nhắn, không phải bình luận). */
-export function byCustomer(threads: InboxThread[]): InboxThread[] {
-  const out = new Map<string, InboxThread>();
+/** SĐT IG → hội thoại IG của khách đó (dùng gộp khách IG chuyển sang nhắn WA). */
+export type IgByPhone = Map<string, InboxThread>;
+
+/** SĐT chuẩn `62…`: chỉ giữ chữ số, `0…` → `62…`. */
+function normPhone(p: string | null | undefined): string {
+  const d = String(p ?? "").replace(/\D/g, "");
+  return d.startsWith("0") ? `62${d.slice(1)}` : d;
+}
+
+/** Số di động Indonesia trong đoạn chữ (`0812…`, `+62 812-…`, `62812…`), đã chuẩn hoá. */
+export function findPhones(text: string): string[] {
+  const nums = (text.match(/(?:\+?62|\b0)[\s.-]?8(?:[\s.-]?\d){7,11}/g) ?? []).map(normPhone);
+  return [...new Set(nums.filter((n) => n.length >= 10 && n.length <= 14))];
+}
+
+/** Các SĐT của khách IG (SMAX lưu + tìm trong tin nhắn). */
+export function igPhones(t: InboxThread): string[] {
+  const raw = [t.customer?.phone, ...(t.customer?.phones ?? []).map((p) => p.value), ...(t.scanned_phones ?? [])];
+  return [...new Set(raw.map(normPhone).filter((n) => n.length >= 10))];
+}
+
+/** Số WA của khách (nhóm → ""). */
+function waPhone(t: InboxThread): string {
+  const id = t.customer?.whatsappweb?.id ?? "";
+  return id.endsWith("@s.whatsapp.net") ? normPhone(id.split("@")[0]) : "";
+}
+
+const seenOrInf = (t: InboxThread) => {
+  const ms = firstSeen(t);
+  return Number.isNaN(ms) ? Infinity : ms;
+};
+
+/** Chỉ mục SĐT → hội thoại IG; 1 số nhiều khách IG thì giữ khách xuất hiện sớm nhất. */
+export function igPhoneIndex(threads: InboxThread[]): IgByPhone {
+  const out: IgByPhone = new Map();
   for (const t of threads) {
-    const key = t.customer?.id ?? t.id;
-    const prev = out.get(key);
-    if (!prev || (t.tag_aliases?.length ?? 0) > (prev.tag_aliases?.length ?? 0)) out.set(key, t);
+    if (t.platform !== "instagram") continue;
+    for (const p of igPhones(t)) {
+      const prev = out.get(p);
+      if (!prev || seenOrInf(t) < seenOrInf(prev)) out.set(p, t);
+    }
   }
-  return [...out.values()];
+  return out;
+}
+
+/** Mốc ISO sớm nhất (`earliest`) / muộn nhất trong danh sách, bỏ giá trị không hợp lệ. */
+function pickTime(xs: (string | undefined)[], earliest: boolean): string | undefined {
+  let best: string | undefined;
+  for (const x of xs) {
+    const ms = Date.parse(x ?? "");
+    if (Number.isNaN(ms)) continue;
+    if (best === undefined || (earliest ? ms < Date.parse(best) : ms > Date.parse(best))) best = x;
+  }
+  return best;
+}
+
+/** Gộp hội thoại của 1 người (khác khách SMAX): gốc = phần xuất hiện trước (quyết định kênh), tag/thời gian gộp. */
+function mergePerson(parts: InboxThread[]): InboxThread {
+  if (parts.length === 1) return parts[0];
+  const first = parts.reduce((a, b) => (seenOrInf(b) < seenOrInf(a) ? b : a));
+  return {
+    ...first,
+    tag_aliases: [...new Set(parts.flatMap((p) => p.tag_aliases ?? []))],
+    created_at: pickTime(parts.map((p) => p.created_at), true),
+    last_message_at: pickTime(parts.map((p) => p.last_message_at), false),
+    customer: {
+      ...first.customer,
+      created_at: pickTime(parts.map((p) => p.customer?.created_at), true),
+      tags: parts.flatMap((p) => p.customer?.tags ?? []),
+    },
+  };
+}
+
+/**
+ * Mỗi người 1 hội thoại:
+ * - cùng khách SMAX → giữ hội thoại nhiều tag hơn (tin nhắn IG thay vì bình luận);
+ * - khách WA trùng SĐT khách IG (`igByPhone`) → gộp thành 1 người, kênh = bên khách nhắn trước.
+ *   Hội thoại IG nằm ngoài `threads` (vd tạo trước kỳ) vẫn được gộp vào để biết khách đã có từ trước.
+ */
+export function byCustomer(threads: InboxThread[], igByPhone: IgByPhone = new Map()): InboxThread[] {
+  const keyOf = (t: InboxThread) => t.customer?.id ?? t.id;
+  const reps = new Map<string, InboxThread>();
+  for (const t of threads) {
+    const prev = reps.get(keyOf(t));
+    if (!prev || (t.tag_aliases?.length ?? 0) > (prev.tag_aliases?.length ?? 0)) reps.set(keyOf(t), t);
+  }
+  const people = new Map<string, InboxThread[]>();
+  for (const [key, t] of reps) {
+    const ig = t.platform === "whatsappweb" ? igByPhone.get(waPhone(t)) : undefined;
+    const pk = ig ? keyOf(ig) : key;
+    const parts = people.get(pk) ?? [];
+    parts.push(t);
+    if (ig && !reps.has(pk) && !parts.includes(ig)) parts.push(ig);
+    people.set(pk, parts);
+  }
+  return [...people.values()].map(mergePerson);
 }
 
 /** Lần đầu khách xuất hiện (ms): sớm hơn giữa ngày tạo hội thoại và ngày tạo khách. */
@@ -126,7 +227,13 @@ export const sumChannels = (c: ChannelCounts): InboxCounts => {
  * `created` = hội thoại tạo trong khoảng (khách mới), `active` = hội thoại có tin nhắn từ đầu khoảng đến nay.
  * `from`/`to` là ngày WIB `YYYY-MM-DD` — Booking / Khách đến chỉ tính khi lần gắn tag sớm nhất nằm trong khoảng.
  */
-export function buildInboxReport(created: InboxThread[], active: InboxThread[], from: string, to: string): InboxReport {
+export function buildInboxReport(
+  created: InboxThread[],
+  active: InboxThread[],
+  from: string,
+  to: string,
+  igByPhone?: IgByPhone,
+): InboxReport {
   const [start, end] = inboxDateRange(from, to).map(Date.parse);
   const inRange = (ms: number) => ms >= start && ms <= end;
   const total = emptyChannels();
@@ -135,8 +242,10 @@ export function buildInboxReport(created: InboxThread[], active: InboxThread[], 
   );
 
   // Cộng 1 khách vào tổng + từng nhân viên gắn tag (2 nhân viên → tính cho cả 2; tổng vẫn đếm 1 lần).
-  const tally = (threads: InboxThread[], add: (c: InboxCounts, tags: string[], t: InboxThread) => void) => {
-    for (const t of byCustomer(threads)) {
+  // `onlyNew`: bỏ người xuất hiện trước kỳ (xét SAU khi gộp IG ↔ WA, vd khách IG cũ mở hội thoại WA mới).
+  const tally = (threads: InboxThread[], add: (c: InboxCounts, tags: string[], t: InboxThread) => void, onlyNew = false) => {
+    for (const t of byCustomer(threads, igByPhone)) {
+      if (onlyNew && firstSeen(t) < start) continue;
       const channel = CHANNEL_OF[t.platform ?? ""];
       if (!channel) continue;
       const tags = t.tag_aliases ?? [];
@@ -147,12 +256,16 @@ export function buildInboxReport(created: InboxThread[], active: InboxThread[], 
   };
 
   // Khách cũ mở hội thoại mới (vd bình luận IG) không phải khách mới.
-  tally(created.filter((t) => !(firstSeen(t) < start)), (c, tags) => {
-    c.conversations++;
-    const status = STATUS_ALIASES.find(([, aliases]) => aliases.some((a) => tags.includes(a)))?.[0];
-    if (!status) c.untagged++;
-    else if (status !== "booking") c[status]++; // Booking đếm từ `booked` (tránh đếm 2 lần)
-  });
+  tally(
+    created,
+    (c, tags) => {
+      c.conversations++;
+      const status = STATUS_ALIASES.find(([, aliases]) => aliases.some((a) => tags.includes(a)))?.[0];
+      if (!status) c.untagged++;
+      else if (status !== "booking") c[status]++; // Booking đếm từ `booked` (tránh đếm 2 lần)
+    },
+    true,
+  );
   tally(active, (c, tags, t) => {
     const bookedAt = taggedAt(t, BOOKING_ALIASES);
     const showedAt = taggedAt(t, [SHOW_UP_ALIAS]);
@@ -176,6 +289,18 @@ export function buildInboxReport(created: InboxThread[], active: InboxThread[], 
       { alias: UNASSIGNED, name: "", counts: staff.get(UNASSIGNED)! },
     ],
   };
+}
+
+/**
+ * Hội thoại TẠO trong khoảng ngày WIB, lọc từ tập "có tin nhắn từ `from` tới nay" (tin nhắn cuối ≥ lúc tạo nên tập
+ * tạo-trong-kỳ nằm trọn trong đó — đã đối chiếu SMAX thật) → không cần tải riêng lượt theo ngày tạo.
+ */
+export function createdIn(threads: InboxThread[], from: string, to: string): InboxThread[] {
+  const [start, end] = inboxDateRange(from, to).map(Date.parse);
+  return threads.filter((t) => {
+    const ms = Date.parse(t.created_at ?? "");
+    return ms >= start && ms <= end;
+  });
 }
 
 /** Ngày WIB `YYYY-MM-DD` của mốc ms (NaN → ""). */
@@ -225,14 +350,14 @@ function taggedAt(t: InboxThread, aliases: string[]): number {
 }
 
 /** `from`/`to` là ngày WIB `YYYY-MM-DD`; `threads` = hội thoại có tin nhắn cuối từ `from` tới hôm nay. */
-export function buildFollowupReport(threads: InboxThread[], from: string, to: string): FollowupReport {
+export function buildFollowupReport(threads: InboxThread[], from: string, to: string, igByPhone?: IgByPhone): FollowupReport {
   const [start, end] = inboxDateRange(from, to).map(Date.parse);
   const inRange = (ms: number) => ms >= start && ms <= end;
   const total = emptyFollowup();
   const staff = new Map<string, FollowupCounts>(
     [...INBOX_STAFF.map((s) => s.alias), UNASSIGNED].map((a) => [a, emptyFollowup()]),
   );
-  for (const t of byCustomer(threads)) {
+  for (const t of byCustomer(threads, igByPhone)) {
     const created = firstSeen(t);
     if (!CHANNEL_OF[t.platform ?? ""] || Number.isNaN(created) || created > end) continue;
     const old = created < start;
@@ -277,10 +402,19 @@ export type PotentialCounts = {
   total: number;
 };
 
-/** `adCampaign`: ad_id → campaign_id (từ FB). Mỗi khách tính tối đa 1 lần. */
-export function countPotential(threads: InboxThread[], adCampaign: Map<string, string>): PotentialCounts {
+/**
+ * `adCampaign`: ad_id → campaign_id (từ FB). Mỗi người tính tối đa 1 lần (gộp IG ↔ WA theo `igByPhone`).
+ * Có `from` (ngày WIB) → bỏ người xuất hiện trước kỳ (đã là khách kỳ trước, vd nhắn IG rồi kỳ này mới sang WA).
+ */
+export function countPotential(
+  threads: InboxThread[],
+  adCampaign: Map<string, string>,
+  { from, igByPhone }: { from?: string; igByPhone?: IgByPhone } = {},
+): PotentialCounts {
   const out: PotentialCounts = { byCampaign: {}, byWa: {}, total: 0 };
-  for (const t of byCustomer(threads)) {
+  const start = from ? Date.parse(inboxDateRange(from, from)[0]) : -Infinity;
+  for (const t of byCustomer(threads, igByPhone)) {
+    if (firstSeen(t) < start) continue;
     if (!CHANNEL_OF[t.platform ?? ""] || !POTENTIAL_ALIASES.some((a) => t.tag_aliases?.includes(a))) continue;
     out.total++;
     if (t.platform === "instagram") {

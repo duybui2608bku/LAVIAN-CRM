@@ -61,10 +61,15 @@ export function toChatMessages(raw: RawMessage[]): ChatMessage[] {
 
 /** 20 tin gần nhất của hội thoại theo link lưu ở `customers.thread.link`. */
 export async function fetchThreadMessages(link: string | null | undefined): Promise<ChatMessage[]> {
-  const token = process.env.SMAX_TOKEN ?? "";
-  if (!token) throw new Error("Thiếu SMAX_TOKEN.");
   const ref = threadRef(link);
   if (!ref) throw new Error("Khách chưa có hội thoại SMAX.");
+  return fetchMessagesByRef(ref);
+}
+
+/** 20 tin gần nhất của hội thoại `tid` trong trang `page` (page_pid). */
+export async function fetchMessagesByRef(ref: { page: string; tid: string }): Promise<ChatMessage[]> {
+  const token = process.env.SMAX_TOKEN ?? "";
+  if (!token) throw new Error("Thiếu SMAX_TOKEN.");
   const res = await fetch(
     `${BIZ_API}/pages/${ref.page}/threads/${encodeURIComponent(ref.tid)}/messages?sort=-created_at&limit=${MESSAGE_LIMIT}`,
     { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },

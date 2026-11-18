@@ -1,7 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildFollowupReport, buildInboxReport, countPotential, inboxDateRange, statusTotal, sumChannels, UNASSIGNED } from "./smax-inbox.ts";
+import {
+  buildFollowupReport,
+  buildInboxReport,
+  countPotential,
+  createdIn,
+  findPhones,
+  igPhoneIndex,
+  inboxDateRange,
+  statusTotal,
+  sumChannels,
+  UNASSIGNED,
+} from "./smax-inbox.ts";
 
 const t = (id: string, platform: string, tags: string[]) => ({ id, platform, tag_aliases: tags });
 
@@ -173,4 +184,88 @@ test("buildInboxReport: Khách đến theo lúc gắn purchase, Re-engaged = kh�
     "2026-11-16",
   );
   assert.deepEqual(r.total.wa, { ...zero, reEngaged: 2, showUp: 2, showUpSameDay: 1 });
+});
+
+test("findPhones: số Indonesia nhiều cách viết, chuẩn hoá 62…", () => {
+  assert.deepEqual(findPhones("wa aku 0812-3456-7890 ya"), ["6281234567890"]);
+  assert.deepEqual(findPhones("+62 813 1111 2222 / 6281311112222"), ["6281311112222"]);
+  assert.deepEqual(findPhones("jam 10.00 tgl 20, harga 350000"), []);
+});
+
+test("Khách IG chuyển sang WA cùng SĐT: 1 người, kênh = bên nhắn trước, booking WA tính cho IG", () => {
+  const D15 = "2026-11-15T03:00:00.000Z";
+  const D16 = "2026-11-16T03:00:00.000Z";
+  const OLD = "2026-10-20T03:00:00.000Z";
+  const ig = (id: string, created: string, extra = {}) => ({
+    id,
+    platform: "instagram",
+    created_at: created,
+    last_message_at: created,
+    tag_aliases: ["phone", "bulan"],
+    instagram: { ad_id: "ad1" },
+    customer: { id: `c-${id}`, created_at: created, phone: "+62 812-3456-7890", tags: [{ alias: "phone", time: created }] },
+    ...extra,
+  });
+  const wa = (id: string, created: string, phone = "6281234567890") => ({
+    id,
+    platform: "whatsappweb",
+    page_pid: "waw6281918453455",
+    created_at: created,
+    last_message_at: D16,
+    tag_aliases: ["booking", "bulan"],
+    customer: { id: `c-${id}`, created_at: created, whatsappweb: { id: `${phone}@s.whatsapp.net` }, tags: [{ alias: "booking", time: D16 }] },
+  });
+
+  // Cả 2 cùng kỳ: 1 khách mới IG, booking 1 (IG), không có WA.
+  const igNew = ig("i1", D15);
+  const waNew = wa("w1", D16);
+  const idx = igPhoneIndex([igNew]);
+  const r = buildInboxReport([igNew, waNew], [igNew, waNew], "2026-11-15", "2026-11-16", idx);
+  assert.deepEqual(r.total.ig, { ...zero, conversations: 1, booking: 1 });
+  assert.deepEqual(r.total.wa, zero);
+  assert.equal(r.staff.find((s) => s.alias === "bulan")!.counts.ig.booking, 1);
+  // Không có chỉ mục → như cũ: 2 người.
+  assert.equal(sumChannels(buildInboxReport([igNew, waNew], [], "2026-11-15", "2026-11-16").total).conversations, 2);
+
+  // IG từ kỳ trước (chỉ có trong chỉ mục): WA mới không phải khách mới; booking là booking khách cũ, về IG.
+  const igOld = ig("i2", OLD);
+  const r2 = buildInboxReport([waNew], [waNew], "2026-11-16", "2026-11-16", igPhoneIndex([igOld]));
+  assert.deepEqual(r2.total.ig, { ...zero, booking: 1, bookingOld: 1, reEngaged: 1 });
+  assert.deepEqual(r2.total.wa, zero);
+  assert.deepEqual(buildFollowupReport([waNew], "2026-11-16", "2026-11-16", igPhoneIndex([igOld])).total, {
+    worked: 1,
+    converted: 1,
+    bookingOld: 1,
+    showUp: 0,
+    bookingNew: 0,
+  });
+
+  // WA nhắn trước IG → giữ kênh WA.
+  const waFirst = wa("w2", D15);
+  const igLater = ig("i3", D16);
+  const r3 = buildInboxReport([waFirst, igLater], [], "2026-11-15", "2026-11-16", igPhoneIndex([igLater]));
+  assert.equal(r3.total.wa.conversations, 1);
+  assert.equal(r3.total.ig.conversations, 0);
+
+  // SĐT tìm trong tin nhắn (SMAX không lưu) cũng ghép được; số khác thì không ghép.
+  const igScanned = ig("i4", D15, { customer: { id: "c-i4", created_at: D15 }, scanned_phones: ["6281234567890"] });
+  const other = wa("w3", D16, "6289999999999");
+  const r4 = buildInboxReport([igScanned, waNew, other], [], "2026-11-15", "2026-11-16", igPhoneIndex([igScanned]));
+  assert.equal(r4.total.ig.conversations, 1);
+  assert.equal(r4.total.wa.conversations, 1);
+
+  // KH tiềm năng: 1 người về chiến dịch IG; người có phần IG từ kỳ trước không tính lại.
+  const ads = new Map([["ad1", "camp"]]);
+  assert.deepEqual(countPotential([igNew, waNew], ads, { from: "2026-11-15", igByPhone: idx }), { byCampaign: { camp: 1 }, byWa: {}, total: 1 });
+  assert.deepEqual(countPotential([waNew], ads, { from: "2026-11-16", igByPhone: igPhoneIndex([igOld]) }), { byCampaign: {}, byWa: {}, total: 0 });
+});
+
+test("createdIn: lọc hội thoại tạo trong khoảng ngày WIB", () => {
+  const th = (id: string, created?: string) => ({ id, created_at: created });
+  const r = createdIn(
+    [th("a", "2026-11-15T16:59:59.999Z"), th("b", "2026-11-15T17:00:00.000Z"), th("c", "2026-11-16T16:59:59.999Z"), th("d", "2026-11-16T17:00:00.000Z"), th("e")],
+    "2026-11-16",
+    "2026-11-16",
+  );
+  assert.deepEqual(r.map((t) => t.id), ["b", "c"]);
 });
