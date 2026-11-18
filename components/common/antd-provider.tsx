@@ -110,6 +110,9 @@ function buildTheme(dark: boolean, touch: boolean): ThemeConfig {
       },
       Drawer: { footerPaddingBlock: 12, footerPaddingInline: 24 },
       Tag: { defaultBg: c.colorFillTertiary },
+      // Tab đang chọn nền tím chữ trắng cho dễ nhìn (mặc định antd chỉ nền trắng, khó phân biệt).
+      // Dùng tím đậm của theme sáng cả ở theme tối — tím nhạt nền chữ trắng thiếu tương phản.
+      Segmented: { itemSelectedBg: LIGHT.colorPrimary, itemSelectedColor: "#ffffff" },
     },
   };
 }

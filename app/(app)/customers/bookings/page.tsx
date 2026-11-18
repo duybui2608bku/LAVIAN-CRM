@@ -14,7 +14,7 @@ export default async function BookingsPage() {
       .is("deleted_at", null),
     // Toàn bộ khách: cho cột của bảng + chọn khách ở form Tạo lịch hẹn. Chỉ rút link / username, không kéo jsonb lớn.
     db.from("customers")
-      .select("id,full_name,phone,source,staff_id,deposit_amount,thread_link:thread->>link,instagram_username:smax_data->customer->instagram->>username")
+      .select("id,full_name,phone,source,staff_id,deposit_amount,payment_confirm_url,thread_link:thread->>link,instagram_username:smax_data->customer->instagram->>username")
       .is("deleted_at", null)
       .order("full_name"),
     db.from("profiles").select("id,user_name,avatar_url,status,department").order("user_name"),
