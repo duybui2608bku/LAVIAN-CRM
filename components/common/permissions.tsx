@@ -14,3 +14,12 @@ export function useCan() {
   const permissions = useContext(PermissionsContext);
   return (key: Permission) => permissions.includes(key);
 }
+
+// Id user đang đăng nhập (AppShell cấp) — mặc định người phụ trách lịch nhắc, lọc "Của tôi".
+const CurrentUserContext = createContext<string | null>(null);
+
+export const CurrentUserProvider = CurrentUserContext.Provider;
+
+export function useCurrentUserId() {
+  return useContext(CurrentUserContext);
+}
