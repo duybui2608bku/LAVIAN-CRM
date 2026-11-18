@@ -4,10 +4,10 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import {
   Badge,
   Button,
+  Drawer,
   Form,
   Image,
   Input,
-  Modal,
   Tag,
   Tooltip,
   type TableProps,
@@ -47,7 +47,7 @@ import { EnumTag } from "@/components/common/enum-tag";
 import { InlineSelect } from "@/components/common/inline-select";
 import { RegionSelect } from "@/components/common/region-select";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
-import { staffLabel, UserAvatar } from "@/components/common/user-avatar";
+import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
@@ -57,7 +57,7 @@ import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { nextPending, REMINDER_COLORS, reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
 import { waColor, waNumber } from "@/lib/wa";
-import type { Customer, CustomerInput, EnumKind, EnumOption } from "@/types/customer";
+import type { Customer, CustomerInput, CustomerNote, EnumKind, EnumOption } from "@/types/customer";
 import type { Reminder } from "@/types/reminder";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
@@ -172,9 +172,6 @@ export function CustomersManager({
     const s = id ? staff.find((x) => x.id === id) : undefined;
     return s ? staffLabel(s) : DASH;
   };
-  // Avatar người ghi note — note chỉ lưu tên snapshot nên tra theo user_name.
-  const staffAvatarByName = (name: string | null | undefined) =>
-    name ? staff.find((s) => s.user_name === name)?.avatar_url : undefined;
 
   // Lịch hẹn gần nhất mỗi khách: lịch sắp tới sớm nhất; không có thì lịch đã qua mới nhất.
   const [now] = useState(() => Date.now());
@@ -582,9 +579,9 @@ export function CustomersManager({
       />
 
       {/* Ghi chú (icon Info): lịch sử mới nhất trước + ô thêm ghi chú */}
-      <NotesModal
+      <NotesDrawer
         customer={rowsData.find((c) => c.id === notesFor) ?? null}
-        avatarOf={staffAvatarByName}
+        staff={staff}
         onClose={() => setNotesFor(null)}
       />
 
@@ -636,14 +633,14 @@ function NotePreview({ note }: { note: Customer["notes"][number] }) {
   );
 }
 
-/** Modal ghi chú của 1 khách: thêm ghi chú mới ở trên, lịch sử bên dưới. */
-export function NotesModal({
+/** Drawer ghi chú của 1 khách: thêm ghi chú mới ở trên, lịch sử (avatar + người ghi) bên dưới. */
+export function NotesDrawer({
   customer,
-  avatarOf,
+  staff,
   onClose,
 }: {
   customer: Customer | null;
-  avatarOf: (name: string | null | undefined) => string | null | undefined;
+  staff: StaffRef[];
   onClose: () => void;
 }) {
   const t = useTranslations("customers");
@@ -668,12 +665,18 @@ export function NotesModal({
     onClose();
   };
 
+  // Người ghi: tra theo id (note mới) → theo tên snapshot (note cũ) → tên snapshot thô.
+  const authorOf = (n: CustomerNote) => {
+    const s = (n.by_id && staff.find((x) => x.id === n.by_id)) || (n.by ? staff.find((x) => x.user_name === n.by) : undefined);
+    return { name: s?.user_name || n.by || "—", avatar: s?.avatar_url };
+  };
+
   return (
-    <Modal
+    <Drawer
       open={customer !== null}
-      onCancel={close}
-      footer={null}
-      width={520}
+      onClose={close}
+      size={480}
+      destroyOnHidden
       title={t("noteHistoryTitle", { name: customer?.full_name ?? "" })}
     >
       <div className="space-y-2">
@@ -696,26 +699,29 @@ export function NotesModal({
       </div>
 
       {customer?.notes?.length ? (
-        <ul className="mt-4 max-h-[50vh] space-y-3 overflow-y-auto border-t border-border pt-4">
-          {[...customer.notes].reverse().map((n, i) => (
-            <li key={i} className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {n.by ? (
-                  <span className="flex items-center gap-1.5 font-medium text-foreground">
-                    <UserAvatar src={avatarOf(n.by)} />
-                    {n.by}
-                  </span>
-                ) : null}
-                <span className="tabular-nums">{new Date(n.at).toLocaleString()}</span>
-              </div>
-              <p className="rounded bg-muted px-2.5 py-1.5 text-sm whitespace-pre-wrap">
-                {n.text}
-              </p>
-            </li>
-          ))}
+        <ul className="mt-4 space-y-4 border-t border-border pt-4">
+          {[...customer.notes].reverse().map((n, i) => {
+            const author = authorOf(n);
+            return (
+              <li key={i} className="flex gap-2.5">
+                <UserAvatar src={author.avatar} size={32} />
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-baseline gap-x-2 text-xs">
+                    <span className="text-sm font-medium text-foreground">{author.name}</span>
+                    <span className="text-muted-foreground tabular-nums">
+                      {new Date(n.at).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="rounded-lg bg-muted px-3 py-2 text-sm break-words whitespace-pre-wrap">
+                    {n.text}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
-    </Modal>
+    </Drawer>
   );
 }
 
