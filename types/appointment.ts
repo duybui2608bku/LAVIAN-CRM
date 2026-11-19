@@ -1,4 +1,4 @@
-import type { OtherChannel } from "./customer";
+import type { CustomerNote, OtherChannel } from "./customer";
 import type { ServiceCategory } from "./service";
 
 // Lịch hẹn chỉ lưu lịch đến của khách (tính doanh số Telesales). Tour KTV ở bảng `tours` (types/tour.ts).
@@ -54,6 +54,7 @@ export type AppointmentCustomer = {
   instagram_username?: string | null; // username IG (smax_data->customer->instagram->>username) — cột Nguồn
   deposit_amount?: number | null; // tiền cọc của khách — dòng Deposit cột Tài chính
   other_channel?: OtherChannel | null; // kênh thứ hai — cột Nguồn 2 hàng
+  notes?: CustomerNote[] | null; // ghi chú Telesales của khách (customers.notes) — cột Note Telesales
 };
 
 /** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`). */

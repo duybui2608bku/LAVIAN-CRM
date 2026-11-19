@@ -124,7 +124,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       const customer = customerMap.get(row.customer_id);
       const cats = row.service_categories.map((c) => SERVICE_CATEGORY_LABELS[c] ?? c).join(", ");
       return <div className="flex items-center justify-between gap-1">
-        <NamePhone phone={customer?.phone} className="flex-1" title={customer?.full_name}
+        <div className="min-w-0 flex-1">
+        <NamePhone phone={customer?.phone} title={customer?.full_name}
           name={<><button type="button" aria-label={t("openEdit")} onClick={() => setEditingId(row.id)}
             className="font-medium hover:text-primary hover:underline">{customer?.full_name}</button>{newIds.has(row.id) && <span role="img" aria-label={t("newCustomer")} title={t("newCustomer")}
             className="ms-1 inline-block size-2 rounded-full bg-success align-super" />}</>}
@@ -133,6 +134,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
             display={cats || <span className="opacity-70">{t("addCategory")}</span>}
             options={SERVICE_CATEGORY_OPTIONS}
             onSave={(c) => save(row.id, { service_categories: c as ServiceCategory[] })} /></> : null} />
+        {/* Ghi chú lịch hẹn (trước là cột Note) — dưới dòng SĐT, dài thì cắt "…", hover xem đủ. */}
+        {row.note && <div className="mt-0.5 truncate text-xs text-muted-foreground" title={row.note}>{row.note}</div>}
+        </div>
         {/* Icon + tên đều mở drawer Sửa lịch hẹn; Thông tin khách mở từ icon trong drawer đó. */}
         {customer && <Button type="text" size="small" aria-label={t("openEdit")} title={t("openEdit")}
           icon={<PanelRightOpen className="size-4" />} onClick={() => setEditingId(row.id)} />}
@@ -178,24 +182,34 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <span className="text-right">{idr.format(row.bill_amount ?? 0)}</span>
     </div> },
     // Nhân sự: Telesales · Sales · Master (KTV) gộp 1 cột, chỉ xem (sửa trong drawer);
-    // lưới 2 cột → tối đa 2 hàng; người chưa gán thì bỏ qua, hover thấy vai trò.
-    { title: t("staffColumn"), width: 280, render: (_, row) => {
+    // đứng sát nhau trên 1 hàng (cột hẹp thì tự xuống dòng); người chưa gán thì bỏ qua, hover thấy vai trò.
+    { title: t("staffColumn"), width: 300, render: (_, row) => {
       const people = ([["staff", row.staff_id], ["sales", row.sales_id], ["master", row.technician_id]] as const)
         .flatMap(([role, id]) => {
           const member = id ? staff.find((s) => s.id === id) : undefined;
           return member ? [{ role, member }] : [];
         });
       return people.length
-        ? <div className="grid grid-cols-2 gap-x-3 gap-y-1">{people.map(({ role, member }) =>
+        ? <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{people.map(({ role, member }) =>
           <span key={role} title={`${t(role)}: ${member.user_name}`} className="flex min-w-0 items-center gap-1.5">
             <UserAvatar src={member.avatar_url} />
-            <span className="truncate">{member.user_name || "—"}</span>
+            <span className="max-w-28 truncate">{member.user_name || "—"}</span>
           </span>)}</div>
         : <span className="text-muted-foreground">—</span>;
     } },
     // Cột Người tạo tạm ẩn — dữ liệu created_by vẫn ghi + vẫn tải.
-    { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note}
-      label={t("note")} disabled={!canEdit} onSave={(note) => save(row.id, { note })} /> },
+    // Note Telesales: ghi chú gần nhất của khách (customers.notes — Telesales / Form SMAX ghi), chỉ xem.
+    { title: t("teleNote"), width: 300, render: (_, row) => {
+      const notes = customerMap.get(row.customer_id)?.notes ?? [];
+      const last = notes.at(-1);
+      return last ? <div className="leading-tight" title={notes.map((n) => n.text).join("\n\n")}>
+        <div className="text-xs text-muted-foreground">
+          {last.by ? `${last.by} · ` : ""}{dayjs(last.at).format("DD/MM/YYYY HH:mm")}
+          {notes.length > 1 && ` · +${notes.length - 1}`}
+        </div>
+        <div className="mt-0.5 line-clamp-2 whitespace-pre-wrap">{last.text}</div>
+      </div> : <span className="text-muted-foreground">—</span>;
+    } },
     // Cột Thao tác (xoá lịch) đã bỏ khỏi UI — server action deleteAppointment vẫn giữ (gác appointments.delete).
   ];
 
@@ -235,9 +249,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
           <Tag color={BOOKING_STATUS_COLORS[s]} className="me-0">{t(`bookingStatus.${s}`)}</Tag>
           <span className="font-normal text-muted-foreground">{t("count", { count: items.length })}</span>
         </h3>
-        <DataTable columns={columns} dataSource={items} scroll={{ x: 1970 }} pageSize={30} />
+        <DataTable columns={columns} dataSource={items} scroll={{ x: 1990 }} pageSize={30} />
       </section> : null;
-    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1970 }} empty={t("empty")}
+    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1990 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />}
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}
