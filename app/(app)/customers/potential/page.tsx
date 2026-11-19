@@ -1,4 +1,5 @@
 import type { AppointmentStaff } from "@/components/appointments/appointments-manager";
+import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
 import { PotentialManager } from "@/components/customers/potential-manager";
 import { CUSTOMER_OPTIONS, FOLLOW_UP_STAGES, instagramUsername } from "@/lib/customer-options";
 import { createClient } from "@/lib/supabase/server";
@@ -12,7 +13,7 @@ export default async function PotentialCustomersPage() {
   const todayVN = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
   const startOfToday = new Date(`${todayVN}T00:00:00+07:00`).toISOString();
 
-  const [customersRes, staffRes, convertedRes] = await Promise.all([
+  const [customersRes, staffRes, convertedRes, appointmentsRes] = await Promise.all([
     supabase
       .from("customers")
       .select(`${CUSTOMER_LIST_FIELDS}, potential_status`)
@@ -28,6 +29,8 @@ export default async function PotentialCustomersPage() {
       .select("id", { count: "exact", head: true })
       .gte("converted_at", startOfToday)
       .is("deleted_at", null),
+    // Cột Sales Status: Status lịch gần nhất của khách.
+    supabase.from("clinic_appointments").select("customer_id, scheduled_at, checked_in, visit_status").is("deleted_at", null),
   ]);
 
   const customers = ((customersRes.data ?? []) as unknown as Customer[]).map((c) => ({
@@ -41,6 +44,7 @@ export default async function PotentialCustomersPage() {
       staff={(staffRes.data as AppointmentStaff[]) ?? []}
       options={CUSTOMER_OPTIONS}
       convertedToday={convertedRes.count ?? 0}
+      appointments={(appointmentsRes.data ?? []) as PipelineAppointment[]}
     />
   );
 }

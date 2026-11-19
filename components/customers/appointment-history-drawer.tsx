@@ -7,11 +7,17 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { getCustomerAppointments, type CustomerAppointmentsData } from "@/app/(app)/customers/actions";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
 import { SERVICE_CATEGORY_LABELS, type ServiceCategory } from "@/types/service";
-import { BOOKING_STATUSES, type Appointment, type AppointmentLog, type AppointmentLogField, type BookingStatus } from "@/types/appointment";
+import {
+  BOOKING_STATUSES, VISIT_STATUSES,
+  type Appointment, type AppointmentLog, type AppointmentLogField, type BookingStatus, type VisitStatus,
+} from "@/types/appointment";
 
-const FIELDS: AppointmentLogField[] = ["scheduled_at", "booking_confirm", "checked_in", "service_categories", "service_ids", "staff_id", "sales_id", "note"];
+// checked_in: log cũ (trước khi có Status 5 bước) — log mới ghi visit_status.
+const FIELDS: AppointmentLogField[] = ["scheduled_at", "booking_confirm", "visit_status", "checked_in", "service_categories", "service_ids",
+  "staff_id", "sales_id", "technician_id", "bill_amount", "note"];
 const ACTION_COLOR = { create: "green", update: "blue", delete: "red" } as const;
 const fmt = (v: string, f = "DD-MM-YYYY HH:mm") => dayjs(v).format(f);
 
@@ -27,6 +33,7 @@ export function AppointmentHistoryDrawer({
 }) {
   const t = useTranslations("customers.apptHistory");
   const tStatus = useTranslations("appointments.bookingStatus");
+  const tVisit = useTranslations("appointments.visitStatus");
   const locale = useLocale();
   const [data, setData] = useState<(CustomerAppointmentsData & { error?: string; for: string; now: number }) | null>(null);
   const [loading, startLoading] = useTransition();
@@ -68,6 +75,8 @@ export function AppointmentHistoryDrawer({
         return fmt(String(v));
       case "booking_confirm":
         return BOOKING_STATUSES.includes(v as BookingStatus) ? tStatus(v as BookingStatus) : String(v);
+      case "visit_status":
+        return VISIT_STATUSES.includes(v as VisitStatus) ? tVisit(v as VisitStatus) : String(v);
       case "checked_in":
         return v ? t("yes") : t("no");
       case "service_categories":
@@ -76,7 +85,10 @@ export function AppointmentHistoryDrawer({
         return servicesOf(v);
       case "staff_id":
       case "sales_id":
+      case "technician_id":
         return staffOf(v);
+      case "bill_amount":
+        return formatRupiah(Number(v));
       case "note":
         return <span className="whitespace-pre-wrap">{String(v)}</span>;
     }

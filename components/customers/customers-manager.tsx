@@ -32,7 +32,7 @@ import {
   patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
-import { CreateAppointmentDrawer, type AppointmentStaff } from "@/components/appointments/appointments-manager";
+import { CreateAppointmentDrawer, VisitStatusTag, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useCan } from "@/components/common/permissions";
@@ -51,6 +51,7 @@ import { RegionSelect } from "@/components/common/region-select";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
+import { nearestByCustomer } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
@@ -180,19 +181,7 @@ export function CustomersManager({
 
   // Lịch hẹn gần nhất mỗi khách: lịch sắp tới sớm nhất; không có thì lịch đã qua mới nhất.
   const [now] = useState(() => Date.now());
-  const nearestAppt = useMemo(() => {
-    // Khoảng cách tới "bây giờ"; lịch đã qua cộng thêm số rất lớn để luôn xếp sau lịch sắp tới.
-    const rank = (a: PipelineAppointment) => {
-      const diff = Date.parse(a.scheduled_at) - now;
-      return diff >= 0 ? diff : Number.MAX_SAFE_INTEGER / 2 - diff;
-    };
-    const map = new Map<string, PipelineAppointment>();
-    for (const a of appointments) {
-      const cur = map.get(a.customer_id);
-      if (!cur || rank(a) < rank(cur)) map.set(a.customer_id, a);
-    }
-    return map;
-  }, [appointments, now]);
+  const nearestAppt = useMemo(() => nearestByCustomer(appointments, now), [appointments, now]);
   const apptCount = useMemo(() => {
     const map = new Map<string, number>();
     for (const a of appointments) map.set(a.customer_id, (map.get(a.customer_id) ?? 0) + 1);
@@ -316,6 +305,16 @@ export function CustomersManager({
           }
         />
       ),
+    },
+    // Sales Status: Status của lịch gần nhất (cùng lịch với cột Lịch hẹn) — Sales đổi ở trang Lịch hẹn.
+    {
+      title: t("colSalesStatus"),
+      key: "salesStatus",
+      width: 150,
+      render: (_, c) => {
+        const a = nearestAppt.get(c.id);
+        return a ? <VisitStatusTag status={a.visit_status} /> : DASH;
+      },
     },
     {
       title: t("colDeposit"),
