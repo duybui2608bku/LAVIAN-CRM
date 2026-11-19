@@ -8,7 +8,7 @@ import { MessageSquareText, Search, X } from "lucide-react";
 
 import { convertPotentialCustomer, patchCustomer } from "@/app/(app)/customers/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
-import { CreateAppointmentDrawer, type AppointmentStaff } from "@/components/appointments/appointments-manager";
+import { CreateAppointmentDrawer, VisitStatusTag, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
 import { EnumTag } from "@/components/common/enum-tag";
@@ -16,8 +16,10 @@ import { InlineSelect } from "@/components/common/inline-select";
 import { useCan } from "@/components/common/permissions";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel } from "@/components/common/user-avatar";
+import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
 import { NotesDrawer, SourceCell } from "@/components/customers/customers-manager";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
+import { nearestByCustomer } from "@/lib/appointments";
 import { CONVERTED_STATUS } from "@/lib/customer-options";
 import { matchesNameOrPhone, optionLabel } from "@/lib/customers";
 import { REMINDER_COLORS, reminderState } from "@/lib/reminders";
@@ -39,11 +41,13 @@ export function PotentialManager({
   staff,
   options,
   convertedToday,
+  appointments,
 }: {
   customers: Customer[];
   staff: AppointmentStaff[];
   options: EnumOption[];
   convertedToday: number;
+  appointments: PipelineAppointment[];
 }) {
   const t = useTranslations("potential");
   const tc = useTranslations("customers");
@@ -62,6 +66,7 @@ export function PotentialManager({
   const [notesFor, setNotesFor] = useState<string | null>(null);
   const [convertFor, setConvertFor] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
+  const nearestAppt = useMemo(() => nearestByCustomer(appointments, now), [appointments, now]);
 
   const [rows, patchOptimistic] = useOptimistic(customers, (state: Customer[], p: Patch & { id: string }) =>
     state.map((c) => (c.id === p.id ? { ...c, ...p } : c)),
@@ -217,6 +222,16 @@ export function PotentialManager({
           </div>
         </div>
       ),
+    },
+    // Sales Status: Status lịch gần nhất của khách (Sales đổi ở trang Lịch hẹn).
+    {
+      title: t("colSalesStatus"),
+      key: "salesStatus",
+      width: 150,
+      render: (_, c) => {
+        const a = nearestAppt.get(c.id);
+        return a ? <VisitStatusTag status={a.visit_status} /> : DASH;
+      },
     },
     {
       title: t("colFollowUp"),

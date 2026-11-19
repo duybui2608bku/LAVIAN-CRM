@@ -5,13 +5,16 @@ import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { getCurrentProfile, requirePermission } from "@/lib/auth";
 import { appointmentPatchSchema, canConfirmShowUp } from "@/lib/appointments";
-import { BOOKED_STAGE } from "@/lib/customer-options";
+import { CUSTOMER_LIST_FIELDS } from "@/app/(app)/customers/customers-view";
+import { BOOKED_STAGE, instagramUsername } from "@/lib/customer-options";
 import { phoneOwner } from "@/lib/customers";
 import { AppError, normalizeError } from "@/lib/errors";
+import { regionNames } from "@/lib/id-regions";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
 import type { AppointmentPatch } from "@/types/appointment";
+import type { Customer } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 async function client() {
@@ -33,7 +36,7 @@ async function failure(error: unknown) {
 }
 
 const onlySales = () =>
-  new AppError("Chỉ bộ phận Sales được xác nhận khách đã đến.", { code: "FORBIDDEN", status: 403 });
+  new AppError("Chỉ bộ phận Sales được đổi trạng thái lịch hẹn.", { code: "FORBIDDEN", status: 403 });
 
 // Các kiểm tra độc lập → chạy song song.
 async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch: AppointmentPatch) {
@@ -45,6 +48,10 @@ async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch:
   if (patch.sales_id) {
     checks.push(db.from("profiles").select("id").eq("id", patch.sales_id).eq("status", "active")
       .eq("department", "sales").single().then(({ error }) => { if (error) throw error; }));
+  }
+  if (patch.technician_id) {
+    checks.push(db.from("profiles").select("id").eq("id", patch.technician_id).eq("status", "active")
+      .eq("department", "technician").single().then(({ error }) => { if (error) throw error; }));
   }
   const serviceIds = patch.service_ids;
   if (serviceIds?.length) {
@@ -70,7 +77,7 @@ export async function createAppointment(
     const profile = await requirePermission("appointments.edit");
     const patch = appointmentPatchSchema.parse(input);
     if (!patch.scheduled_at) throw new Error("Missing date");
-    if (patch.checked_in && !canConfirmShowUp(profile)) throw onlySales();
+    if (patch.visit_status && patch.visit_status !== "waiting" && !canConfirmShowUp(profile)) throw onlySales();
     const db = await client();
     await validateReferences(db, patch);
 
@@ -121,7 +128,7 @@ export async function patchAppointment(id: string, input: AppointmentPatch): Pro
     const profile = await requirePermission("appointments.edit");
     z.uuid().parse(id);
     const patch = appointmentPatchSchema.parse(input);
-    if (patch.checked_in !== undefined && !canConfirmShowUp(profile)) throw onlySales();
+    if (patch.visit_status !== undefined && !canConfirmShowUp(profile)) throw onlySales();
     const db = await client();
     await validateReferences(db, patch);
     const { error } = await db.from("clinic_appointments").update(patch)
@@ -158,6 +165,26 @@ export async function getCustomerMessages(customerId: string): Promise<{ message
     const { data, error } = await db.from("customers").select("link:thread->>link").eq("id", customerId).single();
     if (error) throw error;
     return { messages: await fetchThreadMessages(data.link as string | null) };
+  } catch (error) {
+    return { error: normalizeError(error).message };
+  }
+}
+
+/** Drawer Thông tin khách hàng ở /appointments — tải khi mở (bảng không kéo ghi chú/jsonb của mọi khách). */
+export async function getCustomerDetail(customerId: string): Promise<{ customer?: Customer; region?: string | null; error?: string }> {
+  try {
+    await requirePermission("appointments.view");
+    z.uuid().parse(customerId);
+    const db = await createClient();
+    const { data, error } = await db.from("customers").select(CUSTOMER_LIST_FIELDS)
+      .eq("id", customerId).is("deleted_at", null).single();
+    if (error) throw error;
+    const customer = data as unknown as Customer;
+    const region = regionNames(customer.region_code);
+    return {
+      customer: { ...customer, instagram_username: instagramUsername(customer.instagram_username) },
+      region: region ? [region.city, region.province].filter(Boolean).join(", ") : null,
+    };
   } catch (error) {
     return { error: normalizeError(error).message };
   }

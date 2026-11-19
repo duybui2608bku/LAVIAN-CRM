@@ -1,6 +1,6 @@
 {
   "appointments": {
-    "title": "Appointments",
+    "title": "Sales Management",
     "create": "Add appointment",
     "name": "Customer name",
     "phone": "Phone",
@@ -8,7 +8,7 @@
     "date": "Appointment date & time",
     "bookingConfirm": "Booking confirmation",
     "allBookingConfirms": "All booking confirmations",
-    "confirmation": "Clinic confirmation",
+    "confirmation": "Status",
     "services": "Services",
     "serviceCategories": "Service group",
     "serviceDetails": "Service details",
@@ -19,7 +19,7 @@
     "chooseDate": "Choose date and time",
     "showUp": "Showed up",
     "notShowUp": "Not arrived",
-    "allArrivals": "All confirmations",
+    "allArrivals": "All statuses",
     "allDates": "All dates",
     "allCustomers": "Show all customers",
     "today": "Today",
@@ -41,6 +41,13 @@
       "cancelled": "Cancelled",
       "rescheduled": "Rescheduled"
     },
+    "visitStatus": {
+      "waiting": "Not arrived",
+      "arrived": "Arrived",
+      "in_progress": "In progress",
+      "done": "Done",
+      "rescheduled": "Rescheduled"
+    },
     "messages": "Messages",
     "viewMessages": "View messages",
     "messagesTitle": "Messages with {name}",
@@ -48,6 +55,14 @@
     "noMessages": "No messages yet",
     "attachment": "Attachment",
     "sales": "Sales",
+    "finance": "Finance (IDR)",
+    "deposit": "Deposit",
+    "bill": "Service value",
+    "master": "Master",
+    "unassigned": "Unassigned",
+    "addCategory": "+ Service group",
+    "viewInfo": "View customer info",
+    "newCustomer": "New customer (no earlier visit)",
     "createdBy": "Created by",
     "quickCustomer": "+ New customer? Quick add",
     "quickCreate": "+ Quick add “{name}”",
@@ -176,7 +191,7 @@
     "usersList": "All users",
     "permissions": "Permissions",
     "tour": "Tours",
-    "appointments": "Appointments",
+    "appointments": "Sales Management",
     "dashboard": "Reports",
     "marketing": "Marketing",
     "customers": "Customers",
@@ -360,6 +375,7 @@
     "colPhone": "Phone",
     "colTags": "Tags",
     "colStage": "Stage",
+    "colSalesStatus": "Sales Status",
     "colDeposit": "Deposit",
     "colAppointment": "Appointment",
     "viewAppointments": "View appointments & change history",
@@ -384,11 +400,14 @@
       "field": {
         "scheduled_at": "Date & time",
         "booking_confirm": "Booking confirmed",
+        "visit_status": "Status",
         "checked_in": "Showed up",
         "service_categories": "Service group",
         "service_ids": "Service details",
         "staff_id": "Telesales",
         "sales_id": "Sales",
+        "technician_id": "Master",
+        "bill_amount": "Service value",
         "note": "Note"
       }
     },
@@ -439,7 +458,8 @@
     "followUpAt": "Follow-up reminder",
     "followUpRequired": "Please choose a follow-up time",
     "colReminder": "Reminder",
-    "viewReminders": "Reminders"
+    "viewReminders": "Reminders",
+    "infoTitle": "Customer info"
   },
   "leadForm": {
     "region": "Region",
@@ -800,6 +820,7 @@
     "colCustomer": "Customer",
     "colTele": "Tele",
     "colStatus": "Status",
+    "colSalesStatus": "Sales Status",
     "colFollowUp": "Follow-up at",
     "followUps": "{n, plural, one {# follow-up} other {# follow-ups}}",
     "empty": "No potential customers",
