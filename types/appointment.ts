@@ -1,3 +1,4 @@
+import type { OtherChannel } from "./customer";
 import type { ServiceCategory } from "./service";
 
 // Lịch hẹn chỉ lưu lịch đến của khách (tính doanh số Telesales). Tour KTV ở bảng `tours` (types/tour.ts).
@@ -13,7 +14,7 @@ export const BOOKING_STATUS_COLORS: Record<BookingStatus, string> = {
 };
 
 /** Status lịch hẹn (cột `visit_status`, Sales đổi). arrived/in_progress/done = đã đến (`checked_in`, trigger DB tính). */
-export const VISIT_STATUSES = ["waiting", "arrived", "in_progress", "done", "rescheduled"] as const;
+export const VISIT_STATUSES = ["waiting", "arrived", "in_progress", "done", "rescheduled", "cancelled"] as const;
 export type VisitStatus = (typeof VISIT_STATUSES)[number];
 export const VISIT_STATUS_COLORS: Record<VisitStatus, string> = {
   waiting: "default",
@@ -21,6 +22,7 @@ export const VISIT_STATUS_COLORS: Record<VisitStatus, string> = {
   in_progress: "gold",
   done: "green",
   rescheduled: "volcano",
+  cancelled: "red",
 };
 
 export interface Appointment {
@@ -36,6 +38,8 @@ export interface Appointment {
   sales_id: string | null; // nhân viên bộ phận Sales phụ trách lịch
   technician_id: string | null; // Master / KTV làm lịch (bộ phận technician)
   bill_amount: number | null; // giá trị dịch vụ (IDR) — cột Tài chính
+  paid_amount: number | null; // thu thêm sau Deposit (IDR) — Thực thu = Deposit + paid_amount
+  sales_note: string; // ghi chú của Sales (note = ghi chú Telesales)
   created_by: string | null; // người tạo lịch (lịch cũ không truy được → null)
   note: string;
 }
@@ -49,11 +53,12 @@ export type AppointmentCustomer = {
   thread_link?: string | null; // link hội thoại SMAX (customers.thread->>link)
   instagram_username?: string | null; // username IG (smax_data->customer->instagram->>username) — cột Nguồn
   deposit_amount?: number | null; // tiền cọc của khách — dòng Deposit cột Tài chính
+  other_channel?: OtherChannel | null; // kênh thứ hai — cột Nguồn 2 hàng
 };
 
 /** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`). */
 export type AppointmentLogField = "scheduled_at" | "booking_confirm" | "checked_in" | "visit_status" | "service_categories" | "service_ids"
-  | "staff_id" | "sales_id" | "technician_id" | "bill_amount" | "note";
+  | "staff_id" | "sales_id" | "technician_id" | "bill_amount" | "paid_amount" | "note" | "sales_note";
 
 /** 1 dòng `clinic_appointment_logs` — actor_id null = ghi qua admin client (Form SMAX). */
 export interface AppointmentLog {
@@ -68,5 +73,5 @@ export interface AppointmentLog {
 
 export type AppointmentPatch =Partial<Pick<Appointment,
   "scheduled_at" | "booking_confirm" | "visit_status" | "service_categories" | "service_ids" | "staff_id" | "sales_id"
-  | "technician_id" | "bill_amount" | "note"
+  | "technician_id" | "bill_amount" | "paid_amount" | "note" | "sales_note"
 >>;

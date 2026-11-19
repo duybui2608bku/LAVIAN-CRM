@@ -311,7 +311,7 @@ export function BookingsManager({
 
   return (
     <Page>
-      <PageHeader title={t("title")} description={t("description")} />
+      <PageHeader title={t("title")} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={t("kpiToday")} value={counts.today} />

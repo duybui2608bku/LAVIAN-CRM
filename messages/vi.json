@@ -23,6 +23,7 @@
     "allDates": "Tất cả ngày",
     "allCustomers": "Xem tất cả khách",
     "today": "Hôm nay",
+    "tomorrow": "Ngày mai",
     "search": "Tìm tên hoặc số điện thoại…",
     "empty": "Chưa có lịch hẹn. Bấm Thêm lịch hẹn để tạo.",
     "saving": "Đang lưu…",
@@ -46,7 +47,8 @@
       "arrived": "Đã đến",
       "in_progress": "Đang thực hiện",
       "done": "Đã thực hiện",
-      "rescheduled": "Đổi lịch"
+      "rescheduled": "Đổi lịch",
+      "cancelled": "Hủy lịch"
     },
     "messages": "Tin nhắn",
     "viewMessages": "Xem tin nhắn",
@@ -71,7 +73,29 @@
     "enterName": "Nhập tên khách hàng",
     "enterPhone": "Nhập số điện thoại",
     "phoneInvalid": "Số điện thoại không hợp lệ",
-    "phoneExists": "SĐT này đã thuộc khách {name} — hãy chọn khách có sẵn."
+    "phoneExists": "SĐT này đã thuộc khách {name} — hãy chọn khách có sẵn.",
+    "editTitle": "Sửa lịch hẹn",
+    "sectionBooking": "1. Khách hàng & Booking",
+    "sectionService": "2. Dịch vụ & Tài chính",
+    "sectionStaff": "3. Nhân sự",
+    "sectionNote": "4. Ghi chú Sales",
+    "financeCard": "Tài chính",
+    "paidTotal": "Thực thu",
+    "due": "Phải thu",
+    "paidInput": "Thu thêm sau Deposit (IDR)",
+    "billInput": "Chỉnh sửa giá trị dịch vụ (IDR)",
+    "salesNote": "Ghi chú Sales",
+    "saveUpdate": "Lưu cập nhật",
+    "openEdit": "Mở chi tiết lịch hẹn",
+    "statTotal": "Tổng khách hàng",
+    "statArrived": "Khách đã đến",
+    "statCancelled": "Hủy / Đổi lịch",
+    "statWaiting": "Chưa đến",
+    "statBill": "Giá trị dịch vụ",
+    "statCollected": "Tổng thực thu",
+    "statDue": "Còn phải thu",
+    "millionIdr": "triệu IDR",
+    "groupByConfirm": "Nhóm theo Xác nhận lịch"
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -211,7 +235,7 @@
     "smaxReport": "Báo cáo Smax",
     "documents": "Tài liệu",
     "reminders": "Lịch nhắc hẹn",
-    "potential": "Khách tiềm năng"
+    "potential": "Customers Management"
   },
   "theme": {
     "toggle": "Chuyển giao diện sáng/tối"
@@ -407,7 +431,9 @@
         "sales_id": "Sales",
         "technician_id": "Master",
         "bill_amount": "Giá trị DV",
-        "note": "Ghi chú"
+        "note": "Ghi chú",
+        "paid_amount": "Thu thêm sau Deposit",
+        "sales_note": "Ghi chú Sales"
       }
     },
     "colSource": "Nguồn",
@@ -803,7 +829,7 @@
     "notifyTo": "Thông báo cho"
   },
   "potential": {
-    "title": "Khách hàng tiềm năng",
+    "title": "Customers Management",
     "description": "Quản lý khách hàng chưa Booking",
     "kpiTotal": "Tổng khách tiềm năng",
     "kpiOverdue": "Quá hạn liên hệ",

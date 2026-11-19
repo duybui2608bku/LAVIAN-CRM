@@ -23,6 +23,7 @@
     "allDates": "All dates",
     "allCustomers": "Show all customers",
     "today": "Today",
+    "tomorrow": "Tomorrow",
     "search": "Search name or phone…",
     "empty": "No appointments yet. Click Add appointment to create one.",
     "saving": "Saving…",
@@ -46,7 +47,8 @@
       "arrived": "Arrived",
       "in_progress": "In progress",
       "done": "Done",
-      "rescheduled": "Rescheduled"
+      "rescheduled": "Rescheduled",
+      "cancelled": "Cancelled"
     },
     "messages": "Messages",
     "viewMessages": "View messages",
@@ -71,7 +73,29 @@
     "enterName": "Enter customer name",
     "enterPhone": "Enter phone number",
     "phoneInvalid": "Invalid phone number",
-    "phoneExists": "This phone already belongs to {name} — pick the existing customer."
+    "phoneExists": "This phone already belongs to {name} — pick the existing customer.",
+    "editTitle": "Edit appointment",
+    "sectionBooking": "1. Customer & booking",
+    "sectionService": "2. Services & finance",
+    "sectionStaff": "3. Staff",
+    "sectionNote": "4. Sales note",
+    "financeCard": "Finance",
+    "paidTotal": "Collected",
+    "due": "Outstanding",
+    "paidInput": "Extra paid after deposit (IDR)",
+    "billInput": "Edit service value (IDR)",
+    "salesNote": "Sales note",
+    "saveUpdate": "Save changes",
+    "openEdit": "Open appointment details",
+    "statTotal": "Total customers",
+    "statArrived": "Arrived",
+    "statCancelled": "Cancelled / Rescheduled",
+    "statWaiting": "Not arrived",
+    "statBill": "Service value",
+    "statCollected": "Total collected",
+    "statDue": "Outstanding",
+    "millionIdr": "million IDR",
+    "groupByConfirm": "Group by booking confirmation"
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -211,7 +235,7 @@
     "smaxReport": "Smax report",
     "documents": "Documents",
     "reminders": "Reminders",
-    "potential": "Potential customers"
+    "potential": "Customers Management"
   },
   "theme": {
     "toggle": "Toggle theme"
@@ -408,7 +432,9 @@
         "sales_id": "Sales",
         "technician_id": "Master",
         "bill_amount": "Service value",
-        "note": "Note"
+        "note": "Note",
+        "paid_amount": "Extra paid after deposit",
+        "sales_note": "Sales note"
       }
     },
     "colSource": "Source",
@@ -803,7 +829,7 @@
     "notifyTo": "Notifies"
   },
   "potential": {
-    "title": "Potential customers",
+    "title": "Customers Management",
     "description": "Customers who have not booked yet",
     "kpiTotal": "Total potential",
     "kpiOverdue": "Overdue follow-ups",

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  canConfirmShowUp, appointmentPatchSchema, nearestByCustomer, newCustomerAppointmentIds, ARRIVED_STATUSES, BOOKING_STATUS_VALUES, SERVICE_CATEGORY_VALUES, VISIT_STATUS_VALUES,
+  appointmentMoney, appointmentStats, canConfirmShowUp, appointmentPatchSchema, nearestByCustomer, newCustomerAppointmentIds, ARRIVED_STATUSES, BOOKING_STATUS_VALUES, SERVICE_CATEGORY_VALUES, VISIT_STATUS_VALUES,
 } from "./appointments.ts";
 
 test("appointment edits validate dates, IDs and whitelist; no tour fields", () => {
@@ -37,7 +37,7 @@ test("trạng thái xác nhận lịch: 4 giá trị, khớp BOOKING_STATUSES, t
   }
 });
 
-test("Status lịch hẹn: 5 giá trị khớp VISIT_STATUSES, từ chối giá trị lạ", async () => {
+test("Status lịch hẹn: 6 giá trị khớp VISIT_STATUSES, từ chối giá trị lạ", async () => {
   const { VISIT_STATUSES } = await import("../types/appointment.ts");
   assert.deepEqual([...VISIT_STATUS_VALUES], [...VISIT_STATUSES]);
   for (const v of VISIT_STATUSES) assert.deepEqual(appointmentPatchSchema.parse({ visit_status: v }), { visit_status: v });
@@ -90,4 +90,21 @@ test("khách mới: chưa có lịch đã đến nào sớm hơn lịch này", (
 test("ARRIVED_STATUSES là tập con của VISIT_STATUSES", async () => {
   const { VISIT_STATUSES } = await import("../types/appointment.ts");
   for (const s of ARRIVED_STATUSES) assert.ok((VISIT_STATUSES as readonly string[]).includes(s));
+});
+
+test("Tiền lịch hẹn: thực thu = deposit + thu thêm, phải thu không âm", () => {
+  assert.deepEqual(appointmentMoney(3_500_000, 500_000, 2_000_000), { bill: 3_500_000, collected: 2_500_000, due: 1_000_000 });
+  assert.deepEqual(appointmentMoney(null, 500_000, null), { bill: 0, collected: 500_000, due: 0 });
+});
+
+test("Số liệu Sales Management: đếm theo Status + cộng tiền", () => {
+  const row = (customer_id: string, visit_status: string, bill_amount: number | null, paid_amount: number | null) =>
+    ({ customer_id, visit_status, bill_amount, paid_amount });
+  const deposits: Record<string, number> = { a: 500_000, b: 1_000_000 };
+  const s = appointmentStats([
+    row("a", "done", 3_500_000, 2_000_000), row("b", "in_progress", 2_000_000, null), row("c", "arrived", null, null),
+    row("c", "cancelled", null, null), row("d", "rescheduled", null, null), row("e", "waiting", 1_000_000, null),
+  ], (id) => deposits[id]);
+  assert.deepEqual(s, { total: 6, arrived: 3, cancelled: 2, waiting: 1,
+    bill: 6_500_000, collected: 3_500_000, due: 1_000_000 + 1_000_000 + 1_000_000 });
 });

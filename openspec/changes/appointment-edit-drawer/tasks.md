@@ -1,0 +1,7 @@
+- [x] Migration `paid_amount` + `sales_note` + trigger log
+- [x] Type, schema zod, select trang
+- [x] Drawer Sửa lịch hẹn theo mẫu
+- [x] Bấm tên khách ở bảng mở drawer
+- [x] Lịch sử lịch hẹn hiện 2 trường mới
+- [x] tsc + eslint + test
+- [x] Chạy migration trên Supabase (Lavian, 2026-11-19)

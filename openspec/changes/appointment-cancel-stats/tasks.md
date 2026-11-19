@@ -1,0 +1,6 @@
+- [x] Migration thêm `cancelled` vào `visit_status`
+- [x] Type, schema, i18n, màu tag
+- [x] `appointmentStats` + test
+- [x] Dải thẻ số liệu Sales Management
+- [x] tsc + eslint + test
+- [x] Chạy migration trên Supabase (Lavian, 2026-11-19)

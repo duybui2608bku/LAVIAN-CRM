@@ -17,7 +17,7 @@ import {
 
 // checked_in: log cũ (trước khi có Status 5 bước) — log mới ghi visit_status.
 const FIELDS: AppointmentLogField[] = ["scheduled_at", "booking_confirm", "visit_status", "checked_in", "service_categories", "service_ids",
-  "staff_id", "sales_id", "technician_id", "bill_amount", "note"];
+  "staff_id", "sales_id", "technician_id", "bill_amount", "paid_amount", "note", "sales_note"];
 const ACTION_COLOR = { create: "green", update: "blue", delete: "red" } as const;
 const fmt = (v: string, f = "DD-MM-YYYY HH:mm") => dayjs(v).format(f);
 
@@ -88,8 +88,10 @@ export function AppointmentHistoryDrawer({
       case "technician_id":
         return staffOf(v);
       case "bill_amount":
+      case "paid_amount":
         return formatRupiah(Number(v));
       case "note":
+      case "sales_note":
         return <span className="whitespace-pre-wrap">{String(v)}</span>;
     }
   };

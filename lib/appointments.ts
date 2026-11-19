@@ -5,7 +5,7 @@ import type { ServiceCategory } from "@/types/service";
 
 // Literal (không import giá trị từ types/ — node --test không hiểu alias "@/"); test đối chiếu BOOKING_STATUSES.
 export const BOOKING_STATUS_VALUES = ["pending", "confirmed", "cancelled", "rescheduled"] as const satisfies readonly BookingStatus[];
-export const VISIT_STATUS_VALUES = ["waiting", "arrived", "in_progress", "done", "rescheduled"] as const satisfies readonly VisitStatus[];
+export const VISIT_STATUS_VALUES = ["waiting", "arrived", "in_progress", "done", "rescheduled", "cancelled"] as const satisfies readonly VisitStatus[];
 export const SERVICE_CATEGORY_VALUES = ["alis", "bibir", "laser"] as const satisfies readonly ServiceCategory[];
 
 /** Nhóm dịch vụ (chọn nhiều): bỏ trùng. Dùng chung CRM + lead-form. */
@@ -27,7 +27,9 @@ export const appointmentPatchSchema = z.object({
   sales_id: z.uuid().nullable(),
   technician_id: z.uuid().nullable(),
   bill_amount: z.number().int().min(0).max(1e15).nullable(),
+  paid_amount: z.number().int().min(0).max(1e15).nullable(),
   note: z.string().trim().max(10000),
+  sales_note: z.string().trim().max(10000),
 }).partial().strict()
   .refine((patch) => Object.keys(patch).length > 0);
 
@@ -73,4 +75,26 @@ export function newCustomerAppointmentIds(
       return first === undefined || Date.parse(a.scheduled_at) <= first;
     })
     .map((a) => a.id));
+}
+
+/** Tiền 1 lịch: Thực thu = Deposit (của khách) + Thu thêm; Phải thu = Giá trị DV − Thực thu (không âm). */
+export function appointmentMoney(bill: number | null | undefined, deposit: number | null | undefined, paid: number | null | undefined) {
+  const collected = (deposit ?? 0) + (paid ?? 0);
+  return { bill: bill ?? 0, collected, due: Math.max((bill ?? 0) - collected, 0) };
+}
+
+/** Dải số liệu Sales Management — tính trên các lịch đang lọc. */
+export function appointmentStats(
+  rows: { customer_id: string; visit_status: string; bill_amount: number | null; paid_amount: number | null }[],
+  depositOf: (customerId: string) => number | null | undefined,
+) {
+  const s = { total: rows.length, arrived: 0, cancelled: 0, waiting: 0, bill: 0, collected: 0, due: 0 };
+  for (const a of rows) {
+    if (ARRIVED_STATUSES.includes(a.visit_status)) s.arrived++;
+    else if (a.visit_status === "cancelled" || a.visit_status === "rescheduled") s.cancelled++;
+    else if (a.visit_status === "waiting") s.waiting++;
+    const m = appointmentMoney(a.bill_amount, depositOf(a.customer_id), a.paid_amount);
+    s.bill += m.bill; s.collected += m.collected; s.due += m.due;
+  }
+  return s;
 }

@@ -1,0 +1,5 @@
+- [x] Migration `customers.other_channel`
+- [x] Lead form ghi kênh thứ hai khi tìm theo SĐT từ kênh khác
+- [x] `SourceCell` 2 hàng + các trang select `other_channel`
+- [x] tsc + eslint + test
+- [x] Chạy migration trên Supabase (Lavian, 2026-11-19)

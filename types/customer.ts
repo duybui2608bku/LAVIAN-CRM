@@ -42,6 +42,13 @@ export interface SmaxThread {
   link?: string;
 }
 
+/** Kênh SMAX thứ hai của khách (cột `other_channel`) — vd khách IG chuyển sang WA. */
+export interface OtherChannel {
+  source: string; // "whatsapp" | "instagrams"
+  link: string | null; // link hội thoại SMAX
+  username: string | null; // username IG (nếu có)
+}
+
 /** Dữ liệu tạo/sửa khách hàng gửi lên Server Action. */
 export interface CustomerInput {
   full_name: string;
@@ -74,6 +81,8 @@ export interface Customer {
   smax_data?: Record<string, unknown> | null;
   /** Rút từ smax_data.customer.instagram.username lúc nạp /customers (không phải cột DB). */
   instagram_username?: string | null;
+  /** Kênh thứ hai (null = chỉ 1 kênh). */
+  other_channel?: OtherChannel | null;
   source: string | null;
   stage: string;
   rating: string | null; // đánh giá khách: potential | price_only | far | spam
