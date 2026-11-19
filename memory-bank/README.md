@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-19 — Sales Management: note dưới SĐT + cột Note Telesales
+- **Thay đổi:** Ghi chú lịch hẹn (`clinic_appointments.note`, trước ở cột Note) chuyển xuống dòng thứ 3 của ô Khách hàng, dưới SĐT. Note dài bị cắt `truncate` "…", hover xem đủ; trên trang này chỉ xem, vẫn sửa được ở Booking Management. Cột Note cũ đổi thành **Note Telesales**: hiện ghi chú gần nhất trong `customers.notes` (người ghi · thời gian, `+N` nếu còn nhiều, nội dung `line-clamp-2`, hover xem tất cả). Trang `/appointments` tải thêm `customers.notes`.
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`, `app/(app)/appointments/page.tsx`, `types/appointment.ts` (`AppointmentCustomer.notes`), `messages/{vi,en}.json` (`appointments.teleNote`).
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt; chưa commit. DB lúc sửa: 3/26 lịch có note lịch hẹn, 4/26 có note khách.
+
 ### 2026-11-19 — Nhân sự 1 hàng (bảng + drawer Sửa lịch hẹn)
 - **Thay đổi:** Cột Nhân sự trên bảng Sales Management bỏ lưới 2 cột (tên cách xa nhau), chuyển sang `flex-wrap gap-x-3`: các người đứng sát nhau trên 1 hàng, tên dài cắt ở `max-w-28`, cột rộng 300. Drawer Sửa lịch hẹn: mục 3. Nhân sự xếp Telesales · Sales · Master trên 1 hàng (`grid-cols-3`, điện thoại xếp dọc).
 - **File ảnh hưởng:** `components/appointments/{appointments-manager,appointment-drawer}.tsx`.

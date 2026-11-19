@@ -96,7 +96,8 @@
     "statDue": "Còn phải thu",
     "millionIdr": "triệu IDR",
     "groupByConfirm": "Nhóm theo Xác nhận lịch",
-    "staffColumn": "Nhân sự"
+    "staffColumn": "Nhân sự",
+    "teleNote": "Note Telesales"
   },
   "common": {
     "appName": "LAVIAN CRM",

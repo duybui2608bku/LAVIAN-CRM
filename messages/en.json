@@ -96,7 +96,8 @@
     "statDue": "Outstanding",
     "millionIdr": "million IDR",
     "groupByConfirm": "Group by booking confirmation",
-    "staffColumn": "Staff"
+    "staffColumn": "Staff",
+    "teleNote": "Telesales note"
   },
   "common": {
     "appName": "LAVIAN CRM",
