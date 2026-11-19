@@ -55,7 +55,7 @@ import { nearestByCustomer } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
-import { isFollowUpStage, phoneOptional, SHOW_UP_STAGE } from "@/lib/customer-options";
+import { instagramUsername, isFollowUpStage, phoneOptional, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { nextPending, REMINDER_COLORS, reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
@@ -629,20 +629,28 @@ export function CustomersManager({
 }
 
 
-/** Ô Nguồn (chỉ xem): icon nguồn + số WA nhận tin (WhatsApp) hoặc username IG (Instagram). */
+/**
+ * Ô Nguồn (chỉ xem): icon nguồn + số WA nhận tin (WhatsApp) hoặc username IG (Instagram).
+ * Khách có kênh thứ hai (`other_channel`, vd IG → WA) → 2 hàng, kênh nhắn trước ở trên.
+ */
 export function SourceCell({ customer: c }: { customer: Customer }) {
-  const wa = waNumber(c.thread?.link);
-  const ig = c.instagram_username;
+  const o = c.other_channel;
+  const rows = [{ source: c.source, wa: waNumber(c.thread?.link), ig: c.instagram_username }];
+  if (o && o.source !== c.source) rows.push({ source: o.source, wa: waNumber(o.link), ig: instagramUsername(o.username) });
   return (
-    <div className="flex items-center gap-1.5">
-      <SourceIcon source={c.source} />
-      {wa ? (
-        <Tag color={waColor(wa)} className="me-0">{wa}</Tag>
-      ) : ig ? (
-        <a href={`https://www.instagram.com/${ig}`} target="_blank" rel="noreferrer" className="truncate">
-          {ig}
-        </a>
-      ) : null}
+    <div className="flex flex-col gap-1">
+      {rows.map((r) => (
+        <div key={r.source ?? ""} className="flex items-center gap-1.5">
+          <SourceIcon source={r.source} />
+          {r.wa ? (
+            <Tag color={waColor(r.wa)} className="me-0">{r.wa}</Tag>
+          ) : r.ig ? (
+            <a href={`https://www.instagram.com/${r.ig}`} target="_blank" rel="noreferrer" className="truncate">
+              {r.ig}
+            </a>
+          ) : null}
+        </div>
+      ))}
     </div>
   );
 }

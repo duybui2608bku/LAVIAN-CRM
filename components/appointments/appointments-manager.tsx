@@ -1,12 +1,13 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Button, Form, Input, InputNumber, Select, Tag, type TableProps } from "antd";
-import { CalendarPlus, MessageCircleMore, PanelRightOpen, Search } from "lucide-react";
+import { Button, Form, Input, Select, Tag, type TableProps } from "antd";
+import { CalendarPlus, MessageCircleMore, PanelRightOpen, Rows3, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { createAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
+import { AppointmentDrawer } from "@/components/appointments/appointment-drawer";
 import { MessagesModal } from "@/components/appointments/messages-modal";
 import { DataTable } from "@/components/common/data-table";
 import { NamePhone } from "@/components/common/name-phone";
@@ -18,8 +19,8 @@ import { CustomerInfoDrawer } from "@/components/customers/customer-info-drawer"
 import { SourceCell } from "@/components/customers/customers-manager";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { newCustomerAppointmentIds } from "@/lib/appointments";
-import { sanitizeCurrencyInput } from "@/lib/currency";
+import { appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
+import { StatCard } from "@/components/common/stat-card";
 import { matchesNameOrPhone, serviceName } from "@/lib/customers";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
@@ -34,6 +35,7 @@ import { TELESALES_DEPARTMENTS } from "@/types/user";
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
 
 const idr = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
+const million = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }); // 11.300.000 → "11,3" (triệu)
 
 /** Tag Status lịch hẹn (Chưa đến / Đã đến / Đang thực hiện / Đã thực hiện / Đổi lịch) — dùng chung cột Sales Status. */
 export function VisitStatusTag({ status }: { status: VisitStatus }) {
@@ -69,6 +71,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [creating, setCreating] = useState(false);
   const [chatFor, setChatFor] = useState<AppointmentCustomer | null>(null);
   const [infoFor, setInfoFor] = useState<AppointmentCustomer | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [grouped, setGrouped] = useState(false);
   const [rows, patchOptimistic] = useOptimistic(appointments,
     (state: Appointment[], patch: AppointmentPatch & { id: string }) =>
       state.map((row) => row.id === patch.id ? { ...row, ...patch } : row));
@@ -103,7 +107,14 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       && (booking === "all" || row.booking_confirm === booking)
       && matchesNameOrPhone(customer.full_name, customer.phone, search);
   });
+  const stats = appointmentStats(filtered, (id) => customerMap.get(id)?.deposit_amount);
+  const editing = editingId ? rows.find((row) => row.id === editingId) ?? null : null;
   const resetPage = () => setPage(1);
+  // Lọc nhanh 1 ngày: 0 = hôm nay, 1 = ngày mai.
+  const pickDay = (offset: number) => {
+    const d = dayjs().add(offset, "day").format("YYYY-MM-DD");
+    setDates({ from: d, to: d }); resetPage();
+  };
   const columns: TableProps<Appointment>["columns"] = [
     // Giờ to ở trên, ngày nhỏ bên dưới — giống cột lịch ở Booking management.
     { title: t("date"), width: 130, fixed: "left", sorter: (a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
@@ -111,13 +122,14 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
         <AppointmentDate inline format="HH:mm" disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} />
         <div className="mt-0.5 text-xs text-muted-foreground">{dayjs(row.scheduled_at).format("DD/MM/YYYY")}</div>
       </div> },
-    // Tên (+ chấm xanh = khách mới) + SĐT · nhóm DV (bấm nhóm để sửa) + icon mở drawer thông tin khách — theo mẫu Sales Management.
+    // Tên (bấm mở drawer sửa lịch; + chấm xanh = khách mới) + SĐT · nhóm DV (bấm nhóm để sửa) + icon mở drawer thông tin khách.
     { title: t("name"), width: 240, fixed: "left", render: (_, row) => {
       const customer = customerMap.get(row.customer_id);
       const cats = row.service_categories.map((c) => SERVICE_CATEGORY_LABELS[c] ?? c).join(", ");
       return <div className="flex items-center justify-between gap-1">
         <NamePhone phone={customer?.phone} className="flex-1" title={customer?.full_name}
-          name={<>{customer?.full_name}{newIds.has(row.id) && <span role="img" aria-label={t("newCustomer")} title={t("newCustomer")}
+          name={<><button type="button" aria-label={t("openEdit")} onClick={() => setEditingId(row.id)}
+            className="font-medium hover:text-primary hover:underline">{customer?.full_name}</button>{newIds.has(row.id) && <span role="img" aria-label={t("newCustomer")} title={t("newCustomer")}
             className="ms-1 inline-block size-2 rounded-full bg-success align-super" />}</>}
           extra={cats || canEdit ? <>{" · "}<InlineMultiSelect
             value={row.service_categories} ariaLabel={t("serviceCategories")} disabled={!canEdit}
@@ -153,24 +165,19 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       options={visitOptions}
       onSave={(value) => save(row.id, { visit_status: value as VisitStatus })} /> },
     // Cột Nhóm dịch vụ đã gộp vào ô Khách hàng (sau SĐT).
-    // Dịch vụ chi tiết: chỉ dịch vụ thuộc nhóm đã chọn (chưa chọn nhóm → tất cả); dịch vụ đang gán luôn hiện.
-    { title: t("serviceDetails"), width: 220, render: (_, row) => <InlineMultiSelect
-      value={row.service_ids} ariaLabel={t("serviceDetails")} disabled={!canEdit}
-      display={row.service_ids.length ? <div className="flex flex-wrap gap-1">{row.service_ids.map((id) => {
+    // Dịch vụ chi tiết: chỉ xem (không sửa trên bảng).
+    { title: t("serviceDetails"), width: 220, render: (_, row) => row.service_ids.length
+      ? <div className="flex flex-wrap gap-1">{row.service_ids.map((id) => {
         const service = services.find((s) => s.id === id);
         return <Tag key={id} color="purple" className="me-0">{service ? serviceName(service, locale) : id}</Tag>;
-      })}</div> : <span className="text-muted-foreground">{t("choose")}</span>}
-      options={services.filter((s) => row.service_ids.includes(s.id)
-        || (s.is_active && (!row.service_categories.length || row.service_categories.includes(s.category))))
-        .map((s) => ({ value: s.id, label: serviceName(s, locale) }))}
-      onSave={(service_ids) => save(row.id, { service_ids })} /> },
-    // Tài chính: cọc của khách (chỉ xem) + giá trị DV của lịch (sửa tại chỗ).
+      })}</div>
+      : <span className="text-muted-foreground">—</span> },
+    // Tài chính: cọc của khách + giá trị DV của lịch — chỉ xem.
     { title: t("finance"), width: 230, render: (_, row) => <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 tabular-nums">
       <span className="text-muted-foreground">{t("deposit")}</span>
       <span className="text-right">{idr.format(customerMap.get(row.customer_id)?.deposit_amount ?? 0)}</span>
       <span className="text-muted-foreground">{t("bill")}</span>
-      <BillInput value={row.bill_amount} label={t("bill")} disabled={!canEdit}
-        onSave={(bill_amount) => save(row.id, { bill_amount })} />
+      <span className="text-right">{idr.format(row.bill_amount ?? 0)}</span>
     </div> },
     // Cột Telesales tạm ẩn — staff_id vẫn chọn ở form Thêm lịch hẹn + vẫn tải; bật lại:
     // { title: t("staff"), width: 170, render: (_, row) => <InlineSelect value={row.staff_id ?? ""} ariaLabel={t("staff")} noneLabel={t("choose")} disabled={!canEdit} display={staffCell(row.staff_id)} options={staffOptions(staff, row.staff_id)} onSave={(value) => save(row.id, { staff_id: value || null })} /> },
@@ -194,25 +201,51 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
 
   return <Page>
     <PageHeader title={t("title")} />
+    {/* Số liệu theo bộ lọc đang áp (thứ tự khối: Thẻ số liệu → Thanh lọc, như Booking management). */}
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+      <StatCard label={t("statTotal")} value={stats.total} />
+      <StatCard label={t("statArrived")} value={stats.arrived} />
+      <StatCard label={t("statCancelled")} value={stats.cancelled} />
+      <StatCard label={t("statWaiting")} value={stats.waiting} />
+      <StatCard label={t("statBill")} value={million.format(stats.bill / 1e6)} hint={t("millionIdr")} />
+      <StatCard label={t("statCollected")} value={million.format(stats.collected / 1e6)} hint={t("millionIdr")} />
+      <StatCard label={t("statDue")} value={million.format(stats.due / 1e6)} hint={t("millionIdr")} />
+    </div>
     <PageToolbar>
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
         onClick={() => setCreating(true)}>{t("create")}</Button>}
       <Input value={search} allowClear className="w-full sm:max-w-64" placeholder={t("search")}
         aria-label={t("search")} prefix={<Search className="size-4" />} onChange={(e) => { setSearch(e.target.value); resetPage(); }} />
       <DateRangePicker from={dates.from} to={dates.to} onChange={(r) => { setDates(r); resetPage(); }} placeholder={t("allDates")} />
-      <Button onClick={() => { const d = dayjs().format("YYYY-MM-DD"); setDates({ from: d, to: d }); resetPage(); }}>{t("today")}</Button>
+      <Button onClick={() => pickDay(0)}>{t("today")}</Button>
+      <Button onClick={() => pickDay(1)}>{t("tomorrow")}</Button>
       <Select value={visit} aria-label={t("confirmation")} className="min-w-40" onChange={(v) => { setVisit(v); resetPage(); }}
         options={[{ value: "all", label: t("allArrivals") }, ...visitOptions]} />
       <Select value={booking} aria-label={t("bookingConfirm")} className="min-w-40" onChange={(v) => { setBooking(v); resetPage(); }}
         options={[{ value: "all", label: t("allBookingConfirms") }, ...statusOptions]} />
+      <Button aria-pressed={grouped} type={grouped ? "primary" : "default"} ghost={grouped}
+        icon={<Rows3 className="size-4" />} onClick={() => setGrouped(!grouped)}>{t("groupByConfirm")}</Button>
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
     </PageToolbar>
-    <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2030 }} empty={t("empty")}
-      page={page} onPageChange={setPage} pageSize={30} />
+    {/* Nhóm theo Xác nhận lịch: mỗi nhóm 1 bảng (phân trang riêng), nhóm trống ẩn. */}
+    {grouped && filtered.length ? BOOKING_STATUSES.map((s) => {
+      const items = filtered.filter((row) => row.booking_confirm === s);
+      return items.length ? <section key={s} className="flex flex-col gap-2">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Tag color={BOOKING_STATUS_COLORS[s]} className="me-0">{t(`bookingStatus.${s}`)}</Tag>
+          <span className="font-normal text-muted-foreground">{t("count", { count: items.length })}</span>
+        </h3>
+        <DataTable columns={columns} dataSource={items} scroll={{ x: 2030 }} pageSize={30} />
+      </section> : null;
+    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2030 }} empty={t("empty")}
+      page={page} onPageChange={setPage} pageSize={30} />}
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}
       onCreated={() => { setCreating(false); setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setVisit("all"); setBooking("all"); setPage(1); }} />
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
+    <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
+      staff={staff} services={services} canEdit={canEdit} canShowUp={canShowUp}
+      onViewInfo={setInfoFor} onClose={() => setEditingId(null)} />
     <CustomerInfoDrawer customer={infoFor} staff={staff} onClose={() => setInfoFor(null)} />
   </Page>;
 }
@@ -228,23 +261,6 @@ export function AppointmentNote({ value, label, disabled, onSave }: {
     onChange={(e) => setDraft(e.target.value)} onBlur={() => {
       if (draft.trim() !== value) onSave(draft);
     }} />;
-}
-
-/** Giá trị DV sửa tại chỗ: hiện như số (căn phải), rời ô / Enter mới lưu; trống = null. */
-function BillInput({ value, label, disabled, onSave }: {
-  value: number | null; label: string; disabled?: boolean; onSave: (bill: number | null) => void;
-}) {
-  const [draft, setDraft] = useState(value);
-  const [seen, setSeen] = useState(value);
-  if (seen !== value) { setSeen(value); setDraft(value); }
-  return <InputNumber<number> value={draft} aria-label={label} placeholder="0" disabled={disabled}
-    variant="borderless" size="small" min={0} precision={0} controls={false} inputMode="numeric"
-    className="w-full rounded hover:bg-muted focus-within:bg-muted [&_input]:pe-0! [&_input]:text-right!"
-    formatter={(v) => (v == null || `${v}` === "" ? "" : Number(v).toLocaleString("id-ID"))}
-    parser={(v) => sanitizeCurrencyInput(v ?? "") as unknown as number}
-    onChange={(v) => setDraft(v ?? null)}
-    onPressEnter={(e) => e.currentTarget.blur()}
-    onBlur={() => { if (draft !== value) onSave(draft); }} />;
 }
 
 type CreateValues = Required<Pick<AppointmentPatch, "scheduled_at">> & Omit<AppointmentPatch, "scheduled_at"> & {

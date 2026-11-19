@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isFollowUpStage, isStage, leadSource, needsAppointment, phoneOptional } from "@/lib/customer-options";
+import { instagramUsername, isFollowUpStage, isStage, leadSource, needsAppointment, phoneOptional } from "@/lib/customer-options";
 import { serviceCategoriesSchema } from "@/lib/appointments";
 import { phoneOwner } from "@/lib/customers";
 import { formatPhone, isValidPhone } from "@/lib/phone";
@@ -87,11 +87,12 @@ export type LeadCustomer = {
 };
 
 const LEAD_FIELDS =
-  "id, smax_customer_id, notes, stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, follow_up_at, staff:profiles!staff_id(user_name, avatar_url)";
+  "id, smax_customer_id, source, notes, stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, follow_up_at, staff:profiles!staff_id(user_name, avatar_url)";
 
 type LeadRow = {
   id: string;
   smax_customer_id: string | null;
+  source: string | null;
   notes: CustomerNote[] | null;
   stage: string | null;
   staff_id: string | null;
@@ -213,6 +214,11 @@ export async function submitLead(
     };
     // Khách tìm theo SĐT đã gắn kênh khác (vd IG → WA) → giữ kênh nhắn trước, chỉ ghi trường CRM.
     const keepChannel = !!current?.viaPhone && current.smax_customer_id !== null;
+    // …nhưng hội thoại đang mở thuộc kênh khác → lưu làm kênh thứ hai (ô Nguồn hiện 2 hàng).
+    const smaxCustomer = d.smax_data?.customer as { instagram?: { username?: unknown } } | undefined;
+    const otherChannel = keepChannel && current.source && current.source !== source
+      ? { other_channel: { source, link: d.thread?.link ?? null, username: instagramUsername(smaxCustomer?.instagram?.username) } }
+      : {};
     const customer = {
       full_name: d.full_name,
       // Cập nhật mà để trống SĐT → giữ SĐT đang có (form không điền sẵn SĐT từ CRM).
@@ -266,7 +272,7 @@ export async function submitLead(
       const { error } = await supabase
         .from("customers")
         .update({
-          ...(keepChannel ? {} : channel),
+          ...(keepChannel ? otherChannel : channel),
           ...customer,
           notes: notes.length ? [...(row.notes ?? []), ...notes] : row.notes,
         })
