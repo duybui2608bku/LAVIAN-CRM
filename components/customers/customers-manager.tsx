@@ -223,15 +223,13 @@ export function CustomersManager({
       toast.success(t("updateOk"));
     });
 
-  // Option cho Select: active + giá trị hiện tại (kể cả inactive), theo sort_order.
+  // Option cho Select (lọc + sửa inline): active + giá trị hiện tại (kể cả inactive), theo sort_order.
+  // Chữ trần — tag màu chỉ ở ô hiển thị trên bảng (`tagFor`).
   const kindOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
     options
       .filter((o) => o.kind === kind && (o.is_active || o.value === current))
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }));
-  // Option dạng tag (icon + màu) cho select sửa nhanh trên bảng — khớp ô hiển thị.
-  const tagOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
-    kindOptions(kind, current).map((o) => ({ value: o.value, label: tagFor(kind, o.value) }));
+      .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
 
   const columns: TableProps<Customer>["columns"] = [
     {
@@ -294,7 +292,7 @@ export function CustomersManager({
           value={c.stage}
           display={tagFor("stage", c.stage)}
           // Show-up tự chuyển theo Clinic confirmation → không chọn tay (chỉ hiện khi khách đang ở Show-up).
-          options={tagOptions("stage", c.stage).filter((o) => o.value !== SHOW_UP_STAGE || o.value === c.stage)}
+          options={kindOptions("stage", c.stage).filter((o) => o.value !== SHOW_UP_STAGE || o.value === c.stage)}
           ariaLabel={t("colStage")}
           // Trang lọc theo stage (Booking management): chỉ xem stage, không đổi.
           disabled={!canEdit || !!stages}
@@ -795,7 +793,7 @@ function CustomerDialog({
     options
       .filter((o) => o.kind === kind && (o.is_active || o.value === current))
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} icon={o.icon} /> }));
+      .map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
 
   const onFinish = (v: Values) =>
     start(async () => {
