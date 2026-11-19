@@ -119,7 +119,8 @@ export function BookingsManager({
       {statusLabel(s)}
     </Tag>
   );
-  const statusOptions = BOOKING_STATUSES.map((value) => ({ value, label: statusTag(value) }));
+  // Option select = chữ trần; tag màu chỉ ở ô hiển thị.
+  const statusOptions = BOOKING_STATUSES.map((value) => ({ value, label: statusLabel(value) }));
   const teleOptions = staff
     .filter((s) => TELESALES_DEPARTMENTS.includes(s.department ?? ""))
     .map((s) => ({ value: s.id, label: staffLabel(s) }));

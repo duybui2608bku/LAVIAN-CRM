@@ -150,7 +150,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
       value={row.visit_status} ariaLabel={t("confirmation")} disabled={!canEdit || !canShowUp}
       display={<VisitStatusTag status={row.visit_status} />}
-      options={visitOptions.map((o) => ({ ...o, label: <VisitStatusTag status={o.value} /> }))}
+      options={visitOptions}
       onSave={(value) => save(row.id, { visit_status: value as VisitStatus })} /> },
     // Cột Nhóm dịch vụ đã gộp vào ô Khách hàng (sau SĐT).
     // Dịch vụ chi tiết: chỉ dịch vụ thuộc nhóm đã chọn (chưa chọn nhóm → tất cả); dịch vụ đang gán luôn hiện.

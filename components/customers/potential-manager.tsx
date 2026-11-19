@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Button, Input, Segmented, Tag, type TableProps } from "antd";
+import { Button, Input, Segmented, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 import { MessageSquareText, Search, X } from "lucide-react";
@@ -22,7 +22,7 @@ import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
 import { CONVERTED_STATUS } from "@/lib/customer-options";
 import { matchesNameOrPhone, optionLabel } from "@/lib/customers";
-import { REMINDER_COLORS, reminderState } from "@/lib/reminders";
+import { reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
 import type { Customer, EnumOption } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
@@ -31,6 +31,13 @@ type Tab = "all" | "overdue" | "today" | "upcoming";
 type Patch = { staff_id?: string | null; potential_status?: string | null; follow_up_at?: string | null };
 
 const DASH = <span className="text-muted-foreground">—</span>;
+
+/** Trạng thái hạn follow-up = chữ nhỏ màu ngữ nghĩa (không tag — ô đã có giờ hẹn là điểm nhấn). */
+const FOLLOW_UP_TONE: Record<Exclude<Tab, "all">, string> = {
+  overdue: "text-destructive",
+  today: "text-warning",
+  upcoming: "text-muted-foreground",
+};
 
 /** Mốc liên hệ lại so với `now`: quá hạn (đã qua) / hôm nay (còn trong ngày) / sắp tới; chưa đặt → null. */
 const followUpState = (at: string | null | undefined, now: number) =>
@@ -80,11 +87,14 @@ export function PotentialManager({
       else toast.success(tc("updateOk"));
     });
 
-  const statusOptions = options
-    .filter((o) => o.kind === "potential_status")
-    .map((o) => ({ value: o.value, label: <EnumTag label={optionLabel(o, locale)} color={o.color} /> }));
-  const statusTag = (v: string | null | undefined) => statusOptions.find((o) => o.value === v)?.label ?? DASH;
-  // Trang gộp 2 stage: khách Cân nhắc hiện tag stage để phân biệt với Tiềm năng.
+  // Option select = chữ trần; tag màu chỉ ở ô hiển thị trên bảng.
+  const statusDefs = options.filter((o) => o.kind === "potential_status");
+  const statusOptions = statusDefs.map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
+  const statusTag = (v: string | null | undefined) => {
+    const o = statusDefs.find((x) => x.value === v);
+    return o ? <EnumTag label={optionLabel(o, locale)} color={o.color} /> : DASH;
+  };
+  // Trang gộp 2 stage: khách Cân nhắc ghi chữ nhạt để phân biệt với Tiềm năng (1 ô tối đa 1 tag).
   const considerOpt = options.find((o) => o.kind === "stage" && o.value === "consider");
   const teleOptions = staff
     .filter((s) => TELESALES_DEPARTMENTS.includes(s.department ?? ""))
@@ -164,19 +174,61 @@ export function PotentialManager({
         );
       },
     },
+    // Danh sách việc follow-up (đã sắp theo giờ liên hệ lại) → cột hành động đứng ngay sau tên.
     {
-      title: tc("colCreated"),
-      key: "created",
-      dataIndex: "created_at",
-      width: 120,
-      render: (v: string) => (
-        <div className="leading-tight tabular-nums">
-          <div>{dayjs(v).format("DD/MM/YYYY")}</div>
-          <div className="text-xs text-muted-foreground">{dayjs(v).format("HH:mm")}</div>
+      title: t("colFollowUp"),
+      key: "followUp",
+      width: 180,
+      render: (_, c) => {
+        const s = followUpState(c.follow_up_at, now);
+        return (
+          <div className="leading-tight">
+            <AppointmentDate
+              inline
+              value={c.follow_up_at}
+              disabled={!canEdit}
+              onSave={(iso) => patchField(c.id, { follow_up_at: iso })}
+            />
+            {s ? <div className={`mt-0.5 text-xs ${FOLLOW_UP_TONE[s]}`}>{t(`tab.${s}`)}</div> : null}
+          </div>
+        );
+      },
+    },
+    {
+      title: t("colStatus"),
+      key: "status",
+      width: 190,
+      render: (_, c) => (
+        <div className="leading-tight">
+          <InlineSelect
+            value={c.potential_status ?? ""}
+            display={statusTag(c.potential_status)}
+            // "Chuyển đổi đặt lịch" chỉ hiện khi được tạo lịch hẹn — chọn thì mở form, không lưu ngay.
+            options={statusOptions.filter((o) => o.value !== CONVERTED_STATUS || canBook)}
+            noneLabel={tc("noneOption")}
+            ariaLabel={t("colStatus")}
+            disabled={!canEdit}
+            onSave={(v) =>
+              v === CONVERTED_STATUS ? setConvertFor(c.id) : patchField(c.id, { potential_status: v || null })
+            }
+          />
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {c.stage === "consider" && considerOpt ? `${optionLabel(considerOpt, locale)} · ` : null}
+            {t("followUps", { n: c.notes?.length ?? 0 })}
+          </div>
         </div>
       ),
     },
-    { title: tc("colSource"), key: "source", width: 160, render: (_, c) => <SourceCell customer={c} /> },
+    // Sales Status: Status lịch gần nhất của khách (Sales đổi ở trang Lịch hẹn).
+    {
+      title: t("colSalesStatus"),
+      key: "salesStatus",
+      width: 150,
+      render: (_, c) => {
+        const a = nearestAppt.get(c.id);
+        return a ? <VisitStatusTag status={a.visit_status} /> : DASH;
+      },
+    },
     {
       title: t("colTele"),
       key: "staff",
@@ -198,63 +250,18 @@ export function PotentialManager({
         />
       ),
     },
+    { title: tc("colSource"), key: "source", width: 160, render: (_, c) => <SourceCell customer={c} /> },
     {
-      title: t("colStatus"),
-      key: "status",
-      width: 190,
-      render: (_, c) => (
-        <div className="leading-tight">
-          <InlineSelect
-            value={c.potential_status ?? ""}
-            display={statusTag(c.potential_status)}
-            // "Chuyển đổi đặt lịch" chỉ hiện khi được tạo lịch hẹn — chọn thì mở form, không lưu ngay.
-            options={statusOptions.filter((o) => o.value !== CONVERTED_STATUS || canBook)}
-            noneLabel={tc("noneOption")}
-            ariaLabel={t("colStatus")}
-            disabled={!canEdit}
-            onSave={(v) =>
-              v === CONVERTED_STATUS ? setConvertFor(c.id) : patchField(c.id, { potential_status: v || null })
-            }
-          />
-          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-            {c.stage === "consider" && considerOpt && <EnumTag label={optionLabel(considerOpt, locale)} color={considerOpt.color} />}
-            {t("followUps", { n: c.notes?.length ?? 0 })}
-          </div>
+      title: tc("colCreated"),
+      key: "created",
+      dataIndex: "created_at",
+      width: 120,
+      render: (v: string) => (
+        <div className="leading-tight tabular-nums">
+          <div>{dayjs(v).format("DD/MM/YYYY")}</div>
+          <div className="text-xs text-muted-foreground">{dayjs(v).format("HH:mm")}</div>
         </div>
       ),
-    },
-    // Sales Status: Status lịch gần nhất của khách (Sales đổi ở trang Lịch hẹn).
-    {
-      title: t("colSalesStatus"),
-      key: "salesStatus",
-      width: 150,
-      render: (_, c) => {
-        const a = nearestAppt.get(c.id);
-        return a ? <VisitStatusTag status={a.visit_status} /> : DASH;
-      },
-    },
-    {
-      title: t("colFollowUp"),
-      key: "followUp",
-      width: 190,
-      render: (_, c) => {
-        const s = followUpState(c.follow_up_at, now);
-        return (
-          <div className="leading-tight">
-            <AppointmentDate
-              inline
-              value={c.follow_up_at}
-              disabled={!canEdit}
-              onSave={(iso) => patchField(c.id, { follow_up_at: iso })}
-            />
-            {s ? (
-              <Tag color={REMINDER_COLORS[s]} className="me-0 mt-0.5">
-                {t(`tab.${s}`)}
-              </Tag>
-            ) : null}
-          </div>
-        );
-      },
     },
   ];
 
@@ -274,22 +281,23 @@ export function PotentialManager({
         <StatCard label={t("kpiConverted")} value={convertedToday} />
       </div>
 
+      {/* Cùng thứ tự với Booking Management: Thẻ số liệu → Tab → Thanh lọc (Tìm → Trạng thái → Tele). */}
+      <Segmented<Tab>
+        block
+        value={tab}
+        onChange={setTab}
+        options={(["all", "overdue", "today", "upcoming"] as const).map((k) => ({ value: k, label: t(`tab.${k}`) }))}
+      />
+
       <PageToolbar>
         <Input
           allowClear
           className="w-full sm:max-w-72"
           prefix={<Search className="size-4 text-muted-foreground" />}
           placeholder={t("searchPlaceholder")}
+          aria-label={t("searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-        />
-        <ClearableSelect
-          className="min-w-40"
-          value={staffId}
-          onChange={setStaffId}
-          options={teleOptions}
-          placeholder={t("allTele")}
-          ariaLabel={t("colTele")}
         />
         <ClearableSelect
           className="min-w-40"
@@ -298,6 +306,14 @@ export function PotentialManager({
           options={statusOptions}
           placeholder={t("allStatus")}
           ariaLabel={t("colStatus")}
+        />
+        <ClearableSelect
+          className="min-w-40"
+          value={staffId}
+          onChange={setStaffId}
+          options={teleOptions}
+          placeholder={t("allTele")}
+          ariaLabel={t("colTele")}
         />
         {activeFilters > 0 && (
           <Button
@@ -313,13 +329,6 @@ export function PotentialManager({
           </Button>
         )}
       </PageToolbar>
-
-      <Segmented<Tab>
-        block
-        value={tab}
-        onChange={setTab}
-        options={(["all", "overdue", "today", "upcoming"] as const).map((k) => ({ value: k, label: t(`tab.${k}`) }))}
-      />
 
       <DataTable columns={columns} dataSource={filtered} page={page} onPageChange={setPage} empty={t("empty")} />
 
