@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-19 — Icon ô Khách hàng (Sales Management) mở drawer Sửa lịch hẹn
+- **Thay đổi:** User bấm icon `PanelRightOpen` ở ô Khách hàng thì vẫn ra drawer "Customer info" cũ (drawer mới chỉ mở khi bấm tên) → icon giờ cũng mở `AppointmentDrawer` (aria/title `openEdit`). Drawer Thông tin khách chỉ còn mở từ icon ở đầu drawer Sửa lịch hẹn (đúng mẫu sếp).
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt. PR #94 (nhánh `claude/sales-management`) chưa merge — production vẫn là bản cũ cho tới khi merge.
+
 ### 2026-11-19 — Bỏ toàn bộ subtitle trang + đổi tên Khách tiềm năng → Customers Management
 - **Thay đổi:** `PageHeader` (`components/layout/page.tsx`) **bỏ hẳn prop `description`** (không còn dòng phụ đề dưới tiêu đề trang nào). Gỡ ở 6 trang: Booking Management, Khách tiềm năng, Lịch nhắc, Phân quyền, Báo cáo (bỏ dòng "kỳ này so với kỳ trước" + hàm `rangeText` thừa), Leader Telesales. Trang `/customers/potential`: `potential.title` + `nav.potential` = "Customers Management" (cả vi lẫn en, như Sales Management). Key i18n subtitle cũ (`*.description`, `subtitle*`, `pageHint`, `permissionsHint`) để nguyên, không còn dùng.
 - **File ảnh hưởng:** `components/layout/page.tsx`, `components/appointments/bookings-manager.tsx`, `components/customers/potential-manager.tsx`, `components/reminders/reminders-calendar.tsx`, `components/users/permissions-editor.tsx`, `components/reports/{reports-view,telesales-report-view}.tsx`, `messages/{vi,en}.json`.

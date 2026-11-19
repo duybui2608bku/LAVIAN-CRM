@@ -122,7 +122,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
         <AppointmentDate inline format="HH:mm" disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} />
         <div className="mt-0.5 text-xs text-muted-foreground">{dayjs(row.scheduled_at).format("DD/MM/YYYY")}</div>
       </div> },
-    // Tên (bấm mở drawer sửa lịch; + chấm xanh = khách mới) + SĐT · nhóm DV (bấm nhóm để sửa) + icon mở drawer thông tin khách.
+    // Tên (bấm mở drawer sửa lịch; + chấm xanh = khách mới) + SĐT · nhóm DV (bấm nhóm để sửa) + icon mở drawer sửa lịch.
     { title: t("name"), width: 240, fixed: "left", render: (_, row) => {
       const customer = customerMap.get(row.customer_id);
       const cats = row.service_categories.map((c) => SERVICE_CATEGORY_LABELS[c] ?? c).join(", ");
@@ -136,8 +136,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
             display={cats || <span className="opacity-70">{t("addCategory")}</span>}
             options={SERVICE_CATEGORY_OPTIONS}
             onSave={(c) => save(row.id, { service_categories: c as ServiceCategory[] })} /></> : null} />
-        {customer && <Button type="text" size="small" aria-label={t("viewInfo")} title={t("viewInfo")}
-          icon={<PanelRightOpen className="size-4" />} onClick={() => setInfoFor(customer)} />}
+        {/* Icon + tên đều mở drawer Sửa lịch hẹn; Thông tin khách mở từ icon trong drawer đó. */}
+        {customer && <Button type="text" size="small" aria-label={t("openEdit")} title={t("openEdit")}
+          icon={<PanelRightOpen className="size-4" />} onClick={() => setEditingId(row.id)} />}
       </div>;
     } },
     // Nguồn: icon + số WA nhận tin / username IG — giống Booking management & Khách hàng.
