@@ -56,6 +56,7 @@ export interface CustomerInput {
   payment_confirm_url?: string | null; // ảnh xác nhận thanh toán
   region_code?: string | null; // mã vùng Kemendagri: "31" | "31.71"
   address_detail?: string | null; // địa chỉ chi tiết (text tự do)
+  follow_up_at?: string | null; // lịch nhắc — bắt buộc khi stage Tiềm năng / Cân nhắc
 }
 
 /** Khách hàng — ánh xạ bảng `public.customers`. */

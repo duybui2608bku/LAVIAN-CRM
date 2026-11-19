@@ -436,6 +436,8 @@
     "updateOk": "Updated",
     "createOk": "Customer added",
     "chooseStage": "Choose a stage",
+    "followUpAt": "Follow-up reminder",
+    "followUpRequired": "Please choose a follow-up time",
     "colReminder": "Reminder",
     "viewReminders": "Reminders"
   },

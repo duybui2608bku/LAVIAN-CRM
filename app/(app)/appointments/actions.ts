@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { getCurrentProfile, requirePermission } from "@/lib/auth";
 import { appointmentPatchSchema, canConfirmShowUp } from "@/lib/appointments";
 import { BOOKED_STAGE } from "@/lib/customer-options";
+import { phoneOwner } from "@/lib/customers";
 import { AppError, normalizeError } from "@/lib/errors";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
@@ -86,13 +87,8 @@ export async function createAppointment(
       customerStaff = data.staff_id;
     } else {
       const c = newCustomerSchema.parse(customerRef);
-      const { data: dup, error: dupError } = await db.from("customers")
-        .select("full_name").eq("phone", c.phone).is("deleted_at", null).limit(1).maybeSingle();
-      if (dupError) throw dupError;
-      if (dup) {
-        const t = await getTranslations("appointments");
-        return { error: t("phoneExists", { name: dup.full_name }) };
-      }
+      const owner = await phoneOwner(db, c.phone);
+      if (owner) return { error: (await getTranslations("appointments"))("phoneExists", { name: owner }) };
       const { data, error } = await db.from("customers").insert({
         ...c, stage: BOOKED_STAGE, staff_id: patch.staff_id ?? null,
         first_contact: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }),

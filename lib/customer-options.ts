@@ -16,7 +16,6 @@ const definitions: [EnumKind, string, string, string, string][] = [
   ["source", "whatsapp", "WhatsApp", "WhatsApp", "green"],
   // Tình trạng ở trang Khách tiềm năng; "converted" = mở form tạo lịch hẹn rồi chuyển Booking.
   ["potential_status", "interested", "Quan tâm", "Interested", "blue"],
-  ["potential_status", "considering", "Cân nhắc", "Considering", "orange"],
   ["potential_status", "no_response", "Chưa phản hồi", "No response", "default"],
   ["potential_status", "converted", "Chuyển đổi đặt lịch", "Converted to booking", "green"],
 ];

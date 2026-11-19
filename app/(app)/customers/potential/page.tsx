@@ -15,7 +15,7 @@ export default async function PotentialCustomersPage() {
   const [customersRes, staffRes, convertedRes] = await Promise.all([
     supabase
       .from("customers")
-      .select(`${CUSTOMER_LIST_FIELDS}, potential_status, follow_up_at`)
+      .select(`${CUSTOMER_LIST_FIELDS}, potential_status`)
       .in("stage", FOLLOW_UP_STAGES)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),

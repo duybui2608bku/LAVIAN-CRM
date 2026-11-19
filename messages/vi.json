@@ -436,6 +436,8 @@
     "colTags": "Tag",
     "openThread": "Mở hội thoại",
     "chooseStage": "Chọn giai đoạn",
+    "followUpAt": "Lịch nhắc follow-up",
+    "followUpRequired": "Vui lòng chọn lịch nhắc",
     "colReminder": "Nhắc hẹn",
     "viewReminders": "Lịch nhắc hẹn"
   },

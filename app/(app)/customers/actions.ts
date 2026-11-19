@@ -3,6 +3,7 @@
 import {
   BOOKED_STAGE,
   CONVERTED_STATUS,
+  isFollowUpStage,
   isStage,
   FOLLOW_UP_STAGES,
   validPotentialStatus,
@@ -10,7 +11,9 @@ import {
 } from "@/lib/customer-options";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
+import { phoneOwner } from "@/lib/customers";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
@@ -82,12 +85,27 @@ async function stampNote(text: string): Promise<CustomerNote> {
 // Không gửi source: nguồn tự tính từ số WA (lead form), tạo tay → default DB 'instagrams'.
 // "" -> null. KHÔNG đụng cột notes
 // (create dựa default '[]' của DB; note quản lý riêng qua addCustomerNote).
+// 1 SĐT = 1 khách: thông báo khi SĐT đã thuộc khách khác (cùng câu với drawer tạo lịch).
+async function phoneTaken(db: Awaited<ReturnType<typeof createClient>>, phone: string, exceptId?: string) {
+  const name = await phoneOwner(db, phone, exceptId);
+  return name ? (await getTranslations("appointments"))("phoneExists", { name }) : null;
+}
+
+// Tiềm năng / Cân nhắc bắt buộc lịch nhắc (DB có constraint chốt chặn, đây chỉ để báo lỗi dễ hiểu).
+// Rời 2 stage này thì trigger DB tự xoá follow_up_at + ghi chuyển đổi.
+function followUpIso(v?: string | null): string {
+  const at = v ? new Date(v) : null;
+  if (!at || Number.isNaN(at.getTime())) throw new Error("Vui lòng chọn lịch nhắc.");
+  return at.toISOString();
+}
+
 function clean(input: CustomerInput) {
   const nz = (v?: string | null) => (v && v.trim() !== "" ? v.trim() : null);
   if (!isStage(input.stage))
     throw new Error("Giai đoạn không hợp lệ.");
   if (!isValidPhone(input.phone)) throw new Error("Số điện thoại không hợp lệ.");
   return {
+    ...(isFollowUpStage(input.stage) ? { follow_up_at: followUpIso(input.follow_up_at) } : {}),
     full_name: input.full_name.trim(),
     phone: formatPhone(input.phone),
     social_name: nz(input.social_name),
@@ -107,7 +125,10 @@ export async function createCustomer(input: CustomerInput): Promise<Result> {
   try {
     await requirePermission("customers.edit");
     const supabase = await createClient();
-    const { error } = await supabase.from("customers").insert(clean(input));
+    const row = clean(input);
+    const taken = await phoneTaken(supabase, row.phone);
+    if (taken) return { error: taken };
+    const { error } = await supabase.from("customers").insert(row);
     if (error) throw error;
     revalidateCustomers();
     return {};
@@ -123,9 +144,12 @@ export async function updateCustomer(
   try {
     await requirePermission("customers.edit");
     const supabase = await createClient();
+    const row = clean(input);
+    const taken = await phoneTaken(supabase, row.phone, id);
+    if (taken) return { error: taken };
     const { error } = await supabase
       .from("customers")
-      .update(clean(input))
+      .update(row)
       .eq("id", id);
     if (error) throw error;
     revalidateCustomers();
@@ -152,6 +176,7 @@ export async function patchCustomer(
     await requirePermission("customers.edit");
     if (patch.stage !== undefined && !isStage(patch.stage))
       throw new Error("Giai đoạn không hợp lệ.");
+    if (isFollowUpStage(patch.stage)) followUpIso(patch.follow_up_at);
     const data: Record<string, string | null> = {};
     if (patch.stage !== undefined) data.stage = patch.stage;
     if (patch.rating !== undefined) data.rating = validRating(patch.rating);
