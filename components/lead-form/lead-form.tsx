@@ -200,7 +200,8 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
         setExisting(null);
       } else {
         setCheckingCustomer(true);
-        void checkLeadCustomer(id)
+        // Kèm SĐT: khách đổi kênh (IG → WA) có SMAX id mới vẫn nhận ra khách cũ.
+        void checkLeadCustomer(id, phone ? formatPhone(String(phone)) : "")
           .then((found) => {
             if (smaxIdRef.current !== id) return;
             setExisting(found);

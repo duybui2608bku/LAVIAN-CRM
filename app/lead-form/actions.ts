@@ -8,6 +8,7 @@ import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isFollowUpStage, isStage, leadSource, needsAppointment } from "@/lib/customer-options";
 import { serviceCategoriesSchema } from "@/lib/appointments";
+import { phoneOwner } from "@/lib/customers";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
 
@@ -84,21 +85,53 @@ export type LeadCustomer = {
   follow_up_at: string | null;
 };
 
-// Khách đã có trong CRM → trả giai đoạn + CSKH hiện tại để form fill sẵn,
+const LEAD_FIELDS =
+  "id, smax_customer_id, notes, stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, follow_up_at, staff:profiles!staff_id(user_name, avatar_url)";
+
+type LeadRow = {
+  id: string;
+  smax_customer_id: string | null;
+  notes: CustomerNote[] | null;
+  stage: string | null;
+  staff_id: string | null;
+  deposit_amount: number | string | null;
+  payment_confirm_url: string | null;
+  region_code: string | null;
+  address_detail: string | null;
+  follow_up_at: string | null;
+  staff: unknown;
+  /** Tìm theo SĐT (không khớp SMAX id) — vd khách IG chuyển sang WA có SMAX id mới. */
+  viaPhone: boolean;
+};
+
+/** Khách của lead trong CRM: theo SMAX id; không có thì theo SĐT — khách tạo trước nhất (giữ kênh đầu). */
+async function findLeadRow(smaxId: string, phone: string): Promise<LeadRow | null> {
+  const db = createAdminClient();
+  if (smaxId) {
+    const { data, error } = await db.from("customers").select(LEAD_FIELDS)
+      .eq("smax_customer_id", smaxId).is("deleted_at", null).maybeSingle();
+    if (error) throw error;
+    if (data) return { ...(data as Omit<LeadRow, "viaPhone">), viaPhone: false };
+  }
+  if (!isValidPhone(phone)) return null;
+  const { data, error } = await db.from("customers").select(LEAD_FIELDS)
+    .eq("phone", formatPhone(phone)).is("deleted_at", null)
+    .order("created_at").limit(1).maybeSingle();
+  if (error) throw error;
+  return data ? { ...(data as Omit<LeadRow, "viaPhone">), viaPhone: true } : null;
+}
+
+// Khách đã có trong CRM (theo SMAX id hoặc SĐT) → trả giai đoạn + CSKH hiện tại để form fill sẵn,
 // tránh bấm Cập nhật đè giá trị mặc định lên dữ liệu đã đổi ở CRM.
 export async function checkLeadCustomer(
   customerId: string,
+  phone = "",
 ): Promise<LeadCustomer | null> {
-  const id = z.string().trim().min(1).max(200).safeParse(customerId);
-  if (!id.success) return null;
+  const id = z.string().trim().max(200).safeParse(customerId);
+  const tel = z.string().max(50).safeParse(phone);
+  if (!id.success || !tel.success) return null;
 
-  const { data, error } = await createAdminClient()
-    .from("customers")
-    .select("stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, follow_up_at, staff:profiles!staff_id(user_name, avatar_url)")
-    .eq("smax_customer_id", id.data)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (error) throw error;
+  const data = await findLeadRow(id.data, tel.data);
   if (!data) return null;
   // Quan hệ nhiều-1 nên PostgREST trả object (type suy ra mảng do client không typed).
   const staff = data.staff as unknown as
@@ -132,14 +165,16 @@ export async function submitLead(
 
   try {
     const supabase = createAdminClient();
-    const current = d.customer_id ? await checkLeadCustomer(d.customer_id) : null;
-    const existing = current !== null;
-    if (mode === "create" && existing) {
+    const current = await findLeadRow(d.customer_id, d.phone);
+    if (mode === "create" && current) {
       return { error: "Khách hàng đã tồn tại. Chỉ được cập nhật thông tin." };
     }
-    if (mode === "update" && (!d.customer_id || !existing)) {
+    if (mode === "update" && !current) {
       return { error: "Khách hàng chưa tồn tại. Hãy dùng nút Submit." };
     }
+    // Cập nhật: không đổi sang SĐT đang thuộc khách khác (tạo mới đã dò theo SĐT ở trên).
+    const owner = current && (await phoneOwner(supabase, d.phone, current.id));
+    if (owner) return { error: (await getTranslations("appointments"))("phoneExists", { name: owner }) };
 
     // Stage bắt buộc chọn (không còn mặc định "Khách mới").
     if (!isStage(d.stage)) return { error: "Vui lòng chọn trạng thái." };
@@ -162,9 +197,8 @@ export async function submitLead(
         note: "",
       });
     const stage = d.stage;
-    const customer = {
-      full_name: d.full_name,
-      phone: d.phone,
+    // Trường theo kênh SMAX (hội thoại đang mở).
+    const channel = {
       smax_customer_id: d.customer_id || null,
       source: leadSource(d.thread?.link), // tự tính: hội thoại WA → WA, còn lại IG
       social_name: d.social_name || null,
@@ -173,6 +207,12 @@ export async function submitLead(
       thread: d.thread,
       // Payload hỏng/thiếu → null: không ghi đè smax_data đang có khi cập nhật.
       ...(d.smax_data ? { smax_data: d.smax_data } : {}),
+    };
+    // Khách tìm theo SĐT đã gắn kênh khác (vd IG → WA) → giữ kênh nhắn trước, chỉ ghi trường CRM.
+    const keepChannel = !!current?.viaPhone && current.smax_customer_id !== null;
+    const customer = {
+      full_name: d.full_name,
+      phone: d.phone,
       stage,
       staff_id: d.staff_id || null,
       region_code: d.region_code || null,
@@ -191,6 +231,7 @@ export async function submitLead(
       const { data: created, error } = await supabase
         .from("customers")
         .insert({
+          ...channel,
           ...customer,
           notes,
           // Chỉ đặt lúc tạo — cập nhật giữ ngày liên hệ đầu tiên.
@@ -211,13 +252,7 @@ export async function submitLead(
         }
       }
     } else {
-      const { data: row, error: readError } = await supabase
-        .from("customers")
-        .select("id, notes")
-        .eq("smax_customer_id", d.customer_id)
-        .is("deleted_at", null)
-        .single();
-      if (readError) throw readError;
+      const row = current!;
       // Tạo lịch TRƯỚC khi đổi stage: lịch lỗi thì khách giữ nguyên, không thành Booking mà thiếu lịch.
       if (appointment) {
         const { error: apptError } = await insertAppointment(row.id);
@@ -227,11 +262,11 @@ export async function submitLead(
       const { error } = await supabase
         .from("customers")
         .update({
+          ...(keepChannel ? {} : channel),
           ...customer,
           notes: notes.length ? [...(row.notes ?? []), ...notes] : row.notes,
         })
-        .eq("smax_customer_id", d.customer_id)
-        .is("deleted_at", null);
+        .eq("id", row.id);
       if (error) throw error;
     }
     if (appointment) revalidatePath("/appointments");

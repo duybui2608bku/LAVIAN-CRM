@@ -8,6 +8,7 @@ import {
   Form,
   Image,
   Input,
+  Modal,
   Tag,
   Tooltip,
   type TableProps,
@@ -32,6 +33,7 @@ import {
   updateCustomer,
 } from "@/app/(app)/customers/actions";
 import { CreateAppointmentDrawer, type AppointmentStaff } from "@/components/appointments/appointments-manager";
+import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useCan } from "@/components/common/permissions";
 import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
@@ -52,7 +54,7 @@ import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
-import { SHOW_UP_STAGE } from "@/lib/customer-options";
+import { isFollowUpStage, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { nextPending, REMINDER_COLORS, reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
@@ -108,6 +110,7 @@ type Patch = {
   staff_id?: string | null;
   sales_id?: string | null;
   technician_id?: string | null;
+  follow_up_at?: string | null;
 };
 
 export function CustomersManager({
@@ -144,6 +147,8 @@ export function CustomersManager({
   const [notesFor, setNotesFor] = useState<string | null>(null);
   const [apptFor, setApptFor] = useState<Customer | null>(null);
   const [createFor, setCreateFor] = useState<string | null>(null); // id khách đang tạo lịch hẹn
+  // Đổi stage inline sang Tiềm năng / Cân nhắc: chờ chọn lịch nhắc rồi mới lưu.
+  const [followUp, setFollowUp] = useState<{ id: string; stage: string; at: string | null } | null>(null);
   const [page, setPage] = useState(1);
 
   // Sửa inline hiện ngay, không chờ server. React tự trả về dữ liệu server khi
@@ -304,7 +309,11 @@ export function CustomersManager({
           ariaLabel={t("colStage")}
           // Trang lọc theo stage (Booking management): chỉ xem stage, không đổi.
           disabled={!canEdit || !!stages}
-          onSave={(v) => patchField(c.id, { stage: v })}
+          onSave={(v) =>
+            isFollowUpStage(v)
+              ? setFollowUp({ id: c.id, stage: v, at: c.follow_up_at ?? null })
+              : patchField(c.id, { stage: v })
+          }
         />
       ),
     },
@@ -587,6 +596,27 @@ export function CustomersManager({
 
       <AppointmentHistoryDrawer customer={apptFor} staff={staff} onClose={() => setApptFor(null)} />
 
+      {/* Tiềm năng / Cân nhắc bắt buộc lịch nhắc — huỷ thì stage giữ nguyên. */}
+      <Modal
+        open={followUp !== null}
+        title={t("followUpAt")}
+        okText={t("save")}
+        okButtonProps={{ disabled: !followUp?.at }}
+        destroyOnHidden
+        onCancel={() => setFollowUp(null)}
+        onOk={() => {
+          if (!followUp?.at) return;
+          patchField(followUp.id, { stage: followUp.stage, follow_up_at: followUp.at });
+          setFollowUp(null);
+        }}
+      >
+        <AppointmentDate
+          className="w-full"
+          value={followUp?.at}
+          onSave={(at) => setFollowUp((f) => f && { ...f, at })}
+        />
+      </Modal>
+
       {/* key theo khách: form mới mỗi lần mở (không dính khách/giá trị lần trước). */}
       <CreateAppointmentDrawer
         key={createFor ?? ""}
@@ -736,6 +766,7 @@ type Values = {
   payment_confirm_url?: string | null;
   region_code?: string;
   address_detail?: string;
+  follow_up_at?: string | null;
 };
 
 function CustomerDialog({
@@ -757,6 +788,7 @@ function CustomerDialog({
   const t = useTranslations("customers");
   const locale = useLocale();
   const [form] = Form.useForm<Values>();
+  const stage = Form.useWatch("stage", form);
   const [pending, start] = useTransition();
 
   // Option cho Select trong form: active + giá trị hiện tại (kể cả inactive).
@@ -782,6 +814,7 @@ function CustomerDialog({
         payment_confirm_url: v.payment_confirm_url || null,
         region_code: v.region_code || null,
         address_detail: v.address_detail || null,
+        follow_up_at: v.follow_up_at ?? null,
       };
       const res = editing
         ? await updateCustomer(editing.id, input)
@@ -831,6 +864,7 @@ function CustomerDialog({
           payment_confirm_url: editing?.payment_confirm_url ?? null,
           region_code: editing?.region_code ?? "",
           address_detail: editing?.address_detail ?? "",
+          follow_up_at: editing?.follow_up_at ?? null,
         }}
       >
         <Form.Item name="full_name" label={t("colName")} rules={required}>
@@ -862,6 +896,12 @@ function CustomerDialog({
             ariaLabel={t("colStage")}
           />
         </Form.Item>
+        {isFollowUpStage(stage) && (
+          <Form.Item name="follow_up_at" label={t("followUpAt")} trigger="onSave"
+            rules={[{ required: true, message: t("followUpRequired") }]}>
+            <AppointmentDate className="w-full" onSave={() => {}} />
+          </Form.Item>
+        )}
         {/* Đánh giá đang ẩn khỏi UI — giữ field ẩn để lưu form không xoá giá trị cũ. */}
         <Form.Item name="rating" hidden>
           <Input />
