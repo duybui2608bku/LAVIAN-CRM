@@ -6,8 +6,10 @@ import type { Service } from "@/types/service";
 /**
  * Tên khách chưa xoá đang dùng SĐT (đã formatPhone) — trừ `exceptId` khi sửa. 1 SĐT = 1 khách
  * (DB có unique index chốt chặn); dùng chung CRM, drawer tạo lịch, lead form để báo lỗi dễ hiểu.
+ * SĐT rỗng (khách IG chưa cho số) không thuộc ai.
  */
 export async function phoneOwner(db: SupabaseClient, phone: string, exceptId?: string): Promise<string | null> {
+  if (!phone) return null;
   let query = db.from("customers").select("full_name").eq("phone", phone).is("deleted_at", null);
   if (exceptId) query = query.neq("id", exceptId);
   const { data, error } = await query.limit(1).maybeSingle();

@@ -55,7 +55,7 @@ import { nearestByCustomer } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
-import { isFollowUpStage, SHOW_UP_STAGE } from "@/lib/customer-options";
+import { isFollowUpStage, phoneOptional, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { nextPending, REMINDER_COLORS, reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
@@ -873,7 +873,8 @@ function CustomerDialog({
           name="phone"
           label={t("colPhone")}
           rules={[
-            ...required,
+            // Sửa khách Instagram: được để trống (khách chưa cho SĐT). Tạo tay vẫn bắt buộc.
+            ...(phoneOptional(editing?.source) ? [] : required),
             { validator: (_, v?: string) => (!v || isValidPhone(v) ? Promise.resolve() : Promise.reject(new Error(t("phoneInvalid")))) },
           ]}
           normalize={normalizePhone}

@@ -473,6 +473,7 @@
     "nameRequired": "Vui lòng nhập họ tên",
     "phone": "Số điện thoại",
     "phoneInvalid": "Số điện thoại không hợp lệ",
+    "phoneOptionalIg": "Không bắt buộc với Instagram",
     "staff": "Telesales",
     "staffRequired": "Vui lòng chọn Telesales",
     "source": "Nguồn",

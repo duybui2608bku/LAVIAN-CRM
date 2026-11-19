@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isFollowUpStage, isStage, leadSource, needsAppointment } from "@/lib/customer-options";
+import { isFollowUpStage, isStage, leadSource, needsAppointment, phoneOptional } from "@/lib/customer-options";
 import { serviceCategoriesSchema } from "@/lib/appointments";
 import { phoneOwner } from "@/lib/customers";
 import { formatPhone, isValidPhone } from "@/lib/phone";
@@ -15,7 +15,8 @@ import type { CustomerNote } from "@/types/customer";
 const schema = z.object({
   customer_id: z.string().trim().max(200),
   full_name: z.string().trim().min(1).max(120),
-  phone: z.string().refine(isValidPhone).transform(formatPhone),
+  // "" = chưa có SĐT — chỉ hợp lệ với nguồn Instagram (kiểm tra trong submitLead).
+  phone: z.string().refine((v) => !v.trim() || isValidPhone(v)).transform((v) => (v.trim() ? formatPhone(v) : "")),
   note: z.string().trim().max(1000),
   staff_id: z.uuid().or(z.literal("")),
   stage: z.string(),
@@ -159,6 +160,8 @@ export async function submitLead(
   if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
   const d = parsed.data;
   if (d.website) return {};
+  const source = leadSource(d.thread?.link); // tự tính: hội thoại WA → WA, còn lại IG
+  if (!d.phone && !phoneOptional(source)) return { error: "Vui lòng nhập số điện thoại." };
   const notes: CustomerNote[] = d.note
     ? [{ text: d.note, at: new Date().toISOString(), by: "Form SMAX" }]
     : [];
@@ -200,7 +203,7 @@ export async function submitLead(
     // Trường theo kênh SMAX (hội thoại đang mở).
     const channel = {
       smax_customer_id: d.customer_id || null,
-      source: leadSource(d.thread?.link), // tự tính: hội thoại WA → WA, còn lại IG
+      source,
       social_name: d.social_name || null,
       picture: d.picture || null,
       tags: d.tags,
@@ -212,7 +215,8 @@ export async function submitLead(
     const keepChannel = !!current?.viaPhone && current.smax_customer_id !== null;
     const customer = {
       full_name: d.full_name,
-      phone: d.phone,
+      // Cập nhật mà để trống SĐT → giữ SĐT đang có (form không điền sẵn SĐT từ CRM).
+      ...(d.phone || mode === "create" ? { phone: d.phone } : {}),
       stage,
       staff_id: d.staff_id || null,
       region_code: d.region_code || null,

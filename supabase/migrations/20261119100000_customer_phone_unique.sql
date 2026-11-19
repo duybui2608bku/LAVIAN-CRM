@@ -3,11 +3,12 @@
 --   (app đã kiểm tra trước để báo lỗi dễ hiểu). Thay index thường customers_phone_idx (thừa).
 -- ⚠ CHỈ CHẠY SAU KHI đã xử lý hết khách trùng SĐT (xoá mềm bớt trong CRM), nếu không sẽ báo lỗi
 --   "could not create unique index". Kiểm tra trước:
---   select phone, count(*) from public.customers where deleted_at is null group by phone having count(*) > 1;
+--   select phone, count(*) from public.customers where deleted_at is null and phone <> '' group by phone having count(*) > 1;
+-- SĐT rỗng '' = khách Instagram chưa cho số (OpenSpec: lead-form-ig-phone-optional) → không tính trùng.
 -- Chạy lại an toàn.
 
 create unique index if not exists customers_phone_active_uidx
-  on public.customers (phone) where deleted_at is null;
+  on public.customers (phone) where deleted_at is null and phone <> '';
 
 drop index if exists public.customers_phone_idx;
 

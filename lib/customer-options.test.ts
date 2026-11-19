@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CUSTOMER_OPTIONS, instagramUsername, isFollowUpStage, leadSource, needsAppointment } from "./customer-options.ts";
+import { CUSTOMER_OPTIONS, instagramUsername, isFollowUpStage, leadSource, needsAppointment, phoneOptional } from "./customer-options.ts";
 import { isLocale, locales } from "../i18n/config.ts";
 
 test("fixed stages and sources match the requested values", () => {
@@ -14,6 +14,12 @@ test("source: WA thread → whatsapp, otherwise instagrams", () => {
   assert.equal(leadSource("https://smax.ai/chats/waw84901234567?tid=1"), "whatsapp");
   assert.equal(leadSource("https://smax.ai/chats/ig123?tid=1"), "instagrams");
   assert.equal(leadSource(null), "instagrams");
+});
+
+test("phone optional only for Instagram", () => {
+  assert.equal(phoneOptional(leadSource("https://smax.ai/chats/ig123?tid=1")), true);
+  assert.equal(phoneOptional(leadSource("https://smax.ai/chats/waw84901234567?tid=1")), false);
+  assert.equal(phoneOptional(null), false);
 });
 
 test("instagram username: only valid IG characters", () => {

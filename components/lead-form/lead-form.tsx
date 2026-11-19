@@ -20,7 +20,7 @@ import { RegionSelect } from "@/components/common/region-select";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { IDR_CURRENCY, sanitizeCurrencyInput } from "@/lib/currency";
 import { optionLabel } from "@/lib/customers";
-import { isFollowUpStage, needsAppointment, SHOW_UP_STAGE } from "@/lib/customer-options";
+import { isFollowUpStage, leadSource, needsAppointment, phoneOptional, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -159,6 +159,8 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
 
   const smaxIdRef = useRef<string | null>(null);
   const [smaxMeta, setSmaxMeta] = useState<SmaxMeta>(EMPTY_META);
+  // Hội thoại Instagram: khách có thể chưa cho SĐT mà vẫn quan tâm → không bắt buộc.
+  const phoneRequired = !phoneOptional(leadSource(smaxMeta.thread?.link));
 
   // localStorage chỉ có ở client → điền sau khi Form mount (lần đầu + sau "Gửi tiếp").
   useEffect(() => {
@@ -348,12 +350,12 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
             name="phone"
             label={t("phone")}
             rules={[
-              { required: true, message: t("phoneInvalid") },
+              { required: phoneRequired, message: t("phoneInvalid") },
               { validator: (_, v?: string) => (!v || isValidPhone(v) ? Promise.resolve() : Promise.reject(new Error(t("phoneInvalid")))) },
             ]}
             normalize={normalizePhone}
           >
-            <Input type="text" inputMode="tel" autoComplete="tel" />
+            <Input type="text" inputMode="tel" autoComplete="tel" placeholder={phoneRequired ? undefined : t("phoneOptionalIg")} />
           </Form.Item>
         </div>
         {/* Tạm ẩn "Địa chỉ chi tiết" (2026-11-16) — bỏ comment để hiện lại. Không gửi field → server giữ giá trị cũ.

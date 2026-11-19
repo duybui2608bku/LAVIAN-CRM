@@ -473,6 +473,7 @@
     "nameRequired": "Please enter your name",
     "phone": "Phone number",
     "phoneInvalid": "Invalid phone number",
+    "phoneOptionalIg": "Optional for Instagram",
     "staff": "Telesales",
     "staffRequired": "Please choose a Telesales",
     "source": "Source",

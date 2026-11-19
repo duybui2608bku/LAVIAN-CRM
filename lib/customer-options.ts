@@ -68,6 +68,9 @@ export function leadSource(threadLink: string | null | undefined): "whatsapp" | 
   return threadLink && /\/chats\/waw\d/.test(threadLink) ? "whatsapp" : "instagrams";
 }
 
+/** Khách Instagram có thể chưa cho SĐT mà vẫn quan tâm → SĐT không bắt buộc (lưu ""). WhatsApp luôn có số. */
+export const phoneOptional = (source: string | null | undefined) => source === "instagrams";
+
 /** Username IG (rút từ `smax_data->customer->instagram->>username`); chỉ nhận ký tự hợp lệ của IG. */
 export function instagramUsername(u: unknown): string | null {
   return typeof u === "string" && /^[A-Za-z0-9._]{1,30}$/.test(u) ? u : null;

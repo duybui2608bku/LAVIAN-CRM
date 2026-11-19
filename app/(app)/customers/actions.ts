@@ -6,6 +6,7 @@ import {
   isFollowUpStage,
   isStage,
   FOLLOW_UP_STAGES,
+  phoneOptional,
   validPotentialStatus,
   validRating,
 } from "@/lib/customer-options";
@@ -99,15 +100,17 @@ function followUpIso(v?: string | null): string {
   return at.toISOString();
 }
 
-function clean(input: CustomerInput) {
+/** `noPhoneOk`: khách Instagram được để trống SĐT (lưu ""). */
+function clean(input: CustomerInput, noPhoneOk = false) {
   const nz = (v?: string | null) => (v && v.trim() !== "" ? v.trim() : null);
   if (!isStage(input.stage))
     throw new Error("Giai đoạn không hợp lệ.");
-  if (!isValidPhone(input.phone)) throw new Error("Số điện thoại không hợp lệ.");
+  const noPhone = noPhoneOk && !input.phone.trim();
+  if (!noPhone && !isValidPhone(input.phone)) throw new Error("Số điện thoại không hợp lệ.");
   return {
     ...(isFollowUpStage(input.stage) ? { follow_up_at: followUpIso(input.follow_up_at) } : {}),
     full_name: input.full_name.trim(),
-    phone: formatPhone(input.phone),
+    phone: noPhone ? "" : formatPhone(input.phone),
     social_name: nz(input.social_name),
     stage: input.stage,
     rating: validRating(input.rating),
@@ -144,7 +147,9 @@ export async function updateCustomer(
   try {
     await requirePermission("customers.edit");
     const supabase = await createClient();
-    const row = clean(input);
+    const { data: cur, error: curError } = await supabase.from("customers").select("source").eq("id", id).single();
+    if (curError) throw curError;
+    const row = clean(input, phoneOptional(cur.source));
     const taken = await phoneTaken(supabase, row.phone, id);
     if (taken) return { error: taken };
     const { error } = await supabase

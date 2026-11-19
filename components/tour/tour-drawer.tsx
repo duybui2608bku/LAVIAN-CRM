@@ -59,7 +59,7 @@ const FULL_GROUP = "flex! w-full flex-wrap gap-y-2";
 const FULL_OPTION = "flex-1 text-center whitespace-nowrap";
 
 const customerOptions = (customers: AppointmentCustomer[]) =>
-  customers.map((c) => ({ value: c.id, label: `${c.full_name} · ${c.phone}` }));
+  customers.map((c) => ({ value: c.id, label: [c.full_name, c.phone].filter(Boolean).join(" · ") }));
 const serviceOptions = (services: Service[], locale: string, current?: string) => services
   .filter((s) => s.is_active || s.id === current).map((s) => ({ value: s.id, label: serviceName(s, locale) }));
 
