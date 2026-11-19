@@ -95,7 +95,8 @@
     "statCollected": "Tổng thực thu",
     "statDue": "Còn phải thu",
     "millionIdr": "triệu IDR",
-    "groupByConfirm": "Nhóm theo Xác nhận lịch"
+    "groupByConfirm": "Nhóm theo Xác nhận lịch",
+    "staffColumn": "Nhân sự"
   },
   "common": {
     "appName": "LAVIAN CRM",

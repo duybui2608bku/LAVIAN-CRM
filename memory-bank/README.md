@@ -50,6 +50,21 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-19 — Booking Management: lọc nhanh dạng nút như Sales Management
+- **Thay đổi:** Bỏ thanh `Segmented` full-width (Hôm nay / Ngày mai / Cần xử lý / Tất cả). 4 lựa chọn giờ là `Button` trong thanh lọc, sau ô tìm kiếm. Nút đang chọn `type=primary ghost` + `aria-pressed` (giống nút Nhóm ở Sales Management). Logic tab không đổi.
+- **File ảnh hưởng:** `components/appointments/bookings-manager.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt.
+
+### 2026-11-19 — Nhóm theo xác nhận lịch: Confirmed lên đầu
+- **Thay đổi:** Khi bật "Nhóm theo xác nhận" ở Sales Management, nhóm Confirmed xếp đầu, rồi đến Pending, Cancelled, Rescheduled (hằng `GROUP_ORDER`). Thứ tự dropdown lọc không đổi.
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt.
+
+### 2026-11-19 — Sales Management: cột Nhân sự gộp (Telesales · Sales · Master)
+- **Thay đổi:** Bỏ 2 cột Sales, Master (inline select) và thay bằng 1 cột **Nhân sự** chỉ xem: avatar + tên Telesales, Sales, Master trên lưới 2 cột (tối đa 2 hàng). Người chưa gán thì bỏ qua, hover thấy vai trò. Sales/Master giờ sửa trong drawer Sửa lịch hẹn. Bỏ helper `staffCell`, bảng rộng 1970.
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`, `messages/{vi,en}.json` (`appointments.staffColumn`), `openspec/changes/appointment-staff-column/`.
+- **Còn dở / ghi chú:** tsc + eslint + node --test (104) sạch; chưa xem trên trình duyệt; chưa commit.
+
 ### 2026-11-19 — Icon ô Khách hàng (Sales Management) mở drawer Sửa lịch hẹn
 - **Thay đổi:** User bấm icon `PanelRightOpen` ở ô Khách hàng thì vẫn ra drawer "Customer info" cũ (drawer mới chỉ mở khi bấm tên) → icon giờ cũng mở `AppointmentDrawer` (aria/title `openEdit`). Drawer Thông tin khách chỉ còn mở từ icon ở đầu drawer Sửa lịch hẹn (đúng mẫu sếp).
 - **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.

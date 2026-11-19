@@ -95,7 +95,8 @@
     "statCollected": "Total collected",
     "statDue": "Outstanding",
     "millionIdr": "million IDR",
-    "groupByConfirm": "Group by booking confirmation"
+    "groupByConfirm": "Group by booking confirmation",
+    "staffColumn": "Staff"
   },
   "common": {
     "appName": "LAVIAN CRM",

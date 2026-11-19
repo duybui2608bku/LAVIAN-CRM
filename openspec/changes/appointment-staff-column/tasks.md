@@ -1,0 +1,4 @@
+- [x] Gộp cột Sales + Master thành cột Nhân sự (chỉ xem), thêm Telesales
+- [x] Lưới 2 cột (tối đa 2 hàng), tooltip vai trò
+- [x] i18n `appointments.staffColumn` vi/en
+- [x] tsc + eslint + node --test

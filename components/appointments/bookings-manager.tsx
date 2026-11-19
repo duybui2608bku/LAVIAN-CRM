@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Button, Image, Input, Segmented, Tag, type TableProps } from "antd";
+import { Button, Image, Input, Tag, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 import { CalendarPlus, Search, X } from "lucide-react";
@@ -323,13 +323,6 @@ export function BookingsManager({
         <StatCard label={t("kpiShowUp")} value={counts.showUp} />
       </div>
 
-      <Segmented<Tab>
-        block
-        value={tab}
-        onChange={setTab}
-        options={(["today", "tomorrow", "action", "all"] as const).map((k) => ({ value: k, label: t(`tab.${k}`) }))}
-      />
-
       <PageToolbar>
         {canEdit && (
           <Button type="primary" icon={<CalendarPlus className="size-4" />} onClick={() => setCreating(true)}>
@@ -345,6 +338,18 @@ export function BookingsManager({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        {/* Lọc nhanh dạng nút như Sales Management; nút đang chọn viền màu chính. */}
+        {(["today", "tomorrow", "action", "all"] as const).map((k) => (
+          <Button
+            key={k}
+            aria-pressed={tab === k}
+            type={tab === k ? "primary" : "default"}
+            ghost={tab === k}
+            onClick={() => setTab(k)}
+          >
+            {t(`tab.${k}`)}
+          </Button>
+        ))}
         <ClearableSelect
           className="min-w-40"
           value={status}
