@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-19 — Bỏ toàn bộ subtitle trang + đổi tên Khách tiềm năng → Customers Management
+- **Thay đổi:** `PageHeader` (`components/layout/page.tsx`) **bỏ hẳn prop `description`** (không còn dòng phụ đề dưới tiêu đề trang nào). Gỡ ở 6 trang: Booking Management, Khách tiềm năng, Lịch nhắc, Phân quyền, Báo cáo (bỏ dòng "kỳ này so với kỳ trước" + hàm `rangeText` thừa), Leader Telesales. Trang `/customers/potential`: `potential.title` + `nav.potential` = "Customers Management" (cả vi lẫn en, như Sales Management). Key i18n subtitle cũ (`*.description`, `subtitle*`, `pageHint`, `permissionsHint`) để nguyên, không còn dùng.
+- **File ảnh hưởng:** `components/layout/page.tsx`, `components/appointments/bookings-manager.tsx`, `components/customers/potential-manager.tsx`, `components/reminders/reminders-calendar.tsx`, `components/users/permissions-editor.tsx`, `components/reports/{reports-view,telesales-report-view}.tsx`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** Menu giờ có cả "Khách hàng"/"Customers" (`/customers`) và "Customers Management" (`/customers/potential`) — dễ nhầm, cần sếp xác nhận. tsc + eslint sạch; chưa xem trên trình duyệt; chưa commit.
+
 ### 2026-11-19 — Ô Nguồn hiện cả 2 kênh (IG + WA)
 - **Thay đổi:** OpenSpec `customer-two-sources`. Cột mới `customers.other_channel jsonb` `{source, link, username}` = kênh SMAX thứ hai (null = 1 kênh). Lead form: khách tìm theo SĐT (`keepChannel`) mà hội thoại đang mở thuộc kênh khác `customers.source` → ghi `other_channel` (kênh chính giữ nguyên; `LEAD_FIELDS` thêm `source`). `SourceCell` (dùng chung Sales Management, Booking Management, Khách hàng, Khách tiềm năng, drawer Thông tin khách): có kênh thứ hai khác kênh chính → 2 hàng (kênh chính trên), mỗi hàng icon + tag số WA hoặc link username IG. `CUSTOMER_LIST_FIELDS` + select ở `/appointments`, `/customers/bookings` thêm `other_channel`.
 - **File ảnh hưởng:** `supabase/migrations/20261119150000_customer_other_channel.sql`, `types/{customer,appointment}.ts`, `app/lead-form/actions.ts`, `app/(app)/customers/customers-view.tsx`, `app/(app)/appointments/page.tsx`, `app/(app)/customers/bookings/page.tsx`, `components/customers/customers-manager.tsx`, `openspec/changes/customer-two-sources/`.

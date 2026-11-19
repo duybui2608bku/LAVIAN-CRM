@@ -235,7 +235,7 @@
     "smaxReport": "Smax report",
     "documents": "Documents",
     "reminders": "Reminders",
-    "potential": "Potential customers"
+    "potential": "Customers Management"
   },
   "theme": {
     "toggle": "Toggle theme"
@@ -829,7 +829,7 @@
     "notifyTo": "Notifies"
   },
   "potential": {
-    "title": "Potential customers",
+    "title": "Customers Management",
     "description": "Customers who have not booked yet",
     "kpiTotal": "Total potential",
     "kpiOverdue": "Overdue follow-ups",

@@ -118,7 +118,6 @@ export function TelesalesReportView() {
     <>
       <PageHeader
         title={t("title")}
-        description={t("subtitleShort")}
         actions={
           <Button icon={<RefreshCw className={cn("size-4", pending && "animate-spin")} />} onClick={load}>
             {t("refresh")}

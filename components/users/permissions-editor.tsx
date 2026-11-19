@@ -107,7 +107,7 @@ export function PermissionsEditor({ initial, members }: { initial: Values; membe
 
   return (
     <Page>
-      <PageHeader title={t("permissionsTitle")} description={t("permissionsHint")} />
+      <PageHeader title={t("permissionsTitle")} />
 
       <div className="grid gap-4 md:grid-cols-[260px_minmax(0,1fr)] md:items-start">
         <nav aria-label={t("colDepartment")} className="surface flex flex-col gap-1 p-2">

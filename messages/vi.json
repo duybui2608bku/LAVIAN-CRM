@@ -235,7 +235,7 @@
     "smaxReport": "Báo cáo Smax",
     "documents": "Tài liệu",
     "reminders": "Lịch nhắc hẹn",
-    "potential": "Khách tiềm năng"
+    "potential": "Customers Management"
   },
   "theme": {
     "toggle": "Chuyển giao diện sáng/tối"
@@ -829,7 +829,7 @@
     "notifyTo": "Thông báo cho"
   },
   "potential": {
-    "title": "Khách hàng tiềm năng",
+    "title": "Customers Management",
     "description": "Quản lý khách hàng chưa Booking",
     "kpiTotal": "Tổng khách tiềm năng",
     "kpiOverdue": "Quá hạn liên hệ",

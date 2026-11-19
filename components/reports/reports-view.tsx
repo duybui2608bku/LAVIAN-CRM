@@ -104,7 +104,6 @@ export function ReportsView() {
   const ddmm = (d: string) => dayjs(d).format("DD/MM");
   const weekday = (d: string) =>
     new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`));
-  const rangeText = (a: string, b: string) => (a === b ? ddmm(a) : `${ddmm(a)} – ${ddmm(b)}`);
 
   // ---- Chia kỳ hiện tại / kỳ trước ----
   const to = range.to || range.from;
@@ -128,11 +127,6 @@ export function ReportsView() {
     <>
       <PageHeader
         title={t("title")}
-        description={
-          report && !report.error
-            ? t("subtitle", { range: rangeText(range.from, to), prev: rangeText(report.previous.from, report.previous.to) })
-            : t("subtitleShort")
-        }
         actions={
           <Button icon={<RefreshCw className={cn("size-4", pending && "animate-spin")} />} onClick={load}>
             {t("refresh")}

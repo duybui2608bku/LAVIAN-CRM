@@ -144,7 +144,7 @@ export function RemindersCalendar({
 
   return (
     <Page>
-      <PageHeader title={title} description={t("pageHint")} />
+      <PageHeader title={title} />
 
       <PageToolbar>
         <Button onClick={goToday}>
