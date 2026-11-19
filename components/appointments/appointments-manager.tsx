@@ -35,6 +35,8 @@ import { TELESALES_DEPARTMENTS } from "@/types/user";
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
 
 const idr = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
+// Thứ tự nhóm khi "Nhóm theo xác nhận": Confirmed trước, còn lại giữ thứ tự gốc.
+const GROUP_ORDER = ["confirmed", ...BOOKING_STATUSES.filter((s) => s !== "confirmed")] as const;
 const million = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }); // 11.300.000 → "11,3" (triệu)
 
 /** Tag Status lịch hẹn (Chưa đến / Đã đến / Đang thực hiện / Đã thực hiện / Đổi lịch) — dùng chung cột Sales Status. */
@@ -225,8 +227,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
         icon={<Rows3 className="size-4" />} onClick={() => setGrouped(!grouped)}>{t("groupByConfirm")}</Button>
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
     </PageToolbar>
-    {/* Nhóm theo Xác nhận lịch: mỗi nhóm 1 bảng (phân trang riêng), nhóm trống ẩn. */}
-    {grouped && filtered.length ? BOOKING_STATUSES.map((s) => {
+    {/* Nhóm theo Xác nhận lịch: mỗi nhóm 1 bảng (phân trang riêng), nhóm trống ẩn; Confirmed lên đầu. */}
+    {grouped && filtered.length ? GROUP_ORDER.map((s) => {
       const items = filtered.filter((row) => row.booking_confirm === s);
       return items.length ? <section key={s} className="flex flex-col gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
