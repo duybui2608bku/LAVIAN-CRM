@@ -178,18 +178,18 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <span className="text-right">{idr.format(row.bill_amount ?? 0)}</span>
     </div> },
     // Nhân sự: Telesales · Sales · Master (KTV) gộp 1 cột, chỉ xem (sửa trong drawer);
-    // lưới 2 cột → tối đa 2 hàng; người chưa gán thì bỏ qua, hover thấy vai trò.
-    { title: t("staffColumn"), width: 280, render: (_, row) => {
+    // đứng sát nhau trên 1 hàng (cột hẹp thì tự xuống dòng); người chưa gán thì bỏ qua, hover thấy vai trò.
+    { title: t("staffColumn"), width: 300, render: (_, row) => {
       const people = ([["staff", row.staff_id], ["sales", row.sales_id], ["master", row.technician_id]] as const)
         .flatMap(([role, id]) => {
           const member = id ? staff.find((s) => s.id === id) : undefined;
           return member ? [{ role, member }] : [];
         });
       return people.length
-        ? <div className="grid grid-cols-2 gap-x-3 gap-y-1">{people.map(({ role, member }) =>
+        ? <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{people.map(({ role, member }) =>
           <span key={role} title={`${t(role)}: ${member.user_name}`} className="flex min-w-0 items-center gap-1.5">
             <UserAvatar src={member.avatar_url} />
-            <span className="truncate">{member.user_name || "—"}</span>
+            <span className="max-w-28 truncate">{member.user_name || "—"}</span>
           </span>)}</div>
         : <span className="text-muted-foreground">—</span>;
     } },
@@ -235,9 +235,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
           <Tag color={BOOKING_STATUS_COLORS[s]} className="me-0">{t(`bookingStatus.${s}`)}</Tag>
           <span className="font-normal text-muted-foreground">{t("count", { count: items.length })}</span>
         </h3>
-        <DataTable columns={columns} dataSource={items} scroll={{ x: 1970 }} pageSize={30} />
+        <DataTable columns={columns} dataSource={items} scroll={{ x: 1990 }} pageSize={30} />
       </section> : null;
-    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1970 }} empty={t("empty")}
+    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1990 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />}
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}

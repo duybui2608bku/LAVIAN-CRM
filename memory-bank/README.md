@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-19 — Nhân sự 1 hàng (bảng + drawer Sửa lịch hẹn)
+- **Thay đổi:** Cột Nhân sự trên bảng Sales Management bỏ lưới 2 cột (tên cách xa nhau), chuyển sang `flex-wrap gap-x-3`: các người đứng sát nhau trên 1 hàng, tên dài cắt ở `max-w-28`, cột rộng 300. Drawer Sửa lịch hẹn: mục 3. Nhân sự xếp Telesales · Sales · Master trên 1 hàng (`grid-cols-3`, điện thoại xếp dọc).
+- **File ảnh hưởng:** `components/appointments/{appointments-manager,appointment-drawer}.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt; chưa commit.
+
 ### 2026-11-19 — Booking Management: lọc nhanh dạng nút như Sales Management
 - **Thay đổi:** Bỏ thanh `Segmented` full-width (Hôm nay / Ngày mai / Cần xử lý / Tất cả). 4 lựa chọn giờ là `Button` trong thanh lọc, sau ô tìm kiếm. Nút đang chọn `type=primary ghost` + `aria-pressed` (giống nút Nhóm ở Sales Management). Logic tab không đổi.
 - **File ảnh hưởng:** `components/appointments/bookings-manager.tsx`.

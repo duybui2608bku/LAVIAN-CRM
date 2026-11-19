@@ -141,7 +141,8 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
 
       <Divider className="mt-1 mb-4" />
       <h3 className="mb-3 font-semibold">{t("sectionStaff")}</h3>
-      <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
+      {/* Telesales · Sales · Master cùng 1 hàng (điện thoại: xếp dọc). */}
+      <div className="grid grid-cols-3 gap-x-4 max-sm:grid-cols-1">
         <Form.Item label={t("staff")}>
           <span className={tele ? undefined : "text-muted-foreground"}>{tele ? staffLabel(tele) : "—"}</span>
         </Form.Item>
