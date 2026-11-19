@@ -320,7 +320,7 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
         <Select showSearch={{ optionFilterProp: "label", onSearch: setSearch }} placeholder={t("chooseCustomer")}
           // Tìm không thấy → nút tạo nhanh ngay trong dropdown.
           notFoundContent={search.trim() ? toggle(t("quickCreate", { name: search.trim() }), startQuick) : undefined}
-          options={customers.map((c) => ({ value: c.id, label: `${c.full_name} · ${c.phone}` }))} />
+          options={customers.map((c) => ({ value: c.id, label: [c.full_name, c.phone].filter(Boolean).join(" · ") }))} />
       </Form.Item>}
       <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
         <Form.Item name="staff_id" label={t("staff")}>
