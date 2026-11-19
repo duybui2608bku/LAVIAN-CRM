@@ -17,7 +17,7 @@ import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-sele
 import { useCan } from "@/components/common/permissions";
 import { CustomerInfoDrawer } from "@/components/customers/customer-info-drawer";
 import { SourceCell } from "@/components/customers/customers-manager";
-import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
 import { StatCard } from "@/components/common/stat-card";
@@ -94,11 +94,6 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const customerMap = new Map(customers.map((customer) => [customer.id, customer]));
   // Tính trên mọi lịch (không theo bộ lọc) — lọc ngày không làm khách cũ thành khách mới.
   const newIds = newCustomerAppointmentIds(rows);
-  // Avatar + tên nhân viên; chưa có → placeholder mờ ("Chọn…" cho ô sửa được, "—" cho ô chỉ xem).
-  const staffCell = (id: string | null, empty = t("choose")) => {
-    const member = id ? staff.find((s) => s.id === id) : undefined;
-    return member ? staffLabel(member) : <span className="text-muted-foreground">{empty}</span>;
-  };
   const filtered = rows.filter((row) => {
     const customer = customerMap.get(row.customer_id);
     return customer && (!customerFilter || row.customer_id === customerFilter)
@@ -180,21 +175,23 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <span className="text-muted-foreground">{t("bill")}</span>
       <span className="text-right">{idr.format(row.bill_amount ?? 0)}</span>
     </div> },
-    // Cột Telesales tạm ẩn — staff_id vẫn chọn ở form Thêm lịch hẹn + vẫn tải; bật lại:
-    // { title: t("staff"), width: 170, render: (_, row) => <InlineSelect value={row.staff_id ?? ""} ariaLabel={t("staff")} noneLabel={t("choose")} disabled={!canEdit} display={staffCell(row.staff_id)} options={staffOptions(staff, row.staff_id)} onSave={(value) => save(row.id, { staff_id: value || null })} /> },
-    { title: t("sales"), width: 170, render: (_, row) => <InlineSelect value={row.sales_id ?? ""}
-      ariaLabel={t("sales")} noneLabel={t("choose")} disabled={!canEdit}
-      display={staffCell(row.sales_id)}
-      options={staffOptions(staff, row.sales_id, ["sales"])}
-      onSave={(value) => save(row.id, { sales_id: value || null })} /> },
-    // Master = KTV làm lịch (bộ phận technician).
-    { title: t("master"), width: 170, render: (_, row) => <InlineSelect value={row.technician_id ?? ""}
-      ariaLabel={t("master")} noneLabel={t("unassigned")} disabled={!canEdit}
-      display={staffCell(row.technician_id, t("unassigned"))}
-      options={staffOptions(staff, row.technician_id, ["technician"])}
-      onSave={(value) => save(row.id, { technician_id: value || null })} /> },
-    // Cột Người tạo tạm ẩn — dữ liệu created_by vẫn ghi + vẫn tải; bật lại:
-    // { title: t("createdBy"), width: 170, render: (_, row) => staffCell(row.created_by, "—") },
+    // Nhân sự: Telesales · Sales · Master (KTV) gộp 1 cột, chỉ xem (sửa trong drawer);
+    // lưới 2 cột → tối đa 2 hàng; người chưa gán thì bỏ qua, hover thấy vai trò.
+    { title: t("staffColumn"), width: 280, render: (_, row) => {
+      const people = ([["staff", row.staff_id], ["sales", row.sales_id], ["master", row.technician_id]] as const)
+        .flatMap(([role, id]) => {
+          const member = id ? staff.find((s) => s.id === id) : undefined;
+          return member ? [{ role, member }] : [];
+        });
+      return people.length
+        ? <div className="grid grid-cols-2 gap-x-3 gap-y-1">{people.map(({ role, member }) =>
+          <span key={role} title={`${t(role)}: ${member.user_name}`} className="flex min-w-0 items-center gap-1.5">
+            <UserAvatar src={member.avatar_url} />
+            <span className="truncate">{member.user_name || "—"}</span>
+          </span>)}</div>
+        : <span className="text-muted-foreground">—</span>;
+    } },
+    // Cột Người tạo tạm ẩn — dữ liệu created_by vẫn ghi + vẫn tải.
     { title: t("note"), width: 300, render: (_, row) => <AppointmentNote value={row.note}
       label={t("note")} disabled={!canEdit} onSave={(note) => save(row.id, { note })} /> },
     // Cột Thao tác (xoá lịch) đã bỏ khỏi UI — server action deleteAppointment vẫn giữ (gác appointments.delete).
@@ -236,9 +233,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
           <Tag color={BOOKING_STATUS_COLORS[s]} className="me-0">{t(`bookingStatus.${s}`)}</Tag>
           <span className="font-normal text-muted-foreground">{t("count", { count: items.length })}</span>
         </h3>
-        <DataTable columns={columns} dataSource={items} scroll={{ x: 2030 }} pageSize={30} />
+        <DataTable columns={columns} dataSource={items} scroll={{ x: 1970 }} pageSize={30} />
       </section> : null;
-    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2030 }} empty={t("empty")}
+    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1970 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />}
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}

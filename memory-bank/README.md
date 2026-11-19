@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-19 — Sales Management: cột Nhân sự gộp (Telesales · Sales · Master)
+- **Thay đổi:** Bỏ 2 cột Sales, Master (inline select) và thay bằng 1 cột **Nhân sự** chỉ xem: avatar + tên Telesales, Sales, Master trên lưới 2 cột (tối đa 2 hàng). Người chưa gán thì bỏ qua, hover thấy vai trò. Sales/Master giờ sửa trong drawer Sửa lịch hẹn. Bỏ helper `staffCell`, bảng rộng 1970.
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`, `messages/{vi,en}.json` (`appointments.staffColumn`), `openspec/changes/appointment-staff-column/`.
+- **Còn dở / ghi chú:** tsc + eslint + node --test (104) sạch; chưa xem trên trình duyệt; chưa commit.
+
 ### 2026-11-19 — Icon ô Khách hàng (Sales Management) mở drawer Sửa lịch hẹn
 - **Thay đổi:** User bấm icon `PanelRightOpen` ở ô Khách hàng thì vẫn ra drawer "Customer info" cũ (drawer mới chỉ mở khi bấm tên) → icon giờ cũng mở `AppointmentDrawer` (aria/title `openEdit`). Drawer Thông tin khách chỉ còn mở từ icon ở đầu drawer Sửa lịch hẹn (đúng mẫu sếp).
 - **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.
