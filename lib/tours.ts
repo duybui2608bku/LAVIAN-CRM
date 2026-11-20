@@ -45,7 +45,6 @@ export const tourPatchSchema = z.object({
   tour_date: z.iso.date(),
   customer_id: z.uuid(),
   service_id: z.uuid(),
-  note: z.string().trim().max(10000),
   technician_id: z.uuid().nullable(),
   service_detail: z.enum(SERVICE_DETAILS).nullable(),
   service_session: z.number().int().min(1).max(MAX_SESSION).nullable(),

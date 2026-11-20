@@ -84,7 +84,6 @@
     "due": "Outstanding",
     "paidInput": "Extra paid after deposit (IDR)",
     "billInput": "Edit service value (IDR)",
-    "salesNote": "Sales note",
     "saveUpdate": "Save changes",
     "openEdit": "Open appointment details",
     "statTotal": "Total customers",
@@ -97,7 +96,11 @@
     "millionIdr": "million IDR",
     "groupByConfirm": "Group by booking confirmation",
     "staffColumn": "Staff",
-    "teleNote": "Telesales note"
+    "teleNote": "Telesales note",
+    "salesNotesColumn": "Sales note",
+    "salesNotesTitle": "Sales notes · {name}",
+    "addNote": "Add note",
+    "notesTitle": "Appointment notes · {name}"
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -474,9 +477,7 @@
     "viewNotes": "View note history",
     "openThread": "Open thread",
     "noteHistoryTitle": "Note history - {name}",
-    "noteOk": "Note added",
     "addNote": "Add note",
-    "addNotePlaceholder": "Type a new note…",
     "cancel": "Cancel",
     "save": "Save",
     "createSubmit": "Create",
@@ -887,5 +888,18 @@
     "deposited": "Deposited",
     "notDeposited": "No deposit",
     "empty": "No appointments"
+  },
+  "notes": {
+    "titlePlaceholder": "Title (optional)",
+    "textPlaceholder": "Write a note… (Ctrl + Enter to save)",
+    "add": "Add note",
+    "added": "Note added",
+    "deleted": "Note deleted",
+    "delete": "Delete note",
+    "deleteConfirm": "Delete this note?",
+    "empty": "No notes yet",
+    "history": "Note history",
+    "suggestions": "Consultation|Needs|Technical|Payment|Aftercare",
+    "viewAll": "View all & add note ({count})"
   }
 }

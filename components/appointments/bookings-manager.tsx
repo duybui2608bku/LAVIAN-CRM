@@ -9,7 +9,7 @@ import { CalendarPlus, Search, X } from "lucide-react";
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import {
-  AppointmentNote,
+  AppointmentNotesDrawer,
   CreateAppointmentDrawer,
   staffOptions,
   type AppointmentStaff,
@@ -17,6 +17,7 @@ import {
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
 import { InlineSelect } from "@/components/common/inline-select";
+import { NoteCell } from "@/components/common/notes";
 import { useCan } from "@/components/common/permissions";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel } from "@/components/common/user-avatar";
@@ -83,6 +84,7 @@ export function BookingsManager({
   const [staffId, setStaffId] = useState("");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [notesId, setNotesId] = useState<string | null>(null);
   const [today] = useState(() => dayjs().format("YYYY-MM-DD"));
   const tomorrow = dayjs(today).add(1, "day").format("YYYY-MM-DD");
 
@@ -92,8 +94,7 @@ export function BookingsManager({
 
   const save = (id: string, patch: AppointmentPatch) =>
     start(async () => {
-      // Ghi chú: giữ bản nháp khi lỗi, không quay lại chữ cũ.
-      if (patch.note === undefined) patchOptimistic({ id, ...patch });
+      patchOptimistic({ id, ...patch });
       const res = await patchAppointment(id, patch);
       if (res.error) toast.error(res.error);
       else toast.success(ta("saved"));
@@ -302,12 +303,13 @@ export function BookingsManager({
       key: "note",
       width: 280,
       render: (_, a) => (
-        <AppointmentNote value={a.note} label={t("colNote")} disabled={!canEdit} onSave={(note) => save(a.id, { note })} />
+        <NoteCell notes={a.notes} label={t("colNote")} emptyText={canEdit ? `+ ${ta("addNote")}` : "—"} onOpen={() => setNotesId(a.id)} />
       ),
     },
   ];
 
   const activeFilters = [search, status, staffId].filter(Boolean).length;
+  const notesFor = notesId ? rows.find((a) => a.id === notesId) ?? null : null;
 
   return (
     <Page>
@@ -389,6 +391,16 @@ export function BookingsManager({
         onPageChange={setPage}
         pageSize={30}
         empty={t("empty")}
+      />
+
+      {/* Ghi chú lịch hẹn (timeline): bấm ô Ghi chú để xem / thêm. */}
+      <AppointmentNotesDrawer
+        appointment={notesFor}
+        field="notes"
+        customerName={notesFor ? customers.find((c) => c.id === notesFor.customer_id)?.full_name ?? "" : ""}
+        staff={staff}
+        canEdit={canEdit}
+        onClose={() => setNotesId(null)}
       />
 
       <CreateAppointmentDrawer

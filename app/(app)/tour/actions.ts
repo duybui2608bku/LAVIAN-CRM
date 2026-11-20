@@ -7,7 +7,9 @@ import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { Permission } from "@/lib/permissions";
+import { initialNotes, newNote, withoutNote } from "@/lib/notes";
 import { tourCreateSchema, tourPatchSchema } from "@/lib/tours";
+import type { NoteInput, TimelineNote } from "@/types/note";
 
 type Result = { error?: string };
 
@@ -35,7 +37,9 @@ export async function createTour(input: z.input<typeof tourCreateSchema>) {
   return run(async () => {
     const values = tourCreateSchema.parse(input);
     const { profile, db } = await context("tour.edit");
-    const { error } = await db.from("tours").insert({ ...values, created_by: profile.id });
+    const { note, ...rest } = values;
+    // Ô Ghi chú ở form tạo → ghi chú đầu tiên của timeline.
+    const { error } = await db.from("tours").insert({ ...rest, notes: initialNotes(note, profile), created_by: profile.id });
     if (error) throw error;
   });
 }
@@ -94,6 +98,37 @@ export async function updateTour(id: string, input: z.input<typeof tourPatchSche
     if (error) throw error;
     if (!rows.length) return t("forbidden");
   });
+}
+
+/**
+ * Thêm / xoá 1 ghi chú trên timeline tour — cùng phạm vi như sửa tour: admin mọi tour;
+ * người khác chỉ tour chưa xác nhận, KTV chỉ tour của mình. Xoá: chỉ người ghi hoặc admin.
+ */
+async function changeTourNotes(id: string, change: (notes: TimelineNote[], profile: Awaited<ReturnType<typeof context>>["profile"]) => TimelineNote[] | null) {
+  return run(async (t) => {
+    z.uuid().parse(id);
+    const { profile, isAdmin, db } = await context("tour.edit");
+    let read = db.from("tours").select("notes").eq("id", id).is("deleted_at", null);
+    if (!isAdmin) {
+      read = read.is("confirmed_at", null);
+      if (profile.department === "technician") read = read.eq("technician_id", profile.id);
+    }
+    const { data, error } = await read.maybeSingle();
+    if (error) throw error;
+    if (!data) return t("forbidden");
+    const notes = change((data.notes as TimelineNote[]) ?? [], profile);
+    if (!notes) return;
+    const { error: upErr } = await db.from("tours").update({ notes }).eq("id", id);
+    if (upErr) throw upErr;
+  });
+}
+
+export async function addTourNote(id: string, input: NoteInput) {
+  return changeTourNotes(id, (notes, profile) => [...notes, newNote(input, profile)]);
+}
+
+export async function deleteTourNote(id: string, noteId: string) {
+  return changeTourNotes(id, (notes, profile) => withoutNote(notes, noteId, profile));
 }
 
 /** Admin xác nhận (cần có KTV, dịch vụ chi tiết, bill) hoặc bỏ xác nhận. */

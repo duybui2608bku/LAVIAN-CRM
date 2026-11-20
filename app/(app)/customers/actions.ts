@@ -28,6 +28,7 @@ function revalidateCustomers() {
   revalidatePath("/customers");
   revalidatePath("/customers/bookings");
   revalidatePath("/customers/potential");
+  revalidatePath("/appointments"); // cột Note Telesales ở Sales Management đọc customers.notes
 }
 
 type Result = { error?: string };
@@ -47,7 +48,7 @@ export async function getCustomerAppointments(
     const [appts, logs, services] = await Promise.all([
       supabase
         .from("clinic_appointments")
-        .select("id, customer_id, scheduled_at, booking_confirm, checked_in, service_categories, service_ids, staff_id, sales_id, created_by, note")
+        .select("id, customer_id, scheduled_at, booking_confirm, checked_in, service_categories, service_ids, staff_id, sales_id, created_by, notes")
         .eq("customer_id", customerId)
         .is("deleted_at", null)
         .order("scheduled_at", { ascending: false }),
@@ -210,15 +211,16 @@ export async function patchCustomer(
   }
 }
 
-/** Thêm 1 ghi chú nhanh: đọc notes hiện tại từ DB rồi append (server stamp at + by). */
+/** Thêm 1 ghi chú (tiêu đề không bắt buộc): đọc notes hiện tại từ DB rồi append (server stamp id + at + by). */
 export async function addCustomerNote(
   id: string,
-  text: string,
+  input: { title: string; text: string },
 ): Promise<Result> {
   try {
     await requirePermission("customers.edit");
-    const trimmed = text.trim();
+    const trimmed = input.text.trim().slice(0, 10000);
     if (!trimmed) return {};
+    const title = input.title.trim().slice(0, 120) || null;
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("customers")
@@ -228,7 +230,7 @@ export async function addCustomerNote(
     if (error) throw error;
     const notes = [
       ...((data?.notes as CustomerNote[]) ?? []),
-      await stampNote(trimmed),
+      { id: crypto.randomUUID(), title, ...(await stampNote(trimmed)) },
     ];
     const { error: upErr } = await supabase
       .from("customers")

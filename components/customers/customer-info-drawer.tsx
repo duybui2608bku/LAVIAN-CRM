@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 
 import { getCustomerDetail } from "@/app/(app)/appointments/actions";
+import { NoteTimeline } from "@/components/common/notes";
 import { EnumTag } from "@/components/common/enum-tag";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { SourceCell } from "@/components/customers/customers-manager";
@@ -116,21 +117,7 @@ export function CustomerInfoDrawer({
 
           <section className="space-y-3">
             <h3 className="text-sm font-semibold">{t("colNotes")}</h3>
-            {c.notes?.length ? (
-              <ul className="space-y-3">
-                {[...c.notes].reverse().map((n, i) => (
-                  <li key={i} className="space-y-1">
-                    <div className="text-xs text-muted-foreground tabular-nums">
-                      {n.by ? `${n.by} · ` : ""}
-                      {dayjs(n.at).format("DD/MM/YYYY HH:mm")}
-                    </div>
-                    <p className="rounded-lg bg-muted px-3 py-2 text-sm break-words whitespace-pre-wrap">{n.text}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              DASH
-            )}
+            <NoteTimeline notes={c.notes ?? []} staff={staff} />
           </section>
         </div>
       )}

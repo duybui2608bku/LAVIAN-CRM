@@ -84,7 +84,6 @@
     "due": "Phải thu",
     "paidInput": "Thu thêm sau Deposit (IDR)",
     "billInput": "Chỉnh sửa giá trị dịch vụ (IDR)",
-    "salesNote": "Ghi chú Sales",
     "saveUpdate": "Lưu cập nhật",
     "openEdit": "Mở chi tiết lịch hẹn",
     "statTotal": "Tổng khách hàng",
@@ -97,7 +96,11 @@
     "millionIdr": "triệu IDR",
     "groupByConfirm": "Nhóm theo Xác nhận lịch",
     "staffColumn": "Nhân sự",
-    "teleNote": "Note Telesales"
+    "teleNote": "Note Telesales",
+    "salesNotesColumn": "Note Sales",
+    "salesNotesTitle": "Ghi chú Sales · {name}",
+    "addNote": "Thêm ghi chú",
+    "notesTitle": "Ghi chú lịch hẹn · {name}"
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -472,9 +475,7 @@
     "colNotes": "Ghi chú",
     "viewNotes": "Xem lịch sử ghi chú",
     "noteHistoryTitle": "Lịch sử ghi chú - {name}",
-    "noteOk": "Đã thêm ghi chú",
     "addNote": "Thêm ghi chú",
-    "addNotePlaceholder": "Nhập ghi chú mới…",
     "cancel": "Huỷ",
     "save": "Lưu",
     "createSubmit": "Thêm",
@@ -887,5 +888,18 @@
     "deposited": "Đã cọc",
     "notDeposited": "Chưa cọc",
     "empty": "Không có lịch hẹn nào"
+  },
+  "notes": {
+    "titlePlaceholder": "Tiêu đề (không bắt buộc)",
+    "textPlaceholder": "Nội dung ghi chú… (Ctrl + Enter để lưu)",
+    "add": "Thêm ghi chú",
+    "added": "Đã thêm ghi chú",
+    "deleted": "Đã xoá ghi chú",
+    "delete": "Xoá ghi chú",
+    "deleteConfirm": "Xoá ghi chú này?",
+    "empty": "Chưa có ghi chú nào",
+    "history": "Lịch sử ghi chú",
+    "suggestions": "Tư vấn|Nhu cầu|Kỹ thuật|Thanh toán|Chăm sóc",
+    "viewAll": "Xem tất cả & thêm ghi chú ({count})"
   }
 }

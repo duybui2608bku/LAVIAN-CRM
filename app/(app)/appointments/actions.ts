@@ -13,7 +13,9 @@ import { regionNames } from "@/lib/id-regions";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
+import { newNote, initialNotes, withoutNote } from "@/lib/notes";
 import type { AppointmentPatch } from "@/types/appointment";
+import type { NoteInput, TimelineNote } from "@/types/note";
 import type { Customer } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
@@ -71,7 +73,7 @@ const newCustomerSchema = z.object({
 
 export async function createAppointment(
   customerRef: string | { full_name: string; phone: string },
-  input: AppointmentPatch & { scheduled_at: string },
+  { note, ...input }: AppointmentPatch & { scheduled_at: string; note?: string },
 ): Promise<{ error?: string }> {
   try {
     const profile = await requirePermission("appointments.edit");
@@ -110,6 +112,7 @@ export async function createAppointment(
       customer_id: customerId, ...patch, service_ids: patch.service_ids ?? [],
       staff_id: patch.staff_id || customerStaff || null,
       created_by: profile.id,
+      notes: initialNotes(note, profile), // ô Ghi chú ở form tạo → ghi chú đầu tiên của timeline
     });
     if (error) {
       // Không để khách Booking mồ côi (không lịch) — gỡ khách vừa tạo nhanh.
@@ -134,6 +137,52 @@ export async function patchAppointment(id: string, input: AppointmentPatch): Pro
     const { error } = await db.from("clinic_appointments").update(patch)
       .eq("id", id).is("deleted_at", null).select("id").single();
     if (error) throw error;
+    refresh();
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+// Cột ghi chú timeline của lịch: notes (ghi chú lịch hẹn / Telesales) và sales_notes (ghi chú Sales).
+const noteField = z.enum(["notes", "sales_notes"]);
+type NoteField = z.infer<typeof noteField>;
+
+/** Thêm 1 ghi chú vào timeline của lịch: đọc mảng hiện tại rồi append (server stamp id, thời gian, người ghi). */
+export async function addAppointmentNote(id: string, field: NoteField, input: NoteInput): Promise<{ error?: string }> {
+  try {
+    const profile = await requirePermission("appointments.edit");
+    z.uuid().parse(id);
+    const column = noteField.parse(field);
+    const note = newNote(input, profile);
+    const db = await client();
+    const { data, error } = await db.from("clinic_appointments").select(column)
+      .eq("id", id).is("deleted_at", null).single();
+    if (error) throw error;
+    const notes = ((data as Record<string, TimelineNote[]>)[column] ?? []);
+    const { error: upErr } = await db.from("clinic_appointments").update({ [column]: [...notes, note] }).eq("id", id);
+    if (upErr) throw upErr;
+    refresh();
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** Xoá 1 ghi chú khỏi timeline của lịch — chỉ người ghi hoặc admin. */
+export async function deleteAppointmentNote(id: string, field: NoteField, noteId: string): Promise<{ error?: string }> {
+  try {
+    const profile = await requirePermission("appointments.edit");
+    z.uuid().parse(id);
+    const column = noteField.parse(field);
+    const db = await client();
+    const { data, error } = await db.from("clinic_appointments").select(column)
+      .eq("id", id).is("deleted_at", null).single();
+    if (error) throw error;
+    const notes = withoutNote((data as Record<string, TimelineNote[]>)[column] ?? [], noteId, profile);
+    if (!notes) return {};
+    const { error: upErr } = await db.from("clinic_appointments").update({ [column]: notes }).eq("id", id);
+    if (upErr) throw upErr;
     refresh();
     return {};
   } catch (error) {

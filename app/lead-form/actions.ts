@@ -198,7 +198,6 @@ export async function submitLead(
         service_categories: appointment!.service_categories,
         staff_id: d.staff_id,
         created_by: d.staff_id, // lead-form không có user đăng nhập → người tạo = Telesales đã chọn
-        note: "",
       });
     const stage = d.stage;
     // Trường theo kênh SMAX (hội thoại đang mở).

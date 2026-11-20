@@ -4,13 +4,12 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import {
   Badge,
   Button,
-  Drawer,
   Form,
   Image,
   Input,
   Modal,
   Tag,
-  Tooltip,
+  Popover,
   type TableProps,
 } from "antd";
 import dayjs from "dayjs";
@@ -32,6 +31,7 @@ import {
   patchCustomer,
   updateCustomer,
 } from "@/app/(app)/customers/actions";
+import { NoteItem, NotesDrawer } from "@/components/common/notes";
 import { CreateAppointmentDrawer, VisitStatusTag, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
@@ -49,7 +49,7 @@ import { EnumTag } from "@/components/common/enum-tag";
 import { InlineSelect } from "@/components/common/inline-select";
 import { RegionSelect } from "@/components/common/region-select";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
-import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
+import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
@@ -460,8 +460,8 @@ export function CustomersManager({
         const last = c.notes?.at(-1);
         return (
           // Hover: xem ghi chú gần nhất; bấm: lịch sử + thêm ghi chú.
-          <Tooltip
-            title={last ? <NotePreview note={last} /> : t("addNote")}
+          <Popover
+            content={last ? <div className="max-w-64"><NoteItem note={last} staff={staff} clamp /></div> : t("addNote")}
             placement="left"
           >
             <Badge
@@ -478,7 +478,7 @@ export function CustomersManager({
                 onClick={() => setNotesFor(c.id)}
               />
             </Badge>
-          </Tooltip>
+          </Popover>
         );
       },
     },
@@ -585,7 +585,7 @@ export function CustomersManager({
       />
 
       {/* Ghi chú (icon Info): lịch sử mới nhất trước + ô thêm ghi chú */}
-      <NotesDrawer
+      <CustomerNotesDrawer
         customer={rowsData.find((c) => c.id === notesFor) ?? null}
         staff={staff}
         onClose={() => setNotesFor(null)}
@@ -655,108 +655,27 @@ export function SourceCell({ customer: c }: { customer: Customer }) {
   );
 }
 
-/** Nội dung tooltip: ghi chú gần nhất (người ghi · thời gian + nội dung). */
-function NotePreview({ note }: { note: Customer["notes"][number] }) {
-  return (
-    <div className="max-w-64 space-y-0.5">
-      <p className="text-xs opacity-70">
-        {note.by ? `${note.by} · ` : ""}
-        {new Date(note.at).toLocaleString()}
-      </p>
-      <p className="line-clamp-4 whitespace-pre-wrap">{note.text}</p>
-    </div>
-  );
-}
-
-/** Drawer ghi chú của 1 khách: thêm ghi chú mới ở trên, lịch sử (avatar + người ghi) bên dưới. */
-export function NotesDrawer({
+/** Ghi chú Telesales của 1 khách (customers.notes) trên drawer ghi chú dùng chung — chỉ thêm, không xoá. */
+export function CustomerNotesDrawer({
   customer,
   staff,
   onClose,
 }: {
-  customer: Customer | null;
+  customer: { id: string; full_name: string; notes?: CustomerNote[] | null } | null;
   staff: StaffRef[];
   onClose: () => void;
 }) {
   const t = useTranslations("customers");
-  const [text, setText] = useState("");
-  const [pending, start] = useTransition();
   const canEdit = useCan()("customers.edit");
-
-  const save = () =>
-    start(async () => {
-      if (!customer) return;
-      const res = await addCustomerNote(customer.id, text);
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(t("noteOk"));
-      setText("");
-    });
-
-  const close = () => {
-    setText("");
-    onClose();
-  };
-
-  // Người ghi: tra theo id (note mới) → theo tên snapshot (note cũ) → tên snapshot thô.
-  const authorOf = (n: CustomerNote) => {
-    const s = (n.by_id && staff.find((x) => x.id === n.by_id)) || (n.by ? staff.find((x) => x.user_name === n.by) : undefined);
-    return { name: s?.user_name || n.by || "—", avatar: s?.avatar_url };
-  };
-
   return (
-    <Drawer
+    <NotesDrawer
       open={customer !== null}
-      onClose={close}
-      size={480}
-      destroyOnHidden
       title={t("noteHistoryTitle", { name: customer?.full_name ?? "" })}
-    >
-      <div className="space-y-2">
-        <Input.TextArea
-          rows={3}
-          autoFocus
-          placeholder={t("addNotePlaceholder")}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onPressEnter={(e) => {
-            // Ctrl/⌘ + Enter = lưu nhanh; Enter thường vẫn xuống dòng.
-            if ((e.ctrlKey || e.metaKey) && text.trim()) save();
-          }}
-        />
-        <div className="flex justify-end">
-          <Button type="primary" loading={pending} disabled={!text.trim() || !canEdit} onClick={save}>
-            {t("addNote")}
-          </Button>
-        </div>
-      </div>
-
-      {customer?.notes?.length ? (
-        <ul className="mt-4 space-y-4 border-t border-border pt-4">
-          {[...customer.notes].reverse().map((n, i) => {
-            const author = authorOf(n);
-            return (
-              <li key={i} className="flex gap-2.5">
-                <UserAvatar src={author.avatar} size={32} />
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex flex-wrap items-baseline gap-x-2 text-xs">
-                    <span className="text-sm font-medium text-foreground">{author.name}</span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {new Date(n.at).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="rounded-lg bg-muted px-3 py-2 text-sm break-words whitespace-pre-wrap">
-                    {n.text}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
-    </Drawer>
+      notes={customer?.notes ?? []}
+      staff={staff}
+      onAdd={canEdit && customer ? (input) => addCustomerNote(customer.id, input) : undefined}
+      onClose={onClose}
+    />
   );
 }
 

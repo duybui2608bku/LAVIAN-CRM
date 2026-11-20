@@ -17,7 +17,7 @@ import { useCan } from "@/components/common/permissions";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel } from "@/components/common/user-avatar";
 import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
-import { NotesDrawer, SourceCell } from "@/components/customers/customers-manager";
+import { CustomerNotesDrawer, SourceCell } from "@/components/customers/customers-manager";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
 import { CONVERTED_STATUS } from "@/lib/customer-options";
@@ -332,7 +332,7 @@ export function PotentialManager({
 
       <DataTable columns={columns} dataSource={filtered} page={page} onPageChange={setPage} empty={t("empty")} />
 
-      <NotesDrawer
+      <CustomerNotesDrawer
         customer={rows.find((c) => c.id === notesFor) ?? null}
         staff={staff}
         onClose={() => setNotesFor(null)}
