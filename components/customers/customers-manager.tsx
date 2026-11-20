@@ -54,7 +54,7 @@ import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
-import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
+import { matchesCustomerFilters, optionLabel } from "@/lib/customers";
 import { instagramUsername, isFollowUpStage, phoneOptional, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { nextPending, REMINDER_COLORS, reminderState } from "@/lib/reminders";
@@ -78,10 +78,6 @@ const DASH = <span className="text-muted-foreground">—</span>;
 
 // Rộng drawer theo số cột form (1 cột giữ 560 như các drawer khác).
 const DRAWER_WIDTH = { 1: 560, 2: 720, 3: 1000 } as const;
-
-// Màu tag Ngày tạo theo độ mới: hôm nay / ≤3 / ≤7 / ≤14 ngày / cũ hơn.
-const AGE_COLORS = ["green", "cyan", "blue", "purple", "default"] as const;
-const pad = (n: number) => String(n).padStart(2, "0");
 
 type Filters = {
   search: string;
@@ -236,18 +232,14 @@ export function CustomersManager({
       title: t("colCreated"),
       key: "created",
       dataIndex: "created_at",
-      render: (v: string) => {
-        const d = new Date(v);
-        return (
-          <Tag
-            color={AGE_COLORS[createdAgeBucket(v)]}
-            title={`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`}
-            className="me-0 tabular-nums"
-          >
-            {`${pad(d.getDate())}-${pad(d.getMonth() + 1)}`}
-          </Tag>
-        );
-      },
+      width: 120,
+      // 2 hàng như Customers Management / Sales Management: ngày đầy đủ trên, giờ nhỏ dưới.
+      render: (v: string) => (
+        <div className="leading-tight tabular-nums">
+          <div>{dayjs(v).format("DD/MM/YYYY")}</div>
+          <div className="text-xs text-muted-foreground">{dayjs(v).format("HH:mm")}</div>
+        </div>
+      ),
     },
     {
       title: t("colName"),
