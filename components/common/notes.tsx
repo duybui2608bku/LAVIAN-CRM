@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Button, Drawer, Input, Tag, Timeline } from "antd";
 import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -65,6 +65,7 @@ export function NoteTimeline({ notes, staff, canDelete, onDelete }: {
 /** Ô soạn ghi chú: chip tiêu đề gợi ý (hoặc tự gõ, bỏ trống được) + nội dung, Ctrl/⌘ + Enter lưu. */
 function NoteComposer({ onAdd }: { onAdd: (input: { title: string; text: string }) => Promise<{ error?: string }> }) {
   const t = useTranslations("notes");
+  const id = useId();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
@@ -78,19 +79,31 @@ function NoteComposer({ onAdd }: { onAdd: (input: { title: string; text: string 
     setText("");
   });
 
-  return <div className="rounded-lg border border-border p-3">
-    <div className="mb-2 flex flex-wrap gap-1.5">
-      {t("suggestions").split("|").map((s) => <Tag.CheckableTag key={s} checked={title === s} className="me-0"
-        onChange={(on) => setTitle(on ? s : "")}>{s}</Tag.CheckableTag>)}
+  // 2 phần tách rõ: Tiêu đề (tuỳ chọn, chip gợi ý ngay dưới) → Nội dung (bắt buộc) → hàng nút.
+  return <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/40 p-4">
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={`${id}-title`} className="text-sm font-medium">
+        {t("titleLabel")} <span className="font-normal text-muted-foreground">({t("optional")})</span>
+      </label>
+      <Input id={`${id}-title`} value={title} maxLength={120} allowClear placeholder={t("titlePlaceholder")}
+        onChange={(e) => setTitle(e.target.value)} />
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">{t("suggest")}</span>
+        {t("suggestions").split("|").map((s) => <Tag.CheckableTag key={s} checked={title === s}
+          className="me-0 border border-border" onChange={(on) => setTitle(on ? s : "")}>{s}</Tag.CheckableTag>)}
+      </div>
     </div>
-    <Input value={title} maxLength={120} allowClear placeholder={t("titlePlaceholder")} aria-label={t("titlePlaceholder")}
-      variant="borderless" className="px-0 font-semibold" onChange={(e) => setTitle(e.target.value)} />
-    <Input.TextArea value={text} autoFocus maxLength={10000} autoSize={{ minRows: 3, maxRows: 10 }}
-      variant="borderless" className="px-0" placeholder={t("textPlaceholder")} aria-label={t("textPlaceholder")}
-      onChange={(e) => setText(e.target.value)}
-      onPressEnter={(e) => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); save(); } }} />
-    <div className="mt-2 flex justify-end">
-      <Button type="primary" loading={pending} disabled={!text.trim()} onClick={save}>{t("add")}</Button>
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={`${id}-text`} className="text-sm font-medium">
+        {t("textLabel")} <span className="text-destructive" aria-hidden>*</span>
+      </label>
+      <Input.TextArea id={`${id}-text`} value={text} autoFocus maxLength={10000} autoSize={{ minRows: 4, maxRows: 10 }}
+        placeholder={t("textPlaceholder")} aria-required onChange={(e) => setText(e.target.value)}
+        onPressEnter={(e) => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); save(); } }} />
+    </div>
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs text-muted-foreground max-sm:hidden">{t("shortcut")}</span>
+      <Button type="primary" className="ms-auto" loading={pending} disabled={!text.trim()} onClick={save}>{t("add")}</Button>
     </div>
   </div>;
 }

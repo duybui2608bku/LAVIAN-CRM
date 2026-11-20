@@ -50,6 +50,16 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-20 — Customers Management: lọc nhanh dạng nút như Booking
+- **Thay đổi:** Trang `/customers/potential` bỏ `Segmented` full-width (Tất cả / Quá hạn / Hôm nay / Sắp tới). 4 lựa chọn giờ là `Button` trong thanh lọc, sau ô tìm kiếm, trước Trạng thái / Tele. Nút đang chọn `type=primary ghost` + `aria-pressed` (giống Booking Management). Logic tab không đổi.
+- **File ảnh hưởng:** `components/customers/potential-manager.tsx`.
+- **Còn dở / ghi chú:** Cùng PR #99 (nhánh `claude/note-composer-ui`). tsc + eslint sạch; chưa xem trên trình duyệt.
+
+### 2026-11-20 — Ô soạn ghi chú: tách rõ Tiêu đề / Nội dung
+- **Thay đổi:** `NoteComposer` (`components/common/notes.tsx`) bỏ kiểu input không viền. Giờ là khung nền `bg-muted/40` có 2 phần rõ ràng: nhãn **Tiêu đề (không bắt buộc)** + input có viền + hàng "Gợi ý:" chip có viền ngay dưới; nhãn **Nội dung \*** + textarea có viền (4 dòng); hàng cuối "Ctrl + Enter để lưu nhanh" (ẩn trên điện thoại) + nút Thêm ghi chú. Label gắn `htmlFor` qua `useId`. i18n `notes.{titleLabel,optional,suggest,textLabel,shortcut}`, đổi `titlePlaceholder`/`textPlaceholder`.
+- **File ảnh hưởng:** `components/common/notes.tsx`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** Nhánh `claude/note-composer-ui`. tsc + eslint sạch; chưa xem trên trình duyệt.
+
 ### 2026-11-20 — Ghi chú lịch hẹn + ghi chú tour chuyển sang timeline
 - **Thay đổi:** Cột mới `clinic_appointments.notes` và `tours.notes` (jsonb mảng, cùng dạng `sales_notes`); migration chuyển cột `note` cũ thành ghi chú đầu tiên (không rõ người ghi, thời gian = `updated_at`; tours tạm tắt trigger user khi chuyển vì `tours_protect_confirmation`). Cột `note` giữ để rollback, code thôi đọc/ghi (bỏ khỏi type, patch schema; test cập nhật). Type chung `types/note.ts` (`TimelineNote`, `NoteInput`), helper server `lib/notes.ts` (`newNote`, `initialNotes`, `withoutNote`). Actions: `addAppointmentNote/deleteAppointmentNote(id, "notes" | "sales_notes", …)` thay `addSalesNote/deleteSalesNote`; `addTourNote/deleteTourNote` (cùng phạm vi sửa tour). Form tạo lịch hẹn / tour giữ ô Ghi chú → thành ghi chú đầu tiên. UI: `AppointmentNotesDrawer` (export từ `appointments-manager`) dùng ở Sales Management (dòng dưới SĐT bấm mở) + Booking Management (cột Ghi chú = `NoteCell`, bỏ `AppointmentNote` sửa inline); drawer tour có mục Ghi chú (2 ghi chú mới nhất + nút mở `NotesDrawer`); thẻ tour chờ nhận hiện ghi chú mới nhất; drawer lịch sử lịch hẹn hiện timeline ghi chú. i18n: `notes.viewAll`, `appointments.notesTitle` (bỏ `appointments.notesAll`).
 - **File ảnh hưởng:** `supabase/migrations/20261120110000_appointment_tour_notes_timeline.sql`, `types/{note,appointment,tour}.ts`, `lib/{notes,appointments,appointments.test,tours}.ts`, `app/(app)/appointments/{actions,page}.ts(x)`, `app/(app)/tour/actions.ts`, `app/(app)/customers/{actions.ts,bookings/page.tsx}`, `app/lead-form/actions.ts`, `components/appointments/{appointments-manager,bookings-manager,appointment-drawer}.tsx`, `components/tour/{tour-drawer,tour-view}.tsx`, `components/customers/appointment-history-drawer.tsx`, `messages/{vi,en}.json`.
