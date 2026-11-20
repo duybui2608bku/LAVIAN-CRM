@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { staffOptions, type AppointmentStaff } from "@/components/appointments/appointments-manager";
-import { SalesNoteItem } from "@/components/appointments/sales-notes-drawer";
+import { NoteItem } from "@/components/common/notes";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { staffLabel } from "@/components/common/user-avatar";
 import { appointmentMoney } from "@/lib/appointments";
@@ -50,6 +50,7 @@ export function AppointmentDrawer({ appointment, ...props }: Omit<Props, "appoin
 
 function AppointmentDrawerBody({ appointment: a, customer, staff, services, canEdit, canShowUp, onViewInfo, onOpenNotes, onClose }: Props) {
   const t = useTranslations("appointments");
+  const tn = useTranslations("notes");
   const locale = useLocale();
   const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
@@ -162,8 +163,8 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
       {/* Ghi chú Sales: xem nhanh 2 ghi chú mới nhất, thêm / xem hết ở drawer Ghi chú Sales. */}
       <h3 className="mb-3 font-semibold">{t("sectionNote")}</h3>
       {a.sales_notes.length ? <div className="mb-3 space-y-3">
-        {a.sales_notes.slice(-2).reverse().map((n) => <SalesNoteItem key={n.id} note={n} staff={staff} clamp />)}
-      </div> : <p className="mb-3 text-muted-foreground">{t("notesEmpty")}</p>}
+        {a.sales_notes.slice(-2).reverse().map((n) => <NoteItem key={n.id} note={n} staff={staff} clamp />)}
+      </div> : <p className="mb-3 text-muted-foreground">{tn("empty")}</p>}
       <Button block icon={<NotebookPen className="size-4" />} disabled={false} onClick={onOpenNotes}>
         {t("notesAll", { count: a.sales_notes.length })}
       </Button>

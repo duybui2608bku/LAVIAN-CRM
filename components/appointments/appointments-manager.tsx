@@ -5,19 +5,19 @@ import { Button, Form, Input, Select, Tag, type TableProps } from "antd";
 import { CalendarPlus, MessageCircleMore, PanelRightOpen, Rows3, Search } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
-import { createAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
+import { addSalesNote, createAppointment, deleteSalesNote, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { AppointmentDrawer } from "@/components/appointments/appointment-drawer";
-import { SalesNotesDrawer } from "@/components/appointments/sales-notes-drawer";
 import { MessagesModal } from "@/components/appointments/messages-modal";
 import { DataTable } from "@/components/common/data-table";
 import { NamePhone } from "@/components/common/name-phone";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { InlineMultiSelect, InlineSelect } from "@/components/common/inline-select";
-import { useCan } from "@/components/common/permissions";
+import { NoteCell, NotesDrawer } from "@/components/common/notes";
+import { useCan, useCurrentUserId } from "@/components/common/permissions";
 import { CustomerInfoDrawer } from "@/components/customers/customer-info-drawer";
-import { SourceCell } from "@/components/customers/customers-manager";
+import { CustomerNotesDrawer, SourceCell } from "@/components/customers/customers-manager";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
@@ -76,6 +76,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [infoFor, setInfoFor] = useState<AppointmentCustomer | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notesId, setNotesId] = useState<string | null>(null);
+  const [teleNotesFor, setTeleNotesFor] = useState<AppointmentCustomer | null>(null);
+  const me = useCurrentUserId();
   const [grouped, setGrouped] = useState(false);
   const [rows, patchOptimistic] = useOptimistic(appointments,
     (state: Appointment[], patch: AppointmentPatch & { id: string }) =>
@@ -202,27 +204,13 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     } },
     // Cột Người tạo tạm ẩn — dữ liệu created_by vẫn ghi + vẫn tải.
     // Note Sales: ghi chú Sales gần nhất (tiêu đề + người ghi · nội dung), bấm mở drawer Ghi chú Sales.
-    { title: t("salesNotesColumn"), width: 300, render: (_, row) => {
-      const last = row.sales_notes.at(-1);
-      return <button type="button" aria-label={t("salesNotesColumn")}
-        className="block w-full cursor-pointer rounded text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
-        onClick={() => setNotesId(row.id)}>
-        {last ? <div className="leading-tight">
-          <div className="text-xs text-muted-foreground tabular-nums">
-            {dayjs(last.at).format("DD/MM/YYYY HH:mm")}{row.sales_notes.length > 1 && ` · +${row.sales_notes.length - 1}`}
-          </div>
-          {last.title && <div className="mt-0.5 truncate font-medium">{last.title}</div>}
-          <div className="mt-0.5 line-clamp-2 whitespace-pre-wrap">{last.text}</div>
-        </div> : <span className="text-muted-foreground">{canEdit ? `+ ${t("addNote")}` : "—"}</span>}
-      </button>;
-    } },
-    // Note Telesales (sau Note Sales): chỉ nội dung ghi chú gần nhất của khách (customers.notes), hover xem tất cả.
+    { title: t("salesNotesColumn"), width: 300, render: (_, row) => <NoteCell notes={row.sales_notes}
+      label={t("salesNotesColumn")} emptyText={canEdit ? `+ ${t("addNote")}` : "—"} onOpen={() => setNotesId(row.id)} /> },
+    // Note Telesales (sau Note Sales): chỉ nội dung ghi chú gần nhất của khách (customers.notes), bấm mở drawer ghi chú chung.
     { title: t("teleNote"), width: 300, render: (_, row) => {
-      const notes = customerMap.get(row.customer_id)?.notes ?? [];
-      const last = notes.at(-1);
-      return last ? <div className="line-clamp-2 leading-tight whitespace-pre-wrap" title={notes.map((n) => n.text).join("\n\n")}>
-        {last.text}
-      </div> : <span className="text-muted-foreground">—</span>;
+      const customer = customerMap.get(row.customer_id);
+      return <NoteCell notes={customer?.notes ?? []} contentOnly label={t("teleNote")} emptyText="—"
+        onOpen={() => setTeleNotesFor(customer ?? null)} />;
     } },
     // Cột Thao tác (xoá lịch) đã bỏ khỏi UI — server action deleteAppointment vẫn giữ (gác appointments.delete).
   ];
@@ -274,8 +262,14 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
       staff={staff} services={services} canEdit={canEdit} canShowUp={canShowUp}
       onViewInfo={setInfoFor} onOpenNotes={() => setNotesId(editingId)} onClose={() => setEditingId(null)} />
-    <SalesNotesDrawer appointment={notesFor} customerName={notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : ""}
-      staff={staff} canEdit={canEdit} onClose={() => setNotesId(null)} />
+    {/* Ghi chú Sales của lịch (sales_notes): người có quyền sửa lịch thêm được; người ghi xoá được ghi chú của mình. */}
+    <NotesDrawer open={notesFor !== null} staff={staff} notes={notesFor?.sales_notes ?? []}
+      title={t("salesNotesTitle", { name: notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : "" })}
+      onAdd={canEdit && notesFor ? (input) => addSalesNote(notesFor.id, input) : undefined}
+      canDelete={(n) => canEdit && !!n.id && n.by_id === me}
+      onDelete={(n) => notesFor && n.id ? deleteSalesNote(notesFor.id, n.id) : Promise.resolve({})}
+      onClose={() => setNotesId(null)} />
+    <CustomerNotesDrawer customer={teleNotesFor} staff={staff} onClose={() => setTeleNotesFor(null)} />
     <CustomerInfoDrawer customer={infoFor} staff={staff} onClose={() => setInfoFor(null)} />
   </Page>;
 }

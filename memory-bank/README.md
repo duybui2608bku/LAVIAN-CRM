@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-20 — 1 component ghi chú chung cho mọi lịch sử ghi chú
+- **Thay đổi:** Tạo `components/common/notes.tsx`, dùng chung cho mọi lịch sử ghi chú (ghi chú Telesales `customers.notes` + ghi chú Sales `clinic_appointments.sales_notes`). Gồm `NoteEntry`, `noteAuthor`, `NoteItem` (thời gian → tiêu đề → người ghi · nội dung), `NoteTimeline` (avatar làm chấm, nút xoá tuỳ chọn), `NotesDrawer` (ô soạn có chip tiêu đề gợi ý + Ctrl+Enter, timeline) và `NoteCell` (ô bảng, `contentOnly` cho Note Telesales). Áp vào: drawer ghi chú khách (`CustomerNotesDrawer`, đổi tên từ `NotesDrawer`) ở Khách hàng + Khách tiềm năng; tooltip cột Ghi chú ở Khách hàng thành `Popover` dùng `NoteItem`; mục ghi chú drawer Thông tin khách; Sales Management (cột Note Sales, cột Note Telesales giờ bấm mở `CustomerNotesDrawer`, mục 4 drawer Sửa lịch hẹn). Ghi chú khách giờ có tiêu đề + id (`addCustomerNote(id, {title, text})`, jsonb nên không cần migration). `revalidateCustomers` thêm `/appointments`. Xoá `components/appointments/sales-notes-drawer.tsx`. i18n gom vào namespace `notes`; bỏ key thừa `appointments.{noteTitle,noteText,noteAdded,…,salesNote}`, `customers.{noteOk,addNotePlaceholder}`.
+- **File ảnh hưởng:** `components/common/notes.tsx`, `components/customers/{customers-manager,potential-manager,customer-info-drawer}.tsx`, `components/appointments/{appointments-manager,appointment-drawer}.tsx`, `app/(app)/customers/actions.ts`, `types/customer.ts`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** Ghi chú 1 trường (lịch hẹn `note`, lịch nhắc, tour, form lead) giữ nguyên: đó là 1 ô nhập, không phải lịch sử. Ghi chú khách chưa có nút xoá (giữ như cũ). tsc + eslint + node --test (94) sạch; chưa xem trên trình duyệt.
+
 ### 2026-11-20 — Sales Management: Note Sales đứng trước Note Telesales
 - **Thay đổi:** Đổi chỗ 2 cột: Note Sales trước, Note Telesales sau. Cột Note Telesales bỏ dòng "người ghi · thời gian · +N" (vd "Form SMAX · 18/11/2026 22:20"), chỉ còn nội dung ghi chú gần nhất `line-clamp-2`, hover xem tất cả.
 - **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.

@@ -20,6 +20,8 @@ export interface EnumOption {
 
 /** Một lần ghi chú của khách hàng (lưu trong cột jsonb `customers.notes`). */
 export interface CustomerNote {
+  id?: string; // note cũ không có
+  title?: string | null; // không bắt buộc
   text: string;
   at: string; // ISO timestamp
   by?: string | null; // tên người ghi (server stamp) — note cũ không có
