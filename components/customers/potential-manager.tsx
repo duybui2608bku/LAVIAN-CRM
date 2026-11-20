@@ -11,6 +11,7 @@ import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { CreateAppointmentDrawer, VisitStatusTag, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
+import { Open360Button, useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { EnumTag } from "@/components/common/enum-tag";
 import { InlineSelect } from "@/components/common/inline-select";
 import { useCan } from "@/components/common/permissions";
@@ -137,6 +138,9 @@ export function PotentialManager({
     setPage(1);
   }
 
+  // Popup 360°: Trước/Tiếp theo danh sách đang lọc.
+  const c360 = useCustomer360({ ids: filtered.map((c) => c.id), staff });
+
   const columns: TableProps<Customer>["columns"] = [
     {
       title: t("colCustomer"),
@@ -174,6 +178,7 @@ export function PotentialManager({
               icon={<MessageSquareText className="size-4" />}
               onClick={() => setNotesFor(c.id)}
             />
+            <Open360Button onClick={() => c360.open(c.id)} />
           </div>
         );
       },
@@ -338,7 +343,9 @@ export function PotentialManager({
         )}
       </PageToolbar>
 
-      <DataTable columns={columns} dataSource={filtered} page={page} onPageChange={setPage} empty={t("empty")} />
+      <DataTable columns={columns} dataSource={filtered} page={page} onPageChange={setPage} empty={t("empty")}
+        onChange={c360.onTableChange} />
+      {c360.modal}
 
       <CustomerNotesDrawer
         customer={rows.find((c) => c.id === notesFor) ?? null}

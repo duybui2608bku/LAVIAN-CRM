@@ -1,7 +1,7 @@
 /** Tin nhắn gần nhất của 1 hội thoại SMAX (WhatsApp/Instagram). `fetchThreadMessages` CHỈ chạy server (env `SMAX_TOKEN`). */
 
 const BIZ_API = "https://api.smax.ai/bizs/lavianbeautycenter";
-export const MESSAGE_LIMIT = 20;
+export const MESSAGE_LIMIT = 30;
 
 export type ChatMessage = {
   id: string;
@@ -59,19 +59,19 @@ export function toChatMessages(raw: RawMessage[]): ChatMessage[] {
     .reverse();
 }
 
-/** 20 tin gần nhất của hội thoại theo link lưu ở `customers.thread.link`. */
-export async function fetchThreadMessages(link: string | null | undefined): Promise<ChatMessage[]> {
+/** `limit` tin gần nhất (mặc định 30) của hội thoại theo link lưu ở `customers.thread.link`. */
+export async function fetchThreadMessages(link: string | null | undefined, limit = MESSAGE_LIMIT): Promise<ChatMessage[]> {
   const ref = threadRef(link);
   if (!ref) throw new Error("Khách chưa có hội thoại SMAX.");
-  return fetchMessagesByRef(ref);
+  return fetchMessagesByRef(ref, limit);
 }
 
-/** 20 tin gần nhất của hội thoại `tid` trong trang `page` (page_pid). */
-export async function fetchMessagesByRef(ref: { page: string; tid: string }): Promise<ChatMessage[]> {
+/** `limit` tin gần nhất (mặc định 30) của hội thoại `tid` trong trang `page` (page_pid). */
+export async function fetchMessagesByRef(ref: { page: string; tid: string }, limit = MESSAGE_LIMIT): Promise<ChatMessage[]> {
   const token = process.env.SMAX_TOKEN ?? "";
   if (!token) throw new Error("Thiếu SMAX_TOKEN.");
   const res = await fetch(
-    `${BIZ_API}/pages/${ref.page}/threads/${encodeURIComponent(ref.tid)}/messages?sort=-created_at&limit=${MESSAGE_LIMIT}`,
+    `${BIZ_API}/pages/${ref.page}/threads/${encodeURIComponent(ref.tid)}/messages?sort=-created_at&limit=${limit}`,
     { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
   );
   const json = (await res.json().catch(() => null)) as { message?: string; data?: RawMessage[] } | null;

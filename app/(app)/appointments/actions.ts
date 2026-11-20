@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
-import { getCurrentProfile, requirePermission } from "@/lib/auth";
-import { appointmentPatchSchema, canConfirmShowUp } from "@/lib/appointments";
+import { getCurrentProfile, requireAnyPermission, requirePermission } from "@/lib/auth";
+import { appointmentPatchSchema, canSetVisitStatus, validateVisitStatus } from "@/lib/appointments";
 import { CUSTOMER_LIST_FIELDS } from "@/app/(app)/customers/customers-view";
 import { BOOKED_STAGE, instagramUsername } from "@/lib/customer-options";
 import { phoneOwner } from "@/lib/customers";
@@ -38,7 +38,29 @@ async function failure(error: unknown) {
 }
 
 const onlySales = () =>
-  new AppError("Chỉ bộ phận Sales được đổi trạng thái lịch hẹn.", { code: "FORBIDDEN", status: 403 });
+  new AppError("Chỉ Sales được đổi trạng thái lịch hẹn (Master chỉ chọn được Đã thực hiện).", { code: "FORBIDDEN", status: 403 });
+
+const RULE_FIELDS = ["visit_status", "technician_id", "sales_id", "bill_amount", "paid_amount"] as const;
+type RuleRow = Parameters<typeof validateVisitStatus>[1];
+const NEW_ROW: RuleRow = { visit_status: "waiting", technician_id: null, sales_id: null, bill_amount: null, paid_amount: null };
+
+/** Quy tắc E3 (giá trị DV ≥ đã thu, Master/Sales theo trạng thái) — báo lỗi dễ hiểu trước khi DB chặn. */
+async function checkRules(db: Awaited<ReturnType<typeof client>>, id: string | null, patch: AppointmentPatch) {
+  if (!RULE_FIELDS.some((f) => f in patch)) return;
+  let current = NEW_ROW;
+  let deposit: number | null = null;
+  if (id) {
+    const { data, error } = await db.from("clinic_appointments")
+      .select("visit_status,technician_id,sales_id,bill_amount,paid_amount,customer:customers(deposit_amount)")
+      .eq("id", id).is("deleted_at", null).single();
+    if (error) throw error;
+    const { customer, ...row } = data as unknown as RuleRow & { customer: { deposit_amount: number | null } | null };
+    current = row;
+    deposit = customer?.deposit_amount ?? null;
+  }
+  const rule = validateVisitStatus(patch, current, deposit);
+  if (rule) throw new AppError((await getTranslations("appointments.rule"))(rule.code), { code: "VALIDATION", status: 400 });
+}
 
 // Các kiểm tra độc lập → chạy song song.
 async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch: AppointmentPatch) {
@@ -79,9 +101,9 @@ export async function createAppointment(
     const profile = await requirePermission("appointments.edit");
     const patch = appointmentPatchSchema.parse(input);
     if (!patch.scheduled_at) throw new Error("Vui lòng chọn ngày.");
-    if (patch.visit_status && patch.visit_status !== "waiting" && !canConfirmShowUp(profile)) throw onlySales();
+    if (patch.visit_status && patch.visit_status !== "waiting" && !canSetVisitStatus(profile, patch.visit_status)) throw onlySales();
     const db = await client();
-    await validateReferences(db, patch);
+    await Promise.all([validateReferences(db, patch), checkRules(db, null, patch)]);
 
     // Khách có sẵn: Telesales mặc định = Telesales đang phụ trách khách.
     // Khách mới: chặn trùng SĐT (DB không unique) rồi tạo với stage Booking.
@@ -131,9 +153,9 @@ export async function patchAppointment(id: string, input: AppointmentPatch): Pro
     const profile = await requirePermission("appointments.edit");
     z.uuid().parse(id);
     const patch = appointmentPatchSchema.parse(input);
-    if (patch.visit_status !== undefined && !canConfirmShowUp(profile)) throw onlySales();
+    if (patch.visit_status !== undefined && !canSetVisitStatus(profile, patch.visit_status)) throw onlySales();
     const db = await client();
-    await validateReferences(db, patch);
+    await Promise.all([validateReferences(db, patch), checkRules(db, id, patch)]);
     const { error } = await db.from("clinic_appointments").update(patch)
       .eq("id", id).is("deleted_at", null).select("id").single();
     if (error) throw error;
@@ -205,10 +227,10 @@ export async function deleteAppointment(id: string): Promise<{ error?: string }>
   }
 }
 
-/** 20 tin SMAX gần nhất với khách (modal Tin nhắn). Link hội thoại đọc từ DB — không nhận link từ client. */
+/** 30 tin SMAX gần nhất với khách (modal Tin nhắn, popup 360°). Link hội thoại đọc từ DB — không nhận link từ client. */
 export async function getCustomerMessages(customerId: string): Promise<{ messages?: ChatMessage[]; error?: string }> {
   try {
-    await requirePermission("appointments.view");
+    await requireAnyPermission("appointments.view", "customers.view");
     z.uuid().parse(customerId);
     const db = await createClient();
     const { data, error } = await db.from("customers").select("link:thread->>link").eq("id", customerId).single();

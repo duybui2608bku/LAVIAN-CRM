@@ -175,6 +175,6 @@ const scanCache: Cache<string[]> = new Map();
 /** SĐT khách gõ trong 20 tin gần nhất (best-effort: lỗi → không có số). */
 const scanPhones = (page: string, tid: string) =>
   memo(scanCache, `${page}/${tid}`, async () => {
-    const msgs = await fetchMessagesByRef({ page, tid }).catch(() => []);
+    const msgs = await fetchMessagesByRef({ page, tid }, 20).catch(() => []);
     return findPhones(msgs.filter((m) => !m.out).map((m) => m.text).join("\n"));
   });

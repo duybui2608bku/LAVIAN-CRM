@@ -17,6 +17,33 @@ export function canConfirmShowUp(profile: { role: string; department: string | n
   return profile?.role === "admin" || profile?.department === "sales";
 }
 
+/** Đổi Status lịch: Sales/admin mọi trạng thái; Master (technician) chỉ được chọn "Đã thực hiện". */
+export function canSetVisitStatus(profile: { role: string; department: string | null } | null | undefined, status: VisitStatus): boolean {
+  return canConfirmShowUp(profile) || (profile?.department === "technician" && status === "done");
+}
+
+type RuleFields = { visit_status: string; technician_id: string | null; sales_id: string | null; bill_amount: number | null; paid_amount: number | null };
+/** Mã lỗi quy tắc E3 → i18n `appointments.rule.<code>`; field = ô hiện lỗi ở Drawer. */
+export type AppointmentRuleError = { code: "billBelowCollected" | "doneNeedsMaster" | "inProgressNeedsStaff"; field: keyof RuleFields };
+
+/**
+ * Quy tắc E3 khi lưu lịch (chỉ xét quy tắc có trường nằm trong `patch`, để lịch cũ vẫn sửa được trường khác):
+ * Giá trị DV > 0 không nhỏ hơn số đã thu (cọc + thu thêm); Đang thực hiện cần Master hoặc Sales; Đã thực hiện cần Master.
+ * DB có check NOT VALID tương ứng cho 2 quy tắc trạng thái.
+ */
+export function validateVisitStatus(patch: Partial<RuleFields>, current: RuleFields, deposit: number | null | undefined): AppointmentRuleError | null {
+  const next = { ...current, ...patch };
+  const touched = (...keys: (keyof RuleFields)[]) => keys.some((k) => k in patch);
+  if (touched("bill_amount", "paid_amount") && (next.bill_amount ?? 0) > 0
+    && (next.bill_amount ?? 0) < (deposit ?? 0) + (next.paid_amount ?? 0)) return { code: "billBelowCollected", field: "bill_amount" };
+  if (touched("visit_status", "technician_id", "sales_id")) {
+    if (next.visit_status === "done" && !next.technician_id) return { code: "doneNeedsMaster", field: "technician_id" };
+    if (next.visit_status === "in_progress" && !next.technician_id && !next.sales_id)
+      return { code: "inProgressNeedsStaff", field: "technician_id" };
+  }
+  return null;
+}
+
 export const appointmentPatchSchema = z.object({
   scheduled_at: z.iso.datetime({ offset: true }),
   booking_confirm: z.enum(BOOKING_STATUS_VALUES),

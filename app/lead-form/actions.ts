@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchThreadMessages } from "@/lib/smax-messages";
 import { instagramUsername, isFollowUpStage, isStage, leadSource, needsAppointment, phoneOptional } from "@/lib/customer-options";
 import { serviceCategoriesSchema } from "@/lib/appointments";
 import { phoneOwner } from "@/lib/customers";
@@ -169,6 +170,10 @@ export async function submitLead(
 
   try {
     const supabase = createAdminClient();
+    // Bản chụp 30 tin SMAX (dữ liệu AI GĐ2 + dự phòng) — chạy song song; SMAX lỗi thì bỏ qua, không chặn lead.
+    const snapshot = fetchThreadMessages(d.thread?.link, 30)
+      .then((m) => ({ smax_messages: m, smax_messages_at: new Date().toISOString() }))
+      .catch(() => ({}));
     const current = await findLeadRow(d.customer_id, d.phone);
     if (mode === "create" && current) {
       return { error: "Khách hàng đã tồn tại. Chỉ được cập nhật thông tin." };
@@ -234,6 +239,7 @@ export async function submitLead(
         ? { payment_confirm_url: d.payment_confirm_url }
         : {}),
       ...(followUp ? { follow_up_at: new Date(d.follow_up_at!).toISOString() } : {}),
+      ...(await snapshot),
     };
 
     if (mode === "create") {

@@ -38,6 +38,7 @@ import { ClearableSelect, type SelectOption } from "@/components/common/clearabl
 import { useCan } from "@/components/common/permissions";
 import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
 import { DataTable } from "@/components/common/data-table";
+import { Open360Button, useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { NamePhone } from "@/components/common/name-phone";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
@@ -208,6 +209,9 @@ export function CustomersManager({
     [rowsData, filters],
   );
 
+  // Popup 360°: Trước/Tiếp theo danh sách đang lọc.
+  const c360 = useCustomer360({ ids: filtered.map((c) => c.id), staff });
+
   // Lọc đổi → về trang 1. Điều chỉnh ngay trong render (không effect).
   const [seenFilters, setSeenFilters] = useState(filters);
   if (seenFilters !== filters) {
@@ -282,6 +286,7 @@ export function CustomersManager({
               onClick={() => setTarget(c)}
             />
           )}
+          <Open360Button onClick={() => c360.open(c.id)} />
         </div>
       ),
     },
@@ -575,7 +580,9 @@ export function CustomersManager({
         page={page}
         onPageChange={setPage}
         empty={t("empty")}
+        onChange={c360.onTableChange}
       />
+      {c360.modal}
 
       <CustomerDialog
         open={target !== null}
