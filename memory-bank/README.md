@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-20 — Popup hồ sơ 360° cố định kích thước
+- **Thay đổi:** `Customer360Modal` rộng `min(1360px, 100vw - 32px)` (trước 1200), thân cao cố định `min(720px, 100vh - 220px)` (trước chỉ maxHeight → co giãn theo nội dung/lúc tải), cuộn trong thân + `scrollbarGutter: stable`; dòng phụ header có `min-h-4` để không nhảy khi đang tải.
+- **File ảnh hưởng:** `components/customers/customer-360/customer-360-modal.tsx`.
+- **Còn dở / ghi chú:** Chưa xem trên trình duyệt.
+
 ### 2026-11-20 — Bỏ Ảnh B/A ở drawer; cột Nhân sự mở popup chọn
 - **Thay đổi:** Drawer Sửa lịch hẹn (Quản lý bán hàng) bỏ mục "5. Ảnh B/A" (gỡ prop `canPhotos` ở page → manager → drawer, xoá key `appointments.sectionPhotos` ở en/vi). Cột Nhân sự trên bảng: ai có quyền sửa bấm vào ô → Popover chọn Sales / Master (lưu ngay qua `save`, optimistic; Telesales chỉ xem; server vẫn kiểm luật E3). Không quyền sửa → chỉ xem như cũ.
 - **File ảnh hưởng:** `components/appointments/appointment-drawer.tsx`, `components/appointments/appointments-manager.tsx`, `app/(app)/appointments/page.tsx`, `messages/{en,vi}.json`.

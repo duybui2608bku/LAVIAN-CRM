@@ -68,8 +68,10 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
       <Button icon={<PanelRightOpen className="size-4" />}>{t("toEdit")}</Button>
     </Link>);
 
-  return <Modal open={!!customerId} onCancel={close} width={1200} destroyOnHidden centered
-    styles={{ body: { maxHeight: "calc(100vh - 220px)", overflowY: "auto" } }}
+  // Kích thước cố định (không co giãn theo nội dung / lúc đang tải): rộng 1360, cao 720, màn nhỏ thì vừa màn hình;
+  // nội dung dài cuộn trong thân, chừa sẵn chỗ thanh cuộn để bề ngang không nhảy.
+  return <Modal open={!!customerId} onCancel={close} width="min(1360px, calc(100vw - 32px))" destroyOnHidden centered
+    styles={{ body: { height: "min(720px, calc(100vh - 220px))", overflowY: "auto", scrollbarGutter: "stable" } }}
     title={<Header data={data} index={index} total={ids.length} onPrev={() => go(-1)} onNext={() => go(1)} />}
     footer={<div className="flex flex-wrap justify-end gap-2">
       <Button icon={<NotebookPen className="size-4" />} onClick={() => { setTab("timeline"); setComposing(true); }}>{t("quickNote")}</Button>
@@ -109,7 +111,7 @@ function Header({ data, index, total, onPrev, onNext }: {
         <span className="truncate text-lg font-semibold">{c?.full_name ?? t("title")}</span>
         {stage && <EnumTag label={optionLabel(stage, locale)} icon={stage.icon} color={stage.color} />}
       </div>
-      <div className="text-xs font-normal text-muted-foreground tabular-nums">
+      <div className="min-h-4 text-xs font-normal text-muted-foreground tabular-nums">
         {[c?.phone, data && t(`hint.${data.role}`)].filter(Boolean).join(" · ")}
       </div>
     </div>
