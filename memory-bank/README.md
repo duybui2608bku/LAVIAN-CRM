@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-20 — Customers Management: lọc nhanh dạng nút như Booking
+- **Thay đổi:** Trang `/customers/potential` bỏ `Segmented` full-width (Tất cả / Quá hạn / Hôm nay / Sắp tới). 4 lựa chọn giờ là `Button` trong thanh lọc, sau ô tìm kiếm, trước Trạng thái / Tele. Nút đang chọn `type=primary ghost` + `aria-pressed` (giống Booking Management). Logic tab không đổi.
+- **File ảnh hưởng:** `components/customers/potential-manager.tsx`.
+- **Còn dở / ghi chú:** Cùng PR #99 (nhánh `claude/note-composer-ui`). tsc + eslint sạch; chưa xem trên trình duyệt.
+
 ### 2026-11-20 — Ô soạn ghi chú: tách rõ Tiêu đề / Nội dung
 - **Thay đổi:** `NoteComposer` (`components/common/notes.tsx`) bỏ kiểu input không viền. Giờ là khung nền `bg-muted/40` có 2 phần rõ ràng: nhãn **Tiêu đề (không bắt buộc)** + input có viền + hàng "Gợi ý:" chip có viền ngay dưới; nhãn **Nội dung \*** + textarea có viền (4 dòng); hàng cuối "Ctrl + Enter để lưu nhanh" (ẩn trên điện thoại) + nút Thêm ghi chú. Label gắn `htmlFor` qua `useId`. i18n `notes.{titleLabel,optional,suggest,textLabel,shortcut}`, đổi `titlePlaceholder`/`textPlaceholder`.
 - **File ảnh hưởng:** `components/common/notes.tsx`, `messages/{vi,en}.json`.

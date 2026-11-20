@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Button, Input, Segmented, type TableProps } from "antd";
+import { Button, Input, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 import { MessageSquareText, Search, X } from "lucide-react";
@@ -281,14 +281,6 @@ export function PotentialManager({
         <StatCard label={t("kpiConverted")} value={convertedToday} />
       </div>
 
-      {/* Cùng thứ tự với Booking Management: Thẻ số liệu → Tab → Thanh lọc (Tìm → Trạng thái → Tele). */}
-      <Segmented<Tab>
-        block
-        value={tab}
-        onChange={setTab}
-        options={(["all", "overdue", "today", "upcoming"] as const).map((k) => ({ value: k, label: t(`tab.${k}`) }))}
-      />
-
       <PageToolbar>
         <Input
           allowClear
@@ -299,6 +291,18 @@ export function PotentialManager({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        {/* Lọc nhanh dạng nút như Booking Management (Tìm → Tab → Trạng thái → Tele); nút đang chọn viền màu chính. */}
+        {(["all", "overdue", "today", "upcoming"] as const).map((k) => (
+          <Button
+            key={k}
+            aria-pressed={tab === k}
+            type={tab === k ? "primary" : "default"}
+            ghost={tab === k}
+            onClick={() => setTab(k)}
+          >
+            {t(`tab.${k}`)}
+          </Button>
+        ))}
         <ClearableSelect
           className="min-w-40"
           value={status}
