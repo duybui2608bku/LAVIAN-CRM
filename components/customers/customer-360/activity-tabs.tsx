@@ -61,13 +61,14 @@ export function MessagesTab({ data }: { data: Customer360 }) {
 
   if (!data.customer.thread_link && !data.smax_messages?.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={ta("noMessages")} />;
   if (live.isLoading) return <div className="flex h-40 items-center justify-center"><Spin /></div>;
-  return <div className="flex flex-col gap-3">
+  // Desktop: khung chat lấp đầy vùng tab (cuộn riêng); điện thoại: giới hạn 60vh.
+  return <div className="flex h-full flex-col gap-3">
     {live.error && (fallback
       ? <Alert type="warning" showIcon title={t("snapshot", { at: dayjs(data.customer.smax_messages_at).format("DD/MM/YYYY HH:mm") })} />
       : <Alert type="error" showIcon title={live.error.message} />)}
     <Input allowClear value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} aria-label={t("search")}
       prefix={<Search className="size-4" />} />
-    {shown.length ? <ChatBubbles key={q} messages={shown} className="rounded-lg" />
+    {shown.length ? <ChatBubbles key={q} messages={shown} className="rounded-lg max-lg:max-h-[60vh] lg:max-h-none lg:min-h-0 lg:flex-1" />
       : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={q ? t("noMatch") : ta("noMessages")} />}
   </div>;
 }

@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-20 — Popup 360°: các tab cuộn trong cùng 1 vùng cố định
+- **Thay đổi:** Desktop (≥ lg): thân popup chia flex — 3 ô tóm tắt ở trên, phần còn lại là lưới `grid-rows-[minmax(0,1fr)]`; cột trái cuộn riêng; thanh tab đứng yên, `.ant-tabs-content-holder` cuộn dọc (`scrollbar-gutter: stable`) → đổi tab không làm modal đổi cao. Tab Hội thoại: khung chat lấp đầy vùng tab (`flex-1`, bỏ `max-h-[65vh]` ở desktop; điện thoại giữ 60vh, cuộn cả thân).
+- **File ảnh hưởng:** `components/customers/customer-360/customer-360-modal.tsx`, `components/customers/customer-360/activity-tabs.tsx`.
+- **Còn dở / ghi chú:** Chưa xem trên trình duyệt (style dùng selector class nội bộ antd `.ant-tabs-*`).
+
 ### 2026-11-20 — Popup hồ sơ 360° cố định kích thước
 - **Thay đổi:** `Customer360Modal` rộng `min(1360px, 100vw - 32px)` (trước 1200), thân cao cố định `min(720px, 100vh - 220px)` (trước chỉ maxHeight → co giãn theo nội dung/lúc tải), cuộn trong thân + `scrollbarGutter: stable`; dòng phụ header có `min-h-4` để không nhảy khi đang tải.
 - **File ảnh hưởng:** `components/customers/customer-360/customer-360-modal.tsx`.
