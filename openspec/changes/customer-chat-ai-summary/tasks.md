@@ -1,0 +1,5 @@
+- [x] Env `ANTHROPIC_API_KEY` (.env.example, .env.local), cài `@anthropic-ai/sdk`
+- [x] Migration bảng `customer_chat_summaries` + RLS
+- [x] Server action `summarizeCustomerChat` + `getCustomer360` trả `chat_summary`
+- [x] UI khung Tóm tắt AI ở tab Hội thoại + i18n vi/en
+- [x] tsc + eslint

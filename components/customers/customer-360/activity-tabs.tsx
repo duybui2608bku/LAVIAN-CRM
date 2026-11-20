@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { Alert, Empty, Image, Input, Segmented, Spin, Tag, Timeline } from "antd";
-import { Search } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Alert, Button, Empty, Image, Input, Segmented, Spin, Tag, Timeline } from "antd";
+import { RefreshCw, Search, Sparkles } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
-import { addQuickNote } from "@/app/(app)/customers/customer-360-actions";
+import { addQuickNote, summarizeCustomerChat } from "@/app/(app)/customers/customer-360-actions";
 import { ChatBubbles } from "@/components/appointments/chat-bubbles";
 import { NoteComposer, NoteItem } from "@/components/common/notes";
 import { UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
 import { mergeTimeline } from "@/lib/customer-360";
+import { toast } from "@/lib/toast";
 import { serviceName } from "@/lib/customers";
 import type { AppointmentLog, AppointmentLogField } from "@/types/appointment";
 import type { Customer360 } from "@/types/customer-360";
@@ -48,7 +49,7 @@ export function PhotosTab({ data }: { data: Customer360 }) {
 
 // ─────────────────────────── Hội thoại (30 tin SMAX + tìm) ───────────────────────────
 
-export function MessagesTab({ data }: { data: Customer360 }) {
+export function MessagesTab({ data, staff, onSaved }: { data: Customer360; staff: StaffRef[]; onSaved: () => Promise<void> }) {
   const t = useTranslations("c360.messages");
   const ta = useTranslations("appointments");
   const [query, setQuery] = useState("");
@@ -60,16 +61,55 @@ export function MessagesTab({ data }: { data: Customer360 }) {
   const shown = q ? messages.filter((m) => m.text.toLowerCase().includes(q)) : messages;
 
   if (!data.customer.thread_link && !data.smax_messages?.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={ta("noMessages")} />;
-  if (live.isLoading) return <div className="flex h-40 items-center justify-center"><Spin /></div>;
-  return <div className="flex flex-col gap-3">
-    {live.error && (fallback
-      ? <Alert type="warning" showIcon title={t("snapshot", { at: dayjs(data.customer.smax_messages_at).format("DD/MM/YYYY HH:mm") })} />
-      : <Alert type="error" showIcon title={live.error.message} />)}
-    <Input allowClear value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} aria-label={t("search")}
-      prefix={<Search className="size-4" />} />
-    {shown.length ? <ChatBubbles key={q} messages={shown} className="rounded-lg" />
-      : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={q ? t("noMatch") : ta("noMessages")} />}
+  // Desktop: khung chat lấp đầy vùng tab (cuộn riêng); điện thoại: giới hạn 60vh.
+  return <div className="flex h-full flex-col gap-3">
+    <ChatSummaryBox data={data} staff={staff} latestAt={messages.at(-1)?.at} onSaved={onSaved} />
+    {live.isLoading ? <div className="flex h-40 items-center justify-center"><Spin /></div> : <>
+      {live.error && (fallback
+        ? <Alert type="warning" showIcon title={t("snapshot", { at: dayjs(data.customer.smax_messages_at).format("DD/MM/YYYY HH:mm") })} />
+        : <Alert type="error" showIcon title={live.error.message} />)}
+      <Input allowClear value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} aria-label={t("search")}
+        prefix={<Search className="size-4" />} />
+      {shown.length ? <ChatBubbles key={q} messages={shown} className="rounded-lg max-lg:max-h-[60vh] lg:max-h-none lg:min-h-0 lg:flex-1" />
+        : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={q ? t("noMatch") : ta("noMessages")} />}
+    </>}
   </div>;
+}
+
+/** Tóm tắt AI (Claude) hội thoại — đọc bản đã lưu; bấm mới gọi AI (ghi đè bản cũ). */
+function ChatSummaryBox({ data, staff, latestAt, onSaved }: {
+  data: Customer360; staff: StaffRef[]; latestAt: string | undefined; onSaved: () => Promise<void>;
+}) {
+  const t = useTranslations("c360.messages.ai");
+  const locale = useLocale();
+  const [pending, start] = useTransition();
+  const s = data.chat_summary;
+  // Có tin mới hơn tin cuối đã tóm tắt → bản tóm tắt đã cũ.
+  const stale = !!(s && latestAt && (!s.last_message_at || Date.parse(latestAt) > Date.parse(s.last_message_at)));
+  const run = () => start(async () => {
+    const res = await summarizeCustomerChat(data.customer.id, locale);
+    if (res.error) return void toast.error(res.error);
+    await onSaved();
+  });
+
+  return <section className="shrink-0 rounded-lg border border-border p-3" aria-busy={pending}>
+    <div className="flex flex-wrap items-center gap-2">
+      <Sparkles className="size-4 text-primary" aria-hidden />
+      <h3 className="text-sm font-semibold">{t("title")}</h3>
+      {stale && <Tag color="orange" className="me-0">{t("stale")}</Tag>}
+      <Button size="small" className="ms-auto" loading={pending} onClick={run}
+        icon={s ? <RefreshCw className="size-3.5" /> : <Sparkles className="size-3.5" />}>{t(s ? "again" : "run")}</Button>
+    </div>
+    {pending ? <p className="mt-2 text-sm text-muted-foreground">{t("working")}</p>
+      : s ? <>
+        <p className="mt-2 max-h-40 overflow-y-auto text-sm whitespace-pre-wrap">{s.summary}</p>
+        <p className="mt-2 text-xs text-muted-foreground tabular-nums">{t("meta", {
+          at: dayjs(s.created_at).format("DD/MM/YYYY HH:mm"), count: s.message_count,
+          name: staff.find((m) => m.id === s.created_by)?.user_name ?? "—",
+        })}</p>
+      </>
+      : <p className="mt-2 text-sm text-muted-foreground">{t("empty")}</p>}
+  </section>;
 }
 
 // ─────────────────────────── Lịch sử & Ghi chú ───────────────────────────

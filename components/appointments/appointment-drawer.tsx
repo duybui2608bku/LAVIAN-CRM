@@ -6,7 +6,6 @@ import { NotebookPen, PanelRightOpen, Plus, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { setAppointmentPerformers } from "@/app/(app)/customers/customer-360-actions";
-import { AppointmentPhotos } from "@/components/appointments/appointment-photos";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { staffOptions, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { NoteItem } from "@/components/common/notes";
@@ -44,8 +43,6 @@ type Props = {
   canEdit: boolean;
   /** Status được chọn (Sales/admin: tất cả; Master: chỉ Đã thực hiện; rỗng = không đổi được). */
   visitChoices: VisitStatus[];
-  /** Xem / tải ảnh B/A (mọi bộ phận trừ Telesales). */
-  canPhotos: boolean;
   onViewInfo: (customer: AppointmentCustomer) => void;
   onOpenNotes: () => void;
   onClose: () => void;
@@ -57,7 +54,7 @@ export function AppointmentDrawer({ appointment, ...props }: Omit<Props, "appoin
   return appointment ? <AppointmentDrawerBody key={appointment.id} appointment={appointment} {...props} /> : null;
 }
 
-function AppointmentDrawerBody({ appointment: a, customer, staff, services, canEdit, visitChoices, canPhotos, onViewInfo, onOpenNotes, onClose }: Props) {
+function AppointmentDrawerBody({ appointment: a, customer, staff, services, canEdit, visitChoices, onViewInfo, onOpenNotes, onClose }: Props) {
   const t = useTranslations("appointments");
   const tn = useTranslations("notes");
   const locale = useLocale();
@@ -229,11 +226,5 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
         {tn("viewAll", { count: a.sales_notes.length })}
       </Button>
     </Form>
-    {/* Ảnh B/A (không bắt buộc) — ngoài Form: tải / xoá lưu ngay, không chờ nút Lưu. */}
-    {canPhotos && <>
-      <Divider className="my-4" />
-      <h3 className="mb-3 font-semibold">{t("sectionPhotos")}</h3>
-      <AppointmentPhotos appointmentId={a.id} customerId={a.customer_id} canEdit={canEdit} />
-    </>}
   </FormDrawer>;
 }

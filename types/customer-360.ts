@@ -99,10 +99,22 @@ export interface Customer360 {
   photos: AppointmentPhoto[] | null;
   /** Bản chụp tin SMAX lúc gửi lead-form (dự phòng khi SMAX lỗi). */
   smax_messages: ChatMessage[] | null;
+  /** Bản tóm tắt AI hội thoại SMAX gần nhất (null = chưa tóm tắt). */
+  chat_summary: ChatSummary | null;
   can: { finance: boolean; photos: boolean };
   role: ViewerRole;
   /** Mốc "bây giờ" lúc tải (chọn Đơn hiện tại) — render không gọi Date.now(). */
   now: number;
+}
+
+/** Tóm tắt AI (Claude) hội thoại SMAX — 1 bản / khách, ghi đè khi tóm tắt lại. */
+export interface ChatSummary {
+  summary: string;
+  /** Giờ tin mới nhất đã đưa vào tóm tắt — có tin sau mốc này = bản tóm tắt đã cũ. */
+  last_message_at: string | null;
+  message_count: number;
+  created_by: string | null;
+  created_at: string;
 }
 
 /** Vai trò tài khoản đang xem — gợi ý đầu popup. */

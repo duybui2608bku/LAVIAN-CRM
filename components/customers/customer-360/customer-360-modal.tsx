@@ -68,8 +68,10 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
       <Button icon={<PanelRightOpen className="size-4" />}>{t("toEdit")}</Button>
     </Link>);
 
-  return <Modal open={!!customerId} onCancel={close} width={1200} destroyOnHidden centered
-    styles={{ body: { maxHeight: "calc(100vh - 220px)", overflowY: "auto" } }}
+  // Kích thước cố định (không co giãn theo nội dung / tab / lúc đang tải): rộng 1360, cao 720, màn nhỏ thì vừa màn hình.
+  // Desktop: thanh tab đứng yên, nội dung mỗi tab cuộn trong cùng 1 vùng; điện thoại: cuộn cả thân.
+  return <Modal open={!!customerId} onCancel={close} width="min(1360px, calc(100vw - 32px))" destroyOnHidden centered
+    styles={{ body: { height: "min(720px, calc(100vh - 220px))", overflowY: "auto" } }}
     title={<Header data={data} index={index} total={ids.length} onPrev={() => go(-1)} onNext={() => go(1)} />}
     footer={<div className="flex flex-wrap justify-end gap-2">
       <Button icon={<NotebookPen className="size-4" />} onClick={() => { setTab("timeline"); setComposing(true); }}>{t("quickNote")}</Button>
@@ -77,16 +79,18 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
     </div>}>
     {isPending ? <Skeleton active paragraph={{ rows: 10 }} />
       : error ? <Alert type="error" showIcon title={error.message} />
-      : <div className="flex flex-col gap-4">
+      : <div className="flex flex-col gap-4 lg:h-full">
         <Summary data={data} />
-        <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[260px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
           <SideColumn data={data} />
-          <Tabs activeKey={active} onChange={(k) => setTab(k as TabKey)} items={[
+          <Tabs activeKey={active} onChange={(k) => setTab(k as TabKey)}
+            className="lg:h-full lg:[&_.ant-tabs-content]:h-full lg:[&_.ant-tabs-content-holder]:overflow-y-auto lg:[&_.ant-tabs-content-holder]:[scrollbar-gutter:stable] lg:[&_.ant-tabs-tabpane]:h-full"
+            items={[
             { key: "overview", label: t("tabs.overview"), children: <OverviewTab data={data} staff={staff} /> },
             { key: "portrait", label: t("tabs.portrait"), children: <PortraitTab data={data} staff={staff} onSaved={refresh} /> },
             { key: "services", label: t("tabs.services"), children: <ServicesTab data={data} onSaved={refresh} /> },
             ...(data.can.photos ? [{ key: "photos", label: t("tabs.photos"), children: <PhotosTab data={data} /> }] : []),
-            { key: "messages", label: t("tabs.messages"), children: <MessagesTab data={data} /> },
+            { key: "messages", label: t("tabs.messages"), children: <MessagesTab data={data} staff={staff} onSaved={refresh} /> },
             { key: "timeline", label: t("tabs.timeline"), children: <TimelineTab data={data} staff={staff} composing={composing} onSaved={refresh} /> },
             { key: "care", label: t("tabs.care"), children: <Result status="info" title={t("comingSoon")} subTitle={t("comingSoonDesc")} /> },
           ]} />
@@ -109,7 +113,7 @@ function Header({ data, index, total, onPrev, onNext }: {
         <span className="truncate text-lg font-semibold">{c?.full_name ?? t("title")}</span>
         {stage && <EnumTag label={optionLabel(stage, locale)} icon={stage.icon} color={stage.color} />}
       </div>
-      <div className="text-xs font-normal text-muted-foreground tabular-nums">
+      <div className="min-h-4 text-xs font-normal text-muted-foreground tabular-nums">
         {[c?.phone, data && t(`hint.${data.role}`)].filter(Boolean).join(" · ")}
       </div>
     </div>
@@ -141,7 +145,7 @@ function Summary({ data }: { data: Customer360 }) {
 function SideColumn({ data }: { data: Customer360 }) {
   const t = useTranslations("c360");
   const latest = latestPortrait(data.portrait);
-  return <aside className="flex flex-col gap-4 max-lg:hidden">
+  return <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto max-lg:hidden">
     <section className="rounded-lg border border-border p-3">
       <h3 className="mb-2 text-sm font-semibold">{t("quickPortrait")}</h3>
       <dl className="flex flex-col gap-2 text-sm">

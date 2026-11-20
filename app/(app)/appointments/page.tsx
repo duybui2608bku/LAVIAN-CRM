@@ -1,7 +1,6 @@
 import { AppointmentsManager, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { getCurrentProfile } from "@/lib/auth";
 import { canSetVisitStatus } from "@/lib/appointments";
-import { canSeePhotos } from "@/lib/customer-360";
 import { instagramUsername } from "@/lib/customer-options";
 import { createClient } from "@/lib/supabase/server";
 import { VISIT_STATUSES, type Appointment, type AppointmentCustomer } from "@/types/appointment";
@@ -36,6 +35,5 @@ export default async function AppointmentsPage({ searchParams }: {
     initialCustomer={params.customer ?? ""}
     // Status được chọn: Sales/admin mọi trạng thái, Master chỉ "Đã thực hiện" (rỗng = không đổi được).
     visitChoices={VISIT_STATUSES.filter((s) => canSetVisitStatus(profile, s))}
-    canPhotos={canSeePhotos(profile)}
   />;
 }
