@@ -63,7 +63,11 @@ export function NoteTimeline({ notes, staff, canDelete, onDelete }: {
 }
 
 /** Ô soạn ghi chú: chip tiêu đề gợi ý (hoặc tự gõ, bỏ trống được) + nội dung, Ctrl/⌘ + Enter lưu. */
-function NoteComposer({ onAdd }: { onAdd: (input: { title: string; text: string }) => Promise<{ error?: string }> }) {
+export function NoteComposer({ onAdd, suggestions }: {
+  onAdd: (input: { title: string; text: string }) => Promise<{ error?: string }>;
+  /** Tiêu đề gợi ý, ngăn cách "|" — mặc định `notes.suggestions`. */
+  suggestions?: string;
+}) {
   const t = useTranslations("notes");
   const id = useId();
   const [title, setTitle] = useState("");
@@ -89,7 +93,7 @@ function NoteComposer({ onAdd }: { onAdd: (input: { title: string; text: string 
         onChange={(e) => setTitle(e.target.value)} />
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-xs text-muted-foreground">{t("suggest")}</span>
-        {t("suggestions").split("|").map((s) => <Tag.CheckableTag key={s} checked={title === s}
+        {(suggestions ?? t("suggestions")).split("|").map((s) => <Tag.CheckableTag key={s} checked={title === s}
           className="me-0 border border-border" onChange={(on) => setTitle(on ? s : "")}>{s}</Tag.CheckableTag>)}
       </div>
     </div>

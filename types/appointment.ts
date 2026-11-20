@@ -1,4 +1,5 @@
 import type { CustomerNote, OtherChannel } from "./customer";
+import type { AppointmentPerformer } from "./customer-360";
 import type { TimelineNote } from "./note";
 import type { ServiceCategory } from "./service";
 
@@ -43,6 +44,7 @@ export interface Appointment {
   notes: TimelineNote[]; // ghi chú lịch hẹn (Telesales) dạng timeline
   sales_notes: TimelineNote[]; // ghi chú Sales dạng timeline
   created_by: string | null; // người tạo lịch (lịch cũ không truy được → null)
+  performers?: AppointmentPerformer[]; // người thực hiện thêm (ngoài Master) — chỉ trang /appointments nạp
 }
 
 export type AppointmentCustomer = {

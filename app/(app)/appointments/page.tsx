@@ -1,9 +1,10 @@
 import { AppointmentsManager, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { getCurrentProfile } from "@/lib/auth";
-import { canConfirmShowUp } from "@/lib/appointments";
+import { canSetVisitStatus } from "@/lib/appointments";
+import { canSeePhotos } from "@/lib/customer-360";
 import { instagramUsername } from "@/lib/customer-options";
 import { createClient } from "@/lib/supabase/server";
-import type { Appointment, AppointmentCustomer } from "@/types/appointment";
+import { VISIT_STATUSES, type Appointment, type AppointmentCustomer } from "@/types/appointment";
 import type { Service } from "@/types/service";
 
 export default async function AppointmentsPage({ searchParams }: {
@@ -11,7 +12,7 @@ export default async function AppointmentsPage({ searchParams }: {
 }) {
   const db = await createClient();
   const [appointments, customers, staff, services, params, profile] = await Promise.all([
-    db.from("clinic_appointments").select("id,customer_id,scheduled_at,booking_confirm,checked_in,visit_status,service_categories,service_ids,staff_id,sales_id,technician_id,bill_amount,paid_amount,created_by,notes,sales_notes")
+    db.from("clinic_appointments").select("id,customer_id,scheduled_at,booking_confirm,checked_in,visit_status,service_categories,service_ids,staff_id,sales_id,technician_id,bill_amount,paid_amount,created_by,notes,sales_notes,performers:appointment_performers(profile_id,role)")
       .is("deleted_at", null).order("scheduled_at"),
     db.from("customers").select("id,full_name,phone,source,staff_id,deposit_amount,notes,thread_link:thread->>link,other_channel,instagram_username:smax_data->customer->instagram->>username")
       .is("deleted_at", null).order("full_name"),
@@ -33,6 +34,8 @@ export default async function AppointmentsPage({ searchParams }: {
     staff={(staff.data ?? []) as AppointmentStaff[]}
     services={(services.data ?? []) as Service[]}
     initialCustomer={params.customer ?? ""}
-    canShowUp={canConfirmShowUp(profile)}
+    // Status được chọn: Sales/admin mọi trạng thái, Master chỉ "Đã thực hiện" (rỗng = không đổi được).
+    visitChoices={VISIT_STATUSES.filter((s) => canSetVisitStatus(profile, s))}
+    canPhotos={canSeePhotos(profile)}
   />;
 }

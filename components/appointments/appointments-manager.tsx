@@ -2,7 +2,7 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { Button, Form, Input, Select, Tag, type TableProps } from "antd";
-import { CalendarPlus, MessageCircleMore, PanelRightOpen, Rows3, Search } from "lucide-react";
+import { CalendarPlus, MessageCircleMore, Rows3, Search, SquarePen } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addAppointmentNote, createAppointment, deleteAppointmentNote, patchAppointment } from "@/app/(app)/appointments/actions";
@@ -18,6 +18,7 @@ import { NoteCell, NotesDrawer } from "@/components/common/notes";
 import { useCan, useCurrentUserId } from "@/components/common/permissions";
 import { CustomerInfoDrawer } from "@/components/customers/customer-info-drawer";
 import { CustomerNotesDrawer, SourceCell } from "@/components/customers/customers-manager";
+import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
@@ -51,14 +52,16 @@ export const staffOptions = (staff: AppointmentStaff[], current?: string | null,
   .filter((s) => s.id === current || (s.status === "active" && depts.includes(s.department ?? "")))
   .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
-export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, canShowUp }: {
+export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, visitChoices, canPhotos }: {
   appointments: Appointment[];
   customers: AppointmentCustomer[];
   staff: AppointmentStaff[];
   services: Service[];
   initialCustomer: string;
-  /** Status lịch hẹn (Đã đến, Đang thực hiện…) chỉ bộ phận Sales. */
-  canShowUp: boolean;
+  /** Status được chọn: Sales/admin mọi trạng thái, Master chỉ Đã thực hiện (rỗng = không đổi được). */
+  visitChoices: VisitStatus[];
+  /** Ảnh B/A ở Drawer (mọi bộ phận trừ Telesales). */
+  canPhotos: boolean;
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
@@ -107,6 +110,11 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       && matchesNameOrPhone(customer.full_name, customer.phone, search);
   });
   const stats = appointmentStats(filtered, (id) => customerMap.get(id)?.deposit_amount);
+  // Popup 360°: Trước/Tiếp theo khách của bảng đang lọc; "Chuyển sang nhập liệu" → Drawer lịch gần nhất của khách.
+  const c360 = useCustomer360({
+    ids: filtered.map((row) => row.customer_id), staff,
+    onEdit: (_, appointmentId) => setEditingId(appointmentId),
+  });
   const editing = editingId ? rows.find((row) => row.id === editingId) ?? null : null;
   const notesFor = notesOpen ? rows.find((row) => row.id === notesOpen.id) ?? null : null;
   const resetPage = () => setPage(1);
@@ -122,14 +130,14 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
         <AppointmentDate inline format="HH:mm" disabled={!canEdit} value={row.scheduled_at} onSave={(iso) => save(row.id, { scheduled_at: iso })} />
         <div className="mt-0.5 text-xs text-muted-foreground">{dayjs(row.scheduled_at).format("DD/MM/YYYY")}</div>
       </div> },
-    // Tên (bấm mở drawer sửa lịch; + chấm xanh = khách mới) + SĐT · nhóm DV (bấm nhóm để sửa) + icon mở drawer sửa lịch.
+    // Tên (bấm mở popup hồ sơ 360°; + chấm xanh = khách mới) + SĐT · nhóm DV (bấm nhóm để sửa) + icon ✎ mở drawer sửa lịch.
     { title: t("name"), width: 240, fixed: "left", render: (_, row) => {
       const customer = customerMap.get(row.customer_id);
       const cats = row.service_categories.map((c) => SERVICE_CATEGORY_LABELS[c] ?? c).join(", ");
       return <div className="flex items-center justify-between gap-1">
         <div className="min-w-0 flex-1">
         <NamePhone phone={customer?.phone} title={customer?.full_name}
-          name={<><button type="button" aria-label={t("openEdit")} onClick={() => setEditingId(row.id)}
+          name={<><button type="button" aria-label={t("openProfile")} title={t("openProfile")} onClick={() => c360.open(row.customer_id)}
             className="font-medium hover:text-primary hover:underline">{customer?.full_name}</button>{newIds.has(row.id) && <span role="img" aria-label={t("newCustomer")} title={t("newCustomer")}
             className="ms-1 inline-block size-2 rounded-full bg-success align-super" />}</>}
           extra={cats || canEdit ? <>{" · "}<InlineMultiSelect
@@ -150,9 +158,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
           {row.notes.at(-1)!.text}{row.notes.length > 1 && ` (+${row.notes.length - 1})`}
         </button>}
         </div>
-        {/* Icon + tên đều mở drawer Sửa lịch hẹn; Thông tin khách mở từ icon trong drawer đó. */}
+        {/* Icon ✎ mở drawer Sửa lịch hẹn; Thông tin khách mở từ icon trong drawer đó. */}
         {customer && <Button type="text" size="small" aria-label={t("openEdit")} title={t("openEdit")}
-          icon={<PanelRightOpen className="size-4" />} onClick={() => setEditingId(row.id)} />}
+          icon={<SquarePen className="size-4" />} onClick={() => setEditingId(row.id)} />}
       </div>;
     } },
     // Nguồn: icon + số WA nhận tin / username IG — giống Booking management & Khách hàng.
@@ -160,7 +168,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       const c = customerMap.get(row.customer_id);
       return c ? <SourceCell customer={{ ...c, thread: c.thread_link ? { link: c.thread_link } : null } as unknown as Customer} /> : null;
     } },
-    // Thay cột Số WA: icon mở modal 20 tin SMAX gần nhất (khách chưa có hội thoại → "—").
+    // Thay cột Số WA: icon mở modal 30 tin SMAX gần nhất (khách chưa có hội thoại → "—").
     { title: t("messages"), width: 100, align: "center", render: (_, row) => {
       const customer = customerMap.get(row.customer_id);
       return customer?.thread_link
@@ -175,9 +183,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       onSave={(value) => save(row.id, { booking_confirm: value as Appointment["booking_confirm"] })} /> },
     // Status 5 bước (thay Clinic confirmation); Đã đến / Đang thực hiện / Đã thực hiện = khách đã đến (DB tự tính checked_in).
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
-      value={row.visit_status} ariaLabel={t("confirmation")} disabled={!canEdit || !canShowUp}
+      value={row.visit_status} ariaLabel={t("confirmation")} disabled={!canEdit || !visitChoices.length}
       display={<VisitStatusTag status={row.visit_status} />}
-      options={visitOptions}
+      options={visitOptions.map((o) => ({ ...o, disabled: o.value !== row.visit_status && !visitChoices.includes(o.value) }))}
       onSave={(value) => save(row.id, { visit_status: value as VisitStatus })} /> },
     // Cột Nhóm dịch vụ đã gộp vào ô Khách hàng (sau SĐT).
     // Dịch vụ chi tiết: chỉ xem (không sửa trên bảng).
@@ -253,21 +261,22 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
           <Tag color={BOOKING_STATUS_COLORS[s]} className="me-0">{t(`bookingStatus.${s}`)}</Tag>
           <span className="font-normal text-muted-foreground">{t("count", { count: items.length })}</span>
         </h3>
-        <DataTable columns={columns} dataSource={items} scroll={{ x: 1990 }} pageSize={30} />
+        <DataTable columns={columns} dataSource={items} scroll={{ x: 1990 }} pageSize={30} onChange={c360.onTableChange} />
       </section> : null;
     }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1990 }} empty={t("empty")}
-      page={page} onPageChange={setPage} pageSize={30} />}
+      page={page} onPageChange={setPage} pageSize={30} onChange={c360.onTableChange} />}
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}
       onCreated={() => { setCreating(false); setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setVisit("all"); setBooking("all"); setPage(1); }} />
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
-      staff={staff} services={services} canEdit={canEdit} canShowUp={canShowUp}
+      staff={staff} services={services} canEdit={canEdit} visitChoices={visitChoices} canPhotos={canPhotos}
       onViewInfo={setInfoFor} onOpenNotes={() => editingId && setNotesOpen({ id: editingId, field: "sales_notes" })} onClose={() => setEditingId(null)} />
     <AppointmentNotesDrawer appointment={notesFor} field={notesOpen?.field ?? "notes"} staff={staff} canEdit={canEdit}
       customerName={notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : ""} onClose={() => setNotesOpen(null)} />
     <CustomerNotesDrawer customer={teleNotesFor} staff={staff} onClose={() => setTeleNotesFor(null)} />
     <CustomerInfoDrawer customer={infoFor} staff={staff} onClose={() => setInfoFor(null)} />
+    {c360.modal}
   </Page>;
 }
 

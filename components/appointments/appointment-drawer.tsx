@@ -2,9 +2,11 @@
 
 import { useTransition } from "react";
 import { Button, Divider, Form, InputNumber, Select, Tag } from "antd";
-import { NotebookPen, PanelRightOpen } from "lucide-react";
+import { NotebookPen, PanelRightOpen, Plus, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { patchAppointment } from "@/app/(app)/appointments/actions";
+import { setAppointmentPerformers } from "@/app/(app)/customers/customer-360-actions";
+import { AppointmentPhotos } from "@/components/appointments/appointment-photos";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { staffOptions, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { NoteItem } from "@/components/common/notes";
@@ -16,8 +18,9 @@ import { serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import {
   BOOKING_STATUS_COLORS, VISIT_STATUSES,
-  type Appointment, type AppointmentCustomer, type AppointmentPatch,
+  type Appointment, type AppointmentCustomer, type AppointmentPatch, type VisitStatus,
 } from "@/types/appointment";
+import { PERFORMER_ROLES, type AppointmentPerformer } from "@/types/customer-360";
 import { SERVICE_CATEGORY_LABELS, SERVICE_CATEGORY_OPTIONS, type Service, type ServiceCategory } from "@/types/service";
 
 const idr = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
@@ -28,7 +31,10 @@ const moneyInput = <InputNumber<number> className="w-full" min={0} precision={0}
 // Trường drawer sửa được — gửi lên server chỉ những trường đã đổi.
 const FIELDS = ["scheduled_at", "visit_status", "service_categories", "service_ids", "paid_amount", "bill_amount",
   "sales_id", "technician_id"] as const satisfies readonly (keyof AppointmentPatch)[];
-type Values = Pick<Appointment, (typeof FIELDS)[number]>;
+type Values = Pick<Appointment, (typeof FIELDS)[number]> & { performers: Partial<AppointmentPerformer>[] };
+// Vai trò theo bộ phận: Sales → "sales"; Master (technician) → Mapping / Phun-xăm / Hỗ trợ.
+const rolesOf = (department: string | null | undefined) =>
+  PERFORMER_ROLES.filter((r) => (department === "sales" ? r === "sales" : r !== "sales"));
 
 type Props = {
   appointment: Appointment;
@@ -36,7 +42,10 @@ type Props = {
   staff: AppointmentStaff[];
   services: Service[];
   canEdit: boolean;
-  canShowUp: boolean;
+  /** Status được chọn (Sales/admin: tất cả; Master: chỉ Đã thực hiện; rỗng = không đổi được). */
+  visitChoices: VisitStatus[];
+  /** Xem / tải ảnh B/A (mọi bộ phận trừ Telesales). */
+  canPhotos: boolean;
   onViewInfo: (customer: AppointmentCustomer) => void;
   onOpenNotes: () => void;
   onClose: () => void;
@@ -48,7 +57,7 @@ export function AppointmentDrawer({ appointment, ...props }: Omit<Props, "appoin
   return appointment ? <AppointmentDrawerBody key={appointment.id} appointment={appointment} {...props} /> : null;
 }
 
-function AppointmentDrawerBody({ appointment: a, customer, staff, services, canEdit, canShowUp, onViewInfo, onOpenNotes, onClose }: Props) {
+function AppointmentDrawerBody({ appointment: a, customer, staff, services, canEdit, visitChoices, canPhotos, onViewInfo, onOpenNotes, onClose }: Props) {
   const t = useTranslations("appointments");
   const tn = useTranslations("notes");
   const locale = useLocale();
@@ -75,12 +84,17 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
     const patch = Object.fromEntries(FIELDS
       .map((f) => [f, values[f] ?? null] as const)
       .filter(([f, v]) => JSON.stringify(v) !== JSON.stringify(a[f] ?? null))) as AppointmentPatch;
-    if (!Object.keys(patch).length) return onClose();
+    const performers = (values.performers ?? []).filter((p): p is AppointmentPerformer => !!p?.profile_id && !!p.role)
+      .map(({ profile_id, role }) => ({ profile_id, role }));
+    const performersChanged = JSON.stringify(performers) !== JSON.stringify(a.performers ?? []);
+    if (!Object.keys(patch).length && !performersChanged) return onClose();
     start(async () => {
       try {
-        const result = await patchAppointment(a.id, patch);
-        if (result.error) toast.error(result.error);
-        else { toast.success(t("saved")); onClose(); }
+        const result = Object.keys(patch).length ? await patchAppointment(a.id, patch) : {};
+        if (result.error) return void toast.error(result.error);
+        const saved = performersChanged ? await setAppointmentPerformers(a.id, performers) : {};
+        if (saved.error) return void toast.error(saved.error);
+        toast.success(t("saved")); onClose();
       } catch { toast.error(t("saveError")); }
     });
   };
@@ -99,15 +113,17 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
         icon={<PanelRightOpen className="size-4" />} onClick={() => onViewInfo(customer)} />}
     </div>}>
     <Form form={form} layout="vertical" disabled={!canEdit || pending} onFinish={submit} requiredMark={false}
-      initialValues={Object.fromEntries(FIELDS.map((f) => [f, a[f]]))}>
+      initialValues={{ ...Object.fromEntries(FIELDS.map((f) => [f, a[f]])), performers: a.performers ?? [] }}>
       <h3 className="mb-3 font-semibold">{t("sectionBooking")}</h3>
       <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
         <Form.Item name="scheduled_at" label={t("date")} trigger="onSave" rules={[{ required: true, message: t("chooseDate") }]}>
           <AppointmentDate className="w-full" onSave={() => {}} />
         </Form.Item>
-        {/* Status chỉ Sales/admin đổi. */}
+        {/* Status: Sales/admin đổi mọi trạng thái; Master chỉ chọn được Đã thực hiện. */}
         <Form.Item name="visit_status" label={t("confirmation")}>
-          <Select disabled={!canShowUp} options={VISIT_STATUSES.map((value) => ({ value, label: t(`visitStatus.${value}`) }))} />
+          <Select disabled={!visitChoices.length} options={VISIT_STATUSES.map((value) => ({
+            value, label: t(`visitStatus.${value}`), disabled: value !== a.visit_status && !visitChoices.includes(value),
+          }))} />
         </Form.Item>
       </div>
 
@@ -135,11 +151,18 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
           <dt className="text-muted-foreground">{t("deposit")}</dt><dd className="text-right">{idr.format(deposit)}</dd>
           <dt className="text-muted-foreground">{t("bill")}</dt><dd className="text-right">{idr.format(bill)}</dd>
           <dt className="text-muted-foreground">{t("paidTotal")}</dt><dd className="text-right text-success">{idr.format(money.collected)}</dd>
-          <dt className="font-medium">{t("due")}</dt><dd className="text-right font-medium text-warning">{idr.format(money.due)}</dd>
+          {/* E2: đã có cọc mà chưa chốt giá → Phải thu chưa xác định. */}
+          <dt className="font-medium">{t("due")}</dt><dd className="text-right font-medium text-warning">
+            {!bill && deposit > 0 ? t("dueUnknown") : idr.format(money.due)}
+          </dd>
         </dl>
         <Divider className="my-4" />
         <Form.Item name="paid_amount" label={t("paidInput")}>{moneyInput}</Form.Item>
-        <Form.Item name="bill_amount" label={t("billInput")} className="mb-0">{moneyInput}</Form.Item>
+        {/* E3: Giá trị DV (> 0) không nhỏ hơn số đã thu. */}
+        <Form.Item name="bill_amount" label={t("billInput")} className="mb-0" dependencies={["paid_amount"]} rules={[{
+          validator: (_, v?: number | null) => v && v < deposit + (form.getFieldValue("paid_amount") ?? 0)
+            ? Promise.reject(new Error(t("rule.billBelowCollected"))) : Promise.resolve(),
+        }]}>{moneyInput}</Form.Item>
       </div>
 
       <Divider className="mt-1 mb-4" />
@@ -153,10 +176,47 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
           <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("choose")}
             options={staffOptions(staff, a.sales_id, ["sales"])} />
         </Form.Item>
-        <Form.Item name="technician_id" label={t("master")}>
+        {/* E3: Đã thực hiện cần Master; Đang thực hiện cần Master hoặc Sales. */}
+        <Form.Item name="technician_id" label={t("master")} dependencies={["visit_status", "sales_id"]} rules={[{
+          validator: (_, v?: string | null) => {
+            const status = form.getFieldValue("visit_status");
+            if (!v && status === "done") return Promise.reject(new Error(t("rule.doneNeedsMaster")));
+            if (!v && status === "in_progress" && !form.getFieldValue("sales_id")) return Promise.reject(new Error(t("rule.inProgressNeedsStaff")));
+            return Promise.resolve();
+          },
+        }]}>
           <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("unassigned")}
             options={staffOptions(staff, a.technician_id, ["technician"])} />
         </Form.Item>
+      </div>
+
+      {/* Người thực hiện thêm (ngoài Master): mỗi người 1 vai trò, mỗi người tối đa 1 lần. */}
+      <div className="mb-4">
+        <div className="mb-2 text-sm">{t("performers")}</div>
+        <Form.List name="performers">{(fields, { add, remove }) => <div className="flex flex-col gap-2">
+          {fields.map((field) => <div key={field.key} className="flex items-start gap-2">
+            <Form.Item name={[field.name, "profile_id"]} className="mb-0 min-w-0 flex-1" rules={[
+              { required: true, message: t("performer") },
+              { validator: (_, v?: string) => v && (form.getFieldValue("performers") as Partial<AppointmentPerformer>[])
+                .filter((p) => p?.profile_id === v).length > 1 ? Promise.reject(new Error(t("performerDuplicate"))) : Promise.resolve() },
+            ]}>
+              <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("performer")} aria-label={t("performer")}
+                options={staffOptions(staff, a.performers?.[field.name]?.profile_id, ["technician", "sales"])}
+                // Đổi người → chọn sẵn vai trò hợp bộ phận.
+                onChange={(id: string) => form.setFieldValue(["performers", field.name, "role"],
+                  rolesOf(staff.find((s) => s.id === id)?.department)[0])} />
+            </Form.Item>
+            <Form.Item noStyle shouldUpdate>{() => {
+              const person = staff.find((s) => s.id === form.getFieldValue(["performers", field.name, "profile_id"]));
+              return <Form.Item name={[field.name, "role"]} className="mb-0 w-36" rules={[{ required: true, message: t("performerRole") }]}>
+                <Select placeholder={t("performerRole")} aria-label={t("performerRole")}
+                  options={rolesOf(person?.department).map((r) => ({ value: r, label: t(`performerRoles.${r}`) }))} />
+              </Form.Item>;
+            }}</Form.Item>
+            <Button type="text" aria-label={tn("delete")} icon={<X className="size-4" />} onClick={() => remove(field.name)} />
+          </div>)}
+          <Button type="dashed" icon={<Plus className="size-4" />} onClick={() => add({})} className="self-start">{t("addPerformer")}</Button>
+        </div>}</Form.List>
       </div>
 
       <Divider className="mt-1 mb-4" />
@@ -169,5 +229,11 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
         {tn("viewAll", { count: a.sales_notes.length })}
       </Button>
     </Form>
+    {/* Ảnh B/A (không bắt buộc) — ngoài Form: tải / xoá lưu ngay, không chờ nút Lưu. */}
+    {canPhotos && <>
+      <Divider className="my-4" />
+      <h3 className="mb-3 font-semibold">{t("sectionPhotos")}</h3>
+      <AppointmentPhotos appointmentId={a.id} customerId={a.customer_id} canEdit={canEdit} />
+    </>}
   </FormDrawer>;
 }

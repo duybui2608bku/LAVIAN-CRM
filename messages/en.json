@@ -100,7 +100,26 @@
     "salesNotesColumn": "Sales note",
     "salesNotesTitle": "Sales notes · {name}",
     "addNote": "Add note",
-    "notesTitle": "Appointment notes · {name}"
+    "notesTitle": "Appointment notes · {name}",
+    "rule": {
+      "billBelowCollected": "Service value is lower than the amount collected",
+      "doneNeedsMaster": "Choose a Master before finishing",
+      "inProgressNeedsStaff": "Choose a Master or Sales before starting"
+    },
+    "dueUnknown": "Not determined",
+    "performers": "Additional performers",
+    "addPerformer": "Add performer",
+    "performer": "Performer",
+    "performerRole": "Role",
+    "performerDuplicate": "Each person can only be added once",
+    "performerRoles": {
+      "mapping": "Mapping",
+      "tattoo": "Tattoo",
+      "assist": "Assist",
+      "sales": "Sales"
+    },
+    "sectionPhotos": "5. Before/After photos (optional)",
+    "openProfile": "Open 360° customer profile"
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -906,5 +925,126 @@
     "suggest": "Suggestions:",
     "textLabel": "Content",
     "shortcut": "Ctrl + Enter to save"
+  },
+  "c360": {
+    "title": "Customer profile",
+    "prev": "Previous customer",
+    "next": "Next customer",
+    "position": "{index}/{total}",
+    "hint": {
+      "admin": "Admin: full profile",
+      "telesales": "Telesales: focus on portrait, needs and conversation",
+      "sales": "Sales: check finance and upsell needs",
+      "master": "Master: appointments, B/A photos and portrait"
+    },
+    "summary": {
+      "wish": "Wishes",
+      "pain": "Concerns",
+      "next": "Next need",
+      "empty": "None yet"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "portrait": "Portrait",
+      "services": "Services & Upsell",
+      "photos": "B/A photos",
+      "messages": "Conversation",
+      "timeline": "History & notes",
+      "care": "Customer care"
+    },
+    "comingSoon": "Coming soon",
+    "comingSoonDesc": "The customer care tab is under development.",
+    "quickNote": "Quick note",
+    "toEdit": "Switch to data entry",
+    "noteSuggestions": "Consulting|Technical|Customer care|Feedback",
+    "quickPortrait": "Quick portrait",
+    "nextTasks": "Next tasks",
+    "noTasks": "No open reminders",
+    "info": "Customer info",
+    "stage": "Status",
+    "source": "Source",
+    "firstContact": "First contact",
+    "appointments": "Appointments ({count})",
+    "noAppointments": "No appointments",
+    "performers": "Performers",
+    "portrait": {
+      "fields": {
+        "wish": "Wishes",
+        "pain": "Concerns",
+        "preference": "Preferences",
+        "behavior": "Decision behavior",
+        "communication": "Communication style",
+        "personality": "Personality"
+      },
+      "source": {
+        "customer": "Customer said",
+        "staff": "Staff observed"
+      },
+      "add": "Update portrait",
+      "field": "Field",
+      "text": "Content",
+      "sourceLabel": "Source",
+      "message": "Original message",
+      "messagePlaceholder": "Attach a SMAX message (optional)",
+      "saved": "Portrait saved",
+      "history": "History ({count})",
+      "empty": "None yet",
+      "immutable": "Each update is saved as a new version; older versions are kept and cannot be edited or deleted."
+    },
+    "needs": {
+      "title": "Needs / Upsell",
+      "add": "Record a need",
+      "name": "Need",
+      "namePlaceholder": "e.g. Lip Blush, Slimming",
+      "service": "Service (optional)",
+      "originLabel": "Source",
+      "origin": {
+        "customer_asked": "Customer asked",
+        "staff_found": "Found by Sales"
+      },
+      "status": {
+        "need": "Need",
+        "consulting": "Consulting",
+        "upsell": "Upsell",
+        "won": "Won",
+        "lost": "Lost"
+      },
+      "empty": "No needs yet",
+      "saved": "Need saved",
+      "history": "Status history"
+    },
+    "finance": {
+      "title": "Finance",
+      "total": "Lifetime total",
+      "current": "Current order",
+      "history": "Purchase history",
+      "paid": "Extra paid",
+      "empty": "No appointments"
+    },
+    "photos": {
+      "before": "Before",
+      "after": "After",
+      "empty": "No B/A photos yet",
+      "upload": "Upload {kind}",
+      "deleteConfirm": "Delete this photo?",
+      "delete": "Delete photo",
+      "deleted": "Photo deleted",
+      "uploaded": "Photo uploaded",
+      "tooLarge": "Max 10MB per photo",
+      "notImage": "Images only"
+    },
+    "messages": {
+      "search": "Search conversation",
+      "noMatch": "No matching messages",
+      "snapshot": "Could not load from SMAX — showing snapshot from {at}"
+    },
+    "timeline": {
+      "all": "All",
+      "log": "Appointment changes",
+      "customer_note": "Telesales",
+      "appointment_note": "Appointment notes",
+      "sales_note": "Sales",
+      "empty": "No activity yet"
+    }
   }
 }

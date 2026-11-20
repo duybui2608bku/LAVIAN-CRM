@@ -100,7 +100,26 @@
     "salesNotesColumn": "Ghi chú Sales",
     "salesNotesTitle": "Ghi chú Sales · {name}",
     "addNote": "Thêm ghi chú",
-    "notesTitle": "Ghi chú lịch hẹn · {name}"
+    "notesTitle": "Ghi chú lịch hẹn · {name}",
+    "rule": {
+      "billBelowCollected": "Giá trị dịch vụ nhỏ hơn số đã thu",
+      "doneNeedsMaster": "Cần chọn Master trước khi kết thúc",
+      "inProgressNeedsStaff": "Cần chọn Master hoặc Sales trước khi bắt đầu"
+    },
+    "dueUnknown": "Chưa xác định",
+    "performers": "Người thực hiện thêm",
+    "addPerformer": "Thêm người thực hiện",
+    "performer": "Người thực hiện",
+    "performerRole": "Vai trò",
+    "performerDuplicate": "Mỗi người chỉ thêm 1 lần",
+    "performerRoles": {
+      "mapping": "Mapping",
+      "tattoo": "Phun-xăm",
+      "assist": "Hỗ trợ",
+      "sales": "Sales"
+    },
+    "sectionPhotos": "5. Ảnh B/A (không bắt buộc)",
+    "openProfile": "Mở hồ sơ khách 360°"
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -906,5 +925,126 @@
     "suggest": "Gợi ý:",
     "textLabel": "Nội dung",
     "shortcut": "Ctrl + Enter để lưu nhanh"
+  },
+  "c360": {
+    "title": "Hồ sơ khách hàng",
+    "prev": "Khách trước",
+    "next": "Khách tiếp",
+    "position": "{index}/{total}",
+    "hint": {
+      "admin": "Quản trị viên: xem toàn bộ hồ sơ",
+      "telesales": "Telesales: tập trung chân dung, nhu cầu và hội thoại",
+      "sales": "Sales: kiểm tra tài chính và nhu cầu Upsell",
+      "master": "Master: xem lịch hẹn, ảnh B/A và chân dung khách"
+    },
+    "summary": {
+      "wish": "Mong muốn",
+      "pain": "Nỗi lo",
+      "next": "Nhu cầu tiếp theo",
+      "empty": "Chưa có"
+    },
+    "tabs": {
+      "overview": "Tổng quan",
+      "portrait": "Chân dung",
+      "services": "Dịch vụ & Upsell",
+      "photos": "Ảnh B/A",
+      "messages": "Hội thoại",
+      "timeline": "Lịch sử & Ghi chú",
+      "care": "CSKH"
+    },
+    "comingSoon": "Coming soon",
+    "comingSoonDesc": "Tab CSKH đang được phát triển.",
+    "quickNote": "Ghi chú nhanh",
+    "toEdit": "Chuyển sang nhập liệu",
+    "noteSuggestions": "Tư vấn|Kỹ thuật|CSKH|Phản hồi",
+    "quickPortrait": "Chân dung nhanh",
+    "nextTasks": "Việc tiếp theo",
+    "noTasks": "Không có lịch nhắc đang mở",
+    "info": "Thông tin khách",
+    "stage": "Trạng thái",
+    "source": "Nguồn",
+    "firstContact": "Liên hệ đầu",
+    "appointments": "Lịch hẹn ({count})",
+    "noAppointments": "Chưa có lịch hẹn",
+    "performers": "Người thực hiện",
+    "portrait": {
+      "fields": {
+        "wish": "Mong muốn",
+        "pain": "Nỗi lo",
+        "preference": "Sở thích",
+        "behavior": "Hành vi quyết định",
+        "communication": "Giao tiếp phù hợp",
+        "personality": "Tính cách"
+      },
+      "source": {
+        "customer": "Khách nói",
+        "staff": "NV nhận định"
+      },
+      "add": "Cập nhật chân dung",
+      "field": "Mục",
+      "text": "Nội dung",
+      "sourceLabel": "Nguồn",
+      "message": "Tin nhắn gốc",
+      "messagePlaceholder": "Gắn tin SMAX (không bắt buộc)",
+      "saved": "Đã lưu chân dung",
+      "history": "Lịch sử ({count})",
+      "empty": "Chưa có",
+      "immutable": "Mỗi lần cập nhật được lưu thành bản mới; bản cũ giữ nguyên, không sửa hay xoá được."
+    },
+    "needs": {
+      "title": "Nhu cầu / Upsell",
+      "add": "Ghi nhận nhu cầu",
+      "name": "Nhu cầu",
+      "namePlaceholder": "vd Lip Blush, Giảm béo",
+      "service": "Dịch vụ (không bắt buộc)",
+      "originLabel": "Nguồn",
+      "origin": {
+        "customer_asked": "Khách đã hỏi",
+        "staff_found": "Sales khai thác"
+      },
+      "status": {
+        "need": "Nhu cầu",
+        "consulting": "Tư vấn",
+        "upsell": "Upsell",
+        "won": "Thành công",
+        "lost": "Thất bại"
+      },
+      "empty": "Chưa có nhu cầu",
+      "saved": "Đã lưu nhu cầu",
+      "history": "Lịch sử trạng thái"
+    },
+    "finance": {
+      "title": "Tài chính",
+      "total": "Tổng tích luỹ",
+      "current": "Đơn hiện tại",
+      "history": "Lịch sử mua",
+      "paid": "Thu thêm",
+      "empty": "Chưa có lịch hẹn"
+    },
+    "photos": {
+      "before": "Trước",
+      "after": "Sau",
+      "empty": "Chưa có ảnh B/A",
+      "upload": "Tải ảnh {kind}",
+      "deleteConfirm": "Xoá ảnh này?",
+      "delete": "Xoá ảnh",
+      "deleted": "Đã xoá ảnh",
+      "uploaded": "Đã tải ảnh lên",
+      "tooLarge": "Ảnh tối đa 10MB",
+      "notImage": "Chỉ nhận file ảnh"
+    },
+    "messages": {
+      "search": "Tìm trong hội thoại",
+      "noMatch": "Không có tin nhắn khớp",
+      "snapshot": "Không tải được từ SMAX — đang hiện bản chụp lúc {at}"
+    },
+    "timeline": {
+      "all": "Tất cả",
+      "log": "Thay đổi lịch hẹn",
+      "customer_note": "Telesales",
+      "appointment_note": "Ghi chú lịch hẹn",
+      "sales_note": "Sales",
+      "empty": "Chưa có hoạt động"
+    }
   }
 }

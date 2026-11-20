@@ -3,7 +3,7 @@
 import { Select } from "antd";
 
 // label là ReactNode để option có thể kèm avatar/icon.
-export type SelectOption = { value: string; label: React.ReactNode };
+export type SelectOption = { value: string; label: React.ReactNode; disabled?: boolean };
 
 /**
  * Select antd quy ước chuỗi rỗng = chưa chọn (khớp cột nullable lưu "" ở form).

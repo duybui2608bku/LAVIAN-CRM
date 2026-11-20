@@ -16,6 +16,7 @@ import {
 } from "@/components/appointments/appointments-manager";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
+import { Open360Button, useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { InlineSelect } from "@/components/common/inline-select";
 import { NoteCell } from "@/components/common/notes";
 import { useCan } from "@/components/common/permissions";
@@ -174,6 +175,9 @@ export function BookingsManager({
     setPage(1);
   }
 
+  // Popup 360°: Trước/Tiếp theo khách của danh sách đang lọc.
+  const c360 = useCustomer360({ ids: filtered.map((a) => a.customer_id), staff });
+
   const columns: TableProps<Appointment>["columns"] = [
     {
       title: t("colSchedule"),
@@ -200,7 +204,8 @@ export function BookingsManager({
         const c = customerMap.get(a.customer_id)!;
         const svc = serviceText(a);
         return (
-          <div className="min-w-0 leading-tight">
+          <div className="flex items-start gap-1">
+          <div className="min-w-0 flex-1 leading-tight">
             <div className="truncate font-medium" title={c.full_name}>
               {c.thread_link ? (
                 <a href={c.thread_link} target="_blank" rel="noreferrer">
@@ -214,6 +219,8 @@ export function BookingsManager({
               <span className="tabular-nums">{c.phone}</span>
               {svc ? ` · ${svc}` : null}
             </div>
+          </div>
+          <Open360Button onClick={() => c360.open(c.id)} />
           </div>
         );
       },
@@ -386,6 +393,7 @@ export function BookingsManager({
       <DataTable
         columns={columns}
         dataSource={filtered}
+        onChange={c360.onTableChange}
         scroll={{ x: 1300 }}
         page={page}
         onPageChange={setPage}
@@ -411,6 +419,7 @@ export function BookingsManager({
         staff={staff}
         onCreated={() => setCreating(false)}
       />
+      {c360.modal}
     </Page>
   );
 }

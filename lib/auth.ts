@@ -41,6 +41,13 @@ export async function requirePermission(key: Permission): Promise<CurrentProfile
   return profile;
 }
 
+/** Như requirePermission nhưng chỉ cần 1 trong các quyền `keys`. */
+export async function requireAnyPermission(...keys: Permission[]): Promise<CurrentProfile> {
+  const profile = await getCurrentProfile();
+  if (profile?.status !== "active" || !keys.some((k) => profile.permissions.includes(k))) throw forbidden();
+  return profile;
+}
+
 /** Chặn thao tác nếu người gọi không phải admin. Dùng đầu mỗi Server Action admin. */
 export async function requireAdmin(): Promise<CurrentProfile> {
   const profile = await getCurrentProfile();
