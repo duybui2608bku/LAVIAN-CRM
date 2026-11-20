@@ -1,11 +1,10 @@
 "use server";
 
-import Anthropic from "@anthropic-ai/sdk";
-import dayjs from "dayjs";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAnyPermission, requirePermission } from "@/lib/auth";
 import { canSeeFinance, canSeePhotos, customerRole } from "@/lib/customer-360";
+import { summarizeMessages } from "@/lib/chat-summary";
 import { AppError, normalizeError } from "@/lib/errors";
 import { newNote } from "@/lib/notes";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
@@ -273,22 +272,6 @@ export async function setAppointmentPerformers(appointmentId: string, input: z.i
 
 // ─────────────────────────── Tóm tắt AI hội thoại SMAX (Claude) ───────────────────────────
 
-const SUMMARY_MODEL = "claude-opus-5-5";
-const SUMMARY_LANGUAGES: Record<string, string> = { vi: "Vietnamese", en: "English", id: "Indonesian" };
-const SUMMARY_SYSTEM = `You summarize a customer's chat with Lavian Beauty Center, a beauty clinic in Indonesia (brow, lip and eyeliner embroidery and similar services), for the clinic's sales team.
-Each message is labeled "Customer" or "Lavian" with its date and time.
-Write plain text in short sections, each a heading line followed by "- " bullets:
-1. What the customer wants (services, preferred dates)
-2. Concerns or objections
-3. What was agreed or quoted (prices, appointments, deposits)
-4. Suggested next step for the sales team
-Only state what the chat supports and skip a section that has nothing. No markdown symbols such as # or **. Keep it under about 150 words.`;
-
-const transcriptLine = (m: ChatMessage) => {
-  const extra = [m.images.length && `[${m.images.length} image(s)]`, m.files && `[${m.files} attachment(s)]`].filter(Boolean).join(" ");
-  return `[${dayjs(m.at).format("DD/MM/YYYY HH:mm")}] ${m.out ? "Lavian" : "Customer"}: ${[m.text, extra].filter(Boolean).join(" ")}`;
-};
-
 /**
  * Tóm tắt 30 tin SMAX gần nhất bằng Claude rồi lưu (1 dòng / khách, ghi đè). SMAX lỗi → dùng bản chụp lúc gửi lead-form.
  * `locale` = ngôn ngữ giao diện của người bấm (vi / en / id).
@@ -297,7 +280,6 @@ export async function summarizeCustomerChat(customerId: string, locale: string):
   try {
     const profile = await viewer();
     z.uuid().parse(customerId);
-    if (!process.env.ANTHROPIC_API_KEY) throw new AppError("Thiếu ANTHROPIC_API_KEY — điền vào biến môi trường của server.");
     const db = await createClient();
     const { data, error } = await db.from("customers").select("link:thread->>link,smax_messages")
       .eq("id", customerId).is("deleted_at", null).single();
@@ -305,40 +287,11 @@ export async function summarizeCustomerChat(customerId: string, locale: string):
     const snapshot = (data.smax_messages ?? []) as ChatMessage[];
     const messages = await fetchThreadMessages(data.link as string | null)
       .catch((e) => { if (snapshot.length) return snapshot; throw e; });
-    if (!messages.length) throw new AppError("Khách chưa có tin nhắn để tóm tắt.");
-
-    const client = new Anthropic();
-    const res = await client.beta.messages.create({
-      model: SUMMARY_MODEL,
-      max_tokens: 16000,
-      output_config: { effort: "low" },
-      // Model từ chối (an toàn) → API tự chạy lại trên model dự phòng trong cùng request.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      system: SUMMARY_SYSTEM,
-      messages: [{ role: "user", content: [
-        `Write the summary in ${SUMMARY_LANGUAGES[locale] ?? "Vietnamese"}.`, "", "<chat>", ...messages.map(transcriptLine), "</chat>",
-      ].join("\n") }],
-    });
-    if (res.stop_reason === "refusal") throw new AppError("AI từ chối tóm tắt hội thoại này.");
-    const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
-    if (!text) throw new AppError("AI không trả về nội dung tóm tắt — thử lại.");
-
-    const row = {
-      customer_id: customerId,
-      summary: text.slice(0, 8000),
-      last_message_at: messages.at(-1)!.at,
-      message_count: messages.length,
-      model: res.model,
-      created_by: profile.id,
-      created_at: new Date().toISOString(),
-    };
+    const row = { customer_id: customerId, ...(await summarizeMessages(messages, locale)), created_by: profile.id };
     const { data: saved, error: saveErr } = await db.from("customer_chat_summaries").upsert(row).select(SUMMARY_FIELDS).single();
     if (saveErr) throw saveErr;
     return { summary: saved as ChatSummary };
   } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) return { error: "ANTHROPIC_API_KEY sai hoặc đã bị thu hồi." };
-    if (error instanceof Anthropic.RateLimitError) return { error: "AI đang quá tải — thử lại sau ít phút." };
     return { error: normalizeError(error).message };
   }
 }
