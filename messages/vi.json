@@ -97,7 +97,20 @@
     "millionIdr": "triệu IDR",
     "groupByConfirm": "Nhóm theo Xác nhận lịch",
     "staffColumn": "Nhân sự",
-    "teleNote": "Note Telesales"
+    "teleNote": "Note Telesales",
+    "salesNotesColumn": "Note Sales",
+    "salesNotesTitle": "Ghi chú Sales · {name}",
+    "noteTitle": "Tiêu đề (không bắt buộc)",
+    "noteText": "Nội dung ghi chú… (Ctrl + Enter để lưu)",
+    "addNote": "Thêm ghi chú",
+    "noteAdded": "Đã thêm ghi chú",
+    "noteDeleted": "Đã xoá ghi chú",
+    "deleteNote": "Xoá ghi chú",
+    "deleteNoteConfirm": "Xoá ghi chú này?",
+    "notesEmpty": "Chưa có ghi chú Sales nào",
+    "notesAll": "Xem tất cả & thêm ghi chú ({count})",
+    "notesHistory": "Lịch sử ghi chú",
+    "noteTitles": "Tư vấn|Nhu cầu|Kỹ thuật|Thanh toán|Chăm sóc"
   },
   "common": {
     "appName": "LAVIAN CRM",

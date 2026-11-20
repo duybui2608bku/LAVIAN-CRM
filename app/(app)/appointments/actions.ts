@@ -13,7 +13,7 @@ import { regionNames } from "@/lib/id-regions";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
-import type { AppointmentPatch } from "@/types/appointment";
+import type { AppointmentPatch, SalesNote } from "@/types/appointment";
 import type { Customer } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
@@ -134,6 +134,59 @@ export async function patchAppointment(id: string, input: AppointmentPatch): Pro
     const { error } = await db.from("clinic_appointments").update(patch)
       .eq("id", id).is("deleted_at", null).select("id").single();
     if (error) throw error;
+    refresh();
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+const salesNoteSchema = z.object({
+  title: z.string().trim().max(120).transform((v) => v || null),
+  text: z.string().trim().min(1).max(10000),
+}).strict();
+
+/** Thêm 1 ghi chú Sales: đọc mảng hiện tại rồi append — server stamp id, thời gian, người ghi. */
+export async function addSalesNote(id: string, input: { title: string; text: string }): Promise<{ error?: string }> {
+  try {
+    const profile = await requirePermission("appointments.edit");
+    z.uuid().parse(id);
+    const note: SalesNote = {
+      id: crypto.randomUUID(), ...salesNoteSchema.parse(input), at: new Date().toISOString(),
+      by: profile.user_name || profile.email || null, by_id: profile.id,
+    };
+    const db = await client();
+    const { data, error } = await db.from("clinic_appointments").select("sales_notes")
+      .eq("id", id).is("deleted_at", null).single();
+    if (error) throw error;
+    const { error: upErr } = await db.from("clinic_appointments")
+      .update({ sales_notes: [...((data.sales_notes as SalesNote[]) ?? []), note] }).eq("id", id);
+    if (upErr) throw upErr;
+    refresh();
+    return {};
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** Xoá 1 ghi chú Sales — chỉ người ghi hoặc admin. */
+export async function deleteSalesNote(id: string, noteId: string): Promise<{ error?: string }> {
+  try {
+    const profile = await requirePermission("appointments.edit");
+    z.uuid().parse(id);
+    const db = await client();
+    const { data, error } = await db.from("clinic_appointments").select("sales_notes")
+      .eq("id", id).is("deleted_at", null).single();
+    if (error) throw error;
+    const notes = (data.sales_notes as SalesNote[]) ?? [];
+    const target = notes.find((n) => n.id === noteId);
+    if (!target) return {};
+    if (target.by_id !== profile.id && profile.role !== "admin") {
+      throw new AppError("Chỉ người ghi được xoá ghi chú này.", { code: "FORBIDDEN", status: 403 });
+    }
+    const { error: upErr } = await db.from("clinic_appointments")
+      .update({ sales_notes: notes.filter((n) => n.id !== noteId) }).eq("id", id);
+    if (upErr) throw upErr;
     refresh();
     return {};
   } catch (error) {

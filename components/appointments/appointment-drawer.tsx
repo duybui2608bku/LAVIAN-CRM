@@ -1,12 +1,13 @@
 "use client";
 
 import { useTransition } from "react";
-import { Button, Divider, Form, Input, InputNumber, Select, Tag } from "antd";
-import { PanelRightOpen } from "lucide-react";
+import { Button, Divider, Form, InputNumber, Select, Tag } from "antd";
+import { NotebookPen, PanelRightOpen } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { staffOptions, type AppointmentStaff } from "@/components/appointments/appointments-manager";
+import { SalesNoteItem } from "@/components/appointments/sales-notes-drawer";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { staffLabel } from "@/components/common/user-avatar";
 import { appointmentMoney } from "@/lib/appointments";
@@ -26,7 +27,7 @@ const moneyInput = <InputNumber<number> className="w-full" min={0} precision={0}
 
 // Trường drawer sửa được — gửi lên server chỉ những trường đã đổi.
 const FIELDS = ["scheduled_at", "visit_status", "service_categories", "service_ids", "paid_amount", "bill_amount",
-  "sales_id", "technician_id", "sales_note"] as const satisfies readonly (keyof AppointmentPatch)[];
+  "sales_id", "technician_id"] as const satisfies readonly (keyof AppointmentPatch)[];
 type Values = Pick<Appointment, (typeof FIELDS)[number]>;
 
 type Props = {
@@ -37,6 +38,7 @@ type Props = {
   canEdit: boolean;
   canShowUp: boolean;
   onViewInfo: (customer: AppointmentCustomer) => void;
+  onOpenNotes: () => void;
   onClose: () => void;
 };
 
@@ -46,7 +48,7 @@ export function AppointmentDrawer({ appointment, ...props }: Omit<Props, "appoin
   return appointment ? <AppointmentDrawerBody key={appointment.id} appointment={appointment} {...props} /> : null;
 }
 
-function AppointmentDrawerBody({ appointment: a, customer, staff, services, canEdit, canShowUp, onViewInfo, onClose }: Props) {
+function AppointmentDrawerBody({ appointment: a, customer, staff, services, canEdit, canShowUp, onViewInfo, onOpenNotes, onClose }: Props) {
   const t = useTranslations("appointments");
   const locale = useLocale();
   const [form] = Form.useForm<Values>();
@@ -70,7 +72,7 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
 
   const submit = (values: Values) => {
     const patch = Object.fromEntries(FIELDS
-      .map((f) => [f, f === "sales_note" ? (values[f] ?? "").trim() : values[f] ?? null] as const)
+      .map((f) => [f, values[f] ?? null] as const)
       .filter(([f, v]) => JSON.stringify(v) !== JSON.stringify(a[f] ?? null))) as AppointmentPatch;
     if (!Object.keys(patch).length) return onClose();
     start(async () => {
@@ -157,10 +159,14 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
       </div>
 
       <Divider className="mt-1 mb-4" />
+      {/* Ghi chú Sales: xem nhanh 2 ghi chú mới nhất, thêm / xem hết ở drawer Ghi chú Sales. */}
       <h3 className="mb-3 font-semibold">{t("sectionNote")}</h3>
-      <Form.Item name="sales_note" className="mb-0">
-        <Input.TextArea aria-label={t("salesNote")} placeholder={t("salesNote")} autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />
-      </Form.Item>
+      {a.sales_notes.length ? <div className="mb-3 space-y-3">
+        {a.sales_notes.slice(-2).reverse().map((n) => <SalesNoteItem key={n.id} note={n} staff={staff} clamp />)}
+      </div> : <p className="mb-3 text-muted-foreground">{t("notesEmpty")}</p>}
+      <Button block icon={<NotebookPen className="size-4" />} disabled={false} onClick={onOpenNotes}>
+        {t("notesAll", { count: a.sales_notes.length })}
+      </Button>
     </Form>
   </FormDrawer>;
 }

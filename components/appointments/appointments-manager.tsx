@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import { createAppointment, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { AppointmentDrawer } from "@/components/appointments/appointment-drawer";
+import { SalesNotesDrawer } from "@/components/appointments/sales-notes-drawer";
 import { MessagesModal } from "@/components/appointments/messages-modal";
 import { DataTable } from "@/components/common/data-table";
 import { NamePhone } from "@/components/common/name-phone";
@@ -74,6 +75,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [chatFor, setChatFor] = useState<AppointmentCustomer | null>(null);
   const [infoFor, setInfoFor] = useState<AppointmentCustomer | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [notesId, setNotesId] = useState<string | null>(null);
   const [grouped, setGrouped] = useState(false);
   const [rows, patchOptimistic] = useOptimistic(appointments,
     (state: Appointment[], patch: AppointmentPatch & { id: string }) =>
@@ -106,6 +108,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   });
   const stats = appointmentStats(filtered, (id) => customerMap.get(id)?.deposit_amount);
   const editing = editingId ? rows.find((row) => row.id === editingId) ?? null : null;
+  const notesFor = notesId ? rows.find((row) => row.id === notesId) ?? null : null;
   const resetPage = () => setPage(1);
   // Lọc nhanh 1 ngày: 0 = hôm nay, 1 = ngày mai.
   const pickDay = (offset: number) => {
@@ -198,16 +201,27 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
         : <span className="text-muted-foreground">—</span>;
     } },
     // Cột Người tạo tạm ẩn — dữ liệu created_by vẫn ghi + vẫn tải.
-    // Note Telesales: ghi chú gần nhất của khách (customers.notes — Telesales / Form SMAX ghi), chỉ xem.
+    // Note Sales: ghi chú Sales gần nhất (tiêu đề + người ghi · nội dung), bấm mở drawer Ghi chú Sales.
+    { title: t("salesNotesColumn"), width: 300, render: (_, row) => {
+      const last = row.sales_notes.at(-1);
+      return <button type="button" aria-label={t("salesNotesColumn")}
+        className="block w-full cursor-pointer rounded text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+        onClick={() => setNotesId(row.id)}>
+        {last ? <div className="leading-tight">
+          <div className="text-xs text-muted-foreground tabular-nums">
+            {dayjs(last.at).format("DD/MM/YYYY HH:mm")}{row.sales_notes.length > 1 && ` · +${row.sales_notes.length - 1}`}
+          </div>
+          {last.title && <div className="mt-0.5 truncate font-medium">{last.title}</div>}
+          <div className="mt-0.5 line-clamp-2 whitespace-pre-wrap">{last.text}</div>
+        </div> : <span className="text-muted-foreground">{canEdit ? `+ ${t("addNote")}` : "—"}</span>}
+      </button>;
+    } },
+    // Note Telesales (sau Note Sales): chỉ nội dung ghi chú gần nhất của khách (customers.notes), hover xem tất cả.
     { title: t("teleNote"), width: 300, render: (_, row) => {
       const notes = customerMap.get(row.customer_id)?.notes ?? [];
       const last = notes.at(-1);
-      return last ? <div className="leading-tight" title={notes.map((n) => n.text).join("\n\n")}>
-        <div className="text-xs text-muted-foreground">
-          {last.by ? `${last.by} · ` : ""}{dayjs(last.at).format("DD/MM/YYYY HH:mm")}
-          {notes.length > 1 && ` · +${notes.length - 1}`}
-        </div>
-        <div className="mt-0.5 line-clamp-2 whitespace-pre-wrap">{last.text}</div>
+      return last ? <div className="line-clamp-2 leading-tight whitespace-pre-wrap" title={notes.map((n) => n.text).join("\n\n")}>
+        {last.text}
       </div> : <span className="text-muted-foreground">—</span>;
     } },
     // Cột Thao tác (xoá lịch) đã bỏ khỏi UI — server action deleteAppointment vẫn giữ (gác appointments.delete).
@@ -249,9 +263,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
           <Tag color={BOOKING_STATUS_COLORS[s]} className="me-0">{t(`bookingStatus.${s}`)}</Tag>
           <span className="font-normal text-muted-foreground">{t("count", { count: items.length })}</span>
         </h3>
-        <DataTable columns={columns} dataSource={items} scroll={{ x: 1990 }} pageSize={30} />
+        <DataTable columns={columns} dataSource={items} scroll={{ x: 2290 }} pageSize={30} />
       </section> : null;
-    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1990 }} empty={t("empty")}
+    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2290 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />}
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}
@@ -259,7 +273,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
       staff={staff} services={services} canEdit={canEdit} canShowUp={canShowUp}
-      onViewInfo={setInfoFor} onClose={() => setEditingId(null)} />
+      onViewInfo={setInfoFor} onOpenNotes={() => setNotesId(editingId)} onClose={() => setEditingId(null)} />
+    <SalesNotesDrawer appointment={notesFor} customerName={notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : ""}
+      staff={staff} canEdit={canEdit} onClose={() => setNotesId(null)} />
     <CustomerInfoDrawer customer={infoFor} staff={staff} onClose={() => setInfoFor(null)} />
   </Page>;
 }

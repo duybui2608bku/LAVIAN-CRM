@@ -97,7 +97,20 @@
     "millionIdr": "million IDR",
     "groupByConfirm": "Group by booking confirmation",
     "staffColumn": "Staff",
-    "teleNote": "Telesales note"
+    "teleNote": "Telesales note",
+    "salesNotesColumn": "Sales note",
+    "salesNotesTitle": "Sales notes · {name}",
+    "noteTitle": "Title (optional)",
+    "noteText": "Write a note… (Ctrl + Enter to save)",
+    "addNote": "Add note",
+    "noteAdded": "Note added",
+    "noteDeleted": "Note deleted",
+    "deleteNote": "Delete note",
+    "deleteNoteConfirm": "Delete this note?",
+    "notesEmpty": "No sales notes yet",
+    "notesAll": "View all & add note ({count})",
+    "notesHistory": "Note history",
+    "noteTitles": "Consultation|Needs|Technical|Payment|Aftercare"
   },
   "common": {
     "appName": "LAVIAN CRM",

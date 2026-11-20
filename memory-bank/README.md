@@ -50,6 +50,16 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-20 — Sales Management: Note Sales đứng trước Note Telesales
+- **Thay đổi:** Đổi chỗ 2 cột: Note Sales trước, Note Telesales sau. Cột Note Telesales bỏ dòng "người ghi · thời gian · +N" (vd "Form SMAX · 18/11/2026 22:20"), chỉ còn nội dung ghi chú gần nhất `line-clamp-2`, hover xem tất cả.
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt; chưa commit.
+
+### 2026-11-20 — Ghi chú Sales dạng timeline (drawer riêng)
+- **Thay đổi:** OpenSpec `appointment-sales-notes`. Cột mới `clinic_appointments.sales_notes jsonb` (mảng `{id, title, text, at, by, by_id}`, tiêu đề không bắt buộc), migration chuyển `sales_note` cũ thành ghi chú đầu tiên (cột cũ giữ để rollback, code thôi dùng; bỏ khỏi patch schema/type). Server action `addSalesNote` (server stamp người ghi + thời gian, quyền `appointments.edit`) và `deleteSalesNote` (chỉ người ghi hoặc admin). `SalesNotesDrawer`: ô soạn có chip tiêu đề gợi ý (Tư vấn/Nhu cầu/Kỹ thuật/Thanh toán/Chăm sóc), Ctrl+Enter lưu; timeline mới nhất ở trên (thời gian → tiêu đề → người ghi · nội dung, avatar làm chấm). Mở từ cột mới **Note Sales** trên bảng Sales Management và mục 4 drawer Sửa lịch hẹn (giờ xem nhanh 2 ghi chú + nút mở drawer). Bảng rộng 2290.
+- **File ảnh hưởng:** `supabase/migrations/20261120090000_appointment_sales_notes.sql`, `app/(app)/appointments/{actions.ts,page.tsx}`, `components/appointments/{sales-notes-drawer,appointment-drawer,appointments-manager}.tsx`, `types/appointment.ts`, `lib/appointments.ts`, `messages/{vi,en}.json`, `openspec/changes/appointment-sales-notes/`.
+- **Còn dở / ghi chú:** Migration **ĐÃ CHẠY trên Lavian 2026-11-20** (qua MCP; 29 lịch, 0 có sales_note cũ nên không có gì chuyển). tsc + eslint + node --test (94) sạch; chưa xem trên trình duyệt. Trigger log không theo dõi `sales_notes`.
+
 ### 2026-11-19 — Sales Management: note dưới SĐT + cột Note Telesales
 - **Thay đổi:** Ghi chú lịch hẹn (`clinic_appointments.note`, trước ở cột Note) chuyển xuống dòng thứ 3 của ô Khách hàng, dưới SĐT. Note dài bị cắt `truncate` "…", hover xem đủ; trên trang này chỉ xem, vẫn sửa được ở Booking Management. Cột Note cũ đổi thành **Note Telesales**: hiện ghi chú gần nhất trong `customers.notes` (người ghi · thời gian, `+N` nếu còn nhiều, nội dung `line-clamp-2`, hover xem tất cả). Trang `/appointments` tải thêm `customers.notes`.
 - **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`, `app/(app)/appointments/page.tsx`, `types/appointment.ts` (`AppointmentCustomer.notes`), `messages/{vi,en}.json` (`appointments.teleNote`).
