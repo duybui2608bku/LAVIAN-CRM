@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-20 — Nhóm dịch vụ ở Khách hàng + Quản lý khách hàng; bản tiếng Việt đồng nhất
+- **Thay đổi:** (1) Ô Khách hàng ở `/customers` và `/customers/potential` hiện `SĐT · nhóm dịch vụ` của lịch hẹn gần nhất (như Sales Management): select lịch hẹn thêm `service_categories`, `PipelineAppointment.service_categories`, helper `serviceCategoriesLabel` ở `types/service.ts`. (2) `vi.json` đổi 100 chuỗi sang tiếng Việt theo thuật ngữ chốt (xem "Trạng thái hiện tại"); nhãn stage `booked` = "Đã đặt lịch", `purchase` = "Đã mua"; chữ "Booking" viết cứng ở donut Báo cáo SMAX → i18n; lỗi server "Unauthorized"/"Missing date"/"Invalid services" → tiếng Việt. `en.json` không đổi.
+- **File ảnh hưởng:** `messages/vi.json`, `lib/customer-options.ts`, `types/service.ts`, `components/customers/{customer-pipeline,customers-manager,potential-manager,smax-report-view}.tsx`, `app/(app)/customers/{customers-view.tsx,potential/page.tsx,reminders/actions.ts}`, `app/(app)/appointments/actions.ts`, `app/(app)/tour/page.tsx`.
+- **Còn dở / ghi chú:** Cùng PR #99. Phiếu tour in vẫn tiếng Anh (cố ý). Comment trong code còn nhắc tên trang cũ (Sales/Booking Management) — không ảnh hưởng UI. tsc + eslint + node --test (94) sạch; chưa xem trên trình duyệt.
+
 ### 2026-11-20 — Khách hàng: cột Ngày tạo đầy đủ 2 hàng
 - **Thay đổi:** Cột Ngày tạo ở `/customers` đổi từ tag `DD-MM` sang 2 hàng như Customers Management: tag `DD/MM/YYYY` trên (**giữ màu theo độ mới** `AGE_COLORS[createdAgeBucket]`, sếp muốn giữ), `HH:mm` nhỏ dưới, rộng 120. Bỏ helper `pad`.
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`.

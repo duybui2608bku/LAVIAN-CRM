@@ -11,7 +11,7 @@ import type { Service } from "@/types/service";
 // CSKH / admin: tạo tour, bảng tour theo tháng; admin xác nhận + xuất. Tháng qua ?month=YYYY-MM.
 export default async function TourPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
   const [profile, params] = await Promise.all([getCurrentProfile(), searchParams]);
-  if (!profile) throw new Error("Unauthorized");
+  if (!profile) throw new Error("Bạn cần đăng nhập.");
   const isAdmin = profile.role === "admin";
   const isTechnician = !isAdmin && profile.department === "technician";
   const db = await createClient();

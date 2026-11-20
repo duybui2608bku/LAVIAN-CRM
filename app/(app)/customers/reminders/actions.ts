@@ -16,7 +16,7 @@ function revalidateReminders() {
 }
 
 function clean(input: ReminderInput): ReminderInput {
-  if (!input.remind_at || Number.isNaN(Date.parse(input.remind_at))) throw new Error("Missing date");
+  if (!input.remind_at || Number.isNaN(Date.parse(input.remind_at))) throw new Error("Vui lòng chọn lịch nhắc.");
   return {
     remind_at: new Date(input.remind_at).toISOString(),
     note: (input.note ?? "").trim().slice(0, 5000),

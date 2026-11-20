@@ -16,6 +16,9 @@ export const SERVICE_CATEGORY_COLORS: Record<ServiceCategory, string> = {
   laser: "cyan",
 };
 export const SERVICE_CATEGORY_OPTIONS = SERVICE_CATEGORIES.map((c) => ({ value: c, label: SERVICE_CATEGORY_LABELS[c] }));
+/** "Sulam Alis, Laser" — ô Khách hàng (dòng phụ sau SĐT); không có nhóm → "". */
+export const serviceCategoriesLabel = (cats?: readonly string[] | null) =>
+  (cats ?? []).map((c) => SERVICE_CATEGORY_LABELS[c as ServiceCategory] ?? c).join(", ");
 
 /** Dịch vụ chi tiết — ánh xạ bảng `public.services`. */
 export interface Service {

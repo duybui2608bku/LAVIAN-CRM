@@ -5,9 +5,9 @@ const definitions: [EnumKind, string, string, string, string][] = [
   ["stage", "potential", "Tiềm năng", "Potential", "purple"],
   ["stage", "consider", "Cân nhắc", "Consider", "orange"],
   ["stage", "deposited", "Đã đặt cọc", "Deposited", "gold"],
-  ["stage", "booked", "Booking", "Booking", "geekblue"], // tạo mới ở lead form bắt buộc kèm lịch hẹn
+  ["stage", "booked", "Đã đặt lịch", "Booking", "geekblue"], // tạo mới ở lead form bắt buộc kèm lịch hẹn
   ["stage", "show_up", "Đã đến", "Showed up", "green"], // tự động theo Clinic confirmation — không cho chọn tay
-  ["stage", "purchase", "Purchase", "Purchase", "volcano"], // chọn tay; trigger Show-up không hạ Purchase về Show-up
+  ["stage", "purchase", "Đã mua", "Purchase", "volcano"], // chọn tay; trigger Show-up không hạ Purchase về Show-up
   ["rating", "potential", "Tiềm năng", "Potential", "green"],
   ["rating", "price_only", "Chỉ hỏi giá", "Price only", "gold"],
   ["rating", "far", "Ở xa", "Far away", "orange"],

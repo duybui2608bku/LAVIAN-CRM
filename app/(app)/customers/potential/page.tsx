@@ -30,7 +30,7 @@ export default async function PotentialCustomersPage() {
       .gte("converted_at", startOfToday)
       .is("deleted_at", null),
     // Cột Sales Status: Status lịch gần nhất của khách.
-    supabase.from("clinic_appointments").select("customer_id, scheduled_at, checked_in, visit_status").is("deleted_at", null),
+    supabase.from("clinic_appointments").select("customer_id, scheduled_at, checked_in, visit_status, service_categories").is("deleted_at", null),
   ]);
 
   const customers = ((customersRes.data ?? []) as unknown as Customer[]).map((c) => ({
