@@ -20,6 +20,7 @@ import type { PipelineAppointment } from "@/components/customers/customer-pipeli
 import { CustomerNotesDrawer, SourceCell } from "@/components/customers/customers-manager";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
+import { serviceCategoriesLabel } from "@/types/service";
 import { CONVERTED_STATUS } from "@/lib/customer-options";
 import { matchesNameOrPhone, optionLabel } from "@/lib/customers";
 import { reminderState } from "@/lib/reminders";
@@ -155,7 +156,10 @@ export function PotentialManager({
                   c.full_name
                 )}
               </div>
-              <div className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">{c.phone}</div>
+              {/* SĐT · nhóm dịch vụ của lịch gần nhất (như ô Khách hàng ở Sales Management). */}
+              <div className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
+                {[c.phone, serviceCategoriesLabel(nearestAppt.get(c.id)?.service_categories)].filter(Boolean).join(" · ")}
+              </div>
               {last ? (
                 <div className="mt-0.5 max-w-72 truncate text-xs text-muted-foreground" title={last}>
                   {last}

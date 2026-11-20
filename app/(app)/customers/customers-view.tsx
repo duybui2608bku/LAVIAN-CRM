@@ -31,7 +31,7 @@ export async function CustomersView({ stages, title }: { stages?: readonly strin
     // Lịch hẹn cho pipeline + cột Lịch hẹn / Sales Status.
     supabase
       .from("clinic_appointments")
-      .select("customer_id, scheduled_at, checked_in, visit_status")
+      .select("customer_id, scheduled_at, checked_in, visit_status, service_categories")
       .is("deleted_at", null),
     // Booking management: lịch nhắc hẹn cho cột Nhắc hẹn (trang /customers không dùng).
     stages && REMINDERS_ENABLED

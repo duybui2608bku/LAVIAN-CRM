@@ -52,6 +52,7 @@ import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
+import { serviceCategoriesLabel } from "@/types/service";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
@@ -81,7 +82,6 @@ const DRAWER_WIDTH = { 1: 560, 2: 720, 3: 1000 } as const;
 
 // Màu tag Ngày tạo theo độ mới: hôm nay / ≤3 / ≤7 / ≤14 ngày / cũ hơn.
 const AGE_COLORS = ["green", "cyan", "blue", "purple", "default"] as const;
-const pad = (n: number) => String(n).padStart(2, "0");
 
 type Filters = {
   search: string;
@@ -182,6 +182,10 @@ export function CustomersManager({
   // Lịch hẹn gần nhất mỗi khách: lịch sắp tới sớm nhất; không có thì lịch đã qua mới nhất.
   const [now] = useState(() => Date.now());
   const nearestAppt = useMemo(() => nearestByCustomer(appointments, now), [appointments, now]);
+  const serviceGroups = (a?: PipelineAppointment) => {
+    const label = serviceCategoriesLabel(a?.service_categories);
+    return label ? ` · ${label}` : null;
+  };
   const apptCount = useMemo(() => {
     const map = new Map<string, number>();
     for (const a of appointments) map.set(a.customer_id, (map.get(a.customer_id) ?? 0) + 1);
@@ -236,18 +240,14 @@ export function CustomersManager({
       title: t("colCreated"),
       key: "created",
       dataIndex: "created_at",
-      render: (v: string) => {
-        const d = new Date(v);
-        return (
-          <Tag
-            color={AGE_COLORS[createdAgeBucket(v)]}
-            title={`${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`}
-            className="me-0 tabular-nums"
-          >
-            {`${pad(d.getDate())}-${pad(d.getMonth() + 1)}`}
-          </Tag>
-        );
-      },
+      width: 120,
+      // 2 hàng như Customers Management: ngày đầy đủ trên (tag màu theo độ mới), giờ nhỏ dưới.
+      render: (v: string) => (
+        <div className="leading-tight tabular-nums">
+          <Tag color={AGE_COLORS[createdAgeBucket(v)]} className="me-0">{dayjs(v).format("DD/MM/YYYY")}</Tag>
+          <div className="mt-0.5 text-xs text-muted-foreground">{dayjs(v).format("HH:mm")}</div>
+        </div>
+      ),
     },
     {
       title: t("colName"),
@@ -256,8 +256,10 @@ export function CustomersManager({
         // Hover ô tên → hiện nút mở drawer sửa (thay cột Thao tác). Cảm ứng: luôn hiện.
         <div className="group flex items-center gap-1">
           {/* Gộp Tên + SĐT; có hội thoại SMAX → tên chính là link mở hội thoại. */}
+          {/* Dòng phụ: SĐT · nhóm dịch vụ của lịch gần nhất (như ô Khách hàng ở Sales Management). */}
           <NamePhone
             phone={c.phone}
+            extra={serviceGroups(nearestAppt.get(c.id))}
             title={c.full_name}
             name={
               c.thread?.link ? (

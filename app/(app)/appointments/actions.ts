@@ -21,7 +21,7 @@ import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 async function client() {
   const profile = await getCurrentProfile();
-  if (profile?.status !== "active") throw new Error("Unauthorized");
+  if (profile?.status !== "active") throw new Error("Bạn cần đăng nhập.");
   return createClient();
 }
 
@@ -59,7 +59,7 @@ async function validateReferences(db: Awaited<ReturnType<typeof client>>, patch:
   if (serviceIds?.length) {
     checks.push(db.from("services").select("id").in("id", serviceIds).then(({ data, error }) => {
       if (error) throw error;
-      if (data?.length !== serviceIds.length) throw new Error("Invalid services");
+      if (data?.length !== serviceIds.length) throw new Error("Dịch vụ không hợp lệ.");
     }));
   }
   await Promise.all(checks);
@@ -78,7 +78,7 @@ export async function createAppointment(
   try {
     const profile = await requirePermission("appointments.edit");
     const patch = appointmentPatchSchema.parse(input);
-    if (!patch.scheduled_at) throw new Error("Missing date");
+    if (!patch.scheduled_at) throw new Error("Vui lòng chọn ngày.");
     if (patch.visit_status && patch.visit_status !== "waiting" && !canConfirmShowUp(profile)) throw onlySales();
     const db = await client();
     await validateReferences(db, patch);

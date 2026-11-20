@@ -20,6 +20,7 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 - **Supabase:** dùng **publishable key** (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`), KHÔNG dùng anon/service_role ở client. Env điền ở `.env.local`.
 - Quy trình bắt buộc khi code/fix bug: openspec → ui-ux-pro-max → supabase → ponytail (xem `CLAUDE.md`).
 - **i18n:** `next-intl` chế độ cookie (`NEXT_LOCALE`), URL **không đổi**, KHÔNG dùng `[lang]` segment. 3 locale `en`/`vi`/`id`, mặc định `vi`. Config ở `i18n/config.ts` + `i18n/request.ts`; bản dịch ở `messages/{locale}.json`; đổi ngôn ngữ qua Server Action `i18n/actions.ts`.
+- **Thuật ngữ bản tiếng Việt (từ 2026-11-20, sếp chốt):** `vi.json` full tiếng Việt. Vai trò giữ đúng 3 tên **Telesales · Sales · Master** (không "Tele", "CSKH", "KTV", "Kỹ thuật viên"). Tên trang: Quản lý bán hàng (`/appointments`), Quản lý khách hàng (`/customers/potential`), Quản lý đặt lịch (`/customers/bookings`), Báo cáo Telesales, Báo cáo SMAX. Booking → Đặt lịch / Lượt đặt lịch (stage "Đã đặt lịch"), Deposit → Tiền cọc, Show up → Đến cơ sở, Follow-up → Liên hệ lại, Bill → Hoá đơn, Status → Trạng thái, Note → Ghi chú, Admin → Quản trị viên, Purchase → Đã mua. Giữ tên riêng: SMAX, Facebook Ads, Instagram, WhatsApp, KPI, Tour, Marketing, Spam. Phiếu tour in (`tour-slips.tsx`) cố ý tiếng Anh.
 - **Xử lý lỗi:** dùng chung `lib/errors` — `AppError` + `normalizeError()` (gom Axios/Supabase/Zod/generic). Axios instance ở `lib/api/client.ts` đã cắm interceptor normalize. Trang lỗi: `app/{not-found,error,global-error}.tsx` (Next 16 dùng `unstable_retry`, KHÔNG phải `reset`).
 - **Cấu trúc thư mục:** `i18n/`, `messages/`, `types/`, `lib/api/`, `lib/errors/`, `components/common/`, `components/layout/`, `hooks/` (đã có `lib/supabase/`, `components/ui/`).
 - **Layout shell:** Header + Sidebar thu gọn dựng bằng shadcn `sidebar`, đặt trong route group `app/(app)/`. Mọi trang trong shell đặt dưới `app/(app)/`. Không footer. Logo ở `components/layout/logo.tsx`.
@@ -49,6 +50,21 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 - **Bộ phận user + Kỹ thuật viên cho khách:** enum `user_department` (`customer_care`|`technician`), cột `profiles.department` (nullable) — admin setup ở `/users` (select trong dialog tạo + ClearableSelect inline cột Bộ phận, action `setUserDepartment`). Cột `customers.technician_id` (FK profiles, on delete set null, partial index) — CRUD tại `/customers` copy pattern staff_id: cột bảng (InlineSelect + avatar), bộ lọc, field form drawer; **dropdown kỹ thuật viên chỉ hiện user `department='technician'`** + giá trị đang gán (user đổi bộ phận vẫn hiển thị được). Migration `20260723090000_user_department_customer_technician.sql`. **Mọi select chọn người lọc theo bộ phận** (từ 2026-07-24): Nhân viên (`staff_id`) → `telesales` (đổi tên từ `customer_care` 2026-11-14), Sales (`sales_id`) → `sales`, Kỹ thuật viên (`technician_id`) → `technician` — helper chung `deptOptions(staff, dept, current?)` trong customers-manager; lead-form cũng chỉ query CSKH. User chưa gán bộ phận sẽ KHÔNG hiện trong select nào (admin gán ở /users).
 
 ## Nhật ký session
+
+### 2026-11-20 — Nhóm dịch vụ ở Khách hàng + Quản lý khách hàng; bản tiếng Việt đồng nhất
+- **Thay đổi:** (1) Ô Khách hàng ở `/customers` và `/customers/potential` hiện `SĐT · nhóm dịch vụ` của lịch hẹn gần nhất (như Sales Management): select lịch hẹn thêm `service_categories`, `PipelineAppointment.service_categories`, helper `serviceCategoriesLabel` ở `types/service.ts`. (2) `vi.json` đổi 100 chuỗi sang tiếng Việt theo thuật ngữ chốt (xem "Trạng thái hiện tại"); nhãn stage `booked` = "Đã đặt lịch", `purchase` = "Đã mua"; chữ "Booking" viết cứng ở donut Báo cáo SMAX → i18n; lỗi server "Unauthorized"/"Missing date"/"Invalid services" → tiếng Việt. `en.json` không đổi.
+- **File ảnh hưởng:** `messages/vi.json`, `lib/customer-options.ts`, `types/service.ts`, `components/customers/{customer-pipeline,customers-manager,potential-manager,smax-report-view}.tsx`, `app/(app)/customers/{customers-view.tsx,potential/page.tsx,reminders/actions.ts}`, `app/(app)/appointments/actions.ts`, `app/(app)/tour/page.tsx`.
+- **Còn dở / ghi chú:** Cùng PR #99. Phiếu tour in vẫn tiếng Anh (cố ý). Comment trong code còn nhắc tên trang cũ (Sales/Booking Management) — không ảnh hưởng UI. tsc + eslint + node --test (94) sạch; chưa xem trên trình duyệt.
+
+### 2026-11-20 — Khách hàng: cột Ngày tạo đầy đủ 2 hàng
+- **Thay đổi:** Cột Ngày tạo ở `/customers` đổi từ tag `DD-MM` sang 2 hàng như Customers Management: tag `DD/MM/YYYY` trên (**giữ màu theo độ mới** `AGE_COLORS[createdAgeBucket]`, sếp muốn giữ), `HH:mm` nhỏ dưới, rộng 120. Bỏ helper `pad`.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`.
+- **Còn dở / ghi chú:** Cùng PR #99. tsc + eslint + node --test (94) sạch; chưa xem trên trình duyệt.
+
+### 2026-11-20 — Sales Management: Note Telesales xuống dưới SĐT
+- **Thay đổi:** Bỏ cột Note Telesales. Ghi chú gần nhất của khách (`customers.notes`) hiện ở dòng dưới SĐT trong ô Khách hàng (cắt "…", `(+N)` nếu còn nữa, hover xem hết), bấm mở `CustomerNotesDrawer`. Dòng ghi chú lịch hẹn (`notes`) vẫn ở ngay dưới. Bảng rộng 1990.
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.
+- **Còn dở / ghi chú:** Cùng PR #99. tsc + eslint sạch; chưa xem trên trình duyệt.
 
 ### 2026-11-20 — Customers Management: lọc nhanh dạng nút như Booking
 - **Thay đổi:** Trang `/customers/potential` bỏ `Segmented` full-width (Tất cả / Quá hạn / Hôm nay / Sắp tới). 4 lựa chọn giờ là `Button` trong thanh lọc, sau ô tìm kiếm, trước Trạng thái / Tele. Nút đang chọn `type=primary ghost` + `aria-pressed` (giống Booking Management). Logic tab không đổi.

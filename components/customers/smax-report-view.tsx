@@ -242,7 +242,7 @@ function BookingDonut({ scope }: { scope: ChannelCounts | null }) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-2xl font-semibold tabular-nums">{total ? num(total) : "-"}</span>
-          <span className="text-xs text-muted-foreground">Booking</span>
+          <span className="text-xs text-muted-foreground">{t("card.bookingTotal")}</span>
         </div>
       </div>
       <ul className="flex w-full max-w-56 flex-col gap-2 text-sm">
