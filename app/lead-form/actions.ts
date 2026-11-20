@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getTranslations } from "next-intl/server";
+import { after } from "next/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { z } from "zod";
 
+import { summarizeMessages } from "@/lib/chat-summary";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { fetchThreadMessages } from "@/lib/smax-messages";
+import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
 import { instagramUsername, isFollowUpStage, isStage, leadSource, needsAppointment, phoneOptional } from "@/lib/customer-options";
 import { serviceCategoriesSchema } from "@/lib/appointments";
 import { phoneOwner } from "@/lib/customers";
@@ -223,6 +225,7 @@ export async function submitLead(
     const otherChannel = keepChannel && current.source && current.source !== source
       ? { other_channel: { source, link: d.thread?.link ?? null, username: instagramUsername(smaxCustomer?.instagram?.username) } }
       : {};
+    const snap = await snapshot;
     const customer = {
       full_name: d.full_name,
       // Cập nhật mà để trống SĐT → giữ SĐT đang có (form không điền sẵn SĐT từ CRM).
@@ -239,7 +242,7 @@ export async function submitLead(
         ? { payment_confirm_url: d.payment_confirm_url }
         : {}),
       ...(followUp ? { follow_up_at: new Date(d.follow_up_at!).toISOString() } : {}),
-      ...(await snapshot),
+      ...snap,
     };
 
     if (mode === "create") {
@@ -266,6 +269,11 @@ export async function submitLead(
           throw apptError;
         }
       }
+      // Khách mới có tin SMAX → tự tóm tắt AI sau khi đã trả kết quả cho form (không bắt Telesales chờ).
+      if ("smax_messages" in snap && snap.smax_messages.length && process.env.ANTHROPIC_API_KEY) {
+        const locale = await getLocale();
+        after(() => autoSummarize(created.id, snap.smax_messages, d.staff_id, locale));
+      }
     } else {
       const row = current!;
       // Tạo lịch TRƯỚC khi đổi stage: lịch lỗi thì khách giữ nguyên, không thành Booking mà thiếu lịch.
@@ -290,6 +298,17 @@ export async function submitLead(
   } catch (e) {
     if (isDuplicate(e)) return { error: (await getTranslations("appointments"))("duplicate") };
     return { error: normalizeError(e).message };
+  }
+}
+
+/** Tóm tắt AI khách vừa tạo từ lead-form (chạy nền). Lỗi chỉ ghi log — vẫn bấm "Tóm tắt bằng AI" ở popup 360° được. */
+async function autoSummarize(customerId: string, messages: ChatMessage[], staffId: string, locale: string) {
+  try {
+    const row = { customer_id: customerId, ...(await summarizeMessages(messages, locale)), created_by: staffId };
+    const { error } = await createAdminClient().from("customer_chat_summaries").upsert(row);
+    if (error) throw error;
+  } catch (e) {
+    console.error("[lead-form] Tự tóm tắt AI lỗi:", normalizeError(e).message);
   }
 }
 
