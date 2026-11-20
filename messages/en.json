@@ -100,7 +100,7 @@
     "salesNotesColumn": "Sales note",
     "salesNotesTitle": "Sales notes · {name}",
     "addNote": "Add note",
-    "notesAll": "View all & add note ({count})"
+    "notesTitle": "Appointment notes · {name}"
   },
   "common": {
     "appName": "LAVIAN CRM",
@@ -899,6 +899,7 @@
     "deleteConfirm": "Delete this note?",
     "empty": "No notes yet",
     "history": "Note history",
-    "suggestions": "Consultation|Needs|Technical|Payment|Aftercare"
+    "suggestions": "Consultation|Needs|Technical|Payment|Aftercare",
+    "viewAll": "View all & add note ({count})"
   }
 }

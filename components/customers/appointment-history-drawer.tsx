@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 
 import { getCustomerAppointments, type CustomerAppointmentsData } from "@/app/(app)/customers/actions";
+import { NoteItem } from "@/components/common/notes";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { formatRupiah } from "@/lib/currency";
 import { serviceName } from "@/lib/customers";
@@ -138,7 +139,10 @@ export function AppointmentHistoryDrawer({
           <span className="text-muted-foreground">{t("field.staff_id")}:</span>
           {staffOf(a.staff_id)}
         </div>
-        {a.note && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{a.note}</p>}
+        {/* Ghi chú lịch hẹn (timeline) — mới nhất trước. */}
+        {a.notes?.length ? <div className="space-y-2 pt-1">
+          {[...a.notes].reverse().map((n) => <NoteItem key={n.id} note={n} staff={staff} clamp />)}
+        </div> : null}
       </li>
     );
   };

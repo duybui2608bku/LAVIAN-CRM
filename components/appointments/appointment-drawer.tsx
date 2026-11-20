@@ -166,7 +166,7 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
         {a.sales_notes.slice(-2).reverse().map((n) => <NoteItem key={n.id} note={n} staff={staff} clamp />)}
       </div> : <p className="mb-3 text-muted-foreground">{tn("empty")}</p>}
       <Button block icon={<NotebookPen className="size-4" />} disabled={false} onClick={onOpenNotes}>
-        {t("notesAll", { count: a.sales_notes.length })}
+        {tn("viewAll", { count: a.sales_notes.length })}
       </Button>
     </Form>
   </FormDrawer>;

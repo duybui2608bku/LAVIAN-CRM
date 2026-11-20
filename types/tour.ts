@@ -1,4 +1,5 @@
 import type { PaymentMethod, ServiceDetail } from "@/lib/tours";
+import type { TimelineNote } from "./note";
 
 /** Bảng `public.tours`. Thực thu = bill × % tính trong code (lib/tours.ts). */
 export interface Tour {
@@ -8,7 +9,7 @@ export interface Tour {
   service_id: string;
   service_detail: ServiceDetail | null;
   service_session: number | null;
-  note: string;
+  notes: TimelineNote[]; // ghi chú tour dạng timeline
   technician_id: string | null;
   before_images: string[];
   after_images: string[];
@@ -20,12 +21,12 @@ export interface Tour {
   customer: { full_name: string; phone: string } | null;
 }
 
-export const TOUR_FIELDS = "id,tour_date,customer_id,service_id,service_detail,service_session,note,technician_id,"
+export const TOUR_FIELDS = "id,tour_date,customer_id,service_id,service_detail,service_session,notes,technician_id,"
   + "before_images,after_images,extra_images,bill_amount,payment_method,confirmed_at,created_by,"
   + "customer:customers(full_name,phone)";
 
 export type TourPatch = Partial<Pick<Tour,
-  "tour_date" | "customer_id" | "service_id" | "note" | "technician_id" | "service_detail" | "service_session"
+  "tour_date" | "customer_id" | "service_id" | "technician_id" | "service_detail" | "service_session"
   | "bill_amount" | "payment_method" | "before_images" | "after_images" | "extra_images"
 >>;
 

@@ -1,14 +1,15 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Button, Form, Input, InputNumber, Radio, Select, Tag } from "antd";
-import { CheckCircle2, Undo2 } from "lucide-react";
+import { CheckCircle2, NotebookPen, Undo2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
-import { claimTour, confirmTour, createTour, releaseTour, updateTour } from "@/app/(app)/tour/actions";
+import { addTourNote, claimTour, confirmTour, createTour, deleteTourNote, releaseTour, updateTour } from "@/app/(app)/tour/actions";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
+import { NoteItem, NotesDrawer } from "@/components/common/notes";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
 import { formatRupiah, sanitizeCurrencyInput } from "@/lib/currency";
@@ -64,7 +65,7 @@ const serviceOptions = (services: Service[], locale: string, current?: string) =
   .filter((s) => s.is_active || s.id === current).map((s) => ({ value: s.id, label: serviceName(s, locale) }));
 
 type WorkValues = Pick<TourPatch, "tour_date" | "customer_id" | "service_id" | "technician_id" | "service_detail"
-  | "service_session" | "bill_amount" | "payment_method" | "note">;
+  | "service_session" | "bill_amount" | "payment_method">;
 
 /**
  * Drawer xem/sửa 1 tour — dùng chung cho KTV (nhận, điền chi tiết + ảnh), CSKH và admin (xác nhận).
@@ -82,6 +83,8 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   const locale = useLocale();
   const [form] = Form.useForm<WorkValues>();
   const [pending, start] = useTransition();
+  const [notesOpen, setNotesOpen] = useState(false);
+  const tn = useTranslations("notes");
   const detail = Form.useWatch("service_detail", form) as ServiceDetail | null | undefined;
   const session = Form.useWatch("service_session", form) as number | null | undefined;
   const bill = Form.useWatch("bill_amount", form) as number | null | undefined;
@@ -103,7 +106,6 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
       service_session: needsSession(values.service_detail) ? values.service_session ?? null : null,
       bill_amount: values.bill_amount ?? null,
       payment_method: values.payment_method ?? null,
-      note: values.note ?? "",
     };
     if (canEditBasic) Object.assign(patch, { tour_date: values.tour_date, customer_id: values.customer_id, service_id: values.service_id });
     if (me.isAdmin && (values.technician_id ?? null) !== tour.technician_id) patch.technician_id = values.technician_id ?? null;
@@ -138,9 +140,9 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
         tour_date: tour.tour_date, customer_id: tour.customer_id, service_id: tour.service_id,
         technician_id: tour.technician_id ?? undefined, service_detail: tour.service_detail ?? undefined,
         service_session: tour.service_session ?? undefined, bill_amount: tour.bill_amount ?? undefined,
-        payment_method: tour.payment_method ?? undefined, note: tour.note,
+        payment_method: tour.payment_method ?? undefined,
       }}
-      onValuesChange={(changed: WorkValues) => {
+      onValuesChange={(changed: Partial<WorkValues>) => {
         if (!("service_detail" in changed)) return;
         const next = changed.service_detail;
         form.setFieldValue("service_session", needsSession(next) ? form.getFieldValue("service_session") ?? 1 : undefined);
@@ -200,11 +202,23 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
             options={PAYMENT_METHODS.map((m) => ({ value: m, label: t(`pay_${m}`), className: FULL_OPTION }))} />
         </Form.Item>
       </>}
-
-      <Form.Item name="note" label={t("note")}>
-        <Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} maxLength={10000} />
-      </Form.Item>
     </Form>
+
+    {/* Ghi chú tour (timeline): xem nhanh 2 ghi chú mới nhất, thêm / xem hết ở drawer ghi chú chung. */}
+    <section className="mb-4">
+      <div className="mb-2">{t("note")}</div>
+      {tour.notes.length ? <div className="mb-3 space-y-3">
+        {tour.notes.slice(-2).reverse().map((n) => <NoteItem key={n.id} note={n} staff={staff} clamp />)}
+      </div> : null}
+      <Button block icon={<NotebookPen className="size-4" />} onClick={() => setNotesOpen(true)}>
+        {tn("viewAll", { count: tour.notes.length })}
+      </Button>
+    </section>
+    <NotesDrawer open={notesOpen} staff={staff} notes={tour.notes} onClose={() => setNotesOpen(false)}
+      title={[t("note"), tour.customer?.full_name].filter(Boolean).join(" · ")}
+      onAdd={canEdit ? (input) => addTourNote(tour.id, input) : undefined}
+      canDelete={(n) => canEdit && n.by_id === me.id}
+      onDelete={(n) => n.id ? deleteTourNote(tour.id, n.id) : Promise.resolve({})} />
 
     {status !== "pending" ? <div className="flex flex-col gap-4">
       <PhotoField label={t("beforePhotos")} capture value={tour.before_images} disabled={!canEdit} onChange={savePhotos("before_images")} />

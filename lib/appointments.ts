@@ -28,7 +28,6 @@ export const appointmentPatchSchema = z.object({
   technician_id: z.uuid().nullable(),
   bill_amount: z.number().int().min(0).max(1e15).nullable(),
   paid_amount: z.number().int().min(0).max(1e15).nullable(),
-  note: z.string().trim().max(10000),
 }).partial().strict()
   .refine((patch) => Object.keys(patch).length > 0);
 

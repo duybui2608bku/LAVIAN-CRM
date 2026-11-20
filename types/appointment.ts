@@ -1,4 +1,5 @@
 import type { CustomerNote, OtherChannel } from "./customer";
+import type { TimelineNote } from "./note";
 import type { ServiceCategory } from "./service";
 
 // Lịch hẹn chỉ lưu lịch đến của khách (tính doanh số Telesales). Tour KTV ở bảng `tours` (types/tour.ts).
@@ -39,19 +40,9 @@ export interface Appointment {
   technician_id: string | null; // Master / KTV làm lịch (bộ phận technician)
   bill_amount: number | null; // giá trị dịch vụ (IDR) — cột Tài chính
   paid_amount: number | null; // thu thêm sau Deposit (IDR) — Thực thu = Deposit + paid_amount
-  sales_notes: SalesNote[]; // ghi chú Sales dạng timeline (note = ghi chú Telesales)
+  notes: TimelineNote[]; // ghi chú lịch hẹn (Telesales) dạng timeline
+  sales_notes: TimelineNote[]; // ghi chú Sales dạng timeline
   created_by: string | null; // người tạo lịch (lịch cũ không truy được → null)
-  note: string;
-}
-
-/** 1 ghi chú Sales của lịch (`clinic_appointments.sales_notes`) — server stamp at / by / by_id. */
-export interface SalesNote {
-  id: string;
-  title: string | null; // không bắt buộc
-  text: string;
-  at: string; // ISO timestamp
-  by: string | null; // tên người ghi lúc ghi — note chuyển từ sales_note cũ không có
-  by_id: string | null; // profile id người ghi → tra tên/avatar hiện tại
 }
 
 export type AppointmentCustomer = {
@@ -84,5 +75,5 @@ export interface AppointmentLog {
 
 export type AppointmentPatch =Partial<Pick<Appointment,
   "scheduled_at" | "booking_confirm" | "visit_status" | "service_categories" | "service_ids" | "staff_id" | "sales_id"
-  | "technician_id" | "bill_amount" | "paid_amount" | "note"
+  | "technician_id" | "bill_amount" | "paid_amount"
 >>;

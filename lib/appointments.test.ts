@@ -10,11 +10,13 @@ test("appointment edits validate dates, IDs and whitelist; no tour fields", () =
     { customer_id: "another" }, { payment_method: "cash" }, { service_detail: "new" }]) {
     assert.equal(appointmentPatchSchema.safeParse(patch).success, false);
   }
-  assert.deepEqual(appointmentPatchSchema.parse({ scheduled_at: "2026-10-31T10:00:00+07:00", note: " hello " }),
-    { scheduled_at: "2026-10-31T10:00:00+07:00", note: "hello" });
+  assert.deepEqual(appointmentPatchSchema.parse({ scheduled_at: "2026-10-31T10:00:00+07:00" }),
+    { scheduled_at: "2026-10-31T10:00:00+07:00" });
+  // Ghi chú không sửa qua patch (thêm từng ghi chú vào timeline).
+  assert.equal(appointmentPatchSchema.safeParse({ note: "hello" }).success, false);
   const id = "b102ac72-d890-479b-a51b-126494cf73ac";
   assert.deepEqual(appointmentPatchSchema.parse({ service_ids: [id, id] }), { service_ids: [id] });
-  assert.equal(appointmentPatchSchema.safeParse({ staff_id: null, visit_status: "waiting", note: "" }).success, true);
+  assert.equal(appointmentPatchSchema.safeParse({ staff_id: null, visit_status: "waiting" }).success, true);
 });
 
 test("Master + Giá trị DV: uuid/null, số nguyên >= 0", () => {

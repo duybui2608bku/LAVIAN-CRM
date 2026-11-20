@@ -10,7 +10,7 @@ export default async function BookingsPage() {
   const db = await createClient();
   const [appointments, customers, staff, services] = await Promise.all([
     db.from("clinic_appointments")
-      .select("id,customer_id,scheduled_at,booking_confirm,checked_in,service_categories,service_ids,staff_id,sales_id,created_by,note")
+      .select("id,customer_id,scheduled_at,booking_confirm,checked_in,service_categories,service_ids,staff_id,sales_id,created_by,notes")
       .is("deleted_at", null),
     // Toàn bộ khách: cho cột của bảng + chọn khách ở form Tạo lịch hẹn. Chỉ rút link / username, không kéo jsonb lớn.
     db.from("customers")

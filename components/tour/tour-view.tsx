@@ -103,7 +103,7 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
     {tab === "pending" ? <div className="flex flex-col gap-2">
       {pending.length ? pending.map((tour) => <div key={tour.id} className="surface flex flex-col gap-2 p-3">
         <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
-        {tour.note ? <p className="line-clamp-3 text-sm text-muted-foreground">{tour.note}</p> : null}
+        {tour.notes.length ? <p className="line-clamp-3 text-sm whitespace-pre-wrap text-muted-foreground">{tour.notes.at(-1)!.text}</p> : null}
         {me.canEdit ? <Button type="primary" size="large" block loading={claiming === tour.id} disabled={!!claiming}
           onClick={() => claim(tour.id)}>{t("claim")}</Button> : null}
       </div>) : <div className="surface py-10"><Empty description={t("noPending")} /></div>}

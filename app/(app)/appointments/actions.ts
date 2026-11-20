@@ -13,7 +13,9 @@ import { regionNames } from "@/lib/id-regions";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
-import type { AppointmentPatch, SalesNote } from "@/types/appointment";
+import { newNote, initialNotes, withoutNote } from "@/lib/notes";
+import type { AppointmentPatch } from "@/types/appointment";
+import type { NoteInput, TimelineNote } from "@/types/note";
 import type { Customer } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
@@ -71,7 +73,7 @@ const newCustomerSchema = z.object({
 
 export async function createAppointment(
   customerRef: string | { full_name: string; phone: string },
-  input: AppointmentPatch & { scheduled_at: string },
+  { note, ...input }: AppointmentPatch & { scheduled_at: string; note?: string },
 ): Promise<{ error?: string }> {
   try {
     const profile = await requirePermission("appointments.edit");
@@ -110,6 +112,7 @@ export async function createAppointment(
       customer_id: customerId, ...patch, service_ids: patch.service_ids ?? [],
       staff_id: patch.staff_id || customerStaff || null,
       created_by: profile.id,
+      notes: initialNotes(note, profile), // ô Ghi chú ở form tạo → ghi chú đầu tiên của timeline
     });
     if (error) {
       // Không để khách Booking mồ côi (không lịch) — gỡ khách vừa tạo nhanh.
@@ -141,26 +144,23 @@ export async function patchAppointment(id: string, input: AppointmentPatch): Pro
   }
 }
 
-const salesNoteSchema = z.object({
-  title: z.string().trim().max(120).transform((v) => v || null),
-  text: z.string().trim().min(1).max(10000),
-}).strict();
+// Cột ghi chú timeline của lịch: notes (ghi chú lịch hẹn / Telesales) và sales_notes (ghi chú Sales).
+const noteField = z.enum(["notes", "sales_notes"]);
+type NoteField = z.infer<typeof noteField>;
 
-/** Thêm 1 ghi chú Sales: đọc mảng hiện tại rồi append — server stamp id, thời gian, người ghi. */
-export async function addSalesNote(id: string, input: { title: string; text: string }): Promise<{ error?: string }> {
+/** Thêm 1 ghi chú vào timeline của lịch: đọc mảng hiện tại rồi append (server stamp id, thời gian, người ghi). */
+export async function addAppointmentNote(id: string, field: NoteField, input: NoteInput): Promise<{ error?: string }> {
   try {
     const profile = await requirePermission("appointments.edit");
     z.uuid().parse(id);
-    const note: SalesNote = {
-      id: crypto.randomUUID(), ...salesNoteSchema.parse(input), at: new Date().toISOString(),
-      by: profile.user_name || profile.email || null, by_id: profile.id,
-    };
+    const column = noteField.parse(field);
+    const note = newNote(input, profile);
     const db = await client();
-    const { data, error } = await db.from("clinic_appointments").select("sales_notes")
+    const { data, error } = await db.from("clinic_appointments").select(column)
       .eq("id", id).is("deleted_at", null).single();
     if (error) throw error;
-    const { error: upErr } = await db.from("clinic_appointments")
-      .update({ sales_notes: [...((data.sales_notes as SalesNote[]) ?? []), note] }).eq("id", id);
+    const notes = ((data as Record<string, TimelineNote[]>)[column] ?? []);
+    const { error: upErr } = await db.from("clinic_appointments").update({ [column]: [...notes, note] }).eq("id", id);
     if (upErr) throw upErr;
     refresh();
     return {};
@@ -169,23 +169,19 @@ export async function addSalesNote(id: string, input: { title: string; text: str
   }
 }
 
-/** Xoá 1 ghi chú Sales — chỉ người ghi hoặc admin. */
-export async function deleteSalesNote(id: string, noteId: string): Promise<{ error?: string }> {
+/** Xoá 1 ghi chú khỏi timeline của lịch — chỉ người ghi hoặc admin. */
+export async function deleteAppointmentNote(id: string, field: NoteField, noteId: string): Promise<{ error?: string }> {
   try {
     const profile = await requirePermission("appointments.edit");
     z.uuid().parse(id);
+    const column = noteField.parse(field);
     const db = await client();
-    const { data, error } = await db.from("clinic_appointments").select("sales_notes")
+    const { data, error } = await db.from("clinic_appointments").select(column)
       .eq("id", id).is("deleted_at", null).single();
     if (error) throw error;
-    const notes = (data.sales_notes as SalesNote[]) ?? [];
-    const target = notes.find((n) => n.id === noteId);
-    if (!target) return {};
-    if (target.by_id !== profile.id && profile.role !== "admin") {
-      throw new AppError("Chỉ người ghi được xoá ghi chú này.", { code: "FORBIDDEN", status: 403 });
-    }
-    const { error: upErr } = await db.from("clinic_appointments")
-      .update({ sales_notes: notes.filter((n) => n.id !== noteId) }).eq("id", id);
+    const notes = withoutNote((data as Record<string, TimelineNote[]>)[column] ?? [], noteId, profile);
+    if (!notes) return {};
+    const { error: upErr } = await db.from("clinic_appointments").update({ [column]: notes }).eq("id", id);
     if (upErr) throw upErr;
     refresh();
     return {};
