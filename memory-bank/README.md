@@ -51,9 +51,9 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 ## Nhật ký session
 
 ### 2026-11-20 — Khách hàng: cột Ngày tạo đầy đủ 2 hàng
-- **Thay đổi:** Cột Ngày tạo ở `/customers` bỏ tag màu `DD-MM` (màu theo độ mới), đổi sang 2 hàng như Customers Management: `DD/MM/YYYY` trên, `HH:mm` nhỏ dưới, rộng 120. Xoá `AGE_COLORS`, `pad` và hàm `createdAgeBucket` (lib + test) vì không còn dùng.
-- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `lib/customers.ts`, `lib/customers.test.ts`.
-- **Còn dở / ghi chú:** Cùng PR #99. tsc + eslint + node --test (93) sạch; chưa xem trên trình duyệt.
+- **Thay đổi:** Cột Ngày tạo ở `/customers` đổi từ tag `DD-MM` sang 2 hàng như Customers Management: tag `DD/MM/YYYY` trên (**giữ màu theo độ mới** `AGE_COLORS[createdAgeBucket]`, sếp muốn giữ), `HH:mm` nhỏ dưới, rộng 120. Bỏ helper `pad`.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`.
+- **Còn dở / ghi chú:** Cùng PR #99. tsc + eslint + node --test (94) sạch; chưa xem trên trình duyệt.
 
 ### 2026-11-20 — Sales Management: Note Telesales xuống dưới SĐT
 - **Thay đổi:** Bỏ cột Note Telesales. Ghi chú gần nhất của khách (`customers.notes`) hiện ở dòng dưới SĐT trong ô Khách hàng (cắt "…", `(+N)` nếu còn nữa, hover xem hết), bấm mở `CustomerNotesDrawer`. Dòng ghi chú lịch hẹn (`notes`) vẫn ở ngay dưới. Bảng rộng 1990.
