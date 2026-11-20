@@ -890,8 +890,8 @@
     "empty": "No appointments"
   },
   "notes": {
-    "titlePlaceholder": "Title (optional)",
-    "textPlaceholder": "Write a note… (Ctrl + Enter to save)",
+    "titlePlaceholder": "Type a title or pick a suggestion",
+    "textPlaceholder": "Write the note…",
     "add": "Add note",
     "added": "Note added",
     "deleted": "Note deleted",
@@ -900,6 +900,11 @@
     "empty": "No notes yet",
     "history": "Note history",
     "suggestions": "Consultation|Needs|Technical|Payment|Aftercare",
-    "viewAll": "View all & add note ({count})"
+    "viewAll": "View all & add note ({count})",
+    "titleLabel": "Title",
+    "optional": "optional",
+    "suggest": "Suggestions:",
+    "textLabel": "Content",
+    "shortcut": "Ctrl + Enter to save"
   }
 }

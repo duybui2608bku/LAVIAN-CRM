@@ -890,8 +890,8 @@
     "empty": "Không có lịch hẹn nào"
   },
   "notes": {
-    "titlePlaceholder": "Tiêu đề (không bắt buộc)",
-    "textPlaceholder": "Nội dung ghi chú… (Ctrl + Enter để lưu)",
+    "titlePlaceholder": "Nhập tiêu đề hoặc chọn gợi ý",
+    "textPlaceholder": "Nhập nội dung ghi chú…",
     "add": "Thêm ghi chú",
     "added": "Đã thêm ghi chú",
     "deleted": "Đã xoá ghi chú",
@@ -900,6 +900,11 @@
     "empty": "Chưa có ghi chú nào",
     "history": "Lịch sử ghi chú",
     "suggestions": "Tư vấn|Nhu cầu|Kỹ thuật|Thanh toán|Chăm sóc",
-    "viewAll": "Xem tất cả & thêm ghi chú ({count})"
+    "viewAll": "Xem tất cả & thêm ghi chú ({count})",
+    "titleLabel": "Tiêu đề",
+    "optional": "không bắt buộc",
+    "suggest": "Gợi ý:",
+    "textLabel": "Nội dung",
+    "shortcut": "Ctrl + Enter để lưu nhanh"
   }
 }
