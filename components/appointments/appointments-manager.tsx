@@ -137,6 +137,12 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
             display={cats || <span className="opacity-70">{t("addCategory")}</span>}
             options={SERVICE_CATEGORY_OPTIONS}
             onSave={(c) => save(row.id, { service_categories: c as ServiceCategory[] })} /></> : null} />
+        {/* Note Telesales (ghi chú gần nhất của khách, customers.notes) — dưới dòng SĐT, bấm mở drawer ghi chú khách. */}
+        {customer?.notes?.length ? <button type="button" onClick={() => setTeleNotesFor(customer)}
+          title={customer.notes.map((n) => n.text).join("\n\n")} aria-label={t("teleNote")}
+          className="mt-0.5 block max-w-full cursor-pointer truncate text-left text-xs text-muted-foreground hover:text-primary">
+          {customer.notes.at(-1)!.text}{customer.notes.length > 1 && ` (+${customer.notes.length - 1})`}
+        </button> : null}
         {/* Ghi chú lịch hẹn (timeline notes) — dưới dòng SĐT: ghi chú mới nhất cắt "…", bấm mở drawer ghi chú. */}
         {row.notes.length > 0 && <button type="button" onClick={() => setNotesOpen({ id: row.id, field: "notes" })}
           title={row.notes.map((n) => n.text).join("\n\n")}
@@ -208,12 +214,6 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     // Note Sales: ghi chú Sales gần nhất (tiêu đề + người ghi · nội dung), bấm mở drawer Ghi chú Sales.
     { title: t("salesNotesColumn"), width: 300, render: (_, row) => <NoteCell notes={row.sales_notes}
       label={t("salesNotesColumn")} emptyText={canEdit ? `+ ${t("addNote")}` : "—"} onOpen={() => setNotesOpen({ id: row.id, field: "sales_notes" })} /> },
-    // Note Telesales (sau Note Sales): chỉ nội dung ghi chú gần nhất của khách (customers.notes), bấm mở drawer ghi chú chung.
-    { title: t("teleNote"), width: 300, render: (_, row) => {
-      const customer = customerMap.get(row.customer_id);
-      return <NoteCell notes={customer?.notes ?? []} contentOnly label={t("teleNote")} emptyText="—"
-        onOpen={() => setTeleNotesFor(customer ?? null)} />;
-    } },
     // Cột Thao tác (xoá lịch) đã bỏ khỏi UI — server action deleteAppointment vẫn giữ (gác appointments.delete).
   ];
 
@@ -253,9 +253,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
           <Tag color={BOOKING_STATUS_COLORS[s]} className="me-0">{t(`bookingStatus.${s}`)}</Tag>
           <span className="font-normal text-muted-foreground">{t("count", { count: items.length })}</span>
         </h3>
-        <DataTable columns={columns} dataSource={items} scroll={{ x: 2290 }} pageSize={30} />
+        <DataTable columns={columns} dataSource={items} scroll={{ x: 1990 }} pageSize={30} />
       </section> : null;
-    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 2290 }} empty={t("empty")}
+    }) : <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1990 }} empty={t("empty")}
       page={page} onPageChange={setPage} pageSize={30} />}
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}

@@ -50,6 +50,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-20 — Sales Management: Note Telesales xuống dưới SĐT
+- **Thay đổi:** Bỏ cột Note Telesales. Ghi chú gần nhất của khách (`customers.notes`) hiện ở dòng dưới SĐT trong ô Khách hàng (cắt "…", `(+N)` nếu còn nữa, hover xem hết), bấm mở `CustomerNotesDrawer`. Dòng ghi chú lịch hẹn (`notes`) vẫn ở ngay dưới. Bảng rộng 1990.
+- **File ảnh hưởng:** `components/appointments/appointments-manager.tsx`.
+- **Còn dở / ghi chú:** Cùng PR #99. tsc + eslint sạch; chưa xem trên trình duyệt.
+
 ### 2026-11-20 — Customers Management: lọc nhanh dạng nút như Booking
 - **Thay đổi:** Trang `/customers/potential` bỏ `Segmented` full-width (Tất cả / Quá hạn / Hôm nay / Sắp tới). 4 lựa chọn giờ là `Button` trong thanh lọc, sau ô tìm kiếm, trước Trạng thái / Tele. Nút đang chọn `type=primary ghost` + `aria-pressed` (giống Booking Management). Logic tab không đổi.
 - **File ảnh hưởng:** `components/customers/potential-manager.tsx`.
