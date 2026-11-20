@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-20 — Tóm tắt AI hội thoại SMAX (Claude)
+- **Thay đổi:** Thêm `ANTHROPIC_API_KEY` (chỉ server) vào `.env.example` + `.env.local` (để trống, người dùng tự dán), cài `@anthropic-ai/sdk@^1.11`. Bảng `customer_chat_summaries` (1 dòng / khách, upsert, RLS user active, `created_by = auth.uid()`). Server action `summarizeCustomerChat(customerId, locale)`: lấy 30 tin SMAX (lỗi → bản chụp `smax_messages`), gọi `claude-opus-5-5` (effort `low`, beta `server-side-fallback-2026-07-01` + `fallbacks: "default"`), tóm tắt theo ngôn ngữ giao diện người bấm, lưu lại. `getCustomer360` trả `chat_summary`. Tab Hội thoại popup 360°: khung "Tóm tắt AI" (nút Tóm tắt bằng AI / Tóm tắt lại, giờ + người tạo + số tin, nhãn "Có tin mới" khi có tin sau bản tóm tắt).
+- **File ảnh hưởng:** `supabase/migrations/20261120130000_customer_chat_summary.sql`, `app/(app)/customers/customer-360-actions.ts`, `types/customer-360.ts`, `components/customers/customer-360/{activity-tabs,customer-360-modal}.tsx`, `messages/{vi,en}.json`, `.env.example`, `package.json`, `openspec/changes/customer-chat-ai-summary/`.
+- **Còn dở / ghi chú:** Cần chạy migration trên Supabase + dán key vào `.env.local` (và env của server deploy), khởi động lại dev server. Chưa thử gọi thật / chưa xem trên trình duyệt. Hội thoại khách được gửi sang Anthropic mỗi lần bấm.
+
 ### 2026-11-20 — Popup 360°: các tab cuộn trong cùng 1 vùng cố định
 - **Thay đổi:** Desktop (≥ lg): thân popup chia flex — 3 ô tóm tắt ở trên, phần còn lại là lưới `grid-rows-[minmax(0,1fr)]`; cột trái cuộn riêng; thanh tab đứng yên, `.ant-tabs-content-holder` cuộn dọc (`scrollbar-gutter: stable`) → đổi tab không làm modal đổi cao. Tab Hội thoại: khung chat lấp đầy vùng tab (`flex-1`, bỏ `max-h-[65vh]` ở desktop; điện thoại giữ 60vh, cuộn cả thân).
 - **File ảnh hưởng:** `components/customers/customer-360/customer-360-modal.tsx`, `components/customers/customer-360/activity-tabs.tsx`.

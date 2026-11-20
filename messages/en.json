@@ -1035,7 +1035,16 @@
     "messages": {
       "search": "Search conversation",
       "noMatch": "No matching messages",
-      "snapshot": "Could not load from SMAX — showing snapshot from {at}"
+      "snapshot": "Could not load from SMAX — showing snapshot from {at}",
+      "ai": {
+        "title": "AI summary",
+        "run": "Summarize with AI",
+        "again": "Summarize again",
+        "working": "AI is reading the conversation…",
+        "empty": "No summary yet. Click \"Summarize with AI\" to have AI read the latest 30 messages.",
+        "stale": "New messages",
+        "meta": "{at} · {name} · {count} messages"
+      }
     },
     "timeline": {
       "all": "All",

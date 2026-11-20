@@ -1,16 +1,19 @@
 "use server";
 
+import Anthropic from "@anthropic-ai/sdk";
+import dayjs from "dayjs";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAnyPermission, requirePermission } from "@/lib/auth";
 import { canSeeFinance, canSeePhotos, customerRole } from "@/lib/customer-360";
 import { AppError, normalizeError } from "@/lib/errors";
 import { newNote } from "@/lib/notes";
+import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
 import { createClient } from "@/lib/supabase/server";
 import type { AppointmentLog } from "@/types/appointment";
 import {
   NEED_ORIGINS, NEED_STATUSES, PERFORMER_ROLES, PORTRAIT_FIELDS, PORTRAIT_SOURCES,
-  type AppointmentPhoto, type Customer360, type CustomerNeed, type NeedStatus,
+  type AppointmentPhoto, type ChatSummary, type Customer360, type CustomerNeed, type NeedStatus,
 } from "@/types/customer-360";
 import type { NoteInput } from "@/types/note";
 
@@ -46,6 +49,8 @@ async function signPhotos(db: Awaited<ReturnType<typeof createClient>>, rows: Ph
   }] : []));
 }
 
+const SUMMARY_FIELDS = "summary,last_message_at,message_count,created_by,created_at";
+
 /** Toàn bộ hồ sơ 1 khách (popup 360°). Tài chính / ảnh chỉ trả khi người gọi được xem. */
 export async function getCustomer360(customerId: string): Promise<{ data?: Customer360; error?: string }> {
   try {
@@ -54,7 +59,7 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
     const finance = canSeeFinance(profile);
     const photos = canSeePhotos(profile);
     const db = await createClient();
-    const [customer, appts, logs, portrait, needs, reminders, services, photoRows] = await Promise.all([
+    const [customer, appts, logs, portrait, needs, reminders, services, photoRows, summary] = await Promise.all([
       db.from("customers").select(`id,full_name,phone,picture,source,stage,staff_id,sales_id,technician_id,first_contact,created_at,thread_link:thread->>link,notes,smax_messages,smax_messages_at${finance ? ",deposit_amount" : ""}`)
         .eq("id", customerId).is("deleted_at", null).single(),
       db.from("clinic_appointments").select(finance ? `${APPT_FIELDS},bill_amount,paid_amount` : APPT_FIELDS)
@@ -72,8 +77,9 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
       photos
         ? db.from("appointment_photos").select(PHOTO_FIELDS).eq("customer_id", customerId).order("created_at")
         : Promise.resolve({ data: null, error: null }),
+      db.from("customer_chat_summaries").select(SUMMARY_FIELDS).eq("customer_id", customerId).maybeSingle(),
     ]);
-    const error = customer.error ?? appts.error ?? logs.error ?? portrait.error ?? needs.error ?? reminders.error ?? services.error ?? photoRows.error;
+    const error = customer.error ?? appts.error ?? logs.error ?? portrait.error ?? needs.error ?? reminders.error ?? services.error ?? photoRows.error ?? summary.error;
     if (error) throw error;
     const { smax_messages, ...info } = customer.data as unknown as Customer360["customer"] & { smax_messages: Customer360["smax_messages"] };
     return {
@@ -90,6 +96,7 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
         services: (services.data ?? []) as Customer360["services"],
         photos: photos ? await signPhotos(db, (photoRows.data ?? []) as PhotoRow[]) : null,
         smax_messages,
+        chat_summary: (summary.data ?? null) as ChatSummary | null,
         can: { finance, photos },
         role: customerRole(profile),
         now: Date.now(),
@@ -260,6 +267,78 @@ export async function setAppointmentPerformers(appointmentId: string, input: z.i
     revalidatePath("/appointments");
     return {};
   } catch (error) {
+    return { error: normalizeError(error).message };
+  }
+}
+
+// ─────────────────────────── Tóm tắt AI hội thoại SMAX (Claude) ───────────────────────────
+
+const SUMMARY_MODEL = "claude-opus-5-5";
+const SUMMARY_LANGUAGES: Record<string, string> = { vi: "Vietnamese", en: "English", id: "Indonesian" };
+const SUMMARY_SYSTEM = `You summarize a customer's chat with Lavian Beauty Center, a beauty clinic in Indonesia (brow, lip and eyeliner embroidery and similar services), for the clinic's sales team.
+Each message is labeled "Customer" or "Lavian" with its date and time.
+Write plain text in short sections, each a heading line followed by "- " bullets:
+1. What the customer wants (services, preferred dates)
+2. Concerns or objections
+3. What was agreed or quoted (prices, appointments, deposits)
+4. Suggested next step for the sales team
+Only state what the chat supports and skip a section that has nothing. No markdown symbols such as # or **. Keep it under about 150 words.`;
+
+const transcriptLine = (m: ChatMessage) => {
+  const extra = [m.images.length && `[${m.images.length} image(s)]`, m.files && `[${m.files} attachment(s)]`].filter(Boolean).join(" ");
+  return `[${dayjs(m.at).format("DD/MM/YYYY HH:mm")}] ${m.out ? "Lavian" : "Customer"}: ${[m.text, extra].filter(Boolean).join(" ")}`;
+};
+
+/**
+ * Tóm tắt 30 tin SMAX gần nhất bằng Claude rồi lưu (1 dòng / khách, ghi đè). SMAX lỗi → dùng bản chụp lúc gửi lead-form.
+ * `locale` = ngôn ngữ giao diện của người bấm (vi / en / id).
+ */
+export async function summarizeCustomerChat(customerId: string, locale: string): Promise<{ summary?: ChatSummary; error?: string }> {
+  try {
+    const profile = await viewer();
+    z.uuid().parse(customerId);
+    if (!process.env.ANTHROPIC_API_KEY) throw new AppError("Thiếu ANTHROPIC_API_KEY — điền vào biến môi trường của server.");
+    const db = await createClient();
+    const { data, error } = await db.from("customers").select("link:thread->>link,smax_messages")
+      .eq("id", customerId).is("deleted_at", null).single();
+    if (error) throw error;
+    const snapshot = (data.smax_messages ?? []) as ChatMessage[];
+    const messages = await fetchThreadMessages(data.link as string | null)
+      .catch((e) => { if (snapshot.length) return snapshot; throw e; });
+    if (!messages.length) throw new AppError("Khách chưa có tin nhắn để tóm tắt.");
+
+    const client = new Anthropic();
+    const res = await client.beta.messages.create({
+      model: SUMMARY_MODEL,
+      max_tokens: 16000,
+      output_config: { effort: "low" },
+      // Model từ chối (an toàn) → API tự chạy lại trên model dự phòng trong cùng request.
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      system: SUMMARY_SYSTEM,
+      messages: [{ role: "user", content: [
+        `Write the summary in ${SUMMARY_LANGUAGES[locale] ?? "Vietnamese"}.`, "", "<chat>", ...messages.map(transcriptLine), "</chat>",
+      ].join("\n") }],
+    });
+    if (res.stop_reason === "refusal") throw new AppError("AI từ chối tóm tắt hội thoại này.");
+    const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
+    if (!text) throw new AppError("AI không trả về nội dung tóm tắt — thử lại.");
+
+    const row = {
+      customer_id: customerId,
+      summary: text.slice(0, 8000),
+      last_message_at: messages.at(-1)!.at,
+      message_count: messages.length,
+      model: res.model,
+      created_by: profile.id,
+      created_at: new Date().toISOString(),
+    };
+    const { data: saved, error: saveErr } = await db.from("customer_chat_summaries").upsert(row).select(SUMMARY_FIELDS).single();
+    if (saveErr) throw saveErr;
+    return { summary: saved as ChatSummary };
+  } catch (error) {
+    if (error instanceof Anthropic.AuthenticationError) return { error: "ANTHROPIC_API_KEY sai hoặc đã bị thu hồi." };
+    if (error instanceof Anthropic.RateLimitError) return { error: "AI đang quá tải — thử lại sau ít phút." };
     return { error: normalizeError(error).message };
   }
 }

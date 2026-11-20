@@ -1035,7 +1035,16 @@
     "messages": {
       "search": "Tìm trong hội thoại",
       "noMatch": "Không có tin nhắn khớp",
-      "snapshot": "Không tải được từ SMAX — đang hiện bản chụp lúc {at}"
+      "snapshot": "Không tải được từ SMAX — đang hiện bản chụp lúc {at}",
+      "ai": {
+        "title": "Tóm tắt AI",
+        "run": "Tóm tắt bằng AI",
+        "again": "Tóm tắt lại",
+        "working": "AI đang đọc hội thoại…",
+        "empty": "Chưa có bản tóm tắt. Bấm \"Tóm tắt bằng AI\" để AI đọc 30 tin gần nhất.",
+        "stale": "Có tin mới",
+        "meta": "{at} · {name} · {count} tin"
+      }
     },
     "timeline": {
       "all": "Tất cả",

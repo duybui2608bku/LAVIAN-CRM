@@ -90,7 +90,7 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
             { key: "portrait", label: t("tabs.portrait"), children: <PortraitTab data={data} staff={staff} onSaved={refresh} /> },
             { key: "services", label: t("tabs.services"), children: <ServicesTab data={data} onSaved={refresh} /> },
             ...(data.can.photos ? [{ key: "photos", label: t("tabs.photos"), children: <PhotosTab data={data} /> }] : []),
-            { key: "messages", label: t("tabs.messages"), children: <MessagesTab data={data} /> },
+            { key: "messages", label: t("tabs.messages"), children: <MessagesTab data={data} staff={staff} onSaved={refresh} /> },
             { key: "timeline", label: t("tabs.timeline"), children: <TimelineTab data={data} staff={staff} composing={composing} onSaved={refresh} /> },
             { key: "care", label: t("tabs.care"), children: <Result status="info" title={t("comingSoon")} subTitle={t("comingSoonDesc")} /> },
           ]} />
