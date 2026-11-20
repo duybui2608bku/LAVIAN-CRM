@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Button, Form, Input, Select, Tag, type TableProps } from "antd";
+import { Button, Form, Input, Popover, Select, Tag, type TableProps } from "antd";
 import { CalendarPlus, MessageCircleMore, Rows3, Search, SquarePen } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
@@ -52,7 +52,7 @@ export const staffOptions = (staff: AppointmentStaff[], current?: string | null,
   .filter((s) => s.id === current || (s.status === "active" && depts.includes(s.department ?? "")))
   .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
-export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, visitChoices, canPhotos }: {
+export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, visitChoices }: {
   appointments: Appointment[];
   customers: AppointmentCustomer[];
   staff: AppointmentStaff[];
@@ -60,8 +60,6 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   initialCustomer: string;
   /** Status được chọn: Sales/admin mọi trạng thái, Master chỉ Đã thực hiện (rỗng = không đổi được). */
   visitChoices: VisitStatus[];
-  /** Ảnh B/A ở Drawer (mọi bộ phận trừ Telesales). */
-  canPhotos: boolean;
 }) {
   const t = useTranslations("appointments");
   const locale = useLocale();
@@ -202,21 +200,42 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <span className="text-muted-foreground">{t("bill")}</span>
       <span className="text-right">{idr.format(row.bill_amount ?? 0)}</span>
     </div> },
-    // Nhân sự: Telesales · Sales · Master (KTV) gộp 1 cột, chỉ xem (sửa trong drawer);
-    // đứng sát nhau trên 1 hàng (cột hẹp thì tự xuống dòng); người chưa gán thì bỏ qua, hover thấy vai trò.
+    // Nhân sự: Telesales · Sales · Master gộp 1 cột, đứng sát nhau trên 1 hàng (cột hẹp thì tự xuống dòng);
+    // người chưa gán thì bỏ qua, hover thấy vai trò. Bấm → popup chọn Sales / Master (lưu ngay; Telesales chỉ xem).
     { title: t("staffColumn"), width: 300, render: (_, row) => {
       const people = ([["staff", row.staff_id], ["sales", row.sales_id], ["master", row.technician_id]] as const)
         .flatMap(([role, id]) => {
           const member = id ? staff.find((s) => s.id === id) : undefined;
           return member ? [{ role, member }] : [];
         });
-      return people.length
+      const display = people.length
         ? <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{people.map(({ role, member }) =>
           <span key={role} title={`${t(role)}: ${member.user_name}`} className="flex min-w-0 items-center gap-1.5">
             <UserAvatar src={member.avatar_url} />
             <span className="max-w-28 truncate">{member.user_name || "—"}</span>
           </span>)}</div>
         : <span className="text-muted-foreground">—</span>;
+      if (!canEdit) return display;
+      const tele = row.staff_id ? staff.find((s) => s.id === row.staff_id) : undefined;
+      const pick = (field: "sales_id" | "technician_id", label: string, depts: string[], placeholder: string) =>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={placeholder} aria-label={label}
+            value={row[field] ?? undefined} options={staffOptions(staff, row[field], depts)}
+            onChange={(v?: string) => { if ((v ?? null) !== row[field]) save(row.id, { [field]: v ?? null }); }} />
+        </label>;
+      return <Popover trigger="click" placement="bottomLeft" title={t("staffColumn")} content={<div className="flex w-64 flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">{t("staff")}</span>
+          <span className={tele ? undefined : "text-muted-foreground"}>{tele ? staffLabel(tele) : "—"}</span>
+        </div>
+        {pick("sales_id", t("sales"), ["sales"], t("choose"))}
+        {pick("technician_id", t("master"), ["technician"], t("unassigned"))}
+      </div>}>
+        <button type="button" aria-label={t("staffColumn")} className="-mx-1 w-full cursor-pointer rounded px-1 py-0.5 text-left hover:bg-muted">
+          {display}
+        </button>
+      </Popover>;
     } },
     // Cột Người tạo tạm ẩn — dữ liệu created_by vẫn ghi + vẫn tải.
     // Note Sales: ghi chú Sales gần nhất (tiêu đề + người ghi · nội dung), bấm mở drawer Ghi chú Sales.
@@ -270,7 +289,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       onCreated={() => { setCreating(false); setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setVisit("all"); setBooking("all"); setPage(1); }} />
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
-      staff={staff} services={services} canEdit={canEdit} visitChoices={visitChoices} canPhotos={canPhotos}
+      staff={staff} services={services} canEdit={canEdit} visitChoices={visitChoices}
       onViewInfo={setInfoFor} onOpenNotes={() => editingId && setNotesOpen({ id: editingId, field: "sales_notes" })} onClose={() => setEditingId(null)} />
     <AppointmentNotesDrawer appointment={notesFor} field={notesOpen?.field ?? "notes"} staff={staff} canEdit={canEdit}
       customerName={notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : ""} onClose={() => setNotesOpen(null)} />
