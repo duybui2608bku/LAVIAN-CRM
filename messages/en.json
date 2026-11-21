@@ -550,6 +550,8 @@
     "costPerMessage": "Spend / Message",
     "leads": "Potential leads",
     "costPerLead": "Spend / Potential lead",
+    "costPerBooking": "Spend / Booking",
+    "funnelHint": "By tag time in this period",
     "appointments": "Appointments",
     "campaigns": "Campaigns",
     "noCampaigns": "No campaigns with impressions in this date range",

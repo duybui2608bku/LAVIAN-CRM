@@ -9,7 +9,7 @@ import {
   setFbCampaignStatus,
   type FbCampaign,
 } from "@/lib/marketing";
-import { countPotential, type PotentialCounts } from "@/lib/smax-inbox";
+import { countPotential, untilToday, type PotentialCounts } from "@/lib/smax-inbox";
 import { fetchIgByPhone, fetchInboxThreads } from "@/lib/smax-threads";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -20,18 +20,20 @@ export interface AdsStats {
   spend: number | null;
   messages: number | null;
   campaigns: FbCampaign[] | null;
-  /** Khách tiềm năng (khách SMAX mới trong range có tag Phone/WA, Booking, Deposit, Purchase): tổng + theo chiến dịch IG / số WA; null khi lỗi. */
+  /** Phễu SMAX: KH tiềm năng (khách mới có tag Phone/WA, Booking, Deposit) + Đặt lịch / Đến cơ sở (gắn tag trong kỳ):
+   *  tổng + theo chiến dịch IG / số WA; null khi lỗi. */
   potential: PotentialCounts | null;
   errors: { fb?: string; campaigns?: string; db?: string; potential?: string };
   error?: string;
 }
 
 /** Số liệu trang Marketing theo khoảng ngày Việt Nam `YYYY-MM-DD`. */
-/** KH tiềm năng theo chiến dịch (SMAX + ad_id → chiến dịch FB); khách IG chuyển sang WA tính 1 lần, về IG. */
+/** Phễu theo chiến dịch (SMAX + ad_id → chiến dịch FB); khách IG chuyển sang WA tính 1 lần, về IG. */
 async function fetchPotential(from: string, to: string): Promise<PotentialCounts> {
-  const threadsP = fetchInboxThreads(from, to, { byCreated: true });
+  // Theo tin nhắn từ `from` tới hôm nay: đủ khách mới của kỳ + khách được gắn booking/purchase trong kỳ (như Báo cáo SMAX).
+  const threadsP = fetchInboxThreads(from, untilToday(to));
   const [threads, ads, igByPhone] = await Promise.all([threadsP, fetchFbAdCampaigns(from, to), fetchIgByPhone(from, [threadsP])]);
-  return countPotential(threads, ads, { from, igByPhone });
+  return countPotential(threads, ads, { from, to, igByPhone });
 }
 
 export async function getAdsStats(from: string, to: string): Promise<AdsStats> {

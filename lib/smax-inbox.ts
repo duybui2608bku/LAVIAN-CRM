@@ -303,6 +303,15 @@ export function createdIn(threads: InboxThread[], from: string, to: string): Inb
   });
 }
 
+/**
+ * Tính theo lúc gắn tag: hội thoại gắn trong kỳ nhưng nhắn tiếp sau đó có last_message_at muộn hơn `to`
+ * → lấy theo tin nhắn từ `from` tới hôm nay (WIB) rồi lọc theo thời điểm gắn.
+ */
+export function untilToday(to: string): string {
+  const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
+  return today > to ? today : to;
+}
+
 /** Ngày WIB `YYYY-MM-DD` của mốc ms (NaN → ""). */
 const wibDate = (ms: number) => (Number.isNaN(ms) ? "" : new Date(ms + 7 * 3_600_000).toISOString().slice(0, 10));
 
@@ -390,10 +399,12 @@ export function buildFollowupReport(threads: InboxThread[], from: string, to: st
 }
 
 // ---------------------------------------------------------------------------
-/** Khách tiềm năng (cột trang Marketing): hội thoại có 1 trong các tag này — gắn nhiều tag vẫn chỉ tính 1. */
+/** Khách đã chuyển đổi (Phone/WA, Booking, Deposit, Purchase) — dùng chọn khách IG cần dò SĐT trong tin nhắn. */
 export const POTENTIAL_ALIASES = ["phone", "booking", "bookings-deposit", "purchase"];
+/** KH tiềm năng trang Marketing: KHÔNG gồm purchase (purchase chỉ là khách đến — user chốt 2026-11-21). */
+const LEAD_ALIASES = ["phone", ...BOOKING_ALIASES];
 
-/** Phễu theo chiến dịch: Booking / Show up là tập con của khách tiềm năng (cùng người, xét tag hiện tại). */
+/** Phễu theo chiến dịch: KH tiềm năng (khách mới) / Đặt lịch / Đến cơ sở (theo lúc gắn tag) — đếm độc lập. */
 export const FUNNEL_KEYS = ["potential", "booking", "showUp"] as const;
 export type FunnelKey = (typeof FUNNEL_KEYS)[number];
 export type Funnel = Record<FunnelKey, number>;
@@ -410,24 +421,32 @@ export type PotentialCounts = {
 const emptyFunnel = (): Funnel => ({ potential: 0, booking: 0, showUp: 0 });
 
 /**
- * `adCampaign`: ad_id → campaign_id (từ FB). Mỗi người tính tối đa 1 lần (gộp IG ↔ WA theo `igByPhone`).
- * Có `from` (ngày WIB) → bỏ người xuất hiện trước kỳ (đã là khách kỳ trước, vd nhắn IG rồi kỳ này mới sang WA).
+ * `adCampaign`: ad_id → campaign_id (từ FB). Mỗi người tính tối đa 1 lần mỗi chỉ số (gộp IG ↔ WA theo `igByPhone`).
+ * Có `from`/`to` (ngày WIB) — `threads` = hội thoại có tin nhắn từ `from` tới hôm nay:
+ * - KH tiềm năng = khách xuất hiện LẦN ĐẦU trong kỳ, có tag Phone/WA, Booking hoặc Deposit (purchase không tính);
+ * - Đặt lịch / Đến cơ sở = tag booking (hoặc deposit) / purchase GẮN trong kỳ, mọi khách (giống Báo cáo SMAX).
+ *   Có cả booking + purchase → 1 đặt lịch + 1 đến cơ sở.
+ * Không có khoảng ngày (test) → không xét thời gian.
  */
 export function countPotential(
   threads: InboxThread[],
   adCampaign: Map<string, string>,
-  { from, igByPhone }: { from?: string; igByPhone?: IgByPhone } = {},
+  { from, to, igByPhone }: { from?: string; to?: string; igByPhone?: IgByPhone } = {},
 ): PotentialCounts {
   const out: PotentialCounts = { byCampaign: {}, byWa: {}, total: emptyFunnel() };
-  const start = from ? Date.parse(inboxDateRange(from, from)[0]) : -Infinity;
+  const [start, end] = from && to ? inboxDateRange(from, to).map(Date.parse) : [NaN, NaN];
+  const inRange = (ms: number) => !from || !to || (ms >= start && ms <= end);
   for (const t of byCustomer(threads, igByPhone)) {
-    if (firstSeen(t) < start) continue;
+    if (!CHANNEL_OF[t.platform ?? ""]) continue;
     const tags = t.tag_aliases ?? [];
-    if (!CHANNEL_OF[t.platform ?? ""] || !POTENTIAL_ALIASES.some((a) => tags.includes(a))) continue;
+    const lead = LEAD_ALIASES.some((a) => tags.includes(a)) && inRange(firstSeen(t));
+    const booked = BOOKING_ALIASES.some((a) => tags.includes(a)) && inRange(taggedAt(t, BOOKING_ALIASES));
+    const showed = tags.includes(SHOW_UP_ALIAS) && inRange(taggedAt(t, [SHOW_UP_ALIAS]));
+    if (!lead && !booked && !showed) continue;
     const add = (f: Funnel) => {
-      f.potential++;
-      if (BOOKING_ALIASES.some((a) => tags.includes(a))) f.booking++;
-      if (tags.includes("purchase")) f.showUp++;
+      if (lead) f.potential++;
+      if (booked) f.booking++;
+      if (showed) f.showUp++;
     };
     add(out.total);
     if (t.platform === "instagram") {

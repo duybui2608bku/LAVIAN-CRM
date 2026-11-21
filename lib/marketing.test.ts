@@ -139,8 +139,12 @@ test("fetchFbCampaigns lọc impressions > 0, trạng thái best-effort, sắp t
     const url = new URL(String(input));
     assert.equal(url.searchParams.has("ids"), false);
     if (url.pathname.endsWith("/campaigns")) {
-      assert.equal(url.searchParams.has("filtering"), false);
       const first = url.pathname.includes("1494701561142295");
+      // Chỉ hỏi đúng chiến dịch có số liệu của tài khoản đó, kể cả đã lưu trữ.
+      assert.deepEqual(JSON.parse(url.searchParams.get("filtering")!), [
+        { field: "id", operator: "IN", value: first ? ["c1"] : ["c2"] },
+      ]);
+      assert.ok(JSON.parse(url.searchParams.get("effective_status")!).includes("ARCHIVED"));
       if (!first) return Response.json({ error: { message: "Invalid parameter" } }, { status: 400 });
       return Response.json({
         data: [

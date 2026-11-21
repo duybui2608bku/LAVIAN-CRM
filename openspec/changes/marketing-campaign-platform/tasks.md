@@ -8,3 +8,8 @@
 - [x] 2.2 Dòng con WA / IG cho chiến dịch 2 nền tảng (phễu tách riêng)
 - [x] 2.3 Tên chiến dịch → link Ads Manager (desktop + mobile)
 - [x] 2.4 i18n vi/en
+
+## 3. Phễu + chỉ số
+- [x] 3.1 Cột Chi tiêu / Đặt lịch; thẻ Đặt lịch, Đến cơ sở
+- [x] 3.2 `countPotential` theo lúc gắn tag; purchase chỉ là Đến cơ sở; test
+- [x] 3.3 Chỉ hỏi meta (trạng thái, destination_type) của chiến dịch có số liệu (`fetchFbCampaignMeta`, lọc id IN)

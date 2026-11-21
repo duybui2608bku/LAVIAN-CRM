@@ -110,8 +110,37 @@ test("countPotential: 1 hội thoại tính 1 lần, IG theo ad_id, WA theo số
     ads,
   );
   const f = (potential: number, booking: number, showUp: number) => ({ potential, booking, showUp });
-  // Booking = booking/cọc, Show up = purchase — tập con của tiềm năng; total gồm khách IG không có quảng cáo.
-  assert.deepEqual(r, { byCampaign: { c1: f(2, 1, 1), c2: f(1, 1, 0) }, byWa: { "WA-3455": f(2, 1, 1) }, total: f(6, 3, 2) });
+  // Booking = booking/cọc, Show up = purchase; purchase KHÔNG phải KH tiềm năng (id 2 chỉ là đến cơ sở).
+  // total gồm khách IG không có quảng cáo.
+  assert.deepEqual(r, { byCampaign: { c1: f(1, 1, 1), c2: f(1, 1, 0) }, byWa: { "WA-3455": f(2, 1, 1) }, total: f(5, 3, 2) });
+});
+
+test("countPotential: Đặt lịch / Đến cơ sở theo lúc gắn tag (gồm khách cũ), KH tiềm năng = khách mới", () => {
+  const OLD = "2026-11-01T03:00:00.000Z";
+  const D16 = "2026-11-16T03:00:00.000Z";
+  const D18 = "2026-11-18T03:00:00.000Z";
+  const th = (id: string, created: string, tags: { alias: string; time: string }[]) => ({
+    id,
+    platform: "whatsappweb",
+    page_pid: "waw6281918453455",
+    created_at: created,
+    tag_aliases: tags.map((g) => g.alias),
+    customer: { id, created_at: created, tags },
+  });
+  const r = countPotential(
+    [
+      th("a", D16, [{ alias: "booking", time: D16 }, { alias: "purchase", time: D16 }]), // mới: 1 tiềm năng + 1 đặt lịch + 1 đến
+      th("b", D16, [{ alias: "bookings-deposit", time: D16 }, { alias: "purchase", time: D18 }]), // đến sau kỳ → chưa tính
+      th("c", OLD, [{ alias: "booking", time: D16 }]), // khách cũ đặt lịch trong kỳ → đặt lịch, không tiềm năng
+      th("d", OLD, [{ alias: "booking", time: OLD }, { alias: "purchase", time: D16 }]), // đặt lịch kỳ trước, đến trong kỳ
+      th("e", D16, [{ alias: "purchase", time: D16 }]), // chỉ purchase → đến cơ sở, không tiềm năng
+      th("f", D18, [{ alias: "phone", time: D18 }]), // xuất hiện sau kỳ → không tính
+    ],
+    new Map(),
+    { from: "2026-11-16", to: "2026-11-16" },
+  );
+  assert.deepEqual(r.total, { potential: 2, booking: 3, showUp: 3 });
+  assert.deepEqual(r.byWa, { "WA-3455": { potential: 2, booking: 3, showUp: 3 } });
 });
 
 test("buildInboxReport: cọc gắn sau kỳ chưa tính deposit", () => {
@@ -256,10 +285,11 @@ test("Khách IG chuyển sang WA cùng SĐT: 1 người, kênh = bên nhắn tr�
   assert.equal(r4.total.ig.conversations, 1);
   assert.equal(r4.total.wa.conversations, 1);
 
-  // KH tiềm năng: 1 người về chiến dịch IG; người có phần IG từ kỳ trước không tính lại.
+  // KH tiềm năng: 1 người về chiến dịch IG; người có phần IG từ kỳ trước không phải khách mới
+  // nhưng booking gắn trong kỳ vẫn tính đặt lịch (về chiến dịch IG của người đó).
   const ads = new Map([["ad1", "camp"]]);
-  assert.deepEqual(countPotential([igNew, waNew], ads, { from: "2026-11-15", igByPhone: idx }), { byCampaign: { camp: { potential: 1, booking: 1, showUp: 0 } }, byWa: {}, total: { potential: 1, booking: 1, showUp: 0 } });
-  assert.deepEqual(countPotential([waNew], ads, { from: "2026-11-16", igByPhone: igPhoneIndex([igOld]) }), { byCampaign: {}, byWa: {}, total: { potential: 0, booking: 0, showUp: 0 } });
+  assert.deepEqual(countPotential([igNew, waNew], ads, { from: "2026-11-15", to: "2026-11-16", igByPhone: idx }), { byCampaign: { camp: { potential: 1, booking: 1, showUp: 0 } }, byWa: {}, total: { potential: 1, booking: 1, showUp: 0 } });
+  assert.deepEqual(countPotential([waNew], ads, { from: "2026-11-16", to: "2026-11-16", igByPhone: igPhoneIndex([igOld]) }), { byCampaign: { camp: { potential: 0, booking: 1, showUp: 0 } }, byWa: {}, total: { potential: 0, booking: 1, showUp: 0 } });
 });
 
 test("createdIn: lọc hội thoại tạo trong khoảng ngày WIB", () => {

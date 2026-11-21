@@ -550,6 +550,8 @@
     "costPerMessage": "Chi tiêu / Tin nhắn",
     "leads": "KH tiềm năng",
     "costPerLead": "Chi tiêu / KH tiềm năng",
+    "costPerBooking": "Chi tiêu / Đặt lịch",
+    "funnelHint": "Theo lúc gắn tag trong kỳ",
     "appointments": "Lịch hẹn",
     "campaigns": "Chiến dịch",
     "noCampaigns": "Không có chiến dịch nào có lượt hiển thị trong khoảng ngày này",

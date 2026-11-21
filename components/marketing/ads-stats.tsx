@@ -90,12 +90,16 @@ export function AdsStatsView() {
   const count = (n: number | null) => (n == null ? null : n.toLocaleString(locale));
   const e = stats?.errors;
   const s = stats;
-  const cards: { key: string; value: string | null }[] = [
+  const total = s?.potential?.total;
+  // KH tiềm năng = khách mới của kỳ (không gồm purchase); Đặt lịch / Đến cơ sở = tag booking / purchase gắn trong kỳ.
+  const cards: { key: string; value: string | null; hint?: string }[] = [
     { key: "spend", value: money(s?.spend ?? null) },
     { key: "messages", value: count(s?.messages ?? null) },
     { key: "costPerMessage", value: money(ratio(s?.spend ?? null, s?.messages ?? null)) },
-    { key: "leads", value: count(s?.potential?.total.potential ?? null) },
-    { key: "costPerLead", value: money(ratio(s?.spend ?? null, s?.potential?.total.potential ?? null)) },
+    { key: "leads", value: count(total?.potential ?? null) },
+    { key: "costPerLead", value: money(ratio(s?.spend ?? null, total?.potential ?? null)) },
+    { key: "colBooking", value: count(total?.booking ?? null), hint: t("funnelHint") },
+    { key: "colShowUp", value: count(total?.showUp ?? null), hint: t("funnelHint") },
   ];
   // Lỗi từng nguồn hiện 1 lần ở đầu trang (trước đây lặp lại dưới nhiều card).
   const errorLines = [...new Set([stats?.error, e?.fb, e?.potential].filter(Boolean))] as string[];
@@ -150,32 +154,34 @@ export function AdsStatsView() {
     const { wa, ig } = platformsOf(c);
     return wa && ig ? { ...c, children: [{ ...c, platform: "wa" }, { ...c, platform: "ig" }] } : c;
   });
+  // Ô số liệu từ phễu SMAX: lỗi → "—" kèm lỗi; số WA dùng chung nhiều chiến dịch → gạch chấm + tooltip.
+  const funnelCell = (r: CampaignRow, text: string | null) => {
+    if (text == null)
+      return (
+        <Tooltip title={e?.potential}>
+          <span className="text-muted-foreground">—</span>
+        </Tooltip>
+      );
+    const { waNo: wa } = platformsOf(r);
+    const shared = wa ? (waCampaigns.get(wa) ?? 0) : 0;
+    return shared > 1 ? (
+      <Tooltip title={t("potentialSharedWa", { wa: wa!, count: shared })}>
+        <span className="underline decoration-dotted underline-offset-4">{text}</span>
+      </Tooltip>
+    ) : (
+      text
+    );
+  };
   // KH tiềm năng → Booking → Show up: cùng cách gán chiến dịch, cùng tooltip WA dùng chung / lỗi.
   const funnelColumn = (key: FunnelKey, title: string, width: number): TableColumnType<CampaignRow> => ({
     key,
     title,
     align: "right",
     width,
-    render: (_, r) => {
-      const n = funnelOf(r, key);
-      if (n == null)
-        return (
-          <Tooltip title={e?.potential}>
-            <span className="text-muted-foreground">—</span>
-          </Tooltip>
-        );
-      const { waNo: wa } = platformsOf(r);
-      const shared = wa ? (waCampaigns.get(wa) ?? 0) : 0;
-      return shared > 1 ? (
-        <Tooltip title={t("potentialSharedWa", { wa: wa!, count: shared })}>
-          <span className="underline decoration-dotted underline-offset-4">{n.toLocaleString(locale)}</span>
-        </Tooltip>
-      ) : (
-        n.toLocaleString(locale)
-      );
-    },
+    render: (_, r) => funnelCell(r, count(funnelOf(r, key))),
     sorter: (a, b) => (funnelOf(a, key) ?? -1) - (funnelOf(b, key) ?? -1),
   });
+  const costPerBooking = (r: CampaignRow) => ratio(r.spend, funnelOf(r, "booking"));
 
   const statusLabel = (status: string) =>
     t.has(`status_${status}`) ? t(`status_${status}`) : status;
@@ -294,6 +300,15 @@ export function AdsStatsView() {
     },
     funnelColumn("potential", t("colPotential"), 140),
     funnelColumn("booking", t("colBooking"), 110),
+    {
+      key: "costPerBooking",
+      title: t("costPerBooking"),
+      align: "right",
+      width: 160,
+      // Mẫu 0 (chưa có đặt lịch) → "—"; phễu lỗi → "—" kèm lỗi.
+      render: (_, r) => funnelCell(r, funnelOf(r, "booking") == null ? null : (money(costPerBooking(r)) ?? "—")),
+      sorter: (a, b) => (costPerBooking(a) ?? Infinity) - (costPerBooking(b) ?? Infinity),
+    },
     funnelColumn("showUp", t("colShowUp"), 110),
     {
       key: "impressions",
@@ -363,7 +378,7 @@ export function AdsStatsView() {
 
       <div
         className={cn(
-          "grid grid-cols-2 gap-3 transition-opacity duration-200 lg:grid-cols-5 max-sm:[&>*:last-child]:col-span-2",
+          "grid grid-cols-2 gap-3 transition-opacity duration-200 lg:grid-cols-4 2xl:grid-cols-7 max-sm:[&>*:last-child]:col-span-2",
           stats && pending && "opacity-60",
         )}
       >
@@ -372,6 +387,7 @@ export function AdsStatsView() {
             key={card.key}
             label={t(card.key)}
             value={card.value ?? "—"}
+            hint={card.hint}
             loading={!stats}
           />
         ))}
@@ -452,7 +468,7 @@ export function AdsStatsView() {
                     </span>
                   ),
                   aside: cell("status"),
-                  metrics: (["spend", "messages", "costPerMessage", "potential", "booking", "showUp", "impressions", "reach"] as const).map((k) => ({
+                  metrics: (["spend", "messages", "costPerMessage", "potential", "booking", "costPerBooking", "showUp", "impressions", "reach"] as const).map((k) => ({
                     label: columns.find((c) => c.key === k)!.title as React.ReactNode,
                     value: cell(k),
                   })),
@@ -480,7 +496,7 @@ export function AdsStatsView() {
               showTotal: (total, [from, to]) =>
                 t("totalCampaigns", { from, to, total }),
             }}
-            scroll={{ x: 1780 }}
+            scroll={{ x: 1940 }}
             size="middle"
             locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
           />
