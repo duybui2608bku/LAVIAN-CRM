@@ -11,7 +11,7 @@ import { SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
 import { formatRupiah } from "@/lib/currency";
-import { customerFinance, latestPortrait } from "@/lib/customer-360";
+import { customerFinance, latestPortrait, portraitText } from "@/lib/customer-360";
 import { serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import {
@@ -23,10 +23,11 @@ import { serviceCategoriesLabel } from "@/types/service";
 const fmt = (iso: string, f = "DD/MM/YYYY HH:mm") => dayjs(iso).format(f);
 const money = (v: number | null) => (v === null ? null : formatRupiah(v));
 
-/** Nhãn nguồn chân dung: Khách nói (xanh lá) / NV nhận định (mặc định). */
+/** Nhãn nguồn chân dung: Khách nói (xanh lá) / NV nhận định (mặc định) / AI (tím). */
+const SOURCE_COLORS: Record<PortraitSource, string | undefined> = { customer: "green", staff: undefined, ai: "purple" };
 export function SourceTag({ source }: { source: PortraitSource }) {
   const t = useTranslations("c360.portrait.source");
-  return <Tag color={source === "customer" ? "green" : undefined} className="me-0 align-middle text-xs">{t(source)}</Tag>;
+  return <Tag color={SOURCE_COLORS[source]} className="me-0 align-middle text-xs">{t(source)}</Tag>;
 }
 
 const staffName = (staff: StaffRef[], id: string | null | undefined) => (id && staff.find((s) => s.id === id)?.user_name) || "—";
@@ -91,10 +92,11 @@ export function OverviewTab({ data, staff }: { data: Customer360; staff: StaffRe
 
 // ─────────────────────────── Chân dung ───────────────────────────
 
-type PortraitValues = { field: PortraitField; text: string; source: PortraitSource; message?: string };
+type PortraitValues = { field: PortraitField; text: string; source: (typeof PORTRAIT_SOURCES)[number]; message?: string };
 
 export function PortraitTab({ data, staff, onSaved }: { data: Customer360; staff: StaffRef[]; onSaved: () => void }) {
   const t = useTranslations("c360.portrait");
+  const locale = useLocale();
   const [form] = Form.useForm<PortraitValues>();
   const [pending, start] = useTransition();
   // Tin khách gửi (để gắn làm nguồn gốc) — chỉ tải khi khách có hội thoại SMAX.
@@ -143,14 +145,14 @@ export function PortraitTab({ data, staff, onSaved }: { data: Customer360; staff
         return <section key={f} className="rounded-lg border border-border p-3 text-sm">
           <h4 className="font-semibold">{t(`fields.${f}`)}</h4>
           {cur ? <>
-            <p className="mt-1 whitespace-pre-wrap">{cur.text} <SourceTag source={cur.source} /></p>
+            <p className="mt-1 whitespace-pre-wrap">{portraitText(cur, locale)} <SourceTag source={cur.source} /></p>
             {cur.message_ref && <blockquote className="mt-1 border-s-2 border-border ps-2 text-xs text-muted-foreground">“{cur.message_ref.text}”</blockquote>}
             <p className="mt-1 text-xs text-muted-foreground tabular-nums">{staffName(staff, cur.created_by)} · {fmt(cur.created_at)}</p>
             {all.length > 1 && <Collapse ghost size="small" className="-mx-3 mt-1" items={[{
               key: "h", label: <span className="text-xs">{t("history", { count: all.length })}</span>,
               children: <ul className="flex flex-col gap-2 text-xs">{all.map((e) => <li key={e.id}>
                 <div className="text-muted-foreground tabular-nums">{fmt(e.created_at)} · {staffName(staff, e.created_by)} <SourceTag source={e.source} /></div>
-                <p className="whitespace-pre-wrap">{e.text}</p>
+                <p className="whitespace-pre-wrap">{portraitText(e, locale)}</p>
               </li>)}</ul>,
             }]} />}
           </> : <p className="mt-1 text-muted-foreground">{t("empty")}</p>}

@@ -1,0 +1,5 @@
+- [x] Migration: `summary_en`, `text_en`, nguồn chân dung `ai`
+- [x] `lib/chat-summary.ts`: structured output song ngữ + portrait; `summarizeAndSave` dùng chung (upsert tóm tắt + điền chân dung không đè bản người nhập)
+- [x] Server action + lead-form dùng `summarizeAndSave`
+- [x] UI: chuyển VI/EN ở khung tóm tắt; chân dung theo ngôn ngữ; nhãn nguồn AI; i18n vi/en
+- [x] tsc + eslint + node --test

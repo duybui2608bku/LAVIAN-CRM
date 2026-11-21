@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAnyPermission, requirePermission } from "@/lib/auth";
 import { canSeeFinance, canSeePhotos, customerRole } from "@/lib/customer-360";
-import { summarizeMessages } from "@/lib/chat-summary";
+import { SUMMARY_FIELDS, summarizeAndSave } from "@/lib/chat-summary";
 import { AppError, normalizeError } from "@/lib/errors";
 import { newNote } from "@/lib/notes";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
@@ -48,7 +48,6 @@ async function signPhotos(db: Awaited<ReturnType<typeof createClient>>, rows: Ph
   }] : []));
 }
 
-const SUMMARY_FIELDS = "summary,last_message_at,message_count,created_by,created_at";
 
 /** Toàn bộ hồ sơ 1 khách (popup 360°). Tài chính / ảnh chỉ trả khi người gọi được xem. */
 export async function getCustomer360(customerId: string): Promise<{ data?: Customer360; error?: string }> {
@@ -66,7 +65,7 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
       db.from("clinic_appointment_logs")
         .select("id,appointment_id,action,changes,actor_id,created_at,appointment:clinic_appointments(scheduled_at)")
         .eq("customer_id", customerId).order("created_at", { ascending: false }).limit(200),
-      db.from("customer_portrait_entries").select("id,field,text,source,message_ref,created_by,created_at")
+      db.from("customer_portrait_entries").select("id,field,text,text_en,source,message_ref,created_by,created_at")
         .eq("customer_id", customerId).order("created_at", { ascending: false }),
       db.from("customer_needs").select("id,title,service_id,origin,status,history,created_by,created_at")
         .eq("customer_id", customerId).order("created_at", { ascending: false }),
@@ -273,10 +272,10 @@ export async function setAppointmentPerformers(appointmentId: string, input: z.i
 // ─────────────────────────── Tóm tắt AI hội thoại SMAX (Claude) ───────────────────────────
 
 /**
- * Tóm tắt 30 tin SMAX gần nhất bằng Claude rồi lưu (1 dòng / khách, ghi đè). SMAX lỗi → dùng bản chụp lúc gửi lead-form.
- * `locale` = ngôn ngữ giao diện của người bấm (vi / en / id).
+ * Tóm tắt 30 tin SMAX gần nhất bằng Claude (song ngữ Việt + Anh) rồi lưu (1 dòng / khách, ghi đè) + điền Chân dung nhanh.
+ * SMAX lỗi → dùng bản chụp lúc gửi lead-form.
  */
-export async function summarizeCustomerChat(customerId: string, locale: string): Promise<{ summary?: ChatSummary; error?: string }> {
+export async function summarizeCustomerChat(customerId: string): Promise<{ summary?: ChatSummary; error?: string }> {
   try {
     const profile = await viewer();
     z.uuid().parse(customerId);
@@ -287,10 +286,7 @@ export async function summarizeCustomerChat(customerId: string, locale: string):
     const snapshot = (data.smax_messages ?? []) as ChatMessage[];
     const messages = await fetchThreadMessages(data.link as string | null)
       .catch((e) => { if (snapshot.length) return snapshot; throw e; });
-    const row = { customer_id: customerId, ...(await summarizeMessages(messages, locale)), created_by: profile.id };
-    const { data: saved, error: saveErr } = await db.from("customer_chat_summaries").upsert(row).select(SUMMARY_FIELDS).single();
-    if (saveErr) throw saveErr;
-    return { summary: saved as ChatSummary };
+    return { summary: await summarizeAndSave(db, customerId, messages, profile.id) };
   } catch (error) {
     return { error: normalizeError(error).message };
   }

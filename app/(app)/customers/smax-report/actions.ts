@@ -3,7 +3,7 @@
 import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { dayCount } from "@/lib/reports";
-import { buildFollowupReport, buildInboxReport, createdIn, staffAvatars, type FollowupReport, type InboxReport } from "@/lib/smax-inbox";
+import { buildFollowupReport, buildInboxReport, createdIn, staffAvatars, untilToday, type FollowupReport, type InboxReport } from "@/lib/smax-inbox";
 import { fetchIgByPhone, fetchInboxThreads } from "@/lib/smax-threads";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,15 +17,6 @@ async function loadAvatars() {
   const supabase = await createClient();
   const { data } = await supabase.from("profiles").select("user_name, avatar_url").not("avatar_url", "is", null);
   return staffAvatars(data ?? []);
-}
-
-/**
- * Tính theo lúc gắn tag: hội thoại gắn trong kỳ nhưng nhắn tiếp sau đó có last_message_at muộn hơn `to`
- * → lấy theo tin nhắn từ `from` tới hôm nay (WIB) rồi lọc theo thời điểm gắn.
- */
-function untilToday(to: string) {
-  const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
-  return today > to ? today : to;
 }
 
 /** Kiểm quyền + khoảng ngày WIB `YYYY-MM-DD`, rồi lấy hội thoại + tính báo cáo (`build`). */

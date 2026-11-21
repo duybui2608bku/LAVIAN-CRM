@@ -83,11 +83,13 @@ function ChatSummaryBox({ data, staff, latestAt, onSaved }: {
   const t = useTranslations("c360.messages.ai");
   const locale = useLocale();
   const [pending, start] = useTransition();
+  // Song ngữ: mặc định theo giao diện (vi → VI, còn lại → EN). Bản cũ chưa có EN thì không hiện nút chuyển.
+  const [lang, setLang] = useState<"vi" | "en">(locale === "vi" ? "vi" : "en");
   const s = data.chat_summary;
   // Có tin mới hơn tin cuối đã tóm tắt → bản tóm tắt đã cũ.
   const stale = !!(s && latestAt && (!s.last_message_at || Date.parse(latestAt) > Date.parse(s.last_message_at)));
   const run = () => start(async () => {
-    const res = await summarizeCustomerChat(data.customer.id, locale);
+    const res = await summarizeCustomerChat(data.customer.id);
     if (res.error) return void toast.error(res.error);
     await onSaved();
   });
@@ -97,12 +99,15 @@ function ChatSummaryBox({ data, staff, latestAt, onSaved }: {
       <Sparkles className="size-4 text-primary" aria-hidden />
       <h3 className="text-sm font-semibold">{t("title")}</h3>
       {stale && <Tag color="orange" className="me-0">{t("stale")}</Tag>}
-      <Button size="small" className="ms-auto" loading={pending} onClick={run}
+      {s?.summary_en && <Segmented size="small" className="ms-auto" value={lang} onChange={setLang}
+        options={[{ value: "vi", label: "VI" }, { value: "en", label: "EN" }]} aria-label={t("language")} />}
+      <Button size="small" className={s?.summary_en ? undefined : "ms-auto"} loading={pending} onClick={run}
         icon={s ? <RefreshCw className="size-3.5" /> : <Sparkles className="size-3.5" />}>{t(s ? "again" : "run")}</Button>
     </div>
     {pending ? <p className="mt-2 text-sm text-muted-foreground">{t("working")}</p>
       : s ? <>
-        <p className="mt-2 max-h-40 overflow-y-auto text-sm whitespace-pre-wrap">{s.summary}</p>
+        <p className="mt-2 max-h-40 overflow-y-auto text-sm whitespace-pre-wrap" lang={lang === "en" && s.summary_en ? "en" : "vi"}>
+          {lang === "en" && s.summary_en ? s.summary_en : s.summary}</p>
         <p className="mt-2 text-xs text-muted-foreground tabular-nums">{t("meta", {
           at: dayjs(s.created_at).format("DD/MM/YYYY HH:mm"), count: s.message_count,
           name: staff.find((m) => m.id === s.created_by)?.user_name ?? "—",

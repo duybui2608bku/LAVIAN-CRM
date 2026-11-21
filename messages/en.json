@@ -550,13 +550,15 @@
     "costPerMessage": "Spend / Message",
     "leads": "Potential leads",
     "costPerLead": "Spend / Potential lead",
+    "costPerBooking": "Spend / Booking",
+    "funnelHint": "By tag time in this period",
     "appointments": "Appointments",
     "campaigns": "Campaigns",
     "noCampaigns": "No campaigns with impressions in this date range",
     "colStatus": "Status",
     "colName": "Campaign name",
     "colAccount": "Ad account",
-    "colWa": "WA",
+    "colPlatform": "Platform",
     "byWa": "Messages by WA number",
     "waUnknown": "No WA tag",
     "waMessagesLabel": "messages",
@@ -977,7 +979,8 @@
       },
       "source": {
         "customer": "Customer said",
-        "staff": "Staff observed"
+        "staff": "Staff observed",
+        "ai": "AI"
       },
       "add": "Update portrait",
       "field": "Field",
@@ -1041,9 +1044,10 @@
         "run": "Summarize with AI",
         "again": "Summarize again",
         "working": "AI is reading the conversation…",
-        "empty": "No summary yet. Click \"Summarize with AI\" to have AI read the latest 30 messages.",
+        "empty": "No summary yet. Click \"Summarize with AI\" to have AI read the latest 30 messages (Vietnamese + English summary, fills in the Quick portrait).",
         "stale": "New messages",
-        "meta": "{at} · {name} · {count} messages"
+        "meta": "{at} · {name} · {count} messages",
+        "language": "Summary language"
       }
     },
     "timeline": {
