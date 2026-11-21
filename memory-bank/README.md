@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-21 — /customers + /customers/potential: bấm tên mở 360°, icon tin nhắn mở SMAX, căn ô Created
+- **Thay đổi:** Ô Tên (cả 2 bảng) bấm → popup hồ sơ 360° (bỏ icon IdCard 360 riêng); tạm bỏ link tên → hội thoại SMAX, thay bằng icon `MessageCircleMore` cạnh tên (chỉ hiện khi có `thread.link`, mở tab mới; ở Potential đứng trước icon ghi chú). Ô Created ở /customers: `inline-flex flex-col items-center` để giờ thẳng hàng dưới tag ngày. Thêm key `customers.openProfile` (vi/en).
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`, `messages/vi.json`, `messages/en.json`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt. Booking management (`bookings-manager.tsx`) vẫn dùng `Open360Button`.
+
 ### 2026-11-21 — Cột Nhóm dịch vụ ở /customers và /customers/potential
 - **Thay đổi:** Thêm cột "Nhóm dịch vụ" (service group) vào bảng Khách hàng và Khách tiềm năng — lấy nhóm DV của lịch hẹn gần nhất, chưa có thì của khách, không có thì để trống. Bỏ phần "· nhóm DV" ở dòng phụ dưới tên/SĐT (tránh lặp). Không đổi DB/i18n (dùng key `customers.serviceCategories`).
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`.

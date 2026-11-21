@@ -4,14 +4,14 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Button, Input, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
-import { MessageSquareText, Search, X } from "lucide-react";
+import { MessageCircleMore, MessageSquareText, Search, X } from "lucide-react";
 
 import { convertPotentialCustomer, patchCustomer } from "@/app/(app)/customers/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { CreateAppointmentDrawer, VisitStatusTag, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
-import { Open360Button, useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
+import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { EnumTag } from "@/components/common/enum-tag";
 import { InlineSelect } from "@/components/common/inline-select";
 import { useCan } from "@/components/common/permissions";
@@ -152,15 +152,15 @@ export function PotentialManager({
         return (
           <div className="flex items-start gap-1">
             <div className="min-w-0 flex-1 leading-tight">
-              <div className="truncate font-medium" title={c.full_name}>
-                {c.thread?.link ? (
-                  <a href={c.thread.link} target="_blank" rel="noreferrer" title={tc("openThread")}>
-                    {c.full_name}
-                  </a>
-                ) : (
-                  c.full_name
-                )}
-              </div>
+              {/* Bấm tên → popup hồ sơ 360° (hội thoại SMAX mở bằng icon tin nhắn). */}
+              <button
+                type="button"
+                title={tc("openProfile")}
+                onClick={() => c360.open(c.id)}
+                className="block max-w-full truncate text-start font-medium hover:text-primary hover:underline"
+              >
+                {c.full_name}
+              </button>
               <div className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">{c.phone}</div>
               {last ? (
                 <div className="mt-0.5 max-w-72 truncate text-xs text-muted-foreground" title={last}>
@@ -168,6 +168,18 @@ export function PotentialManager({
                 </div>
               ) : null}
             </div>
+            {c.thread?.link && (
+              <Button
+                type="text"
+                size="small"
+                href={c.thread.link}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={tc("openThread")}
+                title={tc("openThread")}
+                icon={<MessageCircleMore className="size-4" />}
+              />
+            )}
             <Button
               type="text"
               size="small"
@@ -176,7 +188,6 @@ export function PotentialManager({
               icon={<MessageSquareText className="size-4" />}
               onClick={() => setNotesFor(c.id)}
             />
-            <Open360Button onClick={() => c360.open(c.id)} />
           </div>
         );
       },

@@ -20,6 +20,7 @@ import {
   CalendarPlus,
   History,
   Info,
+  MessageCircleMore,
   PanelRightOpen,
   Search,
   UserPlus,
@@ -39,7 +40,7 @@ import { ClearableSelect, type SelectOption } from "@/components/common/clearabl
 import { useCan } from "@/components/common/permissions";
 import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
 import { DataTable } from "@/components/common/data-table";
-import { Open360Button, useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
+import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { NamePhone } from "@/components/common/name-phone";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
@@ -250,7 +251,8 @@ export function CustomersManager({
       width: 120,
       // 2 hàng như Customers Management: ngày đầy đủ trên (tag màu theo độ mới), giờ nhỏ dưới.
       render: (v: string) => (
-        <div className="leading-tight tabular-nums">
+        // inline-flex căn giữa: giờ thẳng hàng với chữ trong tag (tag có padding).
+        <div className="inline-flex flex-col items-center leading-tight tabular-nums">
           <Tag color={AGE_COLORS[createdAgeBucket(v)]} className="me-0">{dayjs(v).format("DD/MM/YYYY")}</Tag>
           <div className="mt-0.5 text-xs text-muted-foreground">{dayjs(v).format("HH:mm")}</div>
         </div>
@@ -262,20 +264,33 @@ export function CustomersManager({
       render: (_, c) => (
         // Hover ô tên → hiện nút mở drawer sửa (thay cột Thao tác). Cảm ứng: luôn hiện.
         <div className="group flex items-center gap-1">
-          {/* Gộp Tên + SĐT; có hội thoại SMAX → tên chính là link mở hội thoại. */}
+          {/* Gộp Tên + SĐT; bấm tên → popup hồ sơ 360° (hội thoại SMAX mở bằng icon tin nhắn). */}
           <NamePhone
             phone={c.phone}
             title={c.full_name}
             name={
-              c.thread?.link ? (
-                <a href={c.thread.link} target="_blank" rel="noreferrer" title={t("openThread")}>
-                  {c.full_name}
-                </a>
-              ) : (
-                c.full_name
-              )
+              <button
+                type="button"
+                title={t("openProfile")}
+                onClick={() => c360.open(c.id)}
+                className="max-w-full truncate text-start font-medium hover:text-primary hover:underline"
+              >
+                {c.full_name}
+              </button>
             }
           />
+          {c.thread?.link && (
+            <Button
+              type="text"
+              size="small"
+              href={c.thread.link}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t("openThread")}
+              title={t("openThread")}
+              icon={<MessageCircleMore className="size-4" />}
+            />
+          )}
           {canEdit && (
             <Button
               type="text"
@@ -287,7 +302,6 @@ export function CustomersManager({
               onClick={() => setTarget(c)}
             />
           )}
-          <Open360Button onClick={() => c360.open(c.id)} />
         </div>
       ),
     },
