@@ -6,9 +6,11 @@ import { useTranslations } from "next-intl";
 import { ChatBubbles } from "@/components/appointments/chat-bubbles";
 import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
 
+export type MessagesCustomer = { id: string; full_name: string; thread_link?: string | null };
+
 /** Modal xem nhanh các tin SMAX gần nhất với khách (MESSAGE_LIMIT): khách bên trái, Lavian bên phải, cũ → mới. */
 export function MessagesModal({ customer, onClose }: {
-  customer: { id: string; full_name: string; thread_link?: string | null } | null;
+  customer: MessagesCustomer | null;
   onClose: () => void;
 }) {
   const t = useTranslations("appointments");

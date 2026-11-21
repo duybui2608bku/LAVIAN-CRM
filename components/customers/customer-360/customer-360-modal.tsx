@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Alert, Avatar, Button, Modal, Result, Skeleton, Tabs, Tag } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, IdCard, NotebookPen, PanelRightOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, NotebookPen, PanelRightOpen } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { getCustomer360 } from "@/app/(app)/customers/customer-360-actions";
@@ -169,13 +169,6 @@ function SideColumn({ data }: { data: Customer360 }) {
       </ul> : <p className="text-sm text-muted-foreground">{t("noTasks")}</p>}
     </section>
   </aside>;
-}
-
-/** Nút mở hồ sơ 360° cạnh tên khách (các bảng mà tên đã là link hội thoại SMAX). */
-export function Open360Button({ onClick }: { onClick: () => void }) {
-  const t = useTranslations("appointments");
-  return <Button type="text" size="small" aria-label={t("openProfile")} title={t("openProfile")}
-    icon={<IdCard className="size-4" />} onClick={onClick} />;
 }
 
 /**

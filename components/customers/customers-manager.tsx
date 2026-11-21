@@ -40,6 +40,7 @@ import { ClearableSelect, type SelectOption } from "@/components/common/clearabl
 import { useCan } from "@/components/common/permissions";
 import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
 import { DataTable } from "@/components/common/data-table";
+import { MessagesModal, type MessagesCustomer } from "@/components/appointments/messages-modal";
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { NamePhone } from "@/components/common/name-phone";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
@@ -150,6 +151,7 @@ export function CustomersManager({
   const [target, setTarget] = useState<Customer | "new" | null>(null);
   // Lưu id (không giữ object) để modal ghi chú tự nhận note mới sau revalidate.
   const [notesFor, setNotesFor] = useState<string | null>(null);
+  const [chatFor, setChatFor] = useState<MessagesCustomer | null>(null); // modal tin SMAX
   const [apptFor, setApptFor] = useState<Customer | null>(null);
   const [createFor, setCreateFor] = useState<string | null>(null); // id khách đang tạo lịch hẹn
   // Đổi stage inline sang Tiềm năng / Cân nhắc: chờ chọn lịch nhắc rồi mới lưu.
@@ -283,9 +285,7 @@ export function CustomersManager({
             <Button
               type="text"
               size="small"
-              href={c.thread.link}
-              target="_blank"
-              rel="noreferrer"
+              onClick={() => setChatFor({ id: c.id, full_name: c.full_name, thread_link: c.thread?.link })}
               aria-label={t("openThread")}
               title={t("openThread")}
               icon={<MessageCircleMore className="size-4" />}
@@ -599,6 +599,7 @@ export function CustomersManager({
         onChange={c360.onTableChange}
       />
       {c360.modal}
+      <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
 
       <CustomerDialog
         open={target !== null}

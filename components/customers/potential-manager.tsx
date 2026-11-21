@@ -11,6 +11,7 @@ import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { CreateAppointmentDrawer, VisitStatusTag, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
+import { MessagesModal, type MessagesCustomer } from "@/components/appointments/messages-modal";
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { EnumTag } from "@/components/common/enum-tag";
 import { InlineSelect } from "@/components/common/inline-select";
@@ -74,6 +75,7 @@ export function PotentialManager({
   const [tab, setTab] = useState<Tab>("all");
   const [page, setPage] = useState(1);
   const [notesFor, setNotesFor] = useState<string | null>(null);
+  const [chatFor, setChatFor] = useState<MessagesCustomer | null>(null); // modal tin SMAX
   const [convertFor, setConvertFor] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
   const nearestAppt = useMemo(() => nearestByCustomer(appointments, now), [appointments, now]);
@@ -172,9 +174,7 @@ export function PotentialManager({
               <Button
                 type="text"
                 size="small"
-                href={c.thread.link}
-                target="_blank"
-                rel="noreferrer"
+                onClick={() => setChatFor({ id: c.id, full_name: c.full_name, thread_link: c.thread?.link })}
                 aria-label={tc("openThread")}
                 title={tc("openThread")}
                 icon={<MessageCircleMore className="size-4" />}
@@ -363,6 +363,7 @@ export function PotentialManager({
       <DataTable columns={columns} dataSource={filtered} page={page} onPageChange={setPage} empty={t("empty")}
         onChange={c360.onTableChange} />
       {c360.modal}
+      <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
 
       <CustomerNotesDrawer
         customer={rows.find((c) => c.id === notesFor) ?? null}
