@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-21 — Cột Nhóm dịch vụ ở /customers và /customers/potential
+- **Thay đổi:** Thêm cột "Nhóm dịch vụ" (service group) vào bảng Khách hàng và Khách tiềm năng — lấy nhóm DV của lịch hẹn gần nhất, chưa có thì của khách, không có thì để trống. Bỏ phần "· nhóm DV" ở dòng phụ dưới tên/SĐT (tránh lặp). Không đổi DB/i18n (dùng key `customers.serviceCategories`).
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch (trừ lỗi stale trong `.next/`); chưa xem trên trình duyệt.
+
 ### 2026-11-21 — Ô chọn Nhóm dịch vụ chỉ hiện Alis / Laser / Bibir
 - **Thay đổi:** `useServiceGroups().options` (ô chọn nhóm DV ở khách, lịch hẹn, lead form) chỉ còn 3 nhóm chính `alis`, `laser`, `bibir` (hằng `MAIN_GROUPS`); thêm `allOptions` (mọi nhóm đang kích hoạt) cho form trang Dịch vụ để vẫn gán được dịch vụ vào 8 nhóm. Bảng `/services` gộp ô Nhóm dịch vụ theo chiều dọc (rowSpan, như bảng giá), bỏ Tag + bộ lọc cột nhóm.
 - **File ảnh hưởng:** `components/common/service-groups.tsx`, `components/services/services-manager.tsx`.

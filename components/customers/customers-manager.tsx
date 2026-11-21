@@ -185,10 +185,10 @@ export function CustomersManager({
   // Lịch hẹn gần nhất mỗi khách: lịch sắp tới sớm nhất; không có thì lịch đã qua mới nhất.
   const [now] = useState(() => Date.now());
   const nearestAppt = useMemo(() => nearestByCustomer(appointments, now), [appointments, now]);
+  // Nhóm dịch vụ: của lịch gần nhất, chưa có thì của khách; không có → "".
   const serviceGroups = (c: Customer) => {
     const a = nearestAppt.get(c.id);
-    const label = groups.label(a?.service_categories.length ? a.service_categories : c.service_categories);
-    return label ? ` · ${label}` : null;
+    return groups.label(a?.service_categories.length ? a.service_categories : c.service_categories);
   };
   const apptCount = useMemo(() => {
     const map = new Map<string, number>();
@@ -263,10 +263,8 @@ export function CustomersManager({
         // Hover ô tên → hiện nút mở drawer sửa (thay cột Thao tác). Cảm ứng: luôn hiện.
         <div className="group flex items-center gap-1">
           {/* Gộp Tên + SĐT; có hội thoại SMAX → tên chính là link mở hội thoại. */}
-          {/* Dòng phụ: SĐT · nhóm dịch vụ của lịch gần nhất (như ô Khách hàng ở Sales Management). */}
           <NamePhone
             phone={c.phone}
-            extra={serviceGroups(c)}
             title={c.full_name}
             name={
               c.thread?.link ? (
@@ -314,6 +312,7 @@ export function CustomersManager({
         />
       ),
     },
+    { title: t("serviceCategories"), key: "serviceGroups", width: 140, render: (_, c) => serviceGroups(c) },
     // Sales Status: Status của lịch gần nhất (cùng lịch với cột Lịch hẹn) — Sales đổi ở trang Lịch hẹn.
     {
       title: t("colSalesStatus"),
