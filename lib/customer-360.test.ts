@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canSeeFinance, canSeePhotos, customerFinance, customerRole, latestPortrait, mergeTimeline, nextNeed } from "./customer-360.ts";
+import { canSeeFinance, canSeePhotos, customerFinance, customerRole, latestPortrait, mergeTimeline, nextNeed, portraitText } from "./customer-360.ts";
 
 const p = (department: string | null, role = "user") => ({ role, department });
 
@@ -54,4 +54,12 @@ test("chân dung mới nhất từng mục; nhu cầu tiếp theo; dòng thời 
   ]);
   assert.deepEqual(merged.map((m) => `${m.kind}:${m.id}`), ["log:l", "sales:s", "log:l0"]);
   assert.deepEqual(merged.filter((m) => m.kind === "sales").map((m) => m.id), ["s"]);
+});
+
+test("chân dung theo ngôn ngữ: vi → text, còn lại → text_en nếu có", () => {
+  const ai = { text: "Muốn lông mày tự nhiên", text_en: "Wants natural brows" };
+  assert.equal(portraitText(ai, "vi"), "Muốn lông mày tự nhiên");
+  assert.equal(portraitText(ai, "en"), "Wants natural brows");
+  assert.equal(portraitText(ai, "id"), "Wants natural brows");
+  assert.equal(portraitText({ text: "Sợ đau", text_en: null }, "en"), "Sợ đau");
 });

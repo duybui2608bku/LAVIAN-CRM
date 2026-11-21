@@ -13,7 +13,7 @@ import { useCan } from "@/components/common/permissions";
 import type { StaffRef } from "@/components/common/user-avatar";
 import { MessagesTab, PhotosTab, TimelineTab } from "@/components/customers/customer-360/activity-tabs";
 import { OverviewTab, PortraitTab, ServicesTab, SourceTag } from "@/components/customers/customer-360/profile-tabs";
-import { customerFinance, latestPortrait, nextNeed } from "@/lib/customer-360";
+import { customerFinance, latestPortrait, nextNeed, portraitText } from "@/lib/customer-360";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import { optionLabel } from "@/lib/customers";
 import { PORTRAIT_FIELDS, type Customer360, type ViewerRole } from "@/types/customer-360";
@@ -128,6 +128,7 @@ function Header({ data, index, total, onPrev, onNext }: {
 /** 3 ô tóm tắt đầu popup: Mong muốn / Nỗi lo / Nhu cầu tiếp theo. */
 function Summary({ data }: { data: Customer360 }) {
   const t = useTranslations("c360");
+  const locale = useLocale();
   const latest = latestPortrait(data.portrait);
   const need = nextNeed(data.needs);
   const cell = (label: string, body: React.ReactNode) => <div className="rounded-lg border border-border p-3">
@@ -135,8 +136,8 @@ function Summary({ data }: { data: Customer360 }) {
     <div className="mt-1 line-clamp-2 font-medium">{body ?? <span className="font-normal text-muted-foreground">{t("summary.empty")}</span>}</div>
   </div>;
   return <div className="grid gap-3 sm:grid-cols-3">
-    {cell(t("summary.wish"), latest.wish?.text)}
-    {cell(t("summary.pain"), latest.pain?.text)}
+    {cell(t("summary.wish"), latest.wish && portraitText(latest.wish, locale))}
+    {cell(t("summary.pain"), latest.pain && portraitText(latest.pain, locale))}
     {cell(t("summary.next"), need && `${need.title} · ${t(`needs.status.${need.status}`)}`)}
   </div>;
 }
@@ -144,6 +145,7 @@ function Summary({ data }: { data: Customer360 }) {
 /** Cột trái (ẩn trên điện thoại): chân dung nhanh + việc tiếp theo (lịch nhắc đang mở). */
 function SideColumn({ data }: { data: Customer360 }) {
   const t = useTranslations("c360");
+  const locale = useLocale();
   const latest = latestPortrait(data.portrait);
   return <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto max-lg:hidden">
     <section className="rounded-lg border border-border p-3">
@@ -152,7 +154,7 @@ function SideColumn({ data }: { data: Customer360 }) {
         {PORTRAIT_FIELDS.map((f) => <div key={f}>
           <dt className="text-xs text-muted-foreground">{t(`portrait.fields.${f}`)}</dt>
           <dd className="line-clamp-2">{latest[f]
-            ? <>{latest[f]!.text} <SourceTag source={latest[f]!.source} /></>
+            ? <>{portraitText(latest[f]!, locale)} <SourceTag source={latest[f]!.source} /></>
             : <span className="text-muted-foreground">—</span>}</dd>
         </div>)}
       </dl>

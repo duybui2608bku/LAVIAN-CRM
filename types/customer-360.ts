@@ -9,9 +9,10 @@ import type { ChatMessage } from "@/lib/smax-messages";
 /** 6 mục chân dung khách. */
 export const PORTRAIT_FIELDS = ["wish", "pain", "preference", "behavior", "communication", "personality"] as const;
 export type PortraitField = (typeof PORTRAIT_FIELDS)[number];
-/** Nguồn: Khách nói / NV nhận định. */
+/** Nguồn người dùng chọn khi nhập: Khách nói / NV nhận định. */
 export const PORTRAIT_SOURCES = ["customer", "staff"] as const;
-export type PortraitSource = (typeof PORTRAIT_SOURCES)[number];
+/** + "ai": bản AI rút ra từ hội thoại (tóm tắt AI tự điền) — không chọn tay được. */
+export type PortraitSource = (typeof PORTRAIT_SOURCES)[number] | "ai";
 
 /** Tin SMAX gốc gắn kèm chân dung — chụp lại nội dung để không mất khi SMAX đổi. */
 export type MessageRef = { id: string; at: string; text: string };
@@ -20,7 +21,10 @@ export type MessageRef = { id: string; at: string; text: string };
 export interface PortraitEntry {
   id: string;
   field: PortraitField;
+  /** Bản tiếng Việt (AI) hoặc nội dung người nhập. */
   text: string;
+  /** Bản tiếng Anh — chỉ AI điền; null = dùng `text`. */
+  text_en: string | null;
   source: PortraitSource;
   message_ref: MessageRef | null;
   created_by: string | null;
@@ -109,7 +113,10 @@ export interface Customer360 {
 
 /** Tóm tắt AI (Claude) hội thoại SMAX — 1 bản / khách, ghi đè khi tóm tắt lại. */
 export interface ChatSummary {
+  /** Bản tiếng Việt. */
   summary: string;
+  /** Bản tiếng Anh (null = bản cũ trước khi có song ngữ). */
+  summary_en: string | null;
   /** Giờ tin mới nhất đã đưa vào tóm tắt — có tin sau mốc này = bản tóm tắt đã cũ. */
   last_message_at: string | null;
   message_count: number;
