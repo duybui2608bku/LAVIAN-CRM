@@ -15,7 +15,7 @@ Bảng chiến dịch SHALL hiện cột "Nền tảng": WhatsApp và/hoặc Ins
 Tên chiến dịch SHALL là link mở tab mới tới `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=<id tài khoản>&business_id=<BM>&nav_source=no_referrer&treenav=true&selected_campaign_ids=<id chiến dịch>`.
 
 ### Requirement: Phễu Marketing theo lúc gắn tag
-Trang Marketing SHALL đếm: **KH tiềm năng** = khách SMAX xuất hiện lần đầu trong kỳ có tag `phone`, `booking` hoặc `bookings-deposit` (KHÔNG gồm `purchase`); **Đặt lịch** = tag `booking`/`bookings-deposit` gắn trong kỳ; **Đến cơ sở** = tag `purchase` gắn trong kỳ — mọi khách, kể cả khách cũ. Thẻ thống kê có Đặt lịch, Đến cơ sở; bảng có cột Chi tiêu / Đặt lịch.
+Trang Marketing SHALL đếm: **KH tiềm năng** = khách SMAX xuất hiện lần đầu trong kỳ có tag `phone`, `booking`, `bookings-deposit` hoặc `purchase`, HOẶC khách Đặt lịch / Đến cơ sở trong kỳ — mỗi người tối đa 1 (KH tiềm năng ⊇ Đặt lịch, Đến cơ sở); **Đặt lịch** = tag `booking`/`bookings-deposit` gắn trong kỳ; **Đến cơ sở** = tag `purchase` gắn trong kỳ — mọi khách, kể cả khách cũ. Thẻ thống kê có Đặt lịch, Đến cơ sở; bảng có cột Chi tiêu / Đặt lịch.
 
 #### Scenario: Khách có cả booking và purchase
 - **WHEN** khách được gắn `booking` và `purchase` trong kỳ
@@ -24,3 +24,7 @@ Trang Marketing SHALL đếm: **KH tiềm năng** = khách SMAX xuất hiện l�
 #### Scenario: Khớp Báo cáo SMAX
 - **WHEN** cùng khoảng ngày
 - **THEN** tổng Đặt lịch / Đến cơ sở bằng Booking / Khách đến của Báo cáo SMAX
+
+#### Scenario: Khách cũ đặt lịch trong kỳ
+- **WHEN** khách xuất hiện trước kỳ được gắn `booking` trong kỳ
+- **THEN** tính 1 KH tiềm năng và 1 Đặt lịch

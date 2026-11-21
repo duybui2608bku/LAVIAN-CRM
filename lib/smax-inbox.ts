@@ -399,12 +399,10 @@ export function buildFollowupReport(threads: InboxThread[], from: string, to: st
 }
 
 // ---------------------------------------------------------------------------
-/** Khách đã chuyển đổi (Phone/WA, Booking, Deposit, Purchase) — dùng chọn khách IG cần dò SĐT trong tin nhắn. */
+/** KH tiềm năng: khách có 1 trong các tag này (Phone/WA, Booking, Deposit, Purchase) — nhiều tag vẫn chỉ tính 1. */
 export const POTENTIAL_ALIASES = ["phone", "booking", "bookings-deposit", "purchase"];
-/** KH tiềm năng trang Marketing: KHÔNG gồm purchase (purchase chỉ là khách đến — user chốt 2026-11-21). */
-const LEAD_ALIASES = ["phone", ...BOOKING_ALIASES];
 
-/** Phễu theo chiến dịch: KH tiềm năng (khách mới) / Đặt lịch / Đến cơ sở (theo lúc gắn tag) — đếm độc lập. */
+/** Phễu theo chiến dịch: KH tiềm năng ⊇ Đặt lịch, Đến cơ sở (cùng người, mỗi người tối đa 1 lần mỗi chỉ số). */
 export const FUNNEL_KEYS = ["potential", "booking", "showUp"] as const;
 export type FunnelKey = (typeof FUNNEL_KEYS)[number];
 export type Funnel = Record<FunnelKey, number>;
@@ -423,9 +421,10 @@ const emptyFunnel = (): Funnel => ({ potential: 0, booking: 0, showUp: 0 });
 /**
  * `adCampaign`: ad_id → campaign_id (từ FB). Mỗi người tính tối đa 1 lần mỗi chỉ số (gộp IG ↔ WA theo `igByPhone`).
  * Có `from`/`to` (ngày WIB) — `threads` = hội thoại có tin nhắn từ `from` tới hôm nay:
- * - KH tiềm năng = khách xuất hiện LẦN ĐẦU trong kỳ, có tag Phone/WA, Booking hoặc Deposit (purchase không tính);
  * - Đặt lịch / Đến cơ sở = tag booking (hoặc deposit) / purchase GẮN trong kỳ, mọi khách (giống Báo cáo SMAX).
  *   Có cả booking + purchase → 1 đặt lịch + 1 đến cơ sở.
+ * - KH tiềm năng = khách mới của kỳ có tag tiềm năng, HOẶC khách đặt lịch / đến cơ sở trong kỳ (từ tiềm năng mới ra
+ *   đặt lịch — không để tiềm năng < đặt lịch). 1 người = 1 KH tiềm năng (user chốt 2026-11-21).
  * Không có khoảng ngày (test) → không xét thời gian.
  */
 export function countPotential(
@@ -439,10 +438,10 @@ export function countPotential(
   for (const t of byCustomer(threads, igByPhone)) {
     if (!CHANNEL_OF[t.platform ?? ""]) continue;
     const tags = t.tag_aliases ?? [];
-    const lead = LEAD_ALIASES.some((a) => tags.includes(a)) && inRange(firstSeen(t));
     const booked = BOOKING_ALIASES.some((a) => tags.includes(a)) && inRange(taggedAt(t, BOOKING_ALIASES));
     const showed = tags.includes(SHOW_UP_ALIAS) && inRange(taggedAt(t, [SHOW_UP_ALIAS]));
-    if (!lead && !booked && !showed) continue;
+    const lead = booked || showed || (POTENTIAL_ALIASES.some((a) => tags.includes(a)) && inRange(firstSeen(t)));
+    if (!lead) continue;
     const add = (f: Funnel) => {
       if (lead) f.potential++;
       if (booked) f.booking++;
