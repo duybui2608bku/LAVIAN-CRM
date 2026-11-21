@@ -504,6 +504,9 @@
     "chooseStage": "Choose a stage",
     "followUpAt": "Follow-up reminder",
     "followUpRequired": "Please choose a follow-up time",
+    "serviceGroupRequired": "Please choose a service group",
+    "serviceCategories": "Service group",
+    "chooseServiceGroup": "Choose service group",
     "colReminder": "Reminder",
     "viewReminders": "Reminders",
     "infoTitle": "Customer info"
@@ -541,7 +544,8 @@
     "update": "Update",
     "stageRequired": "Please choose a status",
     "followUpAt": "Follow-up reminder",
-    "followUpRequired": "Please choose a follow-up time"
+    "followUpRequired": "Please choose a follow-up time",
+    "serviceGroupRequired": "Please choose a service group"
   },
   "marketing": {
     "title": "Marketing",

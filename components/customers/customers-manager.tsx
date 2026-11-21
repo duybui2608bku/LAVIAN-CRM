@@ -10,6 +10,7 @@ import {
   Modal,
   Tag,
   Popover,
+  Select,
   type TableProps,
 } from "antd";
 import dayjs from "dayjs";
@@ -53,11 +54,11 @@ import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
-import { serviceCategoriesLabel } from "@/types/service";
+import { SERVICE_CATEGORY_OPTIONS, serviceCategoriesLabel } from "@/types/service";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
-import { instagramUsername, isFollowUpStage, phoneOptional, SHOW_UP_STAGE } from "@/lib/customer-options";
+import { instagramUsername, isFollowUpStage, needsServiceGroup, phoneOptional, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { nextPending, REMINDER_COLORS, reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
@@ -183,8 +184,9 @@ export function CustomersManager({
   // Lịch hẹn gần nhất mỗi khách: lịch sắp tới sớm nhất; không có thì lịch đã qua mới nhất.
   const [now] = useState(() => Date.now());
   const nearestAppt = useMemo(() => nearestByCustomer(appointments, now), [appointments, now]);
-  const serviceGroups = (a?: PipelineAppointment) => {
-    const label = serviceCategoriesLabel(a?.service_categories);
+  const serviceGroups = (c: Customer) => {
+    const a = nearestAppt.get(c.id);
+    const label = serviceCategoriesLabel(a?.service_categories.length ? a.service_categories : c.service_categories);
     return label ? ` · ${label}` : null;
   };
   const apptCount = useMemo(() => {
@@ -263,7 +265,7 @@ export function CustomersManager({
           {/* Dòng phụ: SĐT · nhóm dịch vụ của lịch gần nhất (như ô Khách hàng ở Sales Management). */}
           <NamePhone
             phone={c.phone}
-            extra={serviceGroups(nearestAppt.get(c.id))}
+            extra={serviceGroups(c)}
             title={c.full_name}
             name={
               c.thread?.link ? (
@@ -700,6 +702,7 @@ type Values = {
   region_code?: string;
   address_detail?: string;
   follow_up_at?: string | null;
+  service_categories?: string[];
 };
 
 function CustomerDialog({
@@ -748,6 +751,7 @@ function CustomerDialog({
         region_code: v.region_code || null,
         address_detail: v.address_detail || null,
         follow_up_at: v.follow_up_at ?? null,
+        service_categories: v.service_categories ?? [],
       };
       const res = editing
         ? await updateCustomer(editing.id, input)
@@ -798,6 +802,7 @@ function CustomerDialog({
           region_code: editing?.region_code ?? "",
           address_detail: editing?.address_detail ?? "",
           follow_up_at: editing?.follow_up_at ?? null,
+          service_categories: editing?.service_categories ?? [],
         }}
       >
         <Form.Item name="full_name" label={t("colName")} rules={required}>
@@ -836,6 +841,10 @@ function CustomerDialog({
             <AppointmentDate className="w-full" onSave={() => {}} />
           </Form.Item>
         )}
+        <Form.Item name="service_categories" label={t("serviceCategories")} dependencies={["stage"]}
+          rules={[{ required: needsServiceGroup(stage), type: "array", min: 1, message: t("serviceGroupRequired") }]}>
+          <Select mode="multiple" allowClear placeholder={t("chooseServiceGroup")} options={SERVICE_CATEGORY_OPTIONS} />
+        </Form.Item>
         {/* Đánh giá đang ẩn khỏi UI — giữ field ẩn để lưu form không xoá giá trị cũ. */}
         <Form.Item name="rating" hidden>
           <Input />

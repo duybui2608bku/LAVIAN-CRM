@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-21 — Bắt buộc nhóm dịch vụ ở stage Tiềm năng / Cân nhắc / Đã đặt lịch / Đã mua
+- **Thay đổi:** Thêm cột `customers.service_categories text[]` (nhóm DV khách quan tâm; check ⊂ alis/bibir/laser; backfill từ lịch hẹn gần nhất có nhóm) — khách Tiềm năng/Cân nhắc không có lịch hẹn nên trước đó không có chỗ lưu. `SERVICE_GROUP_STAGES` + `needsServiceGroup()` ở `lib/customer-options.ts` (`potential`, `consider`, `booked`, `purchase`). Lead form: ô Nhóm dịch vụ hiện ở MỌI stage (cạnh Lịch nhắc / Ngày hẹn), bắt buộc theo `needsServiceGroup`, fill sẵn từ khách trong CRM; server lưu lên khách (trống → giữ nhóm cũ) và lịch hẹn kèm dùng cùng nhóm (schema `appointment` chỉ còn `scheduled_at`). Drawer tạo/sửa khách CRM có ô Nhóm dịch vụ cùng quy tắc, `clean()` kiểm phía server. Ô Khách hàng ở `/customers` + `/customers/potential`: lịch gần nhất chưa có nhóm → hiện nhóm lưu trên khách.
+- **File ảnh hưởng:** `supabase/migrations/20261121100000_customer_service_categories.sql`, `lib/customer-options.ts`, `app/lead-form/actions.ts`, `components/lead-form/lead-form.tsx`, `app/(app)/customers/{actions.ts,customers-view.tsx}`, `components/customers/{customers-manager,potential-manager}.tsx`, `types/customer.ts`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** Migration ĐÃ chạy trên Supabase Lavian (2026-11-21, qua MCP); backfill chỉ được 7 khách (3 booked, 4 purchase) — còn 46 booked, 7 consider, 1 potential, 2 purchase chưa có nhóm (sửa khách sẽ bị bắt chọn). Không có constraint DB bắt buộc (khách cũ chưa có nhóm); đổi stage **inline trên bảng** chưa bắt chọn nhóm. tsc + eslint + 103 test sạch; chưa xem trên trình duyệt; chưa commit.
+
 ### 2026-11-21 — Marketing: KH tiềm năng gồm purchase + khách đặt lịch/đến trong kỳ
 - **Thay đổi:** User chốt lại: KH tiềm năng **tính cả purchase**; 1 khách = 1 KH tiềm năng; khách đặt lịch / đến cơ sở trong kỳ cũng là KH tiềm năng (không để "5 tiềm năng mà 15 booking"). `countPotential`: `lead = booked || showed || (POTENTIAL_ALIASES && khách mới của kỳ)` → tiềm năng ⊇ đặt lịch, đến cơ sở ở mọi dòng. Bỏ `LEAD_ALIASES`. Đặt lịch / Đến cơ sở vẫn theo lúc gắn tag (khớp Báo cáo SMAX).
 - **Kiểm số 14–20/11 (phần SMAX):** tiềm năng 290, đặt lịch 88, đến cơ sở 203; không dòng WA nào có đặt lịch/đến > tiềm năng.

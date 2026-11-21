@@ -9,11 +9,12 @@ import { summarizeAndSave } from "@/lib/chat-summary";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
-import { instagramUsername, isFollowUpStage, isStage, leadSource, needsAppointment, phoneOptional } from "@/lib/customer-options";
+import { instagramUsername, isFollowUpStage, isStage, leadSource, needsAppointment, needsServiceGroup, phoneOptional } from "@/lib/customer-options";
 import { serviceCategoriesSchema } from "@/lib/appointments";
 import { phoneOwner } from "@/lib/customers";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
+import type { ServiceCategory } from "@/types/service";
 
 const schema = z.object({
   customer_id: z.string().trim().max(200),
@@ -28,12 +29,12 @@ const schema = z.object({
   website: z.string(),
   // Lịch nhắc follow-up (Tiềm năng / Cân nhắc) — KHÔNG phải lịch hẹn. Hỏng/thiếu → null.
   follow_up_at: z.iso.datetime({ offset: true }).nullable().optional().catch(null),
+  // Nhóm dịch vụ khách quan tâm — lưu trên khách + lịch hẹn kèm (nếu có). Bắt buộc theo needsServiceGroup.
+  service_categories: serviceCategoriesSchema.catch([]),
   // Lịch hẹn tới chi nhánh (stage khác Tiềm năng / Cân nhắc). Hỏng/thiếu → null (Booking thì báo thiếu).
   appointment: z
     .object({
       scheduled_at: z.iso.datetime({ offset: true }),
-      // Telesales chỉ chọn nhóm dịch vụ; dịch vụ chi tiết điền sau trong CRM.
-      service_categories: serviceCategoriesSchema,
     })
     .nullable()
     .optional()
@@ -87,10 +88,11 @@ export type LeadCustomer = {
   region_code: string;
   address_detail: string;
   follow_up_at: string | null;
+  service_categories: ServiceCategory[];
 };
 
 const LEAD_FIELDS =
-  "id, smax_customer_id, source, notes, stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, follow_up_at, staff:profiles!staff_id(user_name, avatar_url)";
+  "id, smax_customer_id, source, notes, stage, staff_id, deposit_amount, payment_confirm_url, region_code, address_detail, follow_up_at, service_categories, staff:profiles!staff_id(user_name, avatar_url)";
 
 type LeadRow = {
   id: string;
@@ -104,6 +106,7 @@ type LeadRow = {
   region_code: string | null;
   address_detail: string | null;
   follow_up_at: string | null;
+  service_categories: ServiceCategory[] | null;
   staff: unknown;
   /** Tìm theo SĐT (không khớp SMAX id) — vd khách IG chuyển sang WA có SMAX id mới. */
   viaPhone: boolean;
@@ -153,6 +156,7 @@ export async function checkLeadCustomer(
     region_code: data.region_code ?? "",
     address_detail: data.address_detail ?? "",
     follow_up_at: data.follow_up_at ?? null,
+    service_categories: data.service_categories ?? [],
   };
 }
 
@@ -197,12 +201,14 @@ export async function submitLead(
     const appointment = followUp ? null : (d.appointment ?? null);
     if (needsAppointment(d.stage, current?.stage) && !appointment)
       return { error: "Vui lòng chọn lịch hẹn." };
+    if (needsServiceGroup(d.stage) && d.service_categories.length === 0)
+      return { error: "Vui lòng chọn nhóm dịch vụ." };
     const insertAppointment = (customerId: string) =>
       supabase.from("clinic_appointments").insert({
         customer_id: customerId,
         scheduled_at: appointment!.scheduled_at,
         checked_in: false,
-        service_categories: appointment!.service_categories,
+        service_categories: d.service_categories,
         staff_id: d.staff_id,
         created_by: d.staff_id, // lead-form không có user đăng nhập → người tạo = Telesales đã chọn
       });
@@ -242,6 +248,8 @@ export async function submitLead(
         ? { payment_confirm_url: d.payment_confirm_url }
         : {}),
       ...(followUp ? { follow_up_at: new Date(d.follow_up_at!).toISOString() } : {}),
+      // Để trống (stage không bắt buộc) → giữ nhóm dịch vụ cũ trong CRM.
+      ...(d.service_categories.length ? { service_categories: d.service_categories } : {}),
       ...snap,
     };
 

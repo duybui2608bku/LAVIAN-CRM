@@ -50,6 +50,10 @@ export const isFollowUpStage = (stage: string | null | undefined) => !!stage && 
 export const needsAppointment = (stage: string | null | undefined, currentStage?: string | null) =>
   stage === BOOKED_STAGE && currentStage !== stage;
 
+/** Stage bắt buộc chọn nhóm dịch vụ (`customers.service_categories`) ở lead form + drawer CRM. */
+export const SERVICE_GROUP_STAGES: readonly string[] = [POTENTIAL_STAGE, "consider", BOOKED_STAGE, "purchase"];
+export const needsServiceGroup = (stage: string | null | undefined) => !!stage && SERVICE_GROUP_STAGES.includes(stage);
+
 /** Stage hiện ở trang Booking management (/customers/bookings). */
 export const BOOKING_PAGE_STAGES = [BOOKED_STAGE, "deposited"] as const;
 

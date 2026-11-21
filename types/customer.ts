@@ -66,6 +66,7 @@ export interface CustomerInput {
   region_code?: string | null; // mã vùng Kemendagri: "31" | "31.71"
   address_detail?: string | null; // địa chỉ chi tiết (text tự do)
   follow_up_at?: string | null; // lịch nhắc — bắt buộc khi stage Tiềm năng / Cân nhắc
+  service_categories?: string[]; // nhóm dịch vụ — bắt buộc khi needsServiceGroup(stage)
 }
 
 /** Khách hàng — ánh xạ bảng `public.customers`. */
@@ -101,6 +102,8 @@ export interface Customer {
   potential_status?: string | null;
   /** Ngày giờ liên hệ lại (ISO) — tới giờ báo Telesales. */
   follow_up_at?: string | null;
+  /** Nhóm dịch vụ khách quan tâm (alis | bibir | laser). */
+  service_categories?: string[];
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
