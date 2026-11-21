@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-21 — Ô chọn Nhóm dịch vụ chỉ hiện Alis / Laser / Bibir
+- **Thay đổi:** `useServiceGroups().options` (ô chọn nhóm DV ở khách, lịch hẹn, lead form) chỉ còn 3 nhóm chính `alis`, `laser`, `bibir` (hằng `MAIN_GROUPS`); thêm `allOptions` (mọi nhóm đang kích hoạt) cho form trang Dịch vụ để vẫn gán được dịch vụ vào 8 nhóm. Bảng `/services` gộp ô Nhóm dịch vụ theo chiều dọc (rowSpan, như bảng giá), bỏ Tag + bộ lọc cột nhóm.
+- **File ảnh hưởng:** `components/common/service-groups.tsx`, `components/services/services-manager.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt.
+
 ### 2026-11-21 — Bảng dịch vụ mới (bảng giá Sulam) + nhóm dịch vụ lấy từ DB (nhánh `claude/service-cards`)
 - **Thay đổi:** Nhánh mới cho tính năng bán thẻ dịch vụ. Migration `20261121120000_service_catalog_v2.sql`: bảng `service_groups` (id = mã chữ `alis`, `laser`, `bibir`, `lips_treatment`, `eyeliner`, `eyeliner_treatment`, `ink`, `handle_by`; giữ mã cũ nên `service_categories` trên khách/lịch hẹn không phải đổi), **drop bảng `services` cũ** (name_vi/en/id + category) và tạo bảng mới `group_id + name + price (IDR, bigint)` + sort/active, seed 28 dịch vụ theo bảng giá. Tour (12) map sang DV mới theo tên; `clinic_appointments.service_ids` bị xoá trắng (DV chi tiết cũ, sếp chốt bỏ); bỏ check constraint alis/bibir/laser. Code: nhóm DV không còn hardcode — `ServiceGroupsProvider`/`useServiceGroups()` (`components/common/service-groups.tsx`) nạp ở `app/(app)/layout.tsx` + `app/lead-form/page.tsx` (admin client); `serviceName()` bỏ, dùng `s.name`; schema nhóm = mã `^[a-z0-9_]+$`. Trang `/services`: cột Nhóm dịch vụ · Dịch vụ · Giá (IDR), xếp theo thứ tự nhóm.
 - **File ảnh hưởng:** `supabase/migrations/20261121120000_service_catalog_v2.sql`, `types/service.ts`, `components/common/service-groups.tsx`, `components/services/services-manager.tsx`, `app/(app)/{layout.tsx,services/page.tsx,customers/actions.ts,customers/customer-360-actions.ts}`, `app/lead-form/{page.tsx,actions.ts}`, `components/appointments/*`, `components/customers/*`, `components/tour/{tour-drawer,tour-view}.tsx`, `lib/{appointments,customers}.ts` + test, `types/{appointment,customer-360}.ts`, `messages/{vi,en}.json`.
