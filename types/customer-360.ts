@@ -98,7 +98,7 @@ export interface Customer360 {
   portrait: PortraitEntry[]; // mới nhất trước
   needs: CustomerNeed[]; // mới nhất trước
   reminders: Pick<Reminder, "id" | "remind_at" | "note">[]; // đang mở, sớm nhất trước
-  services: Pick<Service, "id" | "name_vi" | "name_en" | "name_id" | "category" | "is_active">[];
+  services: Pick<Service, "id" | "name" | "group_id" | "is_active">[];
   /** null = không được xem (Telesales). */
   photos: AppointmentPhoto[] | null;
   /** Bản chụp tin SMAX lúc gửi lead-form (dự phòng khi SMAX lỗi). */

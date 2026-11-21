@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button, Form, Input, InputNumber, Radio, Select, Tag } from "antd";
 import { CheckCircle2, NotebookPen, Undo2 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addTourNote, claimTour, confirmTour, createTour, deleteTourNote, releaseTour, updateTour } from "@/app/(app)/tour/actions";
 import { ConfirmAction } from "@/components/common/confirm-action";
@@ -13,7 +13,6 @@ import { NoteItem, NotesDrawer } from "@/components/common/notes";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
 import { formatRupiah, sanitizeCurrencyInput } from "@/lib/currency";
-import { serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import {
   MAX_SESSION, needsSession, PAYMENT_METHODS, SERVICE_DETAILS, tourAmount, tourRate, tourStatus,
@@ -61,8 +60,8 @@ const FULL_OPTION = "flex-1 text-center whitespace-nowrap";
 
 const customerOptions = (customers: AppointmentCustomer[]) =>
   customers.map((c) => ({ value: c.id, label: [c.full_name, c.phone].filter(Boolean).join(" · ") }));
-const serviceOptions = (services: Service[], locale: string, current?: string) => services
-  .filter((s) => s.is_active || s.id === current).map((s) => ({ value: s.id, label: serviceName(s, locale) }));
+const serviceOptions = (services: Service[], current?: string) => services
+  .filter((s) => s.is_active || s.id === current).map((s) => ({ value: s.id, label: s.name }));
 
 type WorkValues = Pick<TourPatch, "tour_date" | "customer_id" | "service_id" | "technician_id" | "service_detail"
   | "service_session" | "bill_amount" | "payment_method">;
@@ -80,7 +79,6 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   onClose: () => void;
 }) {
   const t = useTranslations("tour");
-  const locale = useLocale();
   const [form] = Form.useForm<WorkValues>();
   const [pending, start] = useTransition();
   const [notesOpen, setNotesOpen] = useState(false);
@@ -153,7 +151,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
             <DatePicker allowClear={false} />
           </Form.Item>
           <Form.Item name="service_id" label={t("service")} rules={[{ required: true, message: t("required") }]}>
-            <Select showSearch={{ optionFilterProp: "label" }} options={serviceOptions(services, locale, tour.service_id)} />
+            <Select showSearch={{ optionFilterProp: "label" }} options={serviceOptions(services, tour.service_id)} />
           </Form.Item>
         </div>
         <Form.Item name="customer_id" label={t("customer")} rules={[{ required: true, message: t("required") }]}>
@@ -164,7 +162,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
         <dt className="text-muted-foreground">{t("customer")}</dt>
         <dd>{tour.customer?.full_name} {tour.customer?.phone ? <a href={`tel:${tour.customer.phone}`} className="text-muted-foreground">· {tour.customer.phone}</a> : null}</dd>
         <dt className="text-muted-foreground">{t("service")}</dt>
-        <dd>{(() => { const s = services.find((x) => x.id === tour.service_id); return s ? serviceName(s, locale) : "—"; })()}</dd>
+        <dd>{(() => { const s = services.find((x) => x.id === tour.service_id); return s ? s.name : "—"; })()}</dd>
         {!me.isAdmin ? <><dt className="text-muted-foreground">{t("technician")}</dt><dd>{technician ? staffLabel(technician) : "—"}</dd></> : null}
       </dl>}
 
@@ -238,7 +236,6 @@ export function CreateTourDrawer({ open, onClose, services, customers }: {
   customers: AppointmentCustomer[];
 }) {
   const t = useTranslations("tour");
-  const locale = useLocale();
   const [form] = Form.useForm<CreateValues>();
   const [pending, start] = useTransition();
 
@@ -257,7 +254,7 @@ export function CreateTourDrawer({ open, onClose, services, customers }: {
         <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("chooseCustomer")} options={customerOptions(customers)} />
       </Form.Item>
       <Form.Item name="service_id" label={t("service")} rules={[{ required: true, message: t("required") }]}>
-        <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("chooseService")} options={serviceOptions(services, locale)} />
+        <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("chooseService")} options={serviceOptions(services)} />
       </Form.Item>
       <Form.Item name="bill_amount" label={t("bill")}>{billInput}</Form.Item>
       <Form.Item name="note" label={t("note")} className="mb-0">

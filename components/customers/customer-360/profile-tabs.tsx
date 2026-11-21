@@ -12,13 +12,12 @@ import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
 import { formatRupiah } from "@/lib/currency";
 import { customerFinance, latestPortrait, portraitText } from "@/lib/customer-360";
-import { serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
+import { useServiceGroups } from "@/components/common/service-groups";
 import {
   NEED_ORIGINS, NEED_STATUSES, NEED_STATUS_COLORS, PORTRAIT_FIELDS, PORTRAIT_SOURCES,
   type Customer360, type Customer360Appointment, type MessageRef, type NeedOrigin, type PortraitField, type PortraitSource,
 } from "@/types/customer-360";
-import { serviceCategoriesLabel } from "@/types/service";
 
 const fmt = (iso: string, f = "DD/MM/YYYY HH:mm") => dayjs(iso).format(f);
 const money = (v: number | null) => (v === null ? null : formatRupiah(v));
@@ -34,10 +33,10 @@ const staffName = (staff: StaffRef[], id: string | null | undefined) => (id && s
 
 /** Dòng tên dịch vụ của lịch: "Sulam Alis – 9D Brows". */
 function useApptServices(data: Customer360) {
-  const locale = useLocale();
+  const groups = useServiceGroups();
   return (a: Customer360Appointment) => [
-    serviceCategoriesLabel(a.service_categories),
-    a.service_ids.map((id) => { const s = data.services.find((x) => x.id === id); return s ? serviceName(s, locale) : ""; }).filter(Boolean).join(", "),
+    groups.label(a.service_categories),
+    a.service_ids.map((id) => { const s = data.services.find((x) => x.id === id); return s ? s.name : ""; }).filter(Boolean).join(", "),
   ].filter(Boolean).join(" – ");
 }
 
@@ -169,7 +168,6 @@ type NeedValues = { title: string; service_id?: string; origin: NeedOrigin };
 export function ServicesTab({ data, onSaved }: { data: Customer360; onSaved: () => void }) {
   const t = useTranslations("c360.needs");
   const tc = useTranslations("common");
-  const locale = useLocale();
   const [form] = Form.useForm<NeedValues>();
   const [adding, setAdding] = useState(false);
   const [pending, start] = useTransition();
@@ -202,7 +200,7 @@ export function ServicesTab({ data, onSaved }: { data: Customer360; onSaved: () 
           </Form.Item>
           <Form.Item name="service_id" label={t("service")}>
             <Select allowClear showSearch={{ optionFilterProp: "label" }}
-              options={data.services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />
+              options={data.services.filter((s) => s.is_active).map((s) => ({ value: s.id, label: s.name }))} />
           </Form.Item>
         </div>
         <Form.Item name="origin" label={t("originLabel")}>

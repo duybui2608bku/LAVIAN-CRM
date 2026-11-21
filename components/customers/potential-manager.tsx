@@ -21,13 +21,13 @@ import type { PipelineAppointment } from "@/components/customers/customer-pipeli
 import { CustomerNotesDrawer, SourceCell } from "@/components/customers/customers-manager";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
-import { serviceCategoriesLabel } from "@/types/service";
 import { CONVERTED_STATUS } from "@/lib/customer-options";
 import { matchesNameOrPhone, optionLabel } from "@/lib/customers";
 import { reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
 import type { Customer, EnumOption } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
+import { useServiceGroups } from "@/components/common/service-groups";
 
 type Tab = "all" | "overdue" | "today" | "upcoming";
 type Patch = { staff_id?: string | null; potential_status?: string | null; follow_up_at?: string | null };
@@ -58,6 +58,7 @@ export function PotentialManager({
   convertedToday: number;
   appointments: PipelineAppointment[];
 }) {
+  const groups = useServiceGroups();
   const t = useTranslations("potential");
   const tc = useTranslations("customers");
   const tCommon = useTranslations("common");
@@ -162,7 +163,7 @@ export function PotentialManager({
               </div>
               {/* SĐT · nhóm dịch vụ của lịch gần nhất (như ô Khách hàng ở Sales Management). */}
               <div className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
-                {[c.phone, serviceCategoriesLabel(nearestAppt.get(c.id)?.service_categories) || serviceCategoriesLabel(c.service_categories)].filter(Boolean).join(" · ")}
+                {[c.phone, groups.label(nearestAppt.get(c.id)?.service_categories) || groups.label(c.service_categories)].filter(Boolean).join(" · ")}
               </div>
               {last ? (
                 <div className="mt-0.5 max-w-72 truncate text-xs text-muted-foreground" title={last}>

@@ -71,7 +71,7 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
         .eq("customer_id", customerId).order("created_at", { ascending: false }),
       db.from("customer_reminders").select("id,remind_at,note")
         .eq("customer_id", customerId).is("done_at", null).order("remind_at"),
-      db.from("services").select("id,name_vi,name_en,name_id,category,is_active").order("sort_order"),
+      db.from("services").select("id,name,group_id,is_active").order("sort_order"),
       photos
         ? db.from("appointment_photos").select(PHOTO_FIELDS).eq("customer_id", customerId).order("created_at")
         : Promise.resolve({ data: null, error: null }),

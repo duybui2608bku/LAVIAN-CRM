@@ -3,14 +3,13 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Drawer, Empty, Skeleton, Tag, Timeline } from "antd";
 import dayjs from "dayjs";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 import { getCustomerAppointments, type CustomerAppointmentsData } from "@/app/(app)/customers/actions";
 import { NoteItem } from "@/components/common/notes";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { formatRupiah } from "@/lib/currency";
-import { serviceName } from "@/lib/customers";
-import { SERVICE_CATEGORY_LABELS, type ServiceCategory } from "@/types/service";
+import { useServiceGroups } from "@/components/common/service-groups";
 import {
   BOOKING_STATUSES, VISIT_STATUSES,
   type Appointment, type AppointmentLog, type AppointmentLogField, type BookingStatus, type VisitStatus,
@@ -32,10 +31,10 @@ export function AppointmentHistoryDrawer({
   staff: StaffRef[];
   onClose: () => void;
 }) {
+  const groups = useServiceGroups();
   const t = useTranslations("customers.apptHistory");
   const tStatus = useTranslations("appointments.bookingStatus");
   const tVisit = useTranslations("appointments.visitStatus");
-  const locale = useLocale();
   const [data, setData] = useState<(CustomerAppointmentsData & { error?: string; for: string; now: number }) | null>(null);
   const [loading, startLoading] = useTransition();
   const requestId = useRef(0);
@@ -58,16 +57,12 @@ export function AppointmentHistoryDrawer({
   };
   const servicesOf = (ids: unknown) => {
     if (!Array.isArray(ids) || ids.length === 0) return "—";
-    return ids
-      .map((id) => {
-        const s = data?.services.find((x) => x.id === id);
-        return s ? serviceName(s, locale) : String(id);
-      })
-      .join(", ");
+    // DV đã xoá (bảng dịch vụ cũ) → bỏ qua, không hiện uuid.
+    return ids.map((id) => data?.services.find((x) => x.id === id)?.name).filter(Boolean).join(", ") || "—";
   };
   const categoriesOf = (cats: unknown) =>
     Array.isArray(cats) && cats.length
-      ? cats.map((c) => SERVICE_CATEGORY_LABELS[c as ServiceCategory] ?? String(c)).join(", ")
+      ? cats.map((c) => groups.name(String(c))).join(", ")
       : "—";
   const valueOf = (field: AppointmentLogField, v: unknown): React.ReactNode => {
     if (v === null || v === undefined || v === "") return "—";

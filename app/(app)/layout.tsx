@@ -1,7 +1,10 @@
 import { cookies } from "next/headers";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { ServiceGroupsProvider } from "@/components/common/service-groups";
 import { getCurrentProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import type { ServiceGroup } from "@/types/service";
 
 export default async function AppLayout({
   children,
@@ -13,7 +16,10 @@ export default async function AppLayout({
   const collapsed = cookieStore.get("sidebar_state")?.value === "false";
 
   // Proxy đã đảm bảo đã đăng nhập; lấy hồ sơ để hiện tên + link admin.
-  const profile = await getCurrentProfile();
+  const [profile, groups] = await Promise.all([
+    getCurrentProfile(),
+    (await createClient()).from("service_groups").select("id, name, sort_order, is_active").order("sort_order"),
+  ]);
 
   return (
     <AppShell
@@ -24,7 +30,7 @@ export default async function AppLayout({
       userName={profile?.user_name || profile?.email}
       avatarUrl={profile?.avatar_url}
     >
-      {children}
+      <ServiceGroupsProvider groups={(groups.data ?? []) as ServiceGroup[]}>{children}</ServiceGroupsProvider>
     </AppShell>
   );
 }

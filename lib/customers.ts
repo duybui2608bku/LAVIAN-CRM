@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Customer, EnumOption } from "@/types/customer";
-import type { Service } from "@/types/service";
 
 /**
  * Tên khách chưa xoá đang dùng SĐT (đã formatPhone) — trừ `exceptId` khi sửa. 1 SĐT = 1 khách
@@ -24,15 +23,6 @@ export function optionLabel(
 ): string {
   if (locale === "en") return opt.label_en || opt.label_vi;
   return opt.label_vi;
-}
-
-/** Tên dịch vụ theo locale hiện tại (fallback tiếng Việt — cùng quy tắc optionLabel). */
-export function serviceName(
-  s: Pick<Service, "name_vi" | "name_en" | "name_id">,
-  locale: string,
-): string {
-  if (locale === "en") return s.name_en || s.name_vi;
-  return s.name_vi;
 }
 
 /**

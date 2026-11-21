@@ -3,7 +3,7 @@
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Button, Image, Input, Tag, type TableProps } from "antd";
 import dayjs from "dayjs";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { CalendarPlus, Search, X } from "lucide-react";
 
 import { patchAppointment } from "@/app/(app)/appointments/actions";
@@ -25,7 +25,7 @@ import { staffLabel } from "@/components/common/user-avatar";
 import { SourceCell } from "@/components/customers/customers-manager";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { IDR_CURRENCY } from "@/lib/currency";
-import { matchesNameOrPhone, serviceName } from "@/lib/customers";
+import { matchesNameOrPhone } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import {
   BOOKING_STATUSES,
@@ -35,8 +35,9 @@ import {
   type AppointmentPatch,
 } from "@/types/appointment";
 import type { Customer } from "@/types/customer";
-import { SERVICE_CATEGORY_LABELS, type Service } from "@/types/service";
+import type { Service } from "@/types/service";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
+import { useServiceGroups } from "@/components/common/service-groups";
 
 /** Khách kèm cột cần cho bảng Booking (cọc + nguồn). */
 export type BookingCustomer = AppointmentCustomer & {
@@ -70,11 +71,11 @@ export function BookingsManager({
   staff: AppointmentStaff[];
   services: Service[];
 }) {
+  const groups = useServiceGroups();
   const t = useTranslations("bookings");
   const ta = useTranslations("appointments");
   const tc = useTranslations("customers");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
   const can = useCan();
   const canEdit = can("appointments.edit");
   const [, start] = useTransition();
@@ -108,9 +109,9 @@ export function BookingsManager({
     (a.service_ids.length
       ? a.service_ids.map((id) => {
           const s = serviceMap.get(id);
-          return s ? serviceName(s, locale) : "";
+          return s ? s.name : "";
         })
-      : a.service_categories.map((c) => SERVICE_CATEGORY_LABELS[c] ?? c)
+      : a.service_categories.map(groups.name)
     )
       .filter(Boolean)
       .join(", ");

@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { Button, Divider, Form, InputNumber, Select, Tag } from "antd";
 import { NotebookPen, PanelRightOpen, Plus, X } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { setAppointmentPerformers } from "@/app/(app)/customers/customer-360-actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
@@ -13,14 +13,14 @@ import { FormDrawer } from "@/components/common/form-drawer";
 import { staffLabel } from "@/components/common/user-avatar";
 import { appointmentMoney } from "@/lib/appointments";
 import { sanitizeCurrencyInput } from "@/lib/currency";
-import { serviceName } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import {
   BOOKING_STATUS_COLORS, VISIT_STATUSES,
   type Appointment, type AppointmentCustomer, type AppointmentPatch, type VisitStatus,
 } from "@/types/appointment";
 import { PERFORMER_ROLES, type AppointmentPerformer } from "@/types/customer-360";
-import { SERVICE_CATEGORY_LABELS, SERVICE_CATEGORY_OPTIONS, type Service, type ServiceCategory } from "@/types/service";
+import type { Service } from "@/types/service";
+import { useServiceGroups } from "@/components/common/service-groups";
 
 const idr = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
 const moneyInput = <InputNumber<number> className="w-full" min={0} precision={0} controls={false} placeholder="0"
@@ -57,7 +57,7 @@ export function AppointmentDrawer({ appointment, ...props }: Omit<Props, "appoin
 function AppointmentDrawerBody({ appointment: a, customer, staff, services, canEdit, visitChoices, onViewInfo, onOpenNotes, onClose }: Props) {
   const t = useTranslations("appointments");
   const tn = useTranslations("notes");
-  const locale = useLocale();
+  const groups = useServiceGroups();
   const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
   const cats = Form.useWatch("service_categories", form) ?? [];
@@ -68,11 +68,11 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
   const money = appointmentMoney(bill, deposit, paid);
   const nameOf = (id: string) => {
     const s = services.find((x) => x.id === id);
-    return s ? serviceName(s, locale) : id;
+    return s ? s.name : id;
   };
   // Dòng phụ đầu drawer: SĐT · Nhóm DV – DV chi tiết · Xác nhận lịch.
   const serviceLine = [
-    a.service_categories.map((c) => SERVICE_CATEGORY_LABELS[c] ?? c).join(", "),
+    groups.label(a.service_categories),
     a.service_ids.map(nameOf).join(", "),
   ].filter(Boolean).join(" – ");
   const tele = a.staff_id ? staff.find((s) => s.id === a.staff_id) : undefined;
@@ -128,14 +128,14 @@ function AppointmentDrawerBody({ appointment: a, customer, staff, services, canE
       <h3 className="mb-3 font-semibold">{t("sectionService")}</h3>
       <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
         <Form.Item name="service_categories" label={t("serviceCategories")}>
-          <Select mode="multiple" allowClear placeholder={t("choose")} options={SERVICE_CATEGORY_OPTIONS} />
+          <Select mode="multiple" allowClear placeholder={t("choose")} options={groups.options} />
         </Form.Item>
         {/* DV chi tiết: chỉ dịch vụ thuộc nhóm đã chọn (chưa chọn nhóm → tất cả); dịch vụ đang gán luôn hiện. */}
         <Form.Item name="service_ids" label={t("serviceDetails")}>
           <Select mode="multiple" allowClear placeholder={t("choose")} showSearch={{ optionFilterProp: "label" }}
             options={services.filter((s) => a.service_ids.includes(s.id)
-              || (s.is_active && (!cats.length || cats.includes(s.category as ServiceCategory))))
-              .map((s) => ({ value: s.id, label: serviceName(s, locale) }))} />
+              || (s.is_active && (!cats.length || cats.includes(s.group_id))))
+              .map((s) => ({ value: s.id, label: s.name }))} />
         </Form.Item>
       </div>
       {/* Thực thu = Deposit (của khách) + Thu thêm; Phải thu = Giá trị DV − Thực thu (không âm). */}

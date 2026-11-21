@@ -54,7 +54,6 @@ import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
-import { SERVICE_CATEGORY_OPTIONS, serviceCategoriesLabel } from "@/types/service";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
 import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
@@ -66,6 +65,7 @@ import { waColor, waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, CustomerNote, EnumKind, EnumOption } from "@/types/customer";
 import type { Reminder } from "@/types/reminder";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
+import { useServiceGroups } from "@/components/common/service-groups";
 
 type Staff = AppointmentStaff;
 
@@ -135,6 +135,7 @@ export function CustomersManager({
   options: EnumOption[];
   appointments: PipelineAppointment[];
 }) {
+  const groups = useServiceGroups();
   const t = useTranslations("customers");
   const tc = useTranslations("common");
   const locale = useLocale();
@@ -186,7 +187,7 @@ export function CustomersManager({
   const nearestAppt = useMemo(() => nearestByCustomer(appointments, now), [appointments, now]);
   const serviceGroups = (c: Customer) => {
     const a = nearestAppt.get(c.id);
-    const label = serviceCategoriesLabel(a?.service_categories.length ? a.service_categories : c.service_categories);
+    const label = groups.label(a?.service_categories.length ? a.service_categories : c.service_categories);
     return label ? ` · ${label}` : null;
   };
   const apptCount = useMemo(() => {
@@ -721,6 +722,7 @@ function CustomerDialog({
   options: EnumOption[];
   onClose: () => void;
 }) {
+  const groups = useServiceGroups();
   const t = useTranslations("customers");
   const locale = useLocale();
   const [form] = Form.useForm<Values>();
@@ -843,7 +845,7 @@ function CustomerDialog({
         )}
         <Form.Item name="service_categories" label={t("serviceCategories")} dependencies={["stage"]}
           rules={[{ required: needsServiceGroup(stage), type: "array", min: 1, message: t("serviceGroupRequired") }]}>
-          <Select mode="multiple" allowClear placeholder={t("chooseServiceGroup")} options={SERVICE_CATEGORY_OPTIONS} />
+          <Select mode="multiple" allowClear placeholder={t("chooseServiceGroup")} options={groups.options} />
         </Form.Item>
         {/* Đánh giá đang ẩn khỏi UI — giữ field ẩn để lưu form không xoá giá trị cũ. */}
         <Form.Item name="rating" hidden>

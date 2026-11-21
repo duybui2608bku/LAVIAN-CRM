@@ -12,16 +12,15 @@ import { UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
 import { mergeTimeline } from "@/lib/customer-360";
 import { toast } from "@/lib/toast";
-import { serviceName } from "@/lib/customers";
 import type { AppointmentLog, AppointmentLogField } from "@/types/appointment";
 import type { Customer360 } from "@/types/customer-360";
-import { serviceCategoriesLabel } from "@/types/service";
+import { useServiceGroups } from "@/components/common/service-groups";
 
 // ─────────────────────────── Ảnh B/A (chỉ xem, gom theo lịch) ───────────────────────────
 
 export function PhotosTab({ data }: { data: Customer360 }) {
+  const sg = useServiceGroups();
   const t = useTranslations("c360.photos");
-  const locale = useLocale();
   const photos = data.photos ?? [];
   const groups = data.appointments.filter((a) => photos.some((p) => p.appointment_id === a.id));
   if (!groups.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("empty")} />;
@@ -29,7 +28,7 @@ export function PhotosTab({ data }: { data: Customer360 }) {
     <div className="flex flex-col gap-4">
       {groups.map((a) => {
         const services = a.service_ids.map((id) => data.services.find((s) => s.id === id)).filter((s) => !!s)
-          .map((s) => serviceName(s, locale)).join(", ") || serviceCategoriesLabel(a.service_categories);
+          .map((s) => s.name).join(", ") || sg.label(a.service_categories);
         return <section key={a.id}>
           <h3 className="mb-2 font-semibold tabular-nums">{[dayjs(a.scheduled_at).format("DD/MM"), services].filter(Boolean).join(" · ")}</h3>
           <div className="grid gap-3 sm:grid-cols-2">

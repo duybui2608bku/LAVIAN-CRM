@@ -365,10 +365,9 @@
   "services": {
     "title": "Services",
     "add": "Add",
-    "colVi": "Vietnamese",
-    "colEn": "English",
-    "colId": "Bahasa",
-    "colCategory": "Group",
+    "colCategory": "Service group",
+    "colName": "Service",
+    "colPrice": "Price (IDR)",
     "colSort": "Order",
     "colActive": "Active",
     "colActions": "Actions",

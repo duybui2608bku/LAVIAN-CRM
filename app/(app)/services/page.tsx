@@ -8,7 +8,7 @@ export default async function ServicesPage() {
   const { data } = await supabase
     .from("services")
     .select("*")
-    .order("sort_order", { ascending: true });
+    .order("group_id").order("sort_order");
 
   return <ServicesManager services={(data as Service[]) ?? []} />;
 }

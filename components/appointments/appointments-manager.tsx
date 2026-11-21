@@ -3,7 +3,7 @@
 import { useOptimistic, useState, useTransition } from "react";
 import { Button, Form, Input, Popover, Select, Tag, type TableProps } from "antd";
 import { CalendarPlus, MessageCircleMore, Rows3, Search, SquarePen } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addAppointmentNote, createAppointment, deleteAppointmentNote, patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
@@ -23,14 +23,15 @@ import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
 import { StatCard } from "@/components/common/stat-card";
-import { matchesNameOrPhone, serviceName } from "@/lib/customers";
+import { matchesNameOrPhone } from "@/lib/customers";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import {
   BOOKING_STATUSES, BOOKING_STATUS_COLORS, VISIT_STATUSES, VISIT_STATUS_COLORS,
   type Appointment, type AppointmentCustomer, type AppointmentPatch, type VisitStatus,
 } from "@/types/appointment";
-import { SERVICE_CATEGORY_LABELS, SERVICE_CATEGORY_OPTIONS, type Service, type ServiceCategory } from "@/types/service";
+import type { Service } from "@/types/service";
+import { useServiceGroups } from "@/components/common/service-groups";
 import type { Customer } from "@/types/customer";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
@@ -62,7 +63,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   visitChoices: VisitStatus[];
 }) {
   const t = useTranslations("appointments");
-  const locale = useLocale();
+  const groups = useServiceGroups();
   const can = useCan();
   const canEdit = can("appointments.edit");
   const [, start] = useTransition();
@@ -131,7 +132,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     // Tên (bấm mở popup hồ sơ 360°; + chấm xanh = khách mới) + SĐT · nhóm DV (bấm nhóm để sửa) + icon ✎ mở drawer sửa lịch.
     { title: t("name"), width: 240, fixed: "left", render: (_, row) => {
       const customer = customerMap.get(row.customer_id);
-      const cats = row.service_categories.map((c) => SERVICE_CATEGORY_LABELS[c] ?? c).join(", ");
+      const cats = groups.label(row.service_categories);
       return <div className="flex items-center justify-between gap-1">
         <div className="min-w-0 flex-1">
         <NamePhone phone={customer?.phone} title={customer?.full_name}
@@ -141,8 +142,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
           extra={cats || canEdit ? <>{" · "}<InlineMultiSelect
             value={row.service_categories} ariaLabel={t("serviceCategories")} disabled={!canEdit}
             display={cats || <span className="opacity-70">{t("addCategory")}</span>}
-            options={SERVICE_CATEGORY_OPTIONS}
-            onSave={(c) => save(row.id, { service_categories: c as ServiceCategory[] })} /></> : null} />
+            options={groups.options}
+            onSave={(c) => save(row.id, { service_categories: c })} /></> : null} />
         {/* Note Telesales (ghi chú gần nhất của khách, customers.notes) — dưới dòng SĐT, bấm mở drawer ghi chú khách. */}
         {customer?.notes?.length ? <button type="button" onClick={() => setTeleNotesFor(customer)}
           title={customer.notes.map((n) => n.text).join("\n\n")} aria-label={t("teleNote")}
@@ -190,7 +191,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     { title: t("serviceDetails"), width: 220, render: (_, row) => row.service_ids.length
       ? <div className="flex flex-wrap gap-1">{row.service_ids.map((id) => {
         const service = services.find((s) => s.id === id);
-        return <Tag key={id} color="purple" className="me-0">{service ? serviceName(service, locale) : id}</Tag>;
+        return <Tag key={id} color="purple" className="me-0">{service ? service.name : id}</Tag>;
       })}</div>
       : <span className="text-muted-foreground">—</span> },
     // Tài chính: cọc của khách + giá trị DV của lịch — chỉ xem.
@@ -343,6 +344,7 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
   staff: AppointmentStaff[];
 }) {
   const t = useTranslations("appointments");
+  const groups = useServiceGroups();
   const [form] = Form.useForm<CreateValues>();
   const [pending, start] = useTransition();
   const [quick, setQuick] = useState(false); // khách chưa có trong CRM → nhập tên + SĐT
@@ -412,7 +414,7 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
       </div>
       {/* Telesales chỉ chọn nhóm; dịch vụ chi tiết điền sau trên bảng lịch hẹn / tour. */}
       <Form.Item name="service_categories" label={t("serviceCategories")}>
-        <Select mode="multiple" allowClear placeholder={t("choose")} options={SERVICE_CATEGORY_OPTIONS} />
+        <Select mode="multiple" allowClear placeholder={t("choose")} options={groups.options} />
       </Form.Item>
       <Form.Item name="note" label={t("note")} className="mb-0">
         <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />
