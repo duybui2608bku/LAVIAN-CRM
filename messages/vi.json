@@ -979,7 +979,8 @@
       },
       "source": {
         "customer": "Khách nói",
-        "staff": "NV nhận định"
+        "staff": "NV nhận định",
+        "ai": "AI"
       },
       "add": "Cập nhật chân dung",
       "field": "Mục",
@@ -1043,9 +1044,10 @@
         "run": "Tóm tắt bằng AI",
         "again": "Tóm tắt lại",
         "working": "AI đang đọc hội thoại…",
-        "empty": "Chưa có bản tóm tắt. Bấm \"Tóm tắt bằng AI\" để AI đọc 30 tin gần nhất.",
+        "empty": "Chưa có bản tóm tắt. Bấm \"Tóm tắt bằng AI\" để AI đọc 30 tin gần nhất (tóm tắt Việt + Anh, tự điền Chân dung nhanh).",
         "stale": "Có tin mới",
-        "meta": "{at} · {name} · {count} tin"
+        "meta": "{at} · {name} · {count} tin",
+        "language": "Ngôn ngữ tóm tắt"
       }
     },
     "timeline": {

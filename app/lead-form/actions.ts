@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
-import { summarizeMessages } from "@/lib/chat-summary";
+import { summarizeAndSave } from "@/lib/chat-summary";
 import { normalizeError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
@@ -271,8 +271,7 @@ export async function submitLead(
       }
       // Khách mới có tin SMAX → tự tóm tắt AI sau khi đã trả kết quả cho form (không bắt Telesales chờ).
       if ("smax_messages" in snap && snap.smax_messages.length && process.env.ANTHROPIC_API_KEY) {
-        const locale = await getLocale();
-        after(() => autoSummarize(created.id, snap.smax_messages, d.staff_id, locale));
+        after(() => autoSummarize(created.id, snap.smax_messages, d.staff_id));
       }
     } else {
       const row = current!;
@@ -301,12 +300,10 @@ export async function submitLead(
   }
 }
 
-/** Tóm tắt AI khách vừa tạo từ lead-form (chạy nền). Lỗi chỉ ghi log — vẫn bấm "Tóm tắt bằng AI" ở popup 360° được. */
-async function autoSummarize(customerId: string, messages: ChatMessage[], staffId: string, locale: string) {
+/** Tóm tắt AI + điền chân dung khách vừa tạo từ lead-form (chạy nền). Lỗi chỉ ghi log — vẫn bấm "Tóm tắt bằng AI" ở popup 360° được. */
+async function autoSummarize(customerId: string, messages: ChatMessage[], staffId: string) {
   try {
-    const row = { customer_id: customerId, ...(await summarizeMessages(messages, locale)), created_by: staffId };
-    const { error } = await createAdminClient().from("customer_chat_summaries").upsert(row);
-    if (error) throw error;
+    await summarizeAndSave(createAdminClient(), customerId, messages, staffId);
   } catch (e) {
     console.error("[lead-form] Tự tóm tắt AI lỗi:", normalizeError(e).message);
   }

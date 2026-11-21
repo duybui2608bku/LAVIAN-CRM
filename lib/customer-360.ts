@@ -59,6 +59,11 @@ export function latestPortrait(entries: PortraitEntry[]): Partial<Record<Portrai
   return out;
 }
 
+/** Nội dung chân dung theo ngôn ngữ giao diện: tiếng Việt → `text`, còn lại → bản tiếng Anh nếu AI có điền. */
+export function portraitText(entry: Pick<PortraitEntry, "text" | "text_en">, locale: string): string {
+  return locale !== "vi" && entry.text_en ? entry.text_en : entry.text;
+}
+
 /** "Nhu cầu tiếp theo": nhu cầu mới nhất chưa Thành công / Thất bại. */
 export function nextNeed<T extends Pick<CustomerNeed, "status" | "created_at">>(needs: T[]): T | null {
   return needs.filter((n) => n.status !== "won" && n.status !== "lost")
