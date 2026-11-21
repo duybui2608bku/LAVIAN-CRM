@@ -162,7 +162,7 @@ export function PotentialManager({
               </div>
               {/* SĐT · nhóm dịch vụ của lịch gần nhất (như ô Khách hàng ở Sales Management). */}
               <div className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
-                {[c.phone, serviceCategoriesLabel(nearestAppt.get(c.id)?.service_categories)].filter(Boolean).join(" · ")}
+                {[c.phone, serviceCategoriesLabel(nearestAppt.get(c.id)?.service_categories) || serviceCategoriesLabel(c.service_categories)].filter(Boolean).join(" · ")}
               </div>
               {last ? (
                 <div className="mt-0.5 max-w-72 truncate text-xs text-muted-foreground" title={last}>

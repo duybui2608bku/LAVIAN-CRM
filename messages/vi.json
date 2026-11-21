@@ -504,6 +504,9 @@
     "chooseStage": "Chọn giai đoạn",
     "followUpAt": "Lịch nhắc liên hệ lại",
     "followUpRequired": "Vui lòng chọn lịch nhắc",
+    "serviceGroupRequired": "Vui lòng chọn nhóm dịch vụ",
+    "serviceCategories": "Nhóm dịch vụ",
+    "chooseServiceGroup": "Chọn nhóm dịch vụ",
     "colReminder": "Nhắc hẹn",
     "viewReminders": "Lịch nhắc hẹn",
     "infoTitle": "Thông tin khách hàng"
@@ -541,7 +544,8 @@
     "update": "Cập nhật",
     "stageRequired": "Vui lòng chọn trạng thái",
     "followUpAt": "Lịch nhắc liên hệ lại",
-    "followUpRequired": "Vui lòng chọn lịch nhắc"
+    "followUpRequired": "Vui lòng chọn lịch nhắc",
+    "serviceGroupRequired": "Vui lòng chọn nhóm dịch vụ"
   },
   "marketing": {
     "title": "Marketing",

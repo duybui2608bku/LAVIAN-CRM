@@ -6,6 +6,7 @@ import {
   isFollowUpStage,
   isStage,
   FOLLOW_UP_STAGES,
+  needsServiceGroup,
   phoneOptional,
   validPotentialStatus,
   validRating,
@@ -14,6 +15,7 @@ import { formatPhone, isValidPhone } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 
+import { serviceCategoriesSchema } from "@/lib/appointments";
 import { phoneOwner } from "@/lib/customers";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, requirePermission } from "@/lib/auth";
@@ -108,7 +110,11 @@ function clean(input: CustomerInput, noPhoneOk = false) {
     throw new Error("Giai đoạn không hợp lệ.");
   const noPhone = noPhoneOk && !input.phone.trim();
   if (!noPhone && !isValidPhone(input.phone)) throw new Error("Số điện thoại không hợp lệ.");
+  const cats = serviceCategoriesSchema.safeParse(input.service_categories ?? []);
+  if (!cats.success) throw new Error("Nhóm dịch vụ không hợp lệ.");
+  if (needsServiceGroup(input.stage) && cats.data.length === 0) throw new Error("Vui lòng chọn nhóm dịch vụ.");
   return {
+    service_categories: cats.data,
     ...(isFollowUpStage(input.stage) ? { follow_up_at: followUpIso(input.follow_up_at) } : {}),
     full_name: input.full_name.trim(),
     phone: noPhone ? "" : formatPhone(input.phone),
