@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-21 — Cột Tin nhắn riêng + căn thẳng icon ô Tên
+- **Thay đổi:** Icon tin nhắn (mở `MessagesModal`) tách thành **cột "Tin nhắn" riêng** (width 90, căn giữa, chưa có hội thoại → "—") ngay sau cột tên ở `/customers`, `/customers/potential`, `/customers/bookings`. `/customers`: cột Họ tên width cố định 240 + `NamePhone` `flex-1` → nút sửa (hover) luôn sát mép phải, thẳng hàng. Thêm key `customers.colMessages` (vi/en).
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`, `components/appointments/bookings-manager.tsx`, `messages/vi.json`, `messages/en.json`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt.
+
 ### 2026-11-21 — Icon tin nhắn mở modal tin SMAX ở Customers / Potential / Booking management
 - **Thay đổi:** Icon `MessageCircleMore` cạnh tên khách ở 3 bảng (`/customers`, `/customers/potential`, `/customers/bookings`) mở `MessagesModal` (30 tin SMAX gần nhất + nút "Mở SMAX"), không mở tab mới nữa. Booking management: bấm tên → popup 360° (bỏ link tên sang SMAX). Xoá `Open360Button` (không còn nơi dùng). Export type `MessagesCustomer` từ `messages-modal.tsx`.
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`, `components/appointments/bookings-manager.tsx`, `components/appointments/messages-modal.tsx`, `components/customers/customer-360/customer-360-modal.tsx`.

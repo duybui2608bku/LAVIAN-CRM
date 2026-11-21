@@ -170,16 +170,6 @@ export function PotentialManager({
                 </div>
               ) : null}
             </div>
-            {c.thread?.link && (
-              <Button
-                type="text"
-                size="small"
-                onClick={() => setChatFor({ id: c.id, full_name: c.full_name, thread_link: c.thread?.link })}
-                aria-label={tc("openThread")}
-                title={tc("openThread")}
-                icon={<MessageCircleMore className="size-4" />}
-              />
-            )}
             <Button
               type="text"
               size="small"
@@ -191,6 +181,24 @@ export function PotentialManager({
           </div>
         );
       },
+    },
+    // Tin nhắn: icon mở modal 30 tin SMAX gần nhất (chưa có hội thoại → "—").
+    {
+      title: tc("colMessages"),
+      key: "messages",
+      width: 90,
+      align: "center",
+      render: (_, c) =>
+        c.thread?.link ? (
+          <Button
+            type="text"
+            size="small"
+            onClick={() => setChatFor({ id: c.id, full_name: c.full_name, thread_link: c.thread?.link })}
+            aria-label={tc("openThread")}
+            title={tc("openThread")}
+            icon={<MessageCircleMore className="size-4" />}
+          />
+        ) : DASH,
     },
     // Danh sách việc follow-up (đã sắp theo giờ liên hệ lại) → cột hành động đứng ngay sau tên.
     {
