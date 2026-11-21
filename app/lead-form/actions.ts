@@ -14,7 +14,6 @@ import { serviceCategoriesSchema } from "@/lib/appointments";
 import { phoneOwner } from "@/lib/customers";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import type { CustomerNote } from "@/types/customer";
-import type { ServiceCategory } from "@/types/service";
 
 const schema = z.object({
   customer_id: z.string().trim().max(200),
@@ -88,7 +87,7 @@ export type LeadCustomer = {
   region_code: string;
   address_detail: string;
   follow_up_at: string | null;
-  service_categories: ServiceCategory[];
+  service_categories: string[];
 };
 
 const LEAD_FIELDS =
@@ -106,7 +105,7 @@ type LeadRow = {
   region_code: string | null;
   address_detail: string | null;
   follow_up_at: string | null;
-  service_categories: ServiceCategory[] | null;
+  service_categories: string[] | null;
   staff: unknown;
   /** Tìm theo SĐT (không khớp SMAX id) — vd khách IG chuyển sang WA có SMAX id mới. */
   viaPhone: boolean;

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 
 import { LeadForm } from "@/components/lead-form/lead-form";
+import { ServiceGroupsProvider } from "@/components/common/service-groups";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
@@ -18,13 +19,16 @@ export default async function LeadFormPage() {
   // Trang anonymous nên đọc profiles/enum_options bằng admin client
   // (RLS chỉ cho authenticated).
   const admin = createAdminClient();
-  const { data: staff } = await admin
-    .from("profiles")
-    .select("id, user_name, avatar_url")
-    .eq("status", "active")
-    .in("department", TELESALES_DEPARTMENTS)
-    .neq("user_name", "")
-    .order("user_name");
+  const [{ data: staff }, { data: groups }] = await Promise.all([
+    admin
+      .from("profiles")
+      .select("id, user_name, avatar_url")
+      .eq("status", "active")
+      .in("department", TELESALES_DEPARTMENTS)
+      .neq("user_name", "")
+      .order("user_name"),
+    admin.from("service_groups").select("id, name, sort_order, is_active").order("sort_order"),
+  ]);
 
   return (
     // Cao đúng 1 màn hình, không cuộn trang: form tự thu nhỏ vừa chiều cao (FitToHeight trong LeadForm).
@@ -32,10 +36,12 @@ export default async function LeadFormPage() {
       <div className="flex w-full max-w-lg min-h-0 flex-col">
         {/* useSearchParams trong LeadForm cần Suspense boundary */}
         <Suspense>
-          <LeadForm
-            staff={staff ?? []}
-            stages={CUSTOMER_OPTIONS.filter((o) => o.kind === "stage")}
-          />
+          <ServiceGroupsProvider groups={groups ?? []}>
+            <LeadForm
+              staff={staff ?? []}
+              stages={CUSTOMER_OPTIONS.filter((o) => o.kind === "stage")}
+            />
+          </ServiceGroupsProvider>
         </Suspense>
       </div>
     </main>

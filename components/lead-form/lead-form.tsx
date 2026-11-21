@@ -25,7 +25,7 @@ import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { EnumOption } from "@/types/customer";
-import { SERVICE_CATEGORY_OPTIONS, type ServiceCategory } from "@/types/service";
+import { useServiceGroups } from "@/components/common/service-groups";
 
 const requestCustomer = (integrationId: string) =>
   window.parent.postMessage(
@@ -60,7 +60,7 @@ type Values = {
   follow_up_at: string | null;
   // Lịch hẹn tới chi nhánh kèm theo — các stage còn lại (bắt buộc khi vừa chọn Booking).
   scheduled_at: string;
-  service_categories: ServiceCategory[];
+  service_categories: string[];
   website: string; // honeypot chống bot — người thật không thấy ô này
 };
 
@@ -133,6 +133,7 @@ export function LeadForm(props: LeadFormProps) {
 }
 
 function LeadFormInner({ staff, stages }: LeadFormProps) {
+  const groups = useServiceGroups();
   const t = useTranslations("leadForm");
   const ta = useTranslations("appointments");
   const locale = useLocale();
@@ -413,7 +414,7 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
           {/* Lưu trên khách + lịch hẹn kèm; bắt buộc ở Tiềm năng / Cân nhắc / Đã đặt lịch / Đã mua. */}
           <Form.Item name="service_categories" label={ta("serviceCategories")} dependencies={["stage"]}
             rules={[{ required: needServiceGroup, type: "array", min: 1, message: t("serviceGroupRequired") }]}>
-            <Select mode="multiple" allowClear placeholder={ta("choose")} options={SERVICE_CATEGORY_OPTIONS} />
+            <Select mode="multiple" allowClear placeholder={ta("choose")} options={groups.options} />
           </Form.Item>
           {/* Chỉ nhập được khi giai đoạn là "Deposited". */}
           <Form.Item name="deposit_amount" label={t("deposit")}>

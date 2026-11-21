@@ -1,15 +1,13 @@
 import { z } from "zod";
 
 import type { BookingStatus, VisitStatus } from "@/types/appointment";
-import type { ServiceCategory } from "@/types/service";
 
 // Literal (không import giá trị từ types/ — node --test không hiểu alias "@/"); test đối chiếu BOOKING_STATUSES.
 export const BOOKING_STATUS_VALUES = ["pending", "confirmed", "cancelled", "rescheduled"] as const satisfies readonly BookingStatus[];
 export const VISIT_STATUS_VALUES = ["waiting", "arrived", "in_progress", "done", "rescheduled", "cancelled"] as const satisfies readonly VisitStatus[];
-export const SERVICE_CATEGORY_VALUES = ["alis", "bibir", "laser"] as const satisfies readonly ServiceCategory[];
 
-/** Nhóm dịch vụ (chọn nhiều): bỏ trùng. Dùng chung CRM + lead-form. */
-export const serviceCategoriesSchema = z.array(z.enum(SERVICE_CATEGORY_VALUES)).max(10)
+/** Nhóm dịch vụ (chọn nhiều, mã service_groups.id): bỏ trùng. Dùng chung CRM + lead-form. */
+export const serviceCategoriesSchema = z.array(z.string().regex(/^[a-z0-9_]+$/).max(40)).max(10)
   .transform((cats) => [...new Set(cats)]);
 
 /** Clinic confirmation (Show-up) chỉ bộ phận Sales được đổi (admin luôn toàn quyền). */

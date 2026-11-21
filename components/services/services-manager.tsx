@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useMemo, useOptimistic, useState, useTransition } from "react";
 import {
   Button,
   Checkbox,
@@ -27,32 +27,31 @@ import { FormDrawer } from "@/components/common/form-drawer";
 import { RowActions } from "@/components/common/row-actions";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { toast } from "@/lib/toast";
-import {
-  SERVICE_CATEGORY_COLORS,
-  SERVICE_CATEGORY_LABELS,
-  SERVICE_CATEGORY_OPTIONS,
-  type Service,
-  type ServiceCategory,
-  type ServiceInput,
-} from "@/types/service";
+import { useServiceGroups } from "@/components/common/service-groups";
+import { formatRupiah, sanitizeCurrencyInput } from "@/lib/currency";
+import type { Service, ServiceInput } from "@/types/service";
 
 // Trạng thái dialog: null = đóng; service null = tạo mới.
 type DialogState = { service: Service | null } | null;
-
-const dash = (v: string | null) =>
-  v || <span className="text-muted-foreground">—</span>;
 
 export function ServicesManager({ services }: { services: Service[] }) {
   const t = useTranslations("services");
   const [dialog, setDialog] = useState<DialogState>(null);
   const [, start] = useTransition();
   const confirm = useConfirm();
+  const groups = useServiceGroups();
   const can = useCan();
   const canEdit = can("services.edit");
   const canDelete = can("services.delete");
   // Bật/tắt hiện ngay; server trả về thì React tự đồng bộ (lỗi → quay lại).
+  // Xếp theo thứ tự nhóm rồi thứ tự dịch vụ (giống bảng giá).
+  const sorted = useMemo(() => {
+    const order = new Map(groups.groups.map((g, i) => [g.id, i]));
+    return [...services].sort((a, b) =>
+      (order.get(a.group_id) ?? 999) - (order.get(b.group_id) ?? 999) || a.sort_order - b.sort_order);
+  }, [services, groups.groups]);
   const [rows, patchRow] = useOptimistic(
-    services,
+    sorted,
     (state: Service[], p: { id: string; is_active: boolean }) =>
       state.map((r) => (r.id === p.id ? { ...r, is_active: p.is_active } : r)),
   );
@@ -72,10 +71,9 @@ export function ServicesManager({ services }: { services: Service[] }) {
     start(async () => {
       patchRow({ id: s.id, is_active: !s.is_active });
       const res = await updateService(s.id, {
-        name_vi: s.name_vi,
-        name_en: s.name_en,
-        name_id: s.name_id,
-        category: s.category,
+        group_id: s.group_id,
+        name: s.name,
+        price: s.price,
         sort_order: s.sort_order,
         is_active: !s.is_active,
       });
@@ -83,17 +81,21 @@ export function ServicesManager({ services }: { services: Service[] }) {
     });
 
   const columns: TableProps<Service>["columns"] = [
-    { title: t("colVi"), dataIndex: "name_vi", ellipsis: true },
-    { title: t("colEn"), dataIndex: "name_en", ellipsis: true, render: dash },
     {
       title: t("colCategory"),
-      dataIndex: "category",
-      width: 150,
-      render: (c: ServiceCategory) => (
-        <Tag color={SERVICE_CATEGORY_COLORS[c]} className="me-0">{SERVICE_CATEGORY_LABELS[c] ?? c}</Tag>
-      ),
-      filters: SERVICE_CATEGORY_OPTIONS.map((o) => ({ text: o.label, value: o.value })),
-      onFilter: (value, s) => s.category === value,
+      dataIndex: "group_id",
+      width: 180,
+      render: (g: string) => <Tag className="me-0">{groups.name(g)}</Tag>,
+      filters: groups.groups.map((g) => ({ text: g.name, value: g.id })),
+      onFilter: (value, s) => s.group_id === value,
+    },
+    { title: t("colName"), dataIndex: "name", ellipsis: true },
+    {
+      title: t("colPrice"),
+      dataIndex: "price",
+      width: 160,
+      align: "right",
+      render: (v: number) => <span className="tabular-nums">{formatRupiah(v)}</span>,
     },
     {
       title: t("colActive"),
@@ -130,7 +132,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
                     onSelect: () =>
                       confirm({
                         title: t("deleteConfirm"),
-                        content: t("deleteConfirmBody", { name: s.name_vi }),
+                        content: t("deleteConfirmBody", { name: s.name }),
                         okText: t("delete"),
                         cancelText: t("cancel"),
                         onOk: () => remove(s),
@@ -170,10 +172,9 @@ export function ServicesManager({ services }: { services: Service[] }) {
 }
 
 type Values = {
-  name_vi: string;
-  name_en?: string | null;
-  name_id?: string | null;
-  category: ServiceCategory;
+  group_id: string;
+  name: string;
+  price?: number | null;
   sort_order?: number | null;
   is_active: boolean;
 };
@@ -186,6 +187,7 @@ function ServiceDialog({
   onClose: () => void;
 }) {
   const t = useTranslations("services");
+  const groups = useServiceGroups();
   const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
   const editing = state?.service ?? null;
@@ -193,11 +195,9 @@ function ServiceDialog({
   const onFinish = (v: Values) =>
     start(async () => {
       const input: ServiceInput = {
-        name_vi: v.name_vi.trim(),
-        // không bắt buộc — "" = chưa dịch, lưu null
-        name_en: v.name_en?.trim() || null,
-        name_id: v.name_id?.trim() || null,
-        category: v.category,
+        group_id: v.group_id,
+        name: v.name.trim(),
+        price: v.price ?? 0,
         sort_order: v.sort_order ?? 0,
         is_active: v.is_active,
       };
@@ -226,31 +226,37 @@ function ServiceDialog({
         requiredMark={false}
         onFinish={onFinish}
         initialValues={{
-          name_vi: editing?.name_vi ?? "",
-          name_en: editing?.name_en ?? "",
-          name_id: editing?.name_id ?? "",
-          category: editing?.category,
+          group_id: editing?.group_id,
+          name: editing?.name ?? "",
+          price: editing?.price ?? 0,
           sort_order: editing?.sort_order ?? 0,
           is_active: editing?.is_active ?? true,
         }}
       >
         <div className="grid grid-cols-2 gap-x-3">
           <Form.Item
-            name="name_vi"
-            label={t("colVi")}
-            rules={[{ required: true, whitespace: true, message: t("required") }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item name="name_en" label={t("colEn")}>
-            <Input placeholder={t("optional")} />
-          </Form.Item>
-          <Form.Item
-            name="category"
+            name="group_id"
             label={t("colCategory")}
             rules={[{ required: true, message: t("required") }]}
           >
-            <Select options={SERVICE_CATEGORY_OPTIONS} placeholder={t("colCategory")} />
+            <Select options={groups.options} placeholder={t("colCategory")} />
+          </Form.Item>
+          <Form.Item
+            name="price"
+            label={t("colPrice")}
+            rules={[{ required: true, message: t("required") }]}
+          >
+            <InputNumber<number> className="w-full" min={0} precision={0} controls={false} inputMode="numeric"
+              prefix="Rp" formatter={(v) => (v == null || `${v}` === "" ? "" : Number(v).toLocaleString("id-ID"))}
+              parser={(v) => Number(sanitizeCurrencyInput(v ?? "")) || 0} />
+          </Form.Item>
+          <Form.Item
+            name="name"
+            label={t("colName")}
+            className="col-span-2"
+            rules={[{ required: true, whitespace: true, message: t("required") }]}
+          >
+            <Input />
           </Form.Item>
           <Form.Item name="sort_order" label={t("colSort")}>
             <InputNumber className="w-full" />

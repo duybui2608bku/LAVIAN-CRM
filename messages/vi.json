@@ -365,10 +365,9 @@
   "services": {
     "title": "Dịch vụ",
     "add": "Thêm",
-    "colVi": "Tiếng Việt",
-    "colEn": "English",
-    "colId": "Bahasa",
-    "colCategory": "Nhóm",
+    "colCategory": "Nhóm dịch vụ",
+    "colName": "Dịch vụ",
+    "colPrice": "Giá (IDR)",
     "colSort": "Thứ tự",
     "colActive": "Kích hoạt",
     "colActions": "Thao tác",

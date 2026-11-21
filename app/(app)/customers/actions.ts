@@ -38,7 +38,7 @@ type Result = { error?: string };
 export type CustomerAppointmentsData = {
   appointments: Appointment[];
   logs: AppointmentLog[];
-  services: Pick<Service, "id" | "name_vi" | "name_en" | "name_id">[];
+  services: Pick<Service, "id" | "name">[];
 };
 
 // Drawer cột Lịch hẹn: toàn bộ lịch chưa xoá + log thay đổi (mới nhất trước) của 1 khách.
@@ -60,7 +60,7 @@ export async function getCustomerAppointments(
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false })
         .limit(200),
-      supabase.from("services").select("id, name_vi, name_en, name_id"),
+      supabase.from("services").select("id, name"),
     ]);
     const error = appts.error ?? logs.error ?? services.error;
     if (error) throw error;

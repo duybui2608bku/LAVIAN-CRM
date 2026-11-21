@@ -1,7 +1,6 @@
 import type { CustomerNote, OtherChannel } from "./customer";
 import type { AppointmentPerformer } from "./customer-360";
 import type { TimelineNote } from "./note";
-import type { ServiceCategory } from "./service";
 
 // Lịch hẹn chỉ lưu lịch đến của khách (tính doanh số Telesales). Tour KTV ở bảng `tours` (types/tour.ts).
 
@@ -34,7 +33,7 @@ export interface Appointment {
   booking_confirm: BookingStatus; // Telesales gọi lại xác nhận lịch
   checked_in: boolean; // chỉ đọc — DB tính từ visit_status
   visit_status: VisitStatus;
-  service_categories: ServiceCategory[]; // nhóm dịch vụ Telesales chọn khi tạo lịch
+  service_categories: string[]; // nhóm dịch vụ Telesales chọn khi tạo lịch
   service_ids: string[]; // dịch vụ chi tiết — điền sau
   staff_id: string | null; // chăm sóc khách hàng
   sales_id: string | null; // nhân viên bộ phận Sales phụ trách lịch

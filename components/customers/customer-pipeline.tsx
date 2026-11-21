@@ -23,14 +23,13 @@ import { DEPOSITED_OR_LATER } from "@/lib/reports";
 import { cn } from "@/lib/utils";
 import type { VisitStatus } from "@/types/appointment";
 import type { Customer } from "@/types/customer";
-import type { ServiceCategory } from "@/types/service";
 
 export type PipelineAppointment = {
   customer_id: string;
   scheduled_at: string;
   checked_in: boolean;
   visit_status: VisitStatus; // cột Sales Status
-  service_categories: ServiceCategory[]; // nhóm dịch vụ — hiện sau SĐT ở ô Khách hàng
+  service_categories: string[]; // nhóm dịch vụ — hiện sau SĐT ở ô Khách hàng
 };
 
 

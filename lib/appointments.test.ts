@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  appointmentMoney, appointmentStats, canConfirmShowUp, canSetVisitStatus, validateVisitStatus, appointmentPatchSchema, nearestByCustomer, newCustomerAppointmentIds, ARRIVED_STATUSES, BOOKING_STATUS_VALUES, SERVICE_CATEGORY_VALUES, VISIT_STATUS_VALUES,
+  appointmentMoney, appointmentStats, canConfirmShowUp, canSetVisitStatus, validateVisitStatus, appointmentPatchSchema, nearestByCustomer, newCustomerAppointmentIds, ARRIVED_STATUSES, BOOKING_STATUS_VALUES, VISIT_STATUS_VALUES,
 } from "./appointments.ts";
 
 test("appointment edits validate dates, IDs and whitelist; no tour fields", () => {
@@ -58,12 +58,10 @@ test("nearestByCustomer: lịch sắp tới sớm nhất, không có thì lịch
   assert.equal(map.get("c"), undefined);
 });
 
-test("nhóm dịch vụ: khớp SERVICE_CATEGORIES, bỏ trùng, từ chối giá trị lạ", async () => {
-  const { SERVICE_CATEGORIES } = await import("../types/service.ts");
-  assert.deepEqual([...SERVICE_CATEGORY_VALUES], [...SERVICE_CATEGORIES]);
+test("nhóm dịch vụ: mã service_groups, bỏ trùng, từ chối giá trị lạ", () => {
   assert.deepEqual(appointmentPatchSchema.parse({ service_categories: ["alis", "bibir", "alis"] }), { service_categories: ["alis", "bibir"] });
   assert.deepEqual(appointmentPatchSchema.parse({ service_categories: [] }), { service_categories: [] });
-  for (const v of [["shading"], "alis", null]) {
+  for (const v of [["Shading"], ["a b"], "alis", null]) {
     assert.equal(appointmentPatchSchema.safeParse({ service_categories: v }).success, false);
   }
 });

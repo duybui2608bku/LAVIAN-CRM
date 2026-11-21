@@ -1,9 +1,8 @@
 // Self-check: `node --test lib/customers.test.ts` (Node ≥ 23).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createdAgeBucket, matchesCustomerFilters, matchesNameOrPhone, optionLabel, serviceName } from "./customers.ts";
+import { createdAgeBucket, matchesCustomerFilters, matchesNameOrPhone, optionLabel } from "./customers.ts";
 import type { Customer, EnumOption } from "../types/customer.ts";
-import type { Service } from "../types/service.ts";
 
 const base: Customer = {
   id: "1",
@@ -104,22 +103,6 @@ test("optionLabel theo locale, fallback vi", () => {
   // Nhãn en/id không bắt buộc — thiếu thì fallback tiếng Việt.
   assert.equal(optionLabel({ ...opt, label_en: null }, "en"), "Khách mới");
   assert.equal(optionLabel({ ...opt, label_id: null }, "id"), "Khách mới");
-});
-
-test("serviceName theo locale, fallback vi", () => {
-  const svc: Service = {
-    id: "s1",
-    name_vi: "Chăm sóc da",
-    name_en: "Skin care",
-    name_id: null,
-    sort_order: 10,
-    is_active: true,
-    created_at: "",
-    updated_at: "",
-  };
-  assert.equal(serviceName(svc, "vi"), "Chăm sóc da");
-  assert.equal(serviceName(svc, "en"), "Skin care");
-  assert.equal(serviceName(svc, "id"), "Chăm sóc da");
 });
 
 test("tìm SĐT không phụ thuộc dấu '-' và đầu 62", () => {

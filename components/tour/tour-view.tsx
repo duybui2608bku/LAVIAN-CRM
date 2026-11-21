@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, DatePicker, Empty, Input, Segmented, Select, Tag, type TableProps } from "antd";
 import { CheckCircle2, FileSpreadsheet, PencilLine, Plus, Printer, Search, Trash2 } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { claimTour, confirmTour, deleteTour } from "@/app/(app)/tour/actions";
 import { useConfirm } from "@/components/common/confirm-action";
@@ -19,7 +19,7 @@ import { groupByTechnician, toItem, type TourItem } from "@/components/tour/tour
 import { PhotoCountButton, TourPhotosModal } from "@/components/tour/tour-photos";
 import { TourSlips } from "@/components/tour/tour-slips";
 import { formatRupiah } from "@/lib/currency";
-import { matchesNameOrPhone, serviceName } from "@/lib/customers";
+import { matchesNameOrPhone } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import { tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
@@ -66,10 +66,9 @@ function MonthPicker({ month, goMonth }: { month: string; goMonth: (m: string) =
 }
 
 function useServiceLabel(services: Service[]) {
-  const locale = useLocale();
   return (id: string) => {
     const s = services.find((x) => x.id === id);
-    return s ? serviceName(s, locale) : "—";
+    return s ? s.name : "—";
   };
 }
 
