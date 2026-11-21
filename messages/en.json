@@ -556,7 +556,7 @@
     "colStatus": "Status",
     "colName": "Campaign name",
     "colAccount": "Ad account",
-    "colWa": "WA",
+    "colPlatform": "Platform",
     "byWa": "Messages by WA number",
     "waUnknown": "No WA tag",
     "waMessagesLabel": "messages",

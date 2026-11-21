@@ -556,7 +556,7 @@
     "colStatus": "Trạng thái",
     "colName": "Tên chiến dịch",
     "colAccount": "Tài khoản quảng cáo",
-    "colWa": "Số WA",
+    "colPlatform": "Nền tảng",
     "byWa": "Tin nhắn theo số WA",
     "waUnknown": "Chưa gắn WA",
     "waMessagesLabel": "tin nhắn",

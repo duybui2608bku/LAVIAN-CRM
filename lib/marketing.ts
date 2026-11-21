@@ -173,11 +173,28 @@ export async function fetchFbAdsDaily(
   return { days, currency };
 }
 
+export type CampaignPlatform = "wa" | "ig";
+
+/**
+ * `destination_type` nhóm QC → nền tảng: WHATSAPP, INSTAGRAM_DIRECT, MESSAGING_INSTAGRAM_DIRECT_WHATSAPP,
+ * LEAD_FROM_IG_DIRECT… (đích khác như ON_POST, WEBSITE, MESSENGER bỏ qua).
+ */
+export function destinationPlatforms(types: string[]): CampaignPlatform[] {
+  const out: CampaignPlatform[] = [];
+  if (types.some((t) => t.includes("WHATSAPP"))) out.push("wa");
+  if (types.some((t) => /INSTAGRAM|IG_DIRECT/.test(t))) out.push("ig");
+  return out;
+}
+
 export interface FbCampaign {
   id: string;
   name: string;
+  /** Id số của tài khoản ads (không có tiền tố `act_`) — để mở Ads Manager. */
+  accountId: string;
   accountName: string;
   status: string;
+  /** Nền tảng nhận tin theo `destination_type` của các nhóm QC; null = không lấy được (UI đoán theo tên). */
+  platforms: CampaignPlatform[] | null;
   spend: number;
   messages: number;
   impressions: number;
@@ -188,6 +205,7 @@ type FbCampaignInsightsRes = {
   data?: {
     campaign_id?: string;
     campaign_name?: string;
+    account_id?: string;
     account_name?: string;
     spend?: string;
     impressions?: string;
@@ -199,7 +217,11 @@ type FbCampaignInsightsRes = {
 };
 
 type FbCampaignsRes = {
-  data?: { id?: string; effective_status?: string }[];
+  data?: {
+    id?: string;
+    effective_status?: string;
+    adsets?: { data?: { destination_type?: string }[] };
+  }[];
   paging?: { next?: string };
   error?: { message?: string };
 };
@@ -246,17 +268,19 @@ async function fbGet<T extends { error?: { message?: string } }>(url: string) {
 }
 
 /**
- * campaign_id → trạng thái hiện tại: liệt kê /act_x/campaigns (tham số mặc định, không filtering —
- * Graph API hay từ chối filter/ids với "Invalid parameter"). Best-effort: lỗi hoặc thiếu
- * (chiến dịch đã xoá) → "UNKNOWN", bảng vẫn hiện số liệu.
+ * campaign_id → trạng thái hiện tại + nền tảng (destination_type của nhóm QC, lồng trong cùng 1 lệnh gọi):
+ * liệt kê /act_x/campaigns (không filtering — Graph API hay từ chối filter/ids với "Invalid parameter").
+ * Best-effort: lỗi hoặc thiếu (chiến dịch đã xoá) → "UNKNOWN" / platforms null, bảng vẫn hiện số liệu.
  */
-async function fetchFbCampaignStatus(token: string): Promise<Map<string, string>> {
-  const status = new Map<string, string>();
+async function fetchFbCampaignStatus(
+  token: string,
+): Promise<Map<string, { status: string; platforms: CampaignPlatform[] }>> {
+  const status = new Map<string, { status: string; platforms: CampaignPlatform[] }>();
   await Promise.all(
     FB_AD_ACCOUNTS.map(async (act) => {
       const qs = new URLSearchParams({
-        fields: "id,effective_status",
-        limit: "500",
+        fields: "id,effective_status,adsets.limit(100){destination_type}",
+        limit: "200",
         access_token: token,
       });
       let url: string | undefined = `${FB_API}/${act}/campaigns?${qs}`;
@@ -264,7 +288,13 @@ async function fetchFbCampaignStatus(token: string): Promise<Map<string, string>
         while (url) {
           const json: FbCampaignsRes = await fbGet(url);
           for (const c of json.data ?? [])
-            if (c.id && c.effective_status) status.set(c.id, c.effective_status);
+            if (c.id && c.effective_status)
+              status.set(c.id, {
+                status: c.effective_status,
+                platforms: destinationPlatforms(
+                  (c.adsets?.data ?? []).flatMap((a) => a.destination_type ?? []),
+                ),
+              });
           url = json.paging?.next;
         }
       } catch (err) {
@@ -291,7 +321,7 @@ export async function fetchFbCampaigns(
         const qs = new URLSearchParams({
           level: "campaign",
           fields:
-            "campaign_id,campaign_name,account_name,spend,impressions,reach,actions",
+            "campaign_id,campaign_name,account_id,account_name,spend,impressions,reach,actions",
           time_range,
           limit: "500",
           access_token: token,
@@ -316,8 +346,10 @@ export async function fetchFbCampaigns(
     .map((r) => ({
       id: r.campaign_id!,
       name: r.campaign_name ?? "—",
+      accountId: r.account_id ?? "",
       accountName: r.account_name ?? "—",
-      status: status.get(r.campaign_id!) ?? "UNKNOWN",
+      status: status.get(r.campaign_id!)?.status ?? "UNKNOWN",
+      platforms: status.get(r.campaign_id!)?.platforms ?? null,
       spend: Number(r.spend ?? 0),
       messages: Number(
         r.actions?.find((a) => a.action_type === FB_MESSAGE_ACTION)?.value ?? 0,

@@ -22,14 +22,29 @@ import { toast } from "@/lib/toast";
 import type { FbCampaign } from "@/lib/marketing";
 import type { FunnelKey } from "@/lib/smax-inbox";
 import { cn } from "@/lib/utils";
-import { campaignWa, summarizeByWa, waColor } from "@/lib/wa";
+import { campaignIg, campaignWa, summarizeByWa, waColor } from "@/lib/wa";
 import { useCan } from "@/components/common/permissions";
+import { SourceIcon } from "@/components/common/source-icon";
 
 /** Chia an toàn: thiếu số hoặc mẫu 0 → null ("—"). */
 const ratio = (a: number | null, b: number | null) =>
   a != null && b ? Math.round(a / b) : null;
 
 const LOCALE_TAG: Record<string, string> = { vi: "vi-VN", en: "en-US" };
+
+/** Dòng bảng: chiến dịch, hoặc dòng con WA/IG (`platform`) của chiến dịch chạy cả 2 nền tảng. */
+type CampaignRow = FbCampaign & { platform?: "wa" | "ig"; children?: CampaignRow[] };
+
+// BM chứa cả 2 tài khoản ads (GOMI, RASA).
+const FB_BUSINESS_ID = "1389222792022238";
+const adsManagerUrl = (c: FbCampaign) =>
+  `https://adsmanager.facebook.com/adsmanager/manage/campaigns?${new URLSearchParams({
+    act: c.accountId,
+    business_id: FB_BUSINESS_ID,
+    nav_source: "no_referrer",
+    treenav: "true",
+    selected_campaign_ids: c.id,
+  })}`;
 
 // effective_status của Graph API → màu tag; trạng thái lạ hiện nguyên văn, màu mặc định.
 const STATUS_COLOR: Record<string, string> = {
@@ -115,13 +130,28 @@ export function AdsStatsView() {
     const wa = campaignWa(c.name);
     if (wa) waCampaigns.set(wa, (waCampaigns.get(wa) ?? 0) + 1);
   }
-  const funnelOf = (c: FbCampaign, key: FunnelKey) => {
-    if (!potential) return null;
-    const wa = campaignWa(c.name);
-    return (potential.byCampaign[c.id]?.[key] ?? 0) + (wa ? (potential.byWa[wa]?.[key] ?? 0) : 0);
+  // Nền tảng = ĐÍCH nhắn tin theo destination_type nhóm QC (không lấy được → đoán theo tên); vị trí hiển thị
+  // (video trên IG) không tính. Số WA luôn lấy từ tên (Meta không trả). Dòng con chỉ giữ nền tảng của nó.
+  const platformsOf = (r: CampaignRow) => {
+    const waOn = r.platforms ? r.platforms.includes("wa") : campaignWa(r.name) != null;
+    const igOn = r.platforms ? r.platforms.includes("ig") : campaignIg(r.name);
+    const wa = r.platform !== "ig" && waOn;
+    return { wa, waNo: wa ? campaignWa(r.name) : null, ig: r.platform !== "wa" && igOn };
   };
+  // Dòng cha luôn cộng khách IG gán qua ad_id: quảng cáo đích WA hiện trên IG vẫn có người nhắn thẳng vào IG.
+  const funnelOf = (r: CampaignRow, key: FunnelKey) => {
+    if (!potential) return null;
+    const waNo = r.platform === "ig" ? null : campaignWa(r.name);
+    const ig = r.platform !== "wa" ? (potential.byCampaign[r.id]?.[key] ?? 0) : 0;
+    return ig + (waNo ? (potential.byWa[waNo]?.[key] ?? 0) : 0);
+  };
+  // Chạy cả WA + IG → bung 2 dòng con, phễu riêng từng bên (Meta không tách chi tiêu/tin nhắn theo đích).
+  const rows: CampaignRow[] = campaigns.map((c) => {
+    const { wa, ig } = platformsOf(c);
+    return wa && ig ? { ...c, children: [{ ...c, platform: "wa" }, { ...c, platform: "ig" }] } : c;
+  });
   // KH tiềm năng → Booking → Show up: cùng cách gán chiến dịch, cùng tooltip WA dùng chung / lỗi.
-  const funnelColumn = (key: FunnelKey, title: string, width: number): TableColumnType<FbCampaign> => ({
+  const funnelColumn = (key: FunnelKey, title: string, width: number): TableColumnType<CampaignRow> => ({
     key,
     title,
     align: "right",
@@ -134,7 +164,7 @@ export function AdsStatsView() {
             <span className="text-muted-foreground">—</span>
           </Tooltip>
         );
-      const wa = campaignWa(r.name);
+      const { waNo: wa } = platformsOf(r);
       const shared = wa ? (waCampaigns.get(wa) ?? 0) : 0;
       return shared > 1 ? (
         <Tooltip title={t("potentialSharedWa", { wa: wa!, count: shared })}>
@@ -151,7 +181,7 @@ export function AdsStatsView() {
     t.has(`status_${status}`) ? t(`status_${status}`) : status;
   const numSorter = (key: keyof FbCampaign) => (a: FbCampaign, b: FbCampaign) =>
     Number(a[key]) - Number(b[key]);
-  const columns: TableColumnType<FbCampaign>[] = [
+  const columns: TableColumnType<CampaignRow>[] = [
     {
       key: "status",
       title: t("colStatus"),
@@ -185,24 +215,42 @@ export function AdsStatsView() {
       title: t("colName"),
       dataIndex: "name",
       width: 320,
-      ellipsis: { showTitle: true },
+      ellipsis: true,
+      render: (name: string, r) => (
+        <a href={adsManagerUrl(r)} target="_blank" rel="noopener noreferrer" title={name}>
+          {name}
+        </a>
+      ),
     },
     {
-      key: "wa",
-      title: t("colWa"),
-      width: 110,
+      key: "platform",
+      title: t("colPlatform"),
+      width: 180,
       render: (_, r) => {
-        const wa = campaignWa(r.name);
-        return wa ? (
-          <Tag color={waColor(wa)} className="me-0">
-            {wa}
-          </Tag>
-        ) : (
-          <span className="text-muted-foreground">—</span>
+        const { wa, waNo, ig } = platformsOf(r);
+        if (!wa && !ig) return <span className="text-muted-foreground">—</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 align-middle">
+            {wa && <SourceIcon source="whatsapp" className="size-4" />}
+            {waNo && (
+              <Tag color={waColor(waNo)} className="me-0">
+                {waNo}
+              </Tag>
+            )}
+            {r.platform === "wa" && !waNo && "WhatsApp"}
+            {ig && <SourceIcon source="instagrams" className="size-4" />}
+            {r.platform === "ig" && "Instagram"}
+          </span>
         );
       },
-      filters: byWa.map((g) => ({ text: g.wa ?? t("waUnknown"), value: g.wa ?? "" })),
-      onFilter: (value, r) => (campaignWa(r.name) ?? "") === value,
+      filters: [
+        ...byWa.map((g) => ({ text: g.wa ?? t("waUnknown"), value: g.wa ?? "" })),
+        { text: "Instagram", value: "ig" },
+      ],
+      onFilter: (value, r) => {
+        const { waNo, ig } = platformsOf(r);
+        return value === "ig" ? ig : (waNo ?? "") === value;
+      },
     },
     {
       key: "account",
@@ -264,6 +312,18 @@ export function AdsStatsView() {
       sorter: numSorter("reach"),
     },
   ];
+
+  // Dòng con WA/IG chỉ hiện nền tảng + phễu; các cột khác là số của cả chiến dịch (ở dòng cha).
+  const SPLIT_KEYS = ["platform", "potential", "booking", "showUp"];
+  const tableColumns = columns.map((c) =>
+    SPLIT_KEYS.includes(String(c.key))
+      ? c
+      : {
+          ...c,
+          render: (v: unknown, r: CampaignRow, i: number) =>
+            r.platform ? null : c.render ? c.render(v, r, i) : (v as React.ReactNode),
+        },
+  );
 
   return (
     <>
@@ -376,17 +436,19 @@ export function AdsStatsView() {
                   const col = columns.find((c) => c.key === key)!;
                   return col.render!(r[col.dataIndex as keyof FbCampaign], r, i) as React.ReactNode;
                 };
-                const wa = campaignWa(r.name);
                 return {
                   key: r.id,
                   title: (
-                    <span className="flex min-w-0 flex-col gap-1">
-                      <span className="line-clamp-2 text-sm leading-snug">{r.name}</span>
-                      {wa ? (
-                        <Tag color={waColor(wa)} className="me-0 self-start">
-                          {wa}
-                        </Tag>
-                      ) : null}
+                    <span className="flex min-w-0 flex-col items-start gap-1">
+                      <a
+                        href={adsManagerUrl(r)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="line-clamp-2 text-sm leading-snug"
+                      >
+                        {r.name}
+                      </a>
+                      {cell("platform")}
                     </span>
                   ),
                   aside: cell("status"),
@@ -406,9 +468,10 @@ export function AdsStatsView() {
         ) : (
         <div className="surface overflow-hidden">
           <Table
-            rowKey="id"
-            columns={columns}
-            dataSource={campaigns}
+            rowKey={(r) => (r.platform ? `${r.id}-${r.platform}` : r.id)}
+            columns={tableColumns}
+            dataSource={rows}
+            expandable={{ expandIconColumnIndex: 2 }}
             loading={!stats || pending}
             pagination={{
               defaultPageSize: 20,
@@ -417,7 +480,7 @@ export function AdsStatsView() {
               showTotal: (total, [from, to]) =>
                 t("totalCampaigns", { from, to, total }),
             }}
-            scroll={{ x: 1710 }}
+            scroll={{ x: 1780 }}
             size="middle"
             locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
           />

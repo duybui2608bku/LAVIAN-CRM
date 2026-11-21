@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   addDays,
+  destinationPlatforms,
   fetchFbAds,
   fetchFbCampaigns,
   fetchSmaxStaffReplyTimes,
@@ -143,7 +144,11 @@ test("fetchFbCampaigns lọc impressions > 0, trạng thái best-effort, sắp t
       if (!first) return Response.json({ error: { message: "Invalid parameter" } }, { status: 400 });
       return Response.json({
         data: [
-          { id: "c1", effective_status: "ACTIVE" },
+          {
+            id: "c1",
+            effective_status: "ACTIVE",
+            adsets: { data: [{ destination_type: "MESSAGING_INSTAGRAM_DIRECT_WHATSAPP" }] },
+          },
           { id: "c9", effective_status: "PAUSED" },
         ],
       });
@@ -153,7 +158,7 @@ test("fetchFbCampaigns lọc impressions > 0, trạng thái best-effort, sắp t
     return Response.json({
       data: isFirst
         ? [
-            { campaign_id: "c1", campaign_name: "A", spend: "100", impressions: "50", reach: "40" },
+            { campaign_id: "c1", campaign_name: "A", account_id: "1494701561142295", spend: "100", impressions: "50", reach: "40" },
             { campaign_id: "c0", campaign_name: "Zero", spend: "0", impressions: "0", reach: "0" },
           ]
         : [
@@ -173,11 +178,20 @@ test("fetchFbCampaigns lọc impressions > 0, trạng thái best-effort, sắp t
   try {
     const rows = await fetchFbCampaigns("2026-10-24", "2026-10-24");
     assert.deepEqual(rows, [
-      { id: "c2", name: "B", accountName: "—", status: "UNKNOWN", spend: 300, messages: 6, impressions: 900, reach: 700 },
-      { id: "c1", name: "A", accountName: "—", status: "ACTIVE", spend: 100, messages: 0, impressions: 50, reach: 40 },
+      { id: "c2", name: "B", accountId: "", accountName: "—", status: "UNKNOWN", platforms: null, spend: 300, messages: 6, impressions: 900, reach: 700 },
+      { id: "c1", name: "A", accountId: "1494701561142295", accountName: "—", status: "ACTIVE", platforms: ["wa", "ig"], spend: 100, messages: 0, impressions: 50, reach: 40 },
     ]);
   } finally {
     globalThis.fetch = originalFetch;
     process.env.FB_TOKEN = originalToken;
   }
+});
+
+test("destinationPlatforms: destination_type nhóm QC → wa / ig", () => {
+  assert.deepEqual(destinationPlatforms(["WHATSAPP"]), ["wa"]);
+  assert.deepEqual(destinationPlatforms(["INSTAGRAM_DIRECT"]), ["ig"]);
+  assert.deepEqual(destinationPlatforms(["MESSAGING_INSTAGRAM_DIRECT_WHATSAPP"]), ["wa", "ig"]);
+  assert.deepEqual(destinationPlatforms(["WHATSAPP", "INSTAGRAM_DIRECT"]), ["wa", "ig"]);
+  assert.deepEqual(destinationPlatforms(["LEAD_FROM_IG_DIRECT", "MESSENGER"]), ["ig"]);
+  assert.deepEqual(destinationPlatforms(["ON_POST", "WEBSITE", "MESSENGER"]), []);
 });

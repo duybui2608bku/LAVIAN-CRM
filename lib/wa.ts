@@ -22,6 +22,14 @@ export function campaignWa(name: string): string | null {
   return m ? `WA-${m[1]}` : null;
 }
 
+/**
+ * Chiến dịch có chạy Instagram theo quy ước tên: token "IG" / "IGonly" / "ONLYIG"
+ * (vd "WA3455 + IG - HOTGIRL2", "IGonly - TONG HOP"). Không bắt "IG" nằm trong từ khác.
+ */
+export function campaignIg(name: string): boolean {
+  return /(?<![a-z])(?:only)?ig(?:only)?(?![a-z])/i.test(name);
+}
+
 // Màu preset của antd Tag (tự đổi theo light/dark).
 const WA_COLORS = [
   "blue",

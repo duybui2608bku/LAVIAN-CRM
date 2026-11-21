@@ -1,7 +1,7 @@
 // Self-check: `node --test lib/wa.test.ts` (Node ≥ 23).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { campaignWa, summarizeByWa, waColor, waNumber } from "./wa.ts";
+import { campaignIg, campaignWa, summarizeByWa, waColor, waNumber } from "./wa.ts";
 
 test("waNumber: 4 số cuối của page WhatsApp trong link SMAX", () => {
   assert.equal(
@@ -18,6 +18,15 @@ test("campaignWa: WA<4 số> trong tên chiến dịch", () => {
   assert.equal(campaignWa("WA55 - TONG HOP"), null); // tên cũ 2 số
   assert.equal(campaignWa("WA12345 - sai"), null);
   assert.equal(campaignWa("IG + WA - Testing content"), null);
+});
+
+test("campaignIg: token IG / IGonly / ONLYIG trong tên chiến dịch", () => {
+  assert.equal(campaignIg("WA3455 + IG - HOTGIRL2"), true);
+  assert.equal(campaignIg("WA4943 - IG - HOTGIRL & ANH - OFF ANDVANTAGE"), true);
+  assert.equal(campaignIg("IGonly - TONG HOP - KHTN"), true);
+  assert.equal(campaignIg("ONLYIG - MUI CAO & HA - MAY"), true);
+  assert.equal(campaignIg("WA4943 - HOTGIRL - 9/11"), false);
+  assert.equal(campaignIg("BIG SALE - DIGITAL"), false);
 });
 
 test("waColor: cùng số cùng màu, các số đã biết khác màu nhau", () => {
