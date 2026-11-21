@@ -263,11 +263,14 @@ export function CustomersManager({
     {
       title: t("colName"),
       dataIndex: "full_name",
+      width: 240,
       render: (_, c) => (
         // Hover ô tên → hiện nút mở drawer sửa (thay cột Thao tác). Cảm ứng: luôn hiện.
+        // Cột rộng cố định + tên flex-1 → nút sửa luôn sát mép phải, thẳng hàng giữa các dòng.
         <div className="group flex items-center gap-1">
-          {/* Gộp Tên + SĐT; bấm tên → popup hồ sơ 360° (hội thoại SMAX mở bằng icon tin nhắn). */}
+          {/* Gộp Tên + SĐT; bấm tên → popup hồ sơ 360°. */}
           <NamePhone
+            className="flex-1"
             phone={c.phone}
             title={c.full_name}
             name={
@@ -281,16 +284,6 @@ export function CustomersManager({
               </button>
             }
           />
-          {c.thread?.link && (
-            <Button
-              type="text"
-              size="small"
-              onClick={() => setChatFor({ id: c.id, full_name: c.full_name, thread_link: c.thread?.link })}
-              aria-label={t("openThread")}
-              title={t("openThread")}
-              icon={<MessageCircleMore className="size-4" />}
-            />
-          )}
           {canEdit && (
             <Button
               type="text"
@@ -304,6 +297,24 @@ export function CustomersManager({
           )}
         </div>
       ),
+    },
+    // Tin nhắn: icon mở modal 30 tin SMAX gần nhất (chưa có hội thoại → "—").
+    {
+      title: t("colMessages"),
+      key: "messages",
+      width: 90,
+      align: "center",
+      render: (_, c) =>
+        c.thread?.link ? (
+          <Button
+            type="text"
+            size="small"
+            onClick={() => setChatFor({ id: c.id, full_name: c.full_name, thread_link: c.thread?.link })}
+            aria-label={t("openThread")}
+            title={t("openThread")}
+            icon={<MessageCircleMore className="size-4" />}
+          />
+        ) : DASH,
     },
     {
       title: t("colStage"),

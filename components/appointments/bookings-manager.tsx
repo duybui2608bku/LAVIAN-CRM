@@ -207,9 +207,8 @@ export function BookingsManager({
         const c = customerMap.get(a.customer_id)!;
         const svc = serviceText(a);
         return (
-          <div className="flex items-start gap-1">
-          <div className="min-w-0 flex-1 leading-tight">
-            {/* Bấm tên → popup hồ sơ 360°; tin SMAX mở bằng icon tin nhắn. */}
+          <div className="min-w-0 leading-tight">
+            {/* Bấm tên → popup hồ sơ 360°; tin SMAX mở ở cột Tin nhắn. */}
             <button
               type="button"
               title={ta("openProfile")}
@@ -223,18 +222,27 @@ export function BookingsManager({
               {svc ? ` · ${svc}` : null}
             </div>
           </div>
-          {c.thread_link && (
-            <Button
-              type="text"
-              size="small"
-              aria-label={ta("viewMessages")}
-              title={ta("viewMessages")}
-              icon={<MessageCircleMore className="size-4" />}
-              onClick={() => setChatFor(c)}
-            />
-          )}
-          </div>
         );
+      },
+    },
+    // Tin nhắn: icon mở modal 30 tin SMAX gần nhất (chưa có hội thoại → "—").
+    {
+      title: ta("messages"),
+      key: "messages",
+      width: 90,
+      align: "center",
+      render: (_, a) => {
+        const c = customerMap.get(a.customer_id)!;
+        return c.thread_link ? (
+          <Button
+            type="text"
+            size="small"
+            aria-label={ta("viewMessages")}
+            title={ta("viewMessages")}
+            icon={<MessageCircleMore className="size-4" />}
+            onClick={() => setChatFor(c)}
+          />
+        ) : DASH;
       },
     },
     {
