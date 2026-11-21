@@ -239,7 +239,7 @@ function ServiceDialog({
             label={t("colCategory")}
             rules={[{ required: true, message: t("required") }]}
           >
-            <Select options={groups.options} placeholder={t("colCategory")} />
+            <Select options={groups.allOptions} placeholder={t("colCategory")} />
           </Form.Item>
           <Form.Item
             name="price"
