@@ -9,7 +9,6 @@ import {
   InputNumber,
   Select,
   Switch,
-  Tag,
   type TableProps,
 } from "antd";
 import { useTranslations } from "next-intl";
@@ -80,14 +79,19 @@ export function ServicesManager({ services }: { services: Service[] }) {
       if (res.error) toast.error(res.error);
     });
 
+  const groupSize = new Map<string, number>();
+  for (const r of rows) groupSize.set(r.group_id, (groupSize.get(r.group_id) ?? 0) + 1);
+
   const columns: TableProps<Service>["columns"] = [
     {
       title: t("colCategory"),
       dataIndex: "group_id",
       width: 180,
-      render: (g: string) => <Tag className="me-0">{groups.name(g)}</Tag>,
-      filters: groups.groups.map((g) => ({ text: g.name, value: g.id })),
-      onFilter: (value, s) => s.group_id === value,
+      // Gộp ô nhóm theo chiều dọc như bảng giá (rows đã xếp theo nhóm, không phân trang).
+      onCell: (s, i = 0) => ({
+        rowSpan: i > 0 && rows[i - 1].group_id === s.group_id ? 0 : groupSize.get(s.group_id),
+      }),
+      render: (g: string) => <span className="font-medium">{groups.name(g)}</span>,
     },
     { title: t("colName"), dataIndex: "name", ellipsis: true },
     {
