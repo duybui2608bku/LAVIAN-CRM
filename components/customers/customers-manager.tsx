@@ -20,6 +20,7 @@ import {
   CalendarPlus,
   History,
   Info,
+  MessageCircleMore,
   PanelRightOpen,
   Search,
   UserPlus,
@@ -39,7 +40,8 @@ import { ClearableSelect, type SelectOption } from "@/components/common/clearabl
 import { useCan } from "@/components/common/permissions";
 import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
 import { DataTable } from "@/components/common/data-table";
-import { Open360Button, useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
+import { MessagesModal, type MessagesCustomer } from "@/components/appointments/messages-modal";
+import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { NamePhone } from "@/components/common/name-phone";
 import { AppointmentHistoryDrawer } from "@/components/customers/appointment-history-drawer";
 import { CustomerPipeline, type PipelineAppointment } from "@/components/customers/customer-pipeline";
@@ -149,6 +151,7 @@ export function CustomersManager({
   const [target, setTarget] = useState<Customer | "new" | null>(null);
   // Lưu id (không giữ object) để modal ghi chú tự nhận note mới sau revalidate.
   const [notesFor, setNotesFor] = useState<string | null>(null);
+  const [chatFor, setChatFor] = useState<MessagesCustomer | null>(null); // modal tin SMAX
   const [apptFor, setApptFor] = useState<Customer | null>(null);
   const [createFor, setCreateFor] = useState<string | null>(null); // id khách đang tạo lịch hẹn
   // Đổi stage inline sang Tiềm năng / Cân nhắc: chờ chọn lịch nhắc rồi mới lưu.
@@ -185,10 +188,10 @@ export function CustomersManager({
   // Lịch hẹn gần nhất mỗi khách: lịch sắp tới sớm nhất; không có thì lịch đã qua mới nhất.
   const [now] = useState(() => Date.now());
   const nearestAppt = useMemo(() => nearestByCustomer(appointments, now), [appointments, now]);
+  // Nhóm dịch vụ: của lịch gần nhất, chưa có thì của khách; không có → "".
   const serviceGroups = (c: Customer) => {
     const a = nearestAppt.get(c.id);
-    const label = groups.label(a?.service_categories.length ? a.service_categories : c.service_categories);
-    return label ? ` · ${label}` : null;
+    return groups.label(a?.service_categories.length ? a.service_categories : c.service_categories);
   };
   const apptCount = useMemo(() => {
     const map = new Map<string, number>();
@@ -250,7 +253,8 @@ export function CustomersManager({
       width: 120,
       // 2 hàng như Customers Management: ngày đầy đủ trên (tag màu theo độ mới), giờ nhỏ dưới.
       render: (v: string) => (
-        <div className="leading-tight tabular-nums">
+        // inline-flex căn giữa: giờ thẳng hàng với chữ trong tag (tag có padding).
+        <div className="inline-flex flex-col items-center leading-tight tabular-nums">
           <Tag color={AGE_COLORS[createdAgeBucket(v)]} className="me-0">{dayjs(v).format("DD/MM/YYYY")}</Tag>
           <div className="mt-0.5 text-xs text-muted-foreground">{dayjs(v).format("HH:mm")}</div>
         </div>
@@ -262,22 +266,31 @@ export function CustomersManager({
       render: (_, c) => (
         // Hover ô tên → hiện nút mở drawer sửa (thay cột Thao tác). Cảm ứng: luôn hiện.
         <div className="group flex items-center gap-1">
-          {/* Gộp Tên + SĐT; có hội thoại SMAX → tên chính là link mở hội thoại. */}
-          {/* Dòng phụ: SĐT · nhóm dịch vụ của lịch gần nhất (như ô Khách hàng ở Sales Management). */}
+          {/* Gộp Tên + SĐT; bấm tên → popup hồ sơ 360° (hội thoại SMAX mở bằng icon tin nhắn). */}
           <NamePhone
             phone={c.phone}
-            extra={serviceGroups(c)}
             title={c.full_name}
             name={
-              c.thread?.link ? (
-                <a href={c.thread.link} target="_blank" rel="noreferrer" title={t("openThread")}>
-                  {c.full_name}
-                </a>
-              ) : (
-                c.full_name
-              )
+              <button
+                type="button"
+                title={t("openProfile")}
+                onClick={() => c360.open(c.id)}
+                className="max-w-full truncate text-start font-medium hover:text-primary hover:underline"
+              >
+                {c.full_name}
+              </button>
             }
           />
+          {c.thread?.link && (
+            <Button
+              type="text"
+              size="small"
+              onClick={() => setChatFor({ id: c.id, full_name: c.full_name, thread_link: c.thread?.link })}
+              aria-label={t("openThread")}
+              title={t("openThread")}
+              icon={<MessageCircleMore className="size-4" />}
+            />
+          )}
           {canEdit && (
             <Button
               type="text"
@@ -289,7 +302,6 @@ export function CustomersManager({
               onClick={() => setTarget(c)}
             />
           )}
-          <Open360Button onClick={() => c360.open(c.id)} />
         </div>
       ),
     },
@@ -314,6 +326,7 @@ export function CustomersManager({
         />
       ),
     },
+    { title: t("serviceCategories"), key: "serviceGroups", width: 140, render: (_, c) => serviceGroups(c) },
     // Sales Status: Status của lịch gần nhất (cùng lịch với cột Lịch hẹn) — Sales đổi ở trang Lịch hẹn.
     {
       title: t("colSalesStatus"),
@@ -586,6 +599,7 @@ export function CustomersManager({
         onChange={c360.onTableChange}
       />
       {c360.modal}
+      <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
 
       <CustomerDialog
         open={target !== null}

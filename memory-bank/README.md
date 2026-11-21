@@ -53,6 +53,21 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-21 — Icon tin nhắn mở modal tin SMAX ở Customers / Potential / Booking management
+- **Thay đổi:** Icon `MessageCircleMore` cạnh tên khách ở 3 bảng (`/customers`, `/customers/potential`, `/customers/bookings`) mở `MessagesModal` (30 tin SMAX gần nhất + nút "Mở SMAX"), không mở tab mới nữa. Booking management: bấm tên → popup 360° (bỏ link tên sang SMAX). Xoá `Open360Button` (không còn nơi dùng). Export type `MessagesCustomer` từ `messages-modal.tsx`.
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`, `components/appointments/bookings-manager.tsx`, `components/appointments/messages-modal.tsx`, `components/customers/customer-360/customer-360-modal.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt.
+
+### 2026-11-21 — /customers + /customers/potential: bấm tên mở 360°, icon tin nhắn mở SMAX, căn ô Created
+- **Thay đổi:** Ô Tên (cả 2 bảng) bấm → popup hồ sơ 360° (bỏ icon IdCard 360 riêng); tạm bỏ link tên → hội thoại SMAX, thay bằng icon `MessageCircleMore` cạnh tên (chỉ hiện khi có `thread.link`, mở tab mới; ở Potential đứng trước icon ghi chú). Ô Created ở /customers: `inline-flex flex-col items-center` để giờ thẳng hàng dưới tag ngày. Thêm key `customers.openProfile` (vi/en).
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`, `messages/vi.json`, `messages/en.json`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt. Booking management (`bookings-manager.tsx`) vẫn dùng `Open360Button`.
+
+### 2026-11-21 — Cột Nhóm dịch vụ ở /customers và /customers/potential
+- **Thay đổi:** Thêm cột "Nhóm dịch vụ" (service group) vào bảng Khách hàng và Khách tiềm năng — lấy nhóm DV của lịch hẹn gần nhất, chưa có thì của khách, không có thì để trống. Bỏ phần "· nhóm DV" ở dòng phụ dưới tên/SĐT (tránh lặp). Không đổi DB/i18n (dùng key `customers.serviceCategories`).
+- **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`.
+- **Còn dở / ghi chú:** tsc + eslint sạch (trừ lỗi stale trong `.next/`); chưa xem trên trình duyệt.
+
 ### 2026-11-21 — Ô chọn Nhóm dịch vụ chỉ hiện Alis / Laser / Bibir
 - **Thay đổi:** `useServiceGroups().options` (ô chọn nhóm DV ở khách, lịch hẹn, lead form) chỉ còn 3 nhóm chính `alis`, `laser`, `bibir` (hằng `MAIN_GROUPS`); thêm `allOptions` (mọi nhóm đang kích hoạt) cho form trang Dịch vụ để vẫn gán được dịch vụ vào 8 nhóm. Bảng `/services` gộp ô Nhóm dịch vụ theo chiều dọc (rowSpan, như bảng giá), bỏ Tag + bộ lọc cột nhóm.
 - **File ảnh hưởng:** `components/common/service-groups.tsx`, `components/services/services-manager.tsx`.

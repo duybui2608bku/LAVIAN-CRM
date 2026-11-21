@@ -4,7 +4,7 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Button, Image, Input, Tag, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
-import { CalendarPlus, Search, X } from "lucide-react";
+import { CalendarPlus, MessageCircleMore, Search, X } from "lucide-react";
 
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
@@ -16,7 +16,8 @@ import {
 } from "@/components/appointments/appointments-manager";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
-import { Open360Button, useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
+import { MessagesModal, type MessagesCustomer } from "@/components/appointments/messages-modal";
+import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { InlineSelect } from "@/components/common/inline-select";
 import { NoteCell } from "@/components/common/notes";
 import { useCan } from "@/components/common/permissions";
@@ -178,6 +179,7 @@ export function BookingsManager({
 
   // Popup 360°: Trước/Tiếp theo khách của danh sách đang lọc.
   const c360 = useCustomer360({ ids: filtered.map((a) => a.customer_id), staff });
+  const [chatFor, setChatFor] = useState<MessagesCustomer | null>(null); // modal tin SMAX
 
   const columns: TableProps<Appointment>["columns"] = [
     {
@@ -207,21 +209,30 @@ export function BookingsManager({
         return (
           <div className="flex items-start gap-1">
           <div className="min-w-0 flex-1 leading-tight">
-            <div className="truncate font-medium" title={c.full_name}>
-              {c.thread_link ? (
-                <a href={c.thread_link} target="_blank" rel="noreferrer">
-                  {c.full_name}
-                </a>
-              ) : (
-                c.full_name
-              )}
-            </div>
+            {/* Bấm tên → popup hồ sơ 360°; tin SMAX mở bằng icon tin nhắn. */}
+            <button
+              type="button"
+              title={ta("openProfile")}
+              onClick={() => c360.open(c.id)}
+              className="block max-w-full truncate text-start font-medium hover:text-primary hover:underline"
+            >
+              {c.full_name}
+            </button>
             <div className="mt-0.5 truncate text-xs text-muted-foreground" title={svc}>
               <span className="tabular-nums">{c.phone}</span>
               {svc ? ` · ${svc}` : null}
             </div>
           </div>
-          <Open360Button onClick={() => c360.open(c.id)} />
+          {c.thread_link && (
+            <Button
+              type="text"
+              size="small"
+              aria-label={ta("viewMessages")}
+              title={ta("viewMessages")}
+              icon={<MessageCircleMore className="size-4" />}
+              onClick={() => setChatFor(c)}
+            />
+          )}
           </div>
         );
       },
@@ -421,6 +432,7 @@ export function BookingsManager({
         onCreated={() => setCreating(false)}
       />
       {c360.modal}
+      <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     </Page>
   );
 }
