@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Drawer, Empty, Skeleton, Tag, Timeline } from "antd";
+import { Drawer, Empty, Skeleton, Timeline } from "antd";
 import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
 
 import { getCustomerAppointments, type CustomerAppointmentsData } from "@/app/(app)/customers/actions";
 import { NoteItem } from "@/components/common/notes";
-import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { Section } from "@/components/common/section";
+import { staffName, type StaffRef } from "@/components/common/user-avatar";
 import { formatRupiah } from "@/lib/currency";
 import { useServiceGroups } from "@/components/common/service-groups";
 import {
@@ -51,10 +52,7 @@ export function AppointmentHistoryDrawer({
   }, [customerId]);
 
   const now = data?.now ?? 0; // mốc "bây giờ" lấy lúc tải xong
-  const staffOf = (id: unknown) => {
-    const s = typeof id === "string" ? staff.find((x) => x.id === id) : undefined;
-    return s ? staffLabel(s) : "—";
-  };
+  const staffOf = (id: unknown) => staffName(staff, typeof id === "string" ? id : null);
   const servicesOf = (ids: unknown) => {
     if (!Array.isArray(ids) || ids.length === 0) return "—";
     // DV đã xoá (bảng dịch vụ cũ) → bỏ qua, không hiện uuid.
@@ -111,15 +109,12 @@ export function AppointmentHistoryDrawer({
       ));
 
   const apptCard = (a: Appointment) => {
-    const upcoming = Date.parse(a.scheduled_at) >= now;
     return (
       <li key={a.id} className="space-y-1.5 rounded-lg border border-border p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Tag color={upcoming ? "blue" : a.checked_in ? "green" : "default"} className="me-0 tabular-nums">
-            {fmt(a.scheduled_at)}
-          </Tag>
+          <span className="font-medium tabular-nums">{fmt(a.scheduled_at)}</span>
           <span className="text-xs text-muted-foreground">
-            {upcoming ? t("upcoming") : a.checked_in ? t("checkedIn") : t("notCheckedIn")}
+            {Date.parse(a.scheduled_at) >= now ? t("upcoming") : a.checked_in ? t("checkedIn") : t("notCheckedIn")}
           </span>
         </div>
         <p className="text-sm">
@@ -159,17 +154,15 @@ export function AppointmentHistoryDrawer({
         <p className="text-destructive">{data.error}</p>
       ) : (
         <div className="space-y-6">
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold">{t("appointments", { count: data.appointments.length })}</h3>
+          <Section title={t("appointments", { count: data.appointments.length })}>
             {data.appointments.length ? (
               <ul className="space-y-2">{data.appointments.map(apptCard)}</ul>
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noAppointments")} />
             )}
-          </section>
+          </Section>
 
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold">{t("history")}</h3>
+          <Section title={t("history")}>
             {data.logs.length ? (
               <Timeline
                 items={data.logs.map((log) => ({
@@ -196,7 +189,7 @@ export function AppointmentHistoryDrawer({
             ) : (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noHistory")} />
             )}
-          </section>
+          </Section>
         </div>
       )}
     </Drawer>

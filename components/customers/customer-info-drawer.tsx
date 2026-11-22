@@ -6,17 +6,16 @@ import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 
 import { getCustomerDetail } from "@/app/(app)/appointments/actions";
+import { DASH, StatusDot } from "@/components/common/cells";
 import { NoteTimeline } from "@/components/common/notes";
-import { EnumTag } from "@/components/common/enum-tag";
-import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { Section } from "@/components/common/section";
+import { staffName, type StaffRef } from "@/components/common/user-avatar";
 import { SourceCell } from "@/components/customers/customers-manager";
 import { formatRupiah } from "@/lib/currency";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import { optionLabel } from "@/lib/customers";
 
 type Detail = Awaited<ReturnType<typeof getCustomerDetail>> & { for: string };
-
-const DASH = <span className="text-muted-foreground">—</span>;
 
 /** Drawer chỉ xem toàn bộ thông tin 1 khách (icon ở ô Khách hàng, /appointments). Tải khi mở. */
 export function CustomerInfoDrawer({
@@ -46,10 +45,6 @@ export function CustomerInfoDrawer({
     });
   }, [customerId]);
 
-  const staffOf = (id: string | null) => {
-    const s = id ? staff.find((x) => x.id === id) : undefined;
-    return s ? staffLabel(s) : DASH;
-  };
   const date = (v: string | null | undefined, f = "DD/MM/YYYY") => (v ? dayjs(v).format(f) : DASH);
   const text = (v: string | null | undefined) => v || DASH;
 
@@ -82,14 +77,14 @@ export function CustomerInfoDrawer({
               {
                 key: "stage",
                 label: t("colStage"),
-                children: <EnumTag label={stage ? optionLabel(stage, locale) : c.stage} color={stage?.color} icon={stage?.icon} />,
+                children: <StatusDot label={stage ? optionLabel(stage, locale) : c.stage} color={stage?.color} />,
               },
               ...(c.follow_up_at
                 ? [{ key: "followUp", label: t("followUpAt"), children: date(c.follow_up_at, "DD/MM/YYYY HH:mm") }]
                 : []),
-              { key: "staff", label: ta("staff"), children: staffOf(c.staff_id) },
-              { key: "sales", label: t("colSales"), children: staffOf(c.sales_id) },
-              { key: "technician", label: t("colTechnician"), children: staffOf(c.technician_id) },
+              { key: "staff", label: ta("staff"), children: staffName(staff, c.staff_id) },
+              { key: "sales", label: t("colSales"), children: staffName(staff, c.sales_id) },
+              { key: "technician", label: t("colTechnician"), children: staffName(staff, c.technician_id) },
               { key: "firstContact", label: t("colFirstContact"), children: date(c.first_contact) },
               {
                 key: "deposit",
@@ -115,10 +110,9 @@ export function CustomerInfoDrawer({
             ]}
           />
 
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold">{t("colNotes")}</h3>
+          <Section title={t("colNotes")}>
             <NoteTimeline notes={c.notes ?? []} staff={staff} />
-          </section>
+          </Section>
         </div>
       )}
     </Drawer>

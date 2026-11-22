@@ -11,7 +11,7 @@ export const BOOKING_STATUS_COLORS: Record<BookingStatus, string> = {
   pending: "orange",
   confirmed: "green",
   cancelled: "red",
-  rescheduled: "blue",
+  rescheduled: "purple", // cùng màu với Status "Đổi lịch"
 };
 
 /** Status lịch hẹn (cột `visit_status`, Sales đổi). arrived/in_progress/done = đã đến (`checked_in`, trigger DB tính). */
@@ -22,7 +22,7 @@ export const VISIT_STATUS_COLORS: Record<VisitStatus, string> = {
   arrived: "blue",
   in_progress: "gold",
   done: "green",
-  rescheduled: "volcano",
+  rescheduled: "purple",
   cancelled: "red",
 };
 

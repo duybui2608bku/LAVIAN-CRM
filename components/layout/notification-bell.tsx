@@ -8,7 +8,6 @@ import { Bell, BellRing, CalendarClock, PhoneCall } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
 
 type Notification = {
   id: string;
@@ -136,10 +135,7 @@ export function NotificationBell({ state }: { state: NotificationsState }) {
                   <li key={n.id}>
                     <button
                       type="button"
-                      className={cn(
-                        "flex w-full items-start gap-3 rounded-md px-3 py-2.5 text-start hover:bg-muted",
-                        !n.read_at && "bg-primary/5",
-                      )}
+                      className="flex w-full items-start gap-3 rounded-md px-3 py-2.5 text-start hover:bg-muted"
                       onClick={() => {
                         onOpenChange(false);
                         if (n.link) router.push(n.link);

@@ -23,11 +23,12 @@ import { useConfirm } from "@/components/common/confirm-action";
 import { useCan } from "@/components/common/permissions";
 import { DataTable } from "@/components/common/data-table";
 import { FormDrawer } from "@/components/common/form-drawer";
+import { MoneyInput } from "@/components/common/money-input";
 import { RowActions } from "@/components/common/row-actions";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { toast } from "@/lib/toast";
 import { useServiceGroups } from "@/components/common/service-groups";
-import { formatRupiah, sanitizeCurrencyInput } from "@/lib/currency";
+import { formatRupiah } from "@/lib/currency";
 import type { Service, ServiceInput } from "@/types/service";
 
 // Trạng thái dialog: null = đóng; service null = tạo mới.
@@ -247,16 +248,14 @@ function ServiceDialog({
             label={t("colCategory")}
             rules={[{ required: true, message: t("required") }]}
           >
-            <Select options={groups.allOptions} placeholder={t("colCategory")} />
+            <Select options={groups.allOptions} />
           </Form.Item>
           <Form.Item
             name="price"
             label={t("colPrice")}
             rules={[{ required: true, message: t("required") }]}
           >
-            <InputNumber<number> className="w-full" min={0} precision={0} controls={false} inputMode="numeric"
-              prefix="Rp" formatter={(v) => (v == null || `${v}` === "" ? "" : Number(v).toLocaleString("id-ID"))}
-              parser={(v) => Number(sanitizeCurrencyInput(v ?? "")) || 0} />
+            <MoneyInput ariaLabel={t("colPrice")} />
           </Form.Item>
           <Form.Item
             name="name"
@@ -273,7 +272,7 @@ function ServiceDialog({
         <Form.Item name="is_active" valuePropName="checked" className="mb-2">
           <Checkbox>{t("activeLabel")}</Checkbox>
         </Form.Item>
-        <Form.Item name="tourable" valuePropName="checked" className="mb-0" extra={t("tourableHint")}>
+        <Form.Item name="tourable" valuePropName="checked" className="mb-0">
           <Checkbox>{t("tourableLabel")}</Checkbox>
         </Form.Item>
       </Form>

@@ -30,26 +30,6 @@ export function campaignIg(name: string): boolean {
   return /(?<![a-z])(?:only)?ig(?:only)?(?![a-z])/i.test(name);
 }
 
-// Màu preset của antd Tag (tự đổi theo light/dark).
-const WA_COLORS = [
-  "blue",
-  "green",
-  "purple",
-  "magenta",
-  "orange",
-  "cyan",
-  "geekblue",
-  "volcano",
-  "gold",
-  "lime",
-  "red",
-];
-
-/** Màu tag cố định theo số: cùng số → cùng màu ở mọi trang. */
-export function waColor(wa: string): string {
-  return WA_COLORS[Number(wa.replace(/\D/g, "")) % WA_COLORS.length];
-}
-
 export interface WaSummary {
   /** "WA-xxxx", hoặc null = chiến dịch chưa đặt tên theo quy ước. */
   wa: string | null;

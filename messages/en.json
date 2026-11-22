@@ -69,16 +69,15 @@
     "quickCustomer": "+ New customer? Quick add",
     "quickCreate": "+ Quick add “{name}”",
     "pickExisting": "Pick existing customer",
-    "quickHint": "The new customer is created with status Booking.",
     "enterName": "Enter customer name",
     "enterPhone": "Enter phone number",
     "phoneInvalid": "Invalid phone number",
     "phoneExists": "This phone already belongs to {name} — pick the existing customer.",
     "editTitle": "Edit appointment",
-    "sectionBooking": "1. Customer & booking",
-    "sectionFinance": "2. Finance",
-    "sectionStaff": "3. Staff",
-    "sectionNote": "4. Sales note",
+    "sectionBooking": "Customer & booking",
+    "sectionFinance": "Finance",
+    "sectionStaff": "Staff",
+    "sectionNote": "Sales note",
     "paidTotal": "Collected",
     "due": "Balance due",
     "paidInput": "Extra paid after deposit (IDR)",
@@ -92,7 +91,6 @@
     "statBill": "Service value",
     "statCollected": "Total collected",
     "statDue": "Outstanding",
-    "millionIdr": "million IDR",
     "groupByConfirm": "Group by booking confirmation",
     "staffColumn": "Staff",
     "teleNote": "Telesales note",
@@ -188,7 +186,6 @@
     "needDetail": "No type",
     "claim": "Take tour",
     "claimed": "Tour taken",
-    "claimHint": "Take this tour to fill in the service detail, bill and photos.",
     "release": "Return tour",
     "releaseTitle": "Return this tour to the waiting list?",
     "released": "Tour returned",
@@ -209,7 +206,6 @@
     "removed": "Tour deleted",
     "cancel": "Cancel",
     "save": "Save",
-    "close": "Close",
     "saved": "Saved",
     "saveError": "Could not save, try again",
     "count": "Tours",
@@ -235,14 +231,9 @@
     "tour": "Tours",
     "appointments": "Sales Management",
     "cards": "Treatment cards",
-    "dashboard": "Reports",
     "marketing": "Marketing",
     "customers": "Customers",
-    "contacts": "Contacts",
-    "deals": "Deals",
-    "tasks": "Tasks",
     "reports": "Reports",
-    "settings": "Settings",
     "users": "Users",
     "services": "Services",
     "toggleSidebar": "Toggle sidebar",
@@ -305,18 +296,15 @@
     "dept_sales": "Sales",
     "dept_telesales_leader": "Telesales Leader",
     "permissionsTitle": "Permissions",
-    "permissionsHint": "Choose which menus and actions each department can use. Admins always have full access; the Users page is admin-only. Picking Edit/Delete turns on View; removing View turns off the whole menu.",
     "permissionsOk": "Permissions saved",
     "perm_view": "View",
     "perm_edit": "Create / Edit",
     "perm_delete": "Delete",
     "memberCount": "{n} members",
-    "selectedCount": "{n}/{total} permissions selected",
     "selectAll": "Select all",
     "clearAll": "Clear all",
     "unsaved": "{n} department(s) with unsaved changes",
     "unsavedDot": "Unsaved changes",
-    "allSaved": "All changes saved",
     "discard": "Discard",
     "saveChanges": "Save changes",
     "perm_view_desc": "Open the menu and view data",
@@ -332,7 +320,6 @@
     "empty": "No users",
     "role_admin": "Admin",
     "role_user": "User",
-    "status_active": "Active",
     "status_banned": "Banned",
     "ban": "Ban",
     "unban": "Unban",
@@ -380,13 +367,12 @@
     "editTitle": "Edit service",
     "required": "Required",
     "optional": "Optional",
-    "activeLabel": "Active (shown in dropdowns)",
+    "activeLabel": "Active",
     "cancel": "Cancel",
     "save": "Save",
     "updateOk": "Updated",
     "createOk": "Added",
-    "tourableLabel": "Creates tours",
-    "tourableHint": "Untick for ink, Master fees, products: no tours, no sessions / follow-ups."
+    "tourableLabel": "Creates tours"
   },
   "customers": {
     "bookingsTitle": "Booking management",
@@ -408,7 +394,7 @@
       "deposited": "Deposited",
       "booked": "Appointments",
       "showUp": "Showed up",
-      "total": "Total appointments ({range})",
+      "total": "Total appointments",
       "todayAppointments": "Today's appointments",
       "tomorrow": "Tomorrow"
     },
@@ -556,7 +542,6 @@
     "costPerLead": "Spend / Potential lead",
     "costPerBooking": "Spend / Booking",
     "bookingRate": "Booking rate",
-    "funnelHint": "By tag time in this period",
     "appointments": "Appointments",
     "campaigns": "Campaigns",
     "noCampaigns": "No campaigns with impressions in this date range",
@@ -565,7 +550,6 @@
     "colPlatform": "Platform",
     "byWa": "Messages by WA number",
     "waUnknown": "No WA tag",
-    "waMessagesLabel": "messages",
     "confirmPause": "Pause this campaign?",
     "confirmActivate": "Activate this campaign?",
     "statusUpdated": "Campaign status updated",
@@ -588,8 +572,6 @@
   },
   "reports": {
     "title": "Reports",
-    "subtitle": "From ads to revenue · {range}, vs {prev}",
-    "subtitleShort": "From ads to revenue",
     "refresh": "Reload",
     "metric": {
       "spend": "Spend",
@@ -602,8 +584,6 @@
       "revenue": "Revenue"
     },
     "hint": {
-      "ofMessages": "{pct} of messages",
-      "ofData": "{pct} of data",
       "roas": "ROAS {x}x"
     },
     "vsPrevious": "Previous period: {value}",
@@ -623,7 +603,6 @@
   },
   "telesales": {
     "title": "Leader Telesales",
-    "subtitleShort": "Telesales team performance by date range",
     "refresh": "Refresh",
     "sourceError": "Some data sources failed — related figures show “-”",
     "card": {
@@ -635,32 +614,10 @@
       "cancelled": "Cancelled / Rescheduled"
     },
     "hint": {
-      "previous": "Previous: {value}",
-      "fbError": "Facebook Ads failed",
-      "bookingRate": "Booking rate: {value} / message",
-      "newShare": "{value} of bookings",
-      "confirmRate": "Confirm rate: {value}",
-      "showUp": "Showed up: {value} / {scheduled} appointments",
-      "cancel": "Cancelled {cancelled} · Rescheduled {rescheduled} · {value} / booking"
-    },
-    "tip": {
-      "messages": "Messaging conversations started from Facebook ads (2 ad accounts) in the period.",
-      "bookings": "Appointments CREATED in the period. Booking rate = Bookings / Messages.",
-      "newBookings": "Bookings of customers created in the same period (new customers).",
-      "confirmed": "Bookings created in the period with status “Confirmed”.",
-      "arrived": "Appointments SCHEDULED in the period where the customer showed up. Show rate = Showed up / scheduled appointments.",
-      "cancelled": "Bookings created in the period with status “Cancelled” or “Rescheduled”. Lower is better.",
-      "funnel": "Messages → Bookings → Confirmed → Showed up; % of Messages.",
-      "trend": "New bookings by created date, Showed up by appointment date.",
-      "sources": "Bookings created in the period by customer source.",
-      "staff": "Bookings/Showed up by the appointment's assigned staff. KPI completion = Booking rate / {kpi}.",
-      "conversations": "Conversations handled by the staff member on SMAX in the period."
+      "previous": "Previous: {value}"
     },
     "funnel": "Conversion funnel",
     "trend": "Booking trend",
-    "response": "Message response speed",
-    "updating": "Coming soon",
-    "updatingHint": "This metric will be available in a future update.",
     "staffTitle": "Telesales staff performance",
     "col": {
       "staff": "Staff",
@@ -679,8 +636,7 @@
       "instagrams": "Instagram",
       "whatsapp": "WhatsApp",
       "other": "Other"
-    },
-    "alerts": "Alerts & pending tasks"
+    }
   },
   "smaxReport": {
     "refresh": "Refresh",
@@ -753,7 +709,6 @@
     "departmentsHint": "Leave empty = all departments. Admins always see it.",
     "allDepartments": "All departments",
     "pdf": "PDF file",
-    "pdfHint": "Optional, up to {mb}MB. Shown above the content.",
     "uploadPdf": "Upload PDF",
     "replacePdf": "Replace PDF",
     "removePdf": "Remove PDF",
@@ -814,7 +769,6 @@
   },
   "reminders": {
     "title": "Reminders",
-    "pageHint": "Reminders to message customers before their visit — tick once messaged.",
     "add": "Add reminder",
     "editTitle": "Edit reminder",
     "remindAt": "Remind at",
@@ -837,7 +791,6 @@
     "searchPlaceholder": "Search customer name / phone",
     "more": "+{n} more",
     "count": "{n} reminders",
-    "createHint": "Add reminders from the Reminder column on Booking management.",
     "state": {
       "overdue": "Overdue",
       "today": "Today",
@@ -855,7 +808,6 @@
       "digestOverdue": "{n} overdue",
       "assigned": "{by} added a reminder for your customer {customer} at {time}"
     },
-    "assigneeHint": "Only the customer's telesales gets notified. Change it in the customer's Staff column.",
     "noTelesales": "This customer has no telesales in charge, so nobody will be notified about this reminder.",
     "notePlaceholder": "Note (optional)",
     "notifyTo": "Notifies"
@@ -881,7 +833,6 @@
     "colStatus": "Status",
     "colSalesStatus": "Sales Status",
     "colFollowUp": "Follow-up at",
-    "followUps": "{n, plural, one {# follow-up} other {# follow-ups}}",
     "empty": "No potential customers",
     "convertedOk": "Customer moved to Booking",
     "notify": {
@@ -914,8 +865,6 @@
     "colSource": "Source",
     "colStatus": "Status",
     "colNote": "Note",
-    "deposited": "Deposited",
-    "notDeposited": "No deposit",
     "empty": "No appointments"
   },
   "notes": {
@@ -941,12 +890,6 @@
     "prev": "Previous customer",
     "next": "Next customer",
     "position": "{index}/{total}",
-    "hint": {
-      "admin": "Admin: full profile",
-      "telesales": "Telesales: focus on portrait, needs and conversation",
-      "sales": "Sales: check finance and upsell needs",
-      "master": "Master: appointments, B/A photos and portrait"
-    },
     "summary": {
       "wish": "Wishes",
       "pain": "Concerns",
@@ -959,11 +902,8 @@
       "services": "Services & Upsell",
       "photos": "B/A photos",
       "messages": "Conversation",
-      "timeline": "History & notes",
-      "care": "Customer care"
+      "timeline": "History & notes"
     },
-    "comingSoon": "Coming soon",
-    "comingSoonDesc": "The customer care tab is under development.",
     "quickNote": "Quick note",
     "toEdit": "Switch to data entry",
     "noteSuggestions": "Consulting|Technical|Customer care|Feedback",
@@ -999,8 +939,7 @@
       "messagePlaceholder": "Attach a SMAX message (optional)",
       "saved": "Portrait saved",
       "history": "History ({count})",
-      "empty": "None yet",
-      "immutable": "Each update is saved as a new version; older versions are kept and cannot be edited or deleted."
+      "empty": "None yet"
     },
     "needs": {
       "title": "Needs / Upsell",
@@ -1100,15 +1039,13 @@
     "statValue": "Sales",
     "statCollected": "Collected",
     "statDue": "Balance due",
-    "millionIdr": "million IDR",
     "sellTitle": "Sell treatment card · {name}",
     "confirmSell": "Create card",
     "created": "Treatment card created",
     "addService": "Add service",
     "addServiceTitle": "Add services to {code}",
     "needItems": "Pick at least 1 service",
-    "emptyItems": "Pick services from the price list above.",
-    "listPrice": "list price",
+    "emptyItems": "Pick services from the price list.",
     "removeLine": "Remove service",
     "price": "Sale price (IDR)",
     "sessions": "Sessions",
@@ -1145,7 +1082,6 @@
     "cancelBody": "The card no longer counts as sales; its applied deposit becomes available for another card.",
     "cancelled": "Card cancelled",
     "back": "Back",
-    "close": "Close",
     "saved": "Saved",
     "saveError": "Could not save",
     "error": {
@@ -1172,7 +1108,6 @@
     "print": "Print card (PDF)",
     "save": "Save",
     "editSessions": "Edit sessions",
-    "sessionsHint": "{used} session(s) done — can't go below that. All sessions used = treatment finished, no more reminders.",
     "sessionsFull": "sessions used up (admin only)",
     "history": {
       "title": "Activity log",
@@ -1208,7 +1143,6 @@
   },
   "journey": {
     "title": "Treatment follow-ups",
-    "subtitle": "Customers to call for a laser check (20 days) or a retouch (45 days). Booking an appointment or creating a tour clears the item.",
     "dueDate": "Due",
     "overdueDays": "{n} days overdue",
     "dueToday": "Today",

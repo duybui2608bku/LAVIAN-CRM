@@ -4,29 +4,13 @@ import * as React from "react";
 import { Alert, Button, Progress, Table, Tooltip, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  CalendarCheck,
-  CalendarPlus,
-  CalendarX2,
-  CircleAlert,
-  Filter,
-  Info,
-  MessageCircle,
-  PieChart,
-  RefreshCw,
-  Timer,
-  TrendingUp,
-  TriangleAlert,
-  UserCheck,
-  UserPlus,
-  UsersRound,
-} from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react";
 
 import { getTelesalesReport, type TelesalesReport } from "@/app/(app)/reports/telesales/actions";
 import { DateRangeFilter, initialRange } from "@/components/common/date-range-filter";
 import { MetricList } from "@/components/common/metric-list";
+import { Section } from "@/components/common/section";
+import { StatCard } from "@/components/common/stat-card";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { PageHeader, PageToolbar } from "@/components/layout/page";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -44,15 +28,6 @@ import {
 } from "@/lib/telesales-report";
 import { cn } from "@/lib/utils";
 
-type Tone = "primary" | "info" | "success" | "warning" | "destructive";
-const TONE: Record<Tone, string> = {
-  primary: "bg-primary/10 text-primary",
-  info: "bg-info/10 text-info",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
-  destructive: "bg-destructive/10 text-destructive",
-};
-
 // Màu theo nguồn (cố định, không theo hạng). Đã chạy validator: cần nhãn + số trực tiếp (có ở legend).
 const SOURCE_COLOR: Record<BookingSource, string> = {
   instagrams: "var(--chart-5)",
@@ -61,13 +36,13 @@ const SOURCE_COLOR: Record<BookingSource, string> = {
 };
 
 type CardKey = "messages" | "bookings" | "newBookings" | "confirmed" | "arrived" | "cancelled";
-const CARDS: { key: CardKey; icon: React.ElementType; tone: Tone; lowerIsBetter?: boolean }[] = [
-  { key: "messages", icon: MessageCircle, tone: "info" },
-  { key: "bookings", icon: CalendarPlus, tone: "primary" },
-  { key: "newBookings", icon: UserPlus, tone: "primary" },
-  { key: "confirmed", icon: CalendarCheck, tone: "success" },
-  { key: "arrived", icon: UserCheck, tone: "success" },
-  { key: "cancelled", icon: CalendarX2, tone: "warning", lowerIsBetter: true },
+const CARDS: { key: CardKey; lowerIsBetter?: boolean }[] = [
+  { key: "messages" },
+  { key: "bookings" },
+  { key: "newBookings" },
+  { key: "confirmed" },
+  { key: "arrived" },
+  { key: "cancelled", lowerIsBetter: true },
 ];
 
 const cardValue = (s: PeriodStats, k: CardKey): number | null =>
@@ -99,21 +74,6 @@ export function TelesalesReportView() {
   const cur = data?.cur;
   const prev = data?.prev;
 
-  const hints: Record<CardKey, string | undefined> = cur
-    ? {
-        messages: report?.errors.fb ? t("hint.fbError") : t("hint.previous", { value: num(prev!.messages) }),
-        bookings: t("hint.bookingRate", { value: pct(ratio(cur.bookings, cur.messages)) }),
-        newBookings: t("hint.newShare", { value: pct(ratio(cur.newBookings, cur.bookings)) }),
-        confirmed: t("hint.confirmRate", { value: pct(ratio(cur.confirmed, cur.bookings)) }),
-        arrived: t("hint.showUp", { value: pct(ratio(cur.arrived, cur.scheduled)), scheduled: num(cur.scheduled) }),
-        cancelled: t("hint.cancel", {
-          cancelled: num(cur.cancelled),
-          rescheduled: num(cur.rescheduled),
-          value: pct(ratio(cur.cancelled + cur.rescheduled, cur.bookings)),
-        }),
-      }
-    : ({} as Record<CardKey, undefined>);
-
   return (
     <>
       <PageHeader
@@ -144,51 +104,35 @@ export function TelesalesReportView() {
       <div className={cn("flex flex-col gap-4 transition-opacity duration-200", pending && report && "opacity-60")}>
         {/* 6 thẻ số liệu */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
-          {CARDS.map(({ key, icon: Icon, tone, lowerIsBetter }) => {
+          {CARDS.map(({ key, lowerIsBetter }) => {
             const value = cur ? cardValue(cur, key) : null;
             const delta = cur && prev ? change(value, cardValue(prev, key)) : null;
             const good = delta == null || delta === 0 ? null : lowerIsBetter ? delta < 0 : delta > 0;
             return (
-              <div key={key} className="surface flex min-w-0 flex-col gap-2 p-3 sm:p-4">
-                <div className="flex items-center gap-2">
-                  <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg", TONE[tone])}>
-                    <Icon className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-muted-foreground sm:text-sm">
-                    {t(`card.${key}`)}
-                  </span>
-                  <Tooltip title={t(`tip.${key}`)}>
-                    <Info className="size-3.5 shrink-0 cursor-help text-muted-foreground" aria-label={t(`tip.${key}`)} />
-                  </Tooltip>
-                </div>
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span className="text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">
-                    {!report ? <span className="inline-block h-7 w-16 animate-pulse rounded-md bg-muted" /> : num(value)}
-                  </span>
-                  {delta != null ? (
+              <StatCard
+                key={key}
+                label={t(`card.${key}`)}
+                loading={!report}
+                value={num(value)}
+                hint={
+                  delta != null ? (
                     <span
-                      className={cn(
-                        "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-medium tabular-nums",
-                        good ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive",
-                      )}
+                      className={cn("inline-flex items-center gap-0.5 font-medium tabular-nums", good ? "text-success" : "text-destructive")}
                       title={t("hint.previous", { value: num(prev ? cardValue(prev, key) : null) })}
                     >
                       {delta > 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
                       {pct(Math.abs(delta))}
                     </span>
-                  ) : null}
-                </div>
-                <p className="min-h-4 truncate text-xs text-muted-foreground" title={hints[key]}>
-                  {hints[key]}
-                </p>
-              </div>
+                  ) : null
+                }
+              />
             );
           })}
         </div>
 
-        {/* Phễu · Xu hướng · Tốc độ phản hồi */}
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)]">
-          <Section icon={Filter} title={t("funnel")} tip={t("tip.funnel")}>
+        {/* Phễu · Xu hướng */}
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+          <Section className="surface p-4" title={t("funnel")}>
             {!report ? (
               <ChartSkeleton />
             ) : (
@@ -202,7 +146,7 @@ export function TelesalesReportView() {
               />
             )}
           </Section>
-          <Section icon={TrendingUp} title={t("trend")} tip={t("tip.trend")}>
+          <Section className="surface p-4" title={t("trend")}>
             {!data ? (
               <ChartSkeleton />
             ) : (
@@ -216,21 +160,15 @@ export function TelesalesReportView() {
               />
             )}
           </Section>
-          <Section icon={Timer} title={t("response")} className="lg:col-span-2 xl:col-span-1">
-            <Updating />
-          </Section>
         </div>
 
-        {/* Hiệu suất NV · Nguồn · Cảnh báo */}
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <Section icon={UsersRound} title={t("staffTitle")} tip={t("tip.staff", { kpi: pct(KPI_BOOKING_RATE) })} className="lg:col-span-2 xl:col-span-1">
+        {/* Hiệu suất NV · Nguồn */}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]">
+          <Section className="surface p-4" title={t("staffTitle")}>
             <StaffTable staff={data?.staff ?? []} other={data?.other ?? null} loading={!report} num={num} pct={pct} />
           </Section>
-          <Section icon={PieChart} title={t("sources")} tip={t("tip.sources")}>
+          <Section className="surface p-4" title={t("sources")}>
             <Donut sources={data?.sources ?? null} num={num} pct={pct} />
-          </Section>
-          <Section icon={TriangleAlert} title={t("alerts")}>
-            <Updating />
           </Section>
         </div>
       </div>
@@ -238,51 +176,8 @@ export function TelesalesReportView() {
   );
 }
 
-function Section({
-  icon: Icon,
-  title,
-  tip,
-  className,
-  children,
-}: {
-  icon: React.ElementType;
-  title: string;
-  tip?: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className={cn("surface flex min-w-0 flex-col gap-3 p-4", className)}>
-      <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-        <Icon className="size-4 text-primary" />
-        {title}
-        {tip ? (
-          <Tooltip title={tip}>
-            <Info className="size-3.5 cursor-help text-muted-foreground" aria-label={tip} />
-          </Tooltip>
-        ) : null}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
 function ChartSkeleton() {
   return <div className="h-60 animate-pulse rounded-lg bg-muted/60" />;
-}
-
-/** Ô "Đang cập nhật" (icon chấm than) cho phần chưa có dữ liệu. */
-function Updating() {
-  const t = useTranslations("telesales");
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
-      <span className="grid size-10 place-items-center rounded-full bg-warning/10 text-warning">
-        <CircleAlert className="size-5" />
-      </span>
-      <p className="text-sm font-medium">{t("updating")}</p>
-      <p className="max-w-56 text-xs text-muted-foreground">{t("updatingHint")}</p>
-    </div>
-  );
 }
 
 function Donut({
@@ -475,11 +370,8 @@ function StaffTable({
     },
     {
       key: "conversations",
-      title: (
-        <Tooltip title={t("tip.conversations")}>
-          <span className="cursor-help">{t("col.conversations")}</span>
-        </Tooltip>
-      ),
+      title: t("col.conversations"),
+
       align: "right",
       render: (_, r) =>
         r.conversations != null ? (

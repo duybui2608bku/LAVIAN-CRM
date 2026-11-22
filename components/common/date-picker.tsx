@@ -1,6 +1,6 @@
 "use client";
 
-import { DatePicker as AntDatePicker, TimePicker as AntTimePicker } from "antd";
+import { DatePicker as AntDatePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { useTranslations } from "next-intl";
 
@@ -83,30 +83,6 @@ export function DateRangePicker({
       format={DISPLAY}
       allowClear={allowClear}
       className={className}
-    />
-  );
-}
-
-/** Chọn giờ, value/onChange dạng chuỗi `HH:mm` ("" = trống). */
-export function TimePicker({
-  value,
-  onChange,
-  className,
-}: {
-  value?: string | null;
-  onChange?: (value: string) => void;
-  className?: string;
-}) {
-  const touch = useIsTouch();
-  return (
-    <AntTimePicker
-      inputReadOnly={touch}
-      value={value ? dayjs(value, "HH:mm") : null}
-      onChange={(d) => onChange?.(d ? d.format("HH:mm") : "")}
-      format="HH:mm"
-      minuteStep={5}
-      needConfirm={false}
-      className={className ?? "w-full"}
     />
   );
 }

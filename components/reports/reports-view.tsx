@@ -1,26 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Alert, Button, Segmented, Table, Tooltip } from "antd";
+import { Alert, Button, Empty, Segmented, Table, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  CalendarCheck,
-  Calculator,
-  HandCoins,
-  MessageCircle,
-  Phone,
-  ReceiptText,
-  RefreshCw,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react";
 
 import { getReport, type Report } from "@/app/(app)/reports/actions";
 import { DataTable } from "@/components/common/data-table";
 import { MetricList } from "@/components/common/metric-list";
+import { Section } from "@/components/common/section";
+import { StatCard } from "@/components/common/stat-card";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { DateRangeFilter, initialRange } from "@/components/common/date-range-filter";
 import { PageHeader, PageToolbar } from "@/components/layout/page";
@@ -38,31 +28,6 @@ import {
   type Totals,
 } from "@/lib/reports";
 import { cn } from "@/lib/utils";
-
-type Tone = "primary" | "info" | "success" | "warning";
-const TONE: Record<Tone, string> = {
-  primary: "bg-primary/10 text-primary",
-  info: "bg-info/10 text-info",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
-};
-const BAR: Record<Tone, string> = {
-  primary: "bg-primary",
-  info: "bg-info",
-  success: "bg-success",
-  warning: "bg-warning",
-};
-
-const META: Record<Metric, { icon: React.ElementType; tone: Tone }> = {
-  spend: { icon: Wallet, tone: "primary" },
-  messages: { icon: MessageCircle, tone: "info" },
-  costPerMessage: { icon: Calculator, tone: "info" },
-  data: { icon: Phone, tone: "success" },
-  costPerData: { icon: Calculator, tone: "success" },
-  deposits: { icon: HandCoins, tone: "warning" },
-  bookings: { icon: CalendarCheck, tone: "primary" },
-  revenue: { icon: ReceiptText, tone: "success" },
-};
 
 const FB_METRICS: ReadonlySet<Metric> = new Set(["spend", "messages", "costPerMessage", "costPerData"]);
 
@@ -117,13 +82,6 @@ export function ReportsView() {
   // ROAS chỉ có nghĩa khi tiền quảng cáo cùng đơn vị Rupiah với doanh thu.
   const roas = currency === IDR_CURRENCY ? ratio(cur?.revenue ?? null, cur?.spend ?? null) : null;
 
-  const hints: Partial<Record<Metric, string>> = {
-    data: cur ? t("hint.ofMessages", { pct: pct(ratio(cur.data, cur.messages)) }) : undefined,
-    deposits: cur ? t("hint.ofData", { pct: pct(ratio(cur.deposits, cur.data)) }) : undefined,
-    bookings: cur ? t("hint.ofData", { pct: pct(ratio(cur.bookings, cur.data)) }) : undefined,
-    revenue: roas != null ? t("hint.roas", { x: roas.toLocaleString(locale, { maximumFractionDigits: 2 }) }) : undefined,
-  };
-
   return (
     <>
       <PageHeader
@@ -165,53 +123,41 @@ export function ReportsView() {
           const value = cur?.[m] ?? null;
           const delta = change(value, prev?.[m] ?? null);
           const good = delta == null || delta === 0 ? null : LOWER_IS_BETTER.has(m) ? delta < 0 : delta > 0;
-          const { icon: Icon, tone } = META[m];
-          const hero = m === "revenue";
           return (
-            <div
+            <StatCard
               key={m}
-              className={cn(
-                "surface flex min-w-0 flex-col gap-2 p-3 sm:p-4",
-                hero && "border-primary/30 bg-linear-to-br from-primary/10 to-card",
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg", TONE[tone])}>
-                  <Icon className="size-4" />
-                </span>
-                <span className="truncate text-xs font-medium text-muted-foreground sm:text-sm">{t(`metric.${m}`)}</span>
-              </div>
-              <div className="truncate text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">
-                {!report ? (
-                  <span className="inline-block h-7 w-24 animate-pulse rounded-md bg-muted" />
-                ) : value == null && errorOf(m) ? (
+              label={t(`metric.${m}`)}
+              loading={!report}
+              value={
+                value == null && errorOf(m) ? (
                   <Tooltip title={errorOf(m)}>
                     <span className="text-muted-foreground">—</span>
                   </Tooltip>
                 ) : (
                   <span title={fmt(m, value)}>{fmt(m, value)}</span>
-                )}
-              </div>
-              <div className="flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                {delta != null ? (
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-medium tabular-nums",
-                      m === "spend"
-                        ? "bg-muted text-muted-foreground"
-                        : good
-                          ? "bg-success/10 text-success"
-                          : "bg-destructive/10 text-destructive",
-                    )}
-                    title={t("vsPrevious", { value: fmt(m, prev?.[m] ?? null) })}
-                  >
-                    {delta > 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
-                    {pct(Math.abs(delta))}
-                  </span>
-                ) : null}
-                {hints[m] ? <span className="truncate text-muted-foreground">{hints[m]}</span> : null}
-              </div>
-            </div>
+                )
+              }
+              hint={
+                <span className="flex flex-wrap items-center gap-x-2">
+                  {delta != null ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-0.5 font-medium tabular-nums",
+                        m !== "spend" && (good ? "text-success" : "text-destructive"),
+                      )}
+                      title={t("vsPrevious", { value: fmt(m, prev?.[m] ?? null) })}
+                    >
+                      {delta > 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+                      {pct(Math.abs(delta))}
+                    </span>
+                  ) : null}
+                  {/* ROAS hiện 1 chỗ duy nhất: dưới card Doanh thu. */}
+                  {m === "revenue" && roas != null
+                    ? t("hint.roas", { x: roas.toLocaleString(locale, { maximumFractionDigits: 2 }) })
+                    : null}
+                </span>
+              }
+            />
           );
         })}
       </div>
@@ -226,18 +172,15 @@ export function ReportsView() {
           }))}
           format={(m, v) => fmt(m, v)}
           pct={pct}
-          roas={roas != null ? t("hint.roas", { x: roas.toLocaleString(locale, { maximumFractionDigits: 2 }) }) : null}
         />
 
-        <section className="surface flex min-w-0 flex-col gap-3 p-3 sm:p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-              <TrendingUp className="size-4 text-primary" />
-              {t("trend")}
-            </h2>
+        <Section
+          className="surface p-4"
+          title={t("trend")}
+          extra={
             <Segmented<Metric>
               size="small"
-              className="max-w-full overflow-x-auto"
+              className="min-w-0 max-w-full overflow-x-auto"
               value={chartMetric}
               onChange={setChartMetric}
               options={(["spend", "messages", "data", "deposits", "bookings", "revenue"] as const).map((m) => ({
@@ -245,18 +188,18 @@ export function ReportsView() {
                 label: t(`metric.${m}`),
               }))}
             />
-          </div>
+          }
+        >
           <TrendBars
             rows={rows}
             value={(r) => dayTotals(r)[chartMetric]}
             label={(r) => `${weekday(r.date)} ${ddmm(r.date)}: ${fmt(chartMetric, dayTotals(r)[chartMetric])}`}
             tick={ddmm}
           />
-        </section>
+        </Section>
       </div>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">{t("daily")}</h2>
+      <Section title={t("daily")}>
         {mobile ? (
           <div className="surface overflow-hidden">
             <MetricList
@@ -320,11 +263,10 @@ export function ReportsView() {
           }
         />
         )}
-      </section>
+      </Section>
 
       {/* Hoa hồng Sales = 5% tiền thực thu của thẻ (cọc trừ vào thẻ + các lần thu − hoàn), theo người tạo thẻ. */}
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">{t("salesCommission", { rate: SALES_RATE * 100 })}</h2>
+      <Section title={t("salesCommission", { rate: SALES_RATE * 100 })}>
         <DataTable<NonNullable<Report["sales"]>[number]>
           rowKey="seller"
           loading={pending && !report}
@@ -351,7 +293,7 @@ export function ReportsView() {
             </Table.Summary>
           ) : null}
         />
-      </section>
+      </Section>
     </>
   );
 }
@@ -362,24 +304,16 @@ function Funnel({
   steps,
   format,
   pct,
-  roas,
 }: {
   title: string;
   steps: { key: Metric; label: string; value: number | null }[];
   format: (m: Metric, v: number | null) => string;
   pct: (v: number | null) => string;
-  roas: string | null;
 }) {
   const t = useTranslations("reports");
   const max = Math.max(1, ...steps.map((s) => s.value ?? 0));
   return (
-    <section className="surface flex min-w-0 flex-col gap-3 p-3 sm:p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {roas ? (
-          <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">{roas}</span>
-        ) : null}
-      </div>
+    <Section className="surface p-4" title={title}>
       <ol className="flex flex-col gap-2.5">
         {steps.map((s, i) => {
           const conv = i > 0 ? ratio(s.value, steps[i - 1].value) : null;
@@ -396,7 +330,7 @@ function Funnel({
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <div
-                  className={cn("h-full rounded-full transition-[width] duration-500", BAR[META[s.key].tone])}
+                  className="h-full rounded-full bg-primary transition-[width] duration-500"
                   style={{ width: `${((s.value ?? 0) / max) * 100}%` }}
                 />
               </div>
@@ -404,7 +338,7 @@ function Funnel({
           );
         })}
       </ol>
-    </section>
+    </Section>
   );
 }
 
@@ -424,7 +358,8 @@ function TrendBars({
   const values = rows.map(value);
   const max = Math.max(0, ...values.map((v) => v ?? 0));
   if (!rows.length || values.every((v) => v == null))
-    return <p className="py-10 text-center text-sm text-muted-foreground">{t("noData")}</p>;
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noData")} />;
+
   // Nhãn trục: tối đa ~8 mốc để không chồng chữ.
   const step = Math.ceil(rows.length / 8);
   return (

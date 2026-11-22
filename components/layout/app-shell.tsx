@@ -112,7 +112,7 @@ type Account = { userName?: string; avatarUrl?: string | null };
 /**
  * Khung app. Desktop (≥ md): sidebar kiểu Linear/Attio (logo, menu chia nhóm) + header (thu gọn sidebar, chuông, tài khoản).
  * Điện thoại: như app — thanh trên (logo + chuông + avatar), thanh tab dưới (3 trang chính + Menu),
- * "Menu" mở bottom sheet chứa mục quản trị + tài khoản.
+ * "Menu" mở bottom sheet chứa mọi trang còn lại (kể cả trang con, chia nhóm như desktop) + tài khoản.
  */
 export function AppShell({
   defaultCollapsed,
@@ -162,9 +162,14 @@ export function AppShell({
   const main = visible(ITEMS);
   const admin = visible(ADMIN_ITEMS);
   const all: readonly NavItem[] = [...main, ...admin];
-  // Điện thoại: tối đa 3 tab dưới, phần còn lại nằm trong "Menu".
+  // Điện thoại: tối đa 3 tab dưới; "Menu" chứa MỌI trang được phép (trang con trải phẳng) chưa là tab dưới.
   const tabs = all.slice(0, 3);
-  const sheetItems = flatten(all.slice(3));
+  const sheetGroups = [
+    { label: t("nav.groupMain"), items: flatten(main) },
+    { label: t("nav.groupAdmin"), items: flatten(admin) },
+  ]
+    .map((g) => ({ ...g, items: g.items.filter((i) => !tabs.some((tab) => tab.href === i.href)) }))
+    .filter((g) => g.items.length);
   // Khớp dài nhất: /users/permissions chọn "Phân quyền", không phải "Danh sách".
   const selected =
     flatten(all)
@@ -290,13 +295,13 @@ export function AppShell({
       <BottomTabs
         items={tabs}
         pathname={pathname}
-        menuActive={sheetOpen || sheetItems.some((i) => pathname.startsWith(i.href))}
+        menuActive={sheetOpen || sheetGroups.some((g) => g.items.some((i) => i.href === selected))}
         onMenu={() => setSheetOpen(true)}
       />
       <MenuSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        items={sheetItems}
+        groups={sheetGroups}
         pathname={pathname}
         userName={userName}
         avatarUrl={avatarUrl}
@@ -366,11 +371,11 @@ function BottomTabs({
   );
 }
 
-/** Bottom sheet "Menu" (điện thoại): mục quản trị + tài khoản, giao diện tối, ngôn ngữ, đăng xuất. */
+/** Bottom sheet "Menu" (điện thoại): các trang còn lại theo nhóm + tài khoản, giao diện tối, ngôn ngữ, đăng xuất. */
 function MenuSheet({
   open,
   onClose,
-  items,
+  groups,
   pathname,
   userName,
   avatarUrl,
@@ -378,7 +383,7 @@ function MenuSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  items: readonly NavLink[];
+  groups: { label: string; items: readonly NavLink[] }[];
   pathname: string;
   onProfile: () => void;
 } & Account) {
@@ -409,9 +414,9 @@ function MenuSheet({
           </div>
         </div>
 
-        {items.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-muted-foreground">{t("nav.groupAdmin")}</p>
+        {groups.map(({ label, items }) => (
+          <div key={label} className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-muted-foreground">{label}</p>
             <div className="grid grid-cols-3 gap-2">
               {items.map(({ key, href, icon: Icon }) => {
                 const active = pathname === href;
@@ -433,7 +438,7 @@ function MenuSheet({
               })}
             </div>
           </div>
-        )}
+        ))}
 
         <div className="surface divide-y divide-border">
           <button

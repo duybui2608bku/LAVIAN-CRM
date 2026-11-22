@@ -2,17 +2,20 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button, DatePicker, Empty, Input, Segmented, Select, Tag, type TableProps } from "antd";
-import { CheckCircle2, FileSpreadsheet, PencilLine, Printer, Search, Trash2 } from "lucide-react";
+import { Button, DatePicker, Empty, Segmented, Select, type TableProps } from "antd";
+import { CheckCircle2, FileSpreadsheet, PencilLine, Printer, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { claimTour, confirmTour, deleteTour } from "@/app/(app)/tour/actions";
+import { DASH } from "@/components/common/cells";
+import { ClearableSelect } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
+import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
 import { NamePhone } from "@/components/common/name-phone";
 import { RowActions } from "@/components/common/row-actions";
 import { StatCard } from "@/components/common/stat-card";
-import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { staffLabel, staffName, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { runAction, kindText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import { groupByTechnician } from "@/components/tour/tour-data";
@@ -25,9 +28,6 @@ import { tourCommission, tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import type { Tour } from "@/types/tour";
-
-const DASH = <span className="text-muted-foreground">—</span>;
-const ALL = "all";
 
 type Props = {
   me: TourMe;
@@ -126,7 +126,7 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
           <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="flex items-center gap-2">
-              {tour.service_detail ? <Tag color="cyan" className="me-0">{kindText(t, tour)}</Tag> : <Tag className="me-0">{t("needDetail")}</Tag>}
+              {tour.service_detail ? kindText(t, tour) : <span className="text-warning">{t("needDetail")}</span>}
               <PhotoCountButton tour={tour} onOpen={onPhotos} />
             </span>
             <span className="font-semibold tabular-nums" title={t("commission")}>{formatRupiah(tourCommission(tour))}</span>
@@ -155,16 +155,15 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
   const t = useTranslations("tour");
   const confirm = useConfirm();
   const serviceLabel = useServiceLabel(services);
-  const [status, setStatus] = useState<TourStatus | typeof ALL>(ALL);
-  const [technician, setTechnician] = useState(ALL);
+  const [status, setStatus] = useState("");
+  const [technician, setTechnician] = useState("");
   const [search, setSearch] = useState("");
   const [exporting, setExporting] = useState(false);
-  const staffById = new Map(staff.map((s) => [s.id, s]));
   const technicians = staff.filter((s) => s.department === "technician");
 
   const all = tours;
-  const items = all.filter((r) => (status === ALL || tourStatus(r) === status)
-    && (technician === ALL || r.technician_id === technician)
+  const items = all.filter((r) => (!status || tourStatus(r) === status)
+    && (!technician || r.technician_id === technician)
     && matchesNameOrPhone(r.customer?.full_name ?? "", r.customer?.phone ?? "", search));
   const groups = me.isAdmin ? groupByTechnician(items, staff) : [];
   const count = (s: TourStatus) => all.filter((r) => tourStatus(r) === s).length;
@@ -192,12 +191,8 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
     { title: t("date"), width: 110, render: (_, r) => dayjs(r.tour_date).format("DD/MM/YYYY") },
     { title: t("customer"), width: 200, render: (_, r) => <NamePhone name={r.customer?.full_name ?? "—"} phone={r.customer?.phone} /> },
     { title: t("service"), width: 140, render: (_, r) => serviceLabel(r.service_id) },
-    { title: t("kind"), width: 100, render: (_, r) => r.service_detail
-      ? <Tag color="cyan" className="me-0">{kindText(t, r)}</Tag> : DASH },
-    { title: t("technician"), width: 170, render: (_, r) => {
-      const s = r.technician_id ? staffById.get(r.technician_id) : undefined;
-      return s ? staffLabel(s) : DASH;
-    } },
+    { title: t("kind"), width: 100, render: (_, r) => r.service_detail ? kindText(t, r) : DASH },
+    { title: t("technician"), width: 170, render: (_, r) => staffName(staff, r.technician_id) },
     { title: t("photos"), width: 90, render: (_, r) => <PhotoCountButton tour={r} onOpen={onPhotos} /> },
     { title: t("bill"), width: 140, align: "right", render: (_, r) =>
       r.bill_amount == null ? DASH : <span className="tabular-nums">{formatRupiah(r.bill_amount)}</span> },
@@ -231,20 +226,6 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
         </Button>
       </> : null}
     </>} />
-    <PageToolbar>
-      <MonthPicker month={month} goMonth={goMonth} />
-      <Input value={search} allowClear className="w-full sm:max-w-60" placeholder={t("search")} aria-label={t("search")}
-        prefix={<Search className="size-4" />} onChange={(e) => setSearch(e.target.value)} />
-      <Select className="min-w-40" value={status} aria-label={t("status")} onChange={setStatus} options={[
-        { value: ALL, label: t("allStatuses") },
-        ...(["pending", "claimed", "confirmed"] as const).map((s) => ({ value: s, label: t(`status_${s}`) })),
-      ]} />
-      <Select className="min-w-52" value={technician} aria-label={t("technician")} onChange={setTechnician}
-        showSearch={{ optionFilterProp: "title" }} options={[
-          { value: ALL, title: t("allTechnicians"), label: t("allTechnicians") },
-          ...technicians.map((s) => ({ value: s.id, title: s.user_name, label: staffLabel(s) })),
-        ]} />
-    </PageToolbar>
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
       <StatCard label={t("count")} value={all.length} />
       <StatCard label={t("status_pending")} value={count("pending")} />
@@ -252,6 +233,17 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
       <StatCard label={t("bill")} value={formatRupiah(total)} />
       <StatCard label={t("commission")} value={formatRupiah(commission)} />
     </div>
+    <PageToolbar>
+      <MonthPicker month={month} goMonth={goMonth} />
+      <SearchInput value={search} placeholder={t("search")} onChange={setSearch} />
+      <ClearableSelect className="min-w-40" value={status} ariaLabel={t("status")} placeholder={t("allStatuses")} onChange={setStatus}
+        options={(["pending", "claimed", "confirmed"] as const).map((s) => ({ value: s, label: t(`status_${s}`) }))} />
+      {/* Select thường (không ClearableSelect): cần tìm theo tên (`title`) — label là avatar + tên. */}
+      <Select allowClear className="min-w-52" value={technician || undefined} aria-label={t("technician")} placeholder={t("allTechnicians")}
+        onChange={(v?: string) => setTechnician(v ?? "")} showSearch={{ optionFilterProp: "title" }}
+        options={technicians.map((s) => ({ value: s.id, title: s.user_name, label: staffLabel(s) }))} />
+      <ClearFilters show={!!(search || status || technician)} onClick={() => { setSearch(""); setStatus(""); setTechnician(""); }} />
+    </PageToolbar>
     <DataTable<Tour> columns={columns} dataSource={items} pageSize={50} empty={t("empty")}
       onRow={(r) => ({ onClick: () => onOpen(r.id), className: "cursor-pointer" })} />
     {me.isAdmin ? <TourSlips groups={groups} month={month} /> : null}

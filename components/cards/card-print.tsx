@@ -6,11 +6,11 @@ import dayjs from "dayjs";
 import logo from "@/app/assets/logo.png";
 import { useServiceGroups } from "@/components/common/service-groups";
 import { cardMoney, isTourable } from "@/lib/cards";
+import { formatIdr } from "@/lib/currency";
 import type { TreatmentCard } from "@/types/card";
 import type { Service } from "@/types/service";
 
 const noopSubscribe = () => () => {};
-const idr = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
 const METHOD_EN = { cash: "Cash", bank: "Bank transfer", card: "Card" } as const;
 
 /**
@@ -74,10 +74,10 @@ export function CardPrint({ card, services, consultant, used }: {
               <td>{s ? groups.name(s.group_id) : ""}</td>
               <td>
                 {s?.name ?? "—"}
-                {item.refunded_at ? <div className="cp-sub">Refunded {idr.format(item.refund_amount ?? 0)} · {dayjs(item.refunded_at).format("DD/MM/YYYY")}</div> : null}
+                {item.refunded_at ? <div className="cp-sub">Refunded {formatIdr(item.refund_amount ?? 0)} · {dayjs(item.refunded_at).format("DD/MM/YYYY")}</div> : null}
               </td>
               <td className="num">{item.refunded_at || !isTourable(item) ? "—" : `${used(item.id)} / ${item.sessions}`}</td>
-              <td className="num">{idr.format(item.price)}</td>
+              <td className="num">{formatIdr(item.price)}</td>
             </tr>;
           })}
         </tbody>
@@ -93,7 +93,7 @@ export function CardPrint({ card, services, consultant, used }: {
                 {payments.map((p) => <tr key={p.id}>
                   <td>{dayjs(p.paid_at).format("DD/MM/YYYY")}</td>
                   <td>{METHOD_EN[p.method]}{p.note ? ` · ${p.note}` : ""}</td>
-                  <td className="num">{p.amount < 0 ? `−${idr.format(-p.amount)}` : idr.format(p.amount)}</td>
+                  <td className="num">{p.amount < 0 ? `−${formatIdr(-p.amount)}` : formatIdr(p.amount)}</td>
                 </tr>)}
               </tbody>
             </table>
@@ -102,12 +102,12 @@ export function CardPrint({ card, services, consultant, used }: {
         </div>
         <table className="cp-totals">
           <tbody>
-            <tr><th>Subtotal</th><td>{idr.format(subtotal)}</td></tr>
-            {refunded ? <tr><th>Refunded</th><td>−{idr.format(refunded)}</td></tr> : null}
-            <tr className="cp-strong"><th>Total payment</th><td>{idr.format(money.value)}</td></tr>
-            {card.deposit_used ? <tr><th>Deposit (DP)</th><td>{idr.format(card.deposit_used)}</td></tr> : null}
-            {paid ? <tr><th>Paid amount</th><td>{idr.format(paid)}</td></tr> : null}
-            <tr className="cp-due"><th>{money.due < 0 ? "To refund" : "Balance due"}</th><td>{idr.format(Math.abs(money.due))}</td></tr>
+            <tr><th>Subtotal</th><td>{formatIdr(subtotal)}</td></tr>
+            {refunded ? <tr><th>Refunded</th><td>−{formatIdr(refunded)}</td></tr> : null}
+            <tr className="cp-strong"><th>Total payment</th><td>{formatIdr(money.value)}</td></tr>
+            {card.deposit_used ? <tr><th>Deposit (DP)</th><td>{formatIdr(card.deposit_used)}</td></tr> : null}
+            {paid ? <tr><th>Paid amount</th><td>{formatIdr(paid)}</td></tr> : null}
+            <tr className="cp-due"><th>{money.due < 0 ? "To refund" : "Balance due"}</th><td>{formatIdr(Math.abs(money.due))}</td></tr>
           </tbody>
         </table>
       </div>

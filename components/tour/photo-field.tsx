@@ -5,6 +5,7 @@ import { Image, Spin } from "antd";
 import { Camera, ImagePlus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { ConfirmAction } from "@/components/common/confirm-action";
+import { Section } from "@/components/common/section";
 import { uploadImage } from "@/components/common/image-upload";
 import { normalizeError } from "@/lib/errors";
 import { toast } from "@/lib/toast";
@@ -59,10 +60,7 @@ export function PhotoField({ label, value, onChange, capture, disabled }: {
 
   const tile = "relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border";
 
-  return <div className="flex flex-col gap-2">
-    <span className="text-sm font-medium">
-      {label} <span className="text-muted-foreground">({value.length})</span>
-    </span>
+  return <Section title={<>{label} <span className="font-normal text-muted-foreground">({value.length})</span></>}>
     <div className="flex flex-wrap gap-2">
       <Image.PreviewGroup>
         {value.map((url) => <div key={url} className={tile}>
@@ -86,5 +84,5 @@ export function PhotoField({ label, value, onChange, capture, disabled }: {
     <input ref={input} type="file" accept="image/*" hidden multiple={!capture}
       capture={capture ? "environment" : undefined}
       onChange={(e) => { void onFiles([...(e.target.files ?? [])]); e.target.value = ""; }} />
-  </div>;
+  </Section>;
 }

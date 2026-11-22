@@ -8,7 +8,6 @@ import {
   Image,
   Input,
   Modal,
-  Tag,
   Popover,
   Select,
   type TableProps,
@@ -22,9 +21,7 @@ import {
   Info,
   MessageCircleMore,
   PanelRightOpen,
-  Search,
   UserPlus,
-  X,
 } from "lucide-react";
 
 import {
@@ -49,43 +46,34 @@ import { CustomerRemindersPopover } from "@/components/reminders/customer-remind
 import { FormDrawer } from "@/components/common/form-drawer";
 import { ImageUpload } from "@/components/common/image-upload";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
-import { EnumTag } from "@/components/common/enum-tag";
+import { DASH, DateTimeCell, StatusDot } from "@/components/common/cells";
+import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
 import { InlineSelect } from "@/components/common/inline-select";
 import { RegionSelect } from "@/components/common/region-select";
 import { SOURCE_OPTIONS, SourceIcon } from "@/components/common/source-icon";
-import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { staffName, staffOptions, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { nearestByCustomer } from "@/lib/appointments";
 import { formatRupiah } from "@/lib/currency";
 import { PROVINCES } from "@/lib/id-regions";
-import { createdAgeBucket, matchesCustomerFilters, optionLabel } from "@/lib/customers";
+import { matchesCustomerFilters, optionLabel } from "@/lib/customers";
 import { instagramUsername, isFollowUpStage, needsServiceGroup, phoneOptional, SHOW_UP_STAGE } from "@/lib/customer-options";
 import { formatPhone, isValidPhone, normalizePhone } from "@/lib/phone";
-import { nextPending, REMINDER_COLORS, reminderState } from "@/lib/reminders";
+import { nextPending, reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
-import { waColor, waNumber } from "@/lib/wa";
+import { cn } from "@/lib/utils";
+import { waNumber } from "@/lib/wa";
 import type { Customer, CustomerInput, CustomerNote, EnumKind, EnumOption } from "@/types/customer";
-import type { Reminder } from "@/types/reminder";
-import { TELESALES_DEPARTMENTS } from "@/types/user";
+import type { Reminder, ReminderState } from "@/types/reminder";
 import { useServiceGroups } from "@/components/common/service-groups";
 
 type Staff = AppointmentStaff;
 
-// Option theo bộ phận (Nhân viên = telesales + leader, Sales, Kỹ thuật viên):
-// chỉ user đúng bộ phận + giá trị đang gán (user đổi bộ phận sau khi gán
-// vẫn hiện — cùng triết lý option inactive).
-const deptOptions = (staff: Staff[], dept: string, current?: string | null) =>
-  staff
-    .filter((s) => (dept === "telesales" ? TELESALES_DEPARTMENTS.includes(s.department ?? "") : s.department === dept) || s.id === current)
-    .map((s) => ({ value: s.id, label: staffLabel(s) }));
-
-const DASH = <span className="text-muted-foreground">—</span>;
-
 // Rộng drawer theo số cột form (1 cột giữ 560 như các drawer khác).
 const DRAWER_WIDTH = { 1: 560, 2: 720, 3: 1000 } as const;
 
-// Màu tag Ngày tạo theo độ mới: hôm nay / ≤3 / ≤7 / ≤14 ngày / cũ hơn.
-const AGE_COLORS = ["green", "cyan", "blue", "purple", "default"] as const;
+// Ngày nhắc: quá hạn chữ đỏ, hôm nay chữ cam, còn lại chữ thường.
+const REMINDER_TONE: Partial<Record<ReminderState, string>> = { overdue: "text-destructive", today: "text-warning" };
 
 type Filters = {
   search: string;
@@ -139,7 +127,6 @@ export function CustomersManager({
 }) {
   const groups = useServiceGroups();
   const t = useTranslations("customers");
-  const tc = useTranslations("common");
   const locale = useLocale();
   const can = useCan();
   const canEdit = can("customers.edit");
@@ -166,23 +153,12 @@ export function CustomersManager({
       state.map((c) => (c.id === patch.id ? { ...c, ...patch } : c)),
   );
 
-  // Tag (theo locale) cho một value bất kỳ — dùng cả option inactive để hiện dữ
-  // liệu cũ; value mất option hiển thị thô trong tag trung tính.
+  // Trạng thái (theo locale) cho một value bất kỳ — dùng cả option inactive để hiện dữ
+  // liệu cũ; value mất option hiển thị thô, chấm xám.
   const tagFor = (kind: EnumKind, value: string | null) => {
     if (!value) return DASH;
     const opt = options.find((o) => o.kind === kind && o.value === value);
-    return (
-      <EnumTag
-        icon={opt?.icon}
-        color={opt?.color}
-        label={opt ? optionLabel(opt, locale) : value}
-      />
-    );
-  };
-  // Avatar + tên nhân viên cho cell bảng; chưa gán → "—" (không avatar).
-  const staffDisplay = (id: string | null) => {
-    const s = id ? staff.find((x) => x.id === id) : undefined;
-    return s ? staffLabel(s) : DASH;
+    return <StatusDot color={opt?.color} label={opt ? optionLabel(opt, locale) : value} />;
   };
 
   // Lịch hẹn gần nhất mỗi khách: lịch sắp tới sớm nhất; không có thì lịch đã qua mới nhất.
@@ -238,7 +214,7 @@ export function CustomersManager({
     });
 
   // Option cho Select (lọc + sửa inline): active + giá trị hiện tại (kể cả inactive), theo sort_order.
-  // Chữ trần — tag màu chỉ ở ô hiển thị trên bảng (`tagFor`).
+  // Chữ trần — chấm màu chỉ ở ô hiển thị trên bảng (`tagFor`).
   const kindOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
     options
       .filter((o) => o.kind === kind && (o.is_active || o.value === current))
@@ -251,14 +227,7 @@ export function CustomersManager({
       key: "created",
       dataIndex: "created_at",
       width: 120,
-      // 2 hàng như Customers Management: ngày đầy đủ trên (tag màu theo độ mới), giờ nhỏ dưới.
-      render: (v: string) => (
-        // inline-flex căn giữa: giờ thẳng hàng với chữ trong tag (tag có padding).
-        <div className="inline-flex flex-col items-center leading-tight tabular-nums">
-          <Tag color={AGE_COLORS[createdAgeBucket(v)]} className="me-0">{dayjs(v).format("DD/MM/YYYY")}</Tag>
-          <div className="mt-0.5 text-xs text-muted-foreground">{dayjs(v).format("HH:mm")}</div>
-        </div>
-      ),
+      render: (v: string) => <DateTimeCell value={v} />,
     },
     {
       title: t("colName"),
@@ -378,14 +347,16 @@ export function CustomersManager({
       render: (_, c) => {
         const a = nearestAppt.get(c.id);
         const d = a && dayjs(a.scheduled_at);
-        // Sắp tới = xanh dương; đã qua: đã đến = xanh lá, chưa đến = xám.
-        const color = !a ? undefined : Date.parse(a.scheduled_at) >= now ? "blue" : a.checked_in ? "green" : "default";
         return (
           <div className="flex items-center gap-1">
             {d ? (
-              <Tag color={color} title={d.format("DD-MM-YYYY HH:mm")} className="me-0 tabular-nums">
-                {d.format("DD-MM HH:mm")}
-              </Tag>
+              // Đã qua → chữ mờ.
+              <span
+                title={d.format("DD/MM/YYYY HH:mm")}
+                className={cn("tabular-nums", d.valueOf() < now && "text-muted-foreground")}
+              >
+                {d.format("DD/MM HH:mm")}
+              </span>
             ) : can("appointments.edit") && (
               // Chưa có lịch → nút mở drawer tạo lịch hẹn cho khách này.
               <Button
@@ -418,7 +389,7 @@ export function CustomersManager({
             title: t("colReminder"),
             key: "reminder",
             width: 150,
-            // Lịch nhắc chưa xong sớm nhất (màu: quá hạn/hôm nay/sắp tới) + số chưa xong; bấm mở popover tại chỗ.
+            // Lịch nhắc chưa xong sớm nhất (chữ đỏ quá hạn / cam hôm nay) + số chưa xong; bấm mở popover tại chỗ.
             render: (_: unknown, c: Customer) => {
               const list = remindersOf.get(c.id) ?? [];
               const next = nextPending(list);
@@ -434,13 +405,13 @@ export function CustomersManager({
                 >
                   {next ? (
                     <Badge count={pendingCount > 1 ? pendingCount : 0} size="small">
-                      <Tag
-                        color={REMINDER_COLORS[reminderState(next, now)]}
-                        className="me-0 cursor-pointer tabular-nums"
+                      <button
+                        type="button"
                         title={t("viewReminders")}
+                        className={cn("tabular-nums hover:underline", REMINDER_TONE[reminderState(next, now)])}
                       >
-                        {dayjs(next.remind_at).format("DD-MM HH:mm")}
-                      </Tag>
+                        {dayjs(next.remind_at).format("DD/MM HH:mm")}
+                      </button>
                     </Badge>
                   ) : (
                     <Badge count={list.length} size="small" color="var(--muted-foreground)">
@@ -468,17 +439,17 @@ export function CustomersManager({
     ...(
       [
         // Sales, Kỹ thuật viên: ẩn khỏi trang (dữ liệu vẫn giữ; KTV tự điền khi nhận tour).
-        ["staff_id", "colStaff", "telesales"],
+        ["staff_id", "colStaff"],
       ] as const
-    ).map(([field, label, dept]) => ({
+    ).map(([field, label]) => ({
       title: t(label),
       key: field,
       width: 160,
       render: (_: unknown, c: Customer) => (
         <InlineSelect
           value={c[field] ?? ""}
-          display={staffDisplay(c[field])}
-          options={deptOptions(staff, dept, c[field])}
+          display={staffName(staff, c[field])}
+          options={staffOptions(staff, c[field])}
           noneLabel={t("noneOption")}
           ariaLabel={t(label)}
           disabled={!canEdit}
@@ -548,13 +519,10 @@ export function CustomersManager({
             {t("create")}
           </Button>
         )}
-        <Input
-          allowClear
-          className="w-full sm:max-w-64"
-          prefix={<Search className="size-4 text-muted-foreground" />}
+        <SearchInput
           placeholder={t("searchPlaceholder")}
           value={filters.search}
-          onChange={(e) => setFilter("search", e.target.value)}
+          onChange={(v) => setFilter("search", v)}
         />
         <ClearableSelect
           className="min-w-36"
@@ -576,7 +544,7 @@ export function CustomersManager({
           className="min-w-36"
           value={filters.staffId}
           onChange={(v) => setFilter("staffId", v)}
-          options={deptOptions(staff, "telesales")}
+          options={staffOptions(staff)}
           placeholder={t("allStaff")}
           ariaLabel={t("colStaff")}
         />
@@ -594,11 +562,7 @@ export function CustomersManager({
           to={filters.to}
           onChange={(r) => setFilters((f) => ({ ...f, ...r }))}
         />
-        {activeCount > 0 && (
-          <Button type="text" icon={<X className="size-4" />} onClick={() => setFilters(EMPTY_FILTERS)}>
-            {tc("clearFilters")}
-          </Button>
-        )}
+        <ClearFilters show={activeCount > 0} onClick={() => setFilters(EMPTY_FILTERS)} />
       </PageToolbar>
 
       <DataTable
@@ -680,7 +644,7 @@ export function SourceCell({ customer: c }: { customer: Customer }) {
         <div key={r.source ?? ""} className="flex items-center gap-1.5">
           <SourceIcon source={r.source} />
           {r.wa ? (
-            <Tag color={waColor(r.wa)} className="me-0">{r.wa}</Tag>
+            <span className="tabular-nums">{r.wa}</span>
           ) : r.ig ? (
             <a href={`https://www.instagram.com/${r.ig}`} target="_blank" rel="noreferrer" className="truncate">
               {r.ig}
@@ -884,7 +848,7 @@ function CustomerDialog({
         </Form.Item>
         <Form.Item name="staff_id" label={t("colStaff")}>
           <ClearableSelect
-            options={deptOptions(staff, "telesales", editing?.staff_id)}
+            options={staffOptions(staff, editing?.staff_id)}
             placeholder={t("noneOption")}
             ariaLabel={t("colStaff")}
           />

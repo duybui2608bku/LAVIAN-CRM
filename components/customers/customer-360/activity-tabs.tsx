@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Alert, Button, Empty, Image, Input, Segmented, Spin, Tag, Timeline } from "antd";
+import { Alert, Button, Empty, Image, Input, Segmented, Spin, Timeline } from "antd";
 import { RefreshCw, Search, Sparkles } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addQuickNote, summarizeCustomerChat } from "@/app/(app)/customers/customer-360-actions";
 import { ChatBubbles } from "@/components/appointments/chat-bubbles";
+import { StatusDot } from "@/components/common/cells";
 import { NoteComposer, NoteItem } from "@/components/common/notes";
+import { Section } from "@/components/common/section";
 import { UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
 import { mergeTimeline } from "@/lib/customer-360";
@@ -29,8 +31,7 @@ export function PhotosTab({ data }: { data: Customer360 }) {
       {groups.map((a) => {
         const services = a.service_ids.map((id) => data.services.find((s) => s.id === id)).filter((s) => !!s)
           .map((s) => s.name).join(", ") || sg.label(a.service_categories);
-        return <section key={a.id}>
-          <h3 className="mb-2 font-semibold tabular-nums">{[dayjs(a.scheduled_at).format("DD/MM"), services].filter(Boolean).join(" · ")}</h3>
+        return <Section key={a.id} title={[dayjs(a.scheduled_at).format("DD/MM"), services].filter(Boolean).join(" · ")}>
           <div className="grid gap-3 sm:grid-cols-2">
             {(["before", "after"] as const).map((kind) => <div key={kind}>
               <div className="mb-1 text-xs text-muted-foreground">{t(kind)}</div>
@@ -40,7 +41,7 @@ export function PhotosTab({ data }: { data: Customer360 }) {
               </div>
             </div>)}
           </div>
-        </section>;
+        </Section>;
       })}
     </div>
   </Image.PreviewGroup>;
@@ -93,34 +94,34 @@ function ChatSummaryBox({ data, staff, latestAt, onSaved }: {
     await onSaved();
   });
 
-  return <section className="shrink-0 rounded-lg border border-border p-3" aria-busy={pending}>
-    <div className="flex flex-wrap items-center gap-2">
-      <Sparkles className="size-4 text-primary" aria-hidden />
-      <h3 className="text-sm font-semibold">{t("title")}</h3>
-      {stale && <Tag color="orange" className="me-0">{t("stale")}</Tag>}
-      {s?.summary_en && <Segmented size="small" className="ms-auto" value={lang} onChange={setLang}
+  return <Section className="shrink-0"
+    title={<span className="flex items-center gap-2"><Sparkles className="size-4 text-primary" aria-hidden />{t("title")}</span>}
+    extra={<div className="flex flex-wrap items-center gap-2">
+      {stale && <StatusDot color="orange" label={t("stale")} />}
+      {s?.summary_en && <Segmented size="small" value={lang} onChange={setLang}
         options={[{ value: "vi", label: "VI" }, { value: "en", label: "EN" }]} aria-label={t("language")} />}
-      <Button size="small" className={s?.summary_en ? undefined : "ms-auto"} loading={pending} onClick={run}
+      <Button size="small" loading={pending} onClick={run}
         icon={s ? <RefreshCw className="size-3.5" /> : <Sparkles className="size-3.5" />}>{t(s ? "again" : "run")}</Button>
+    </div>}>
+    <div className="flex flex-col gap-2" aria-busy={pending}>
+      {pending ? <p className="text-sm text-muted-foreground">{t("working")}</p>
+        : s ? <>
+          <p className="max-h-40 overflow-y-auto text-sm whitespace-pre-wrap" lang={lang === "en" && s.summary_en ? "en" : "vi"}>
+            {lang === "en" && s.summary_en ? s.summary_en : s.summary}</p>
+          <p className="text-xs text-muted-foreground tabular-nums">{t("meta", {
+            at: dayjs(s.created_at).format("DD/MM/YYYY HH:mm"), count: s.message_count,
+            name: staff.find((m) => m.id === s.created_by)?.user_name ?? "—",
+          })}</p>
+        </>
+        : <p className="text-sm text-muted-foreground">{t("empty")}</p>}
     </div>
-    {pending ? <p className="mt-2 text-sm text-muted-foreground">{t("working")}</p>
-      : s ? <>
-        <p className="mt-2 max-h-40 overflow-y-auto text-sm whitespace-pre-wrap" lang={lang === "en" && s.summary_en ? "en" : "vi"}>
-          {lang === "en" && s.summary_en ? s.summary_en : s.summary}</p>
-        <p className="mt-2 text-xs text-muted-foreground tabular-nums">{t("meta", {
-          at: dayjs(s.created_at).format("DD/MM/YYYY HH:mm"), count: s.message_count,
-          name: staff.find((m) => m.id === s.created_by)?.user_name ?? "—",
-        })}</p>
-      </>
-      : <p className="mt-2 text-sm text-muted-foreground">{t("empty")}</p>}
-  </section>;
+  </Section>;
 }
 
 // ─────────────────────────── Lịch sử & Ghi chú ───────────────────────────
 
 const KINDS = ["log", "customer_note", "appointment_note", "sales_note"] as const;
 type Kind = (typeof KINDS)[number];
-const KIND_COLORS: Record<Kind, string> = { log: "default", customer_note: "blue", appointment_note: "cyan", sales_note: "purple" };
 const LOG_FIELDS: AppointmentLogField[] = ["scheduled_at", "booking_confirm", "visit_status", "service_categories", "service_ids",
   "staff_id", "sales_id", "technician_id", "bill_amount", "paid_amount", "note", "sales_note"];
 
@@ -162,10 +163,7 @@ export function TimelineTab({ data, staff, composing, onSaved }: {
     {shown.length ? <Timeline items={shown.map((i) => ({
       key: `${i.kind}-${i.key}`,
       icon: <UserAvatar src={staff.find((s) => s.id === i.by_id)?.avatar_url} size={22} />,
-      content: <div className="flex flex-col gap-1">
-        <Tag color={KIND_COLORS[i.kind]} className="me-0 self-start text-xs">{t(`timeline.${i.kind}`)}</Tag>
-        {i.node}
-      </div>,
-    }))} /> : <p className="text-sm text-muted-foreground">{t("timeline.empty")}</p>}
+      content: i.node,
+    }))} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("timeline.empty")} />}
   </div>;
 }

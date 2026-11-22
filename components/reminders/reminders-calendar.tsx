@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Badge, Button, Calendar, Empty, Input } from "antd";
+import { Badge, Button, Calendar, Empty } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { useTranslations } from "next-intl";
-import { Search, X } from "lucide-react";
 
 import { ClearableSelect } from "@/components/common/clearable-select";
+import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
 import { useCan, useCurrentUserId } from "@/components/common/permissions";
 import type { StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
@@ -45,7 +45,6 @@ export function RemindersCalendar({
   initialDate?: string;
 }) {
   const t = useTranslations("reminders");
-  const tc = useTranslations("common");
   const can = useCan();
   const canEdit = can("customers.edit");
   const me = useCurrentUserId();
@@ -149,7 +148,7 @@ export function RemindersCalendar({
       <PageToolbar>
         <Button onClick={goToday}>
           {t("today")}
-          {counts.today > 0 && <Badge count={counts.today} size="small" color="orange" />}
+          {counts.today > 0 && <span className="tabular-nums text-muted-foreground">{counts.today}</span>}
         </Button>
         <Button
           danger={counts.overdue > 0}
@@ -178,27 +177,15 @@ export function RemindersCalendar({
           placeholder={t("status.all")}
           ariaLabel={t("statusLabel")}
         />
-        <Input
-          allowClear
-          className="w-full sm:max-w-56"
-          prefix={<Search className="size-4 text-muted-foreground" />}
-          placeholder={t("searchPlaceholder")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+        <SearchInput placeholder={t("searchPlaceholder")} value={search} onChange={setSearch} />
+        <ClearFilters
+          show={activeFilters}
+          onClick={() => {
+            setAssignee("");
+            setStatus("");
+            setSearch("");
+          }}
         />
-        {activeFilters && (
-          <Button
-            type="text"
-            icon={<X className="size-4" />}
-            onClick={() => {
-              setAssignee("");
-              setStatus("");
-              setSearch("");
-            }}
-          >
-            {tc("clearFilters")}
-          </Button>
-        )}
       </PageToolbar>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -238,7 +225,7 @@ export function RemindersCalendar({
           ) : (
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("emptyDay")} />
           )}
-          <p className="m-0 text-xs text-muted-foreground">{t("createHint")}</p>
+
         </section>
       </div>
 

@@ -1,30 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Checkbox, Input, InputNumber } from "antd";
+import { Button, Checkbox, Empty, Input, InputNumber } from "antd";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { FormDrawer } from "@/components/common/form-drawer";
+import { MoneyInput } from "@/components/common/money-input";
+import { Section } from "@/components/common/section";
 import { useServiceGroups } from "@/components/common/service-groups";
-import { formatRupiah, sanitizeCurrencyInput } from "@/lib/currency";
+import { formatIdr, formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import type { Service } from "@/types/service";
 
 export type CardItemInput = { service_id: string; price: number; sessions: number };
-
-/** Ô tiền IDR (định dạng 1.000.000) — dùng chung các form thẻ. */
-export function MoneyInput(props: { value?: number | null; onChange?: (v: number | null) => void; min?: number; className?: string; ariaLabel?: string; size?: "small" }) {
-  return <InputNumber<number> className={props.className ?? "w-full"} min={props.min ?? 0} precision={0} controls={false} placeholder="Rp"
-    inputMode="numeric" aria-label={props.ariaLabel} value={props.value} onChange={props.onChange} size={props.size}
-    formatter={(v) => (v == null || `${v}` === "" ? "" : Number(v).toLocaleString("id-ID"))}
-    parser={(v) => {
-      const neg = (v ?? "").trim().startsWith("-");
-      const n = Number(sanitizeCurrencyInput(v ?? ""));
-      return (neg ? -n : n) as unknown as number;
-    }} />;
-}
-
-const idr = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
 
 /**
  * Drawer chọn dịch vụ cho thẻ liệu trình — dùng khi bán thẻ (Sales Management, có `deposit` để trừ)
@@ -80,7 +68,7 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, on
                 <label className={`flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-muted ${on ? "bg-primary/5 font-medium" : ""}`}>
                   <Checkbox checked={on} disabled={pending} onChange={(e) => toggle(s, e.target.checked)} />
                   <span className="min-w-0 flex-1">{s.name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{s.price ? idr.format(s.price) : "0"}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatIdr(s.price)}</span>
                 </label>
               </li>;
             })}
@@ -89,8 +77,7 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, on
       </div>
 
       {/* Đã chọn + tạm tính — dính trên khi cuộn (desktop). */}
-      <aside className="flex flex-col gap-3 self-start lg:sticky lg:top-0">
-        <h4 className="font-semibold">{t("selected", { count: lines.length })}</h4>
+      <Section title={t("selected", { count: lines.length })} className="self-start lg:sticky lg:top-0">
         {lines.length ? <ul className="flex flex-col gap-2">
           {lines.map((l) => {
             const s = byId.get(l.service_id);
@@ -98,7 +85,7 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, on
               <div className="mb-1.5 flex items-start justify-between gap-2">
                 <div className="min-w-0 text-sm">
                   <div className="font-medium">{s?.name}</div>
-                  <div className="text-xs text-muted-foreground">{s ? `${groups.name(s.group_id)} · ${t("listPrice")} ${idr.format(s.price)}` : ""}</div>
+                  <div className="text-xs text-muted-foreground">{s ? groups.name(s.group_id) : ""}</div>
                 </div>
                 <Button type="text" size="small" aria-label={t("removeLine")} icon={<X className="size-4" />} disabled={pending}
                   onClick={() => s && toggle(s, false)} />
@@ -110,7 +97,7 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, on
               </div>
             </li>;
           })}
-        </ul> : <p className="text-sm text-muted-foreground">{t("emptyItems")}</p>}
+        </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("emptyItems")} />}
 
         <dl className="grid grid-cols-[1fr_auto] gap-y-1.5 rounded-lg border border-border p-3 text-sm tabular-nums">
           {listTotal !== total ? <>
@@ -127,7 +114,7 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, on
 
         <Input.TextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("note")} aria-label={t("note")}
           autoSize={{ minRows: 2, maxRows: 5 }} maxLength={2000} />
-      </aside>
+      </Section>
     </div>
   </FormDrawer>;
 }

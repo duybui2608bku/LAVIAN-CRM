@@ -2,14 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Alert, Avatar, Button, Modal, Result, Skeleton, Tabs, Tag } from "antd";
+import { Alert, Avatar, Button, Empty, Modal, Skeleton, Tabs } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, NotebookPen, PanelRightOpen } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { getCustomer360 } from "@/app/(app)/customers/customer-360-actions";
-import { EnumTag } from "@/components/common/enum-tag";
+import { DASH, StatusDot } from "@/components/common/cells";
 import { useCan } from "@/components/common/permissions";
+import { Section } from "@/components/common/section";
 import type { StaffRef } from "@/components/common/user-avatar";
 import { MessagesTab, PhotosTab, TimelineTab } from "@/components/customers/customer-360/activity-tabs";
 import { OverviewTab, PortraitTab, ServicesTab, SourceTag } from "@/components/customers/customer-360/profile-tabs";
@@ -18,7 +19,7 @@ import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import { optionLabel } from "@/lib/customers";
 import { PORTRAIT_FIELDS, type Customer360, type ViewerRole } from "@/types/customer-360";
 
-type TabKey = "overview" | "portrait" | "services" | "photos" | "messages" | "timeline" | "care";
+type TabKey = "overview" | "portrait" | "services" | "photos" | "messages" | "timeline";
 // Tab mở đầu theo vai trò tài khoản (gợi ý D1).
 const ROLE_TAB: Record<ViewerRole, TabKey> = { admin: "overview", telesales: "portrait", sales: "services", master: "overview" };
 
@@ -92,7 +93,6 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
             ...(data.can.photos ? [{ key: "photos", label: t("tabs.photos"), children: <PhotosTab data={data} /> }] : []),
             { key: "messages", label: t("tabs.messages"), children: <MessagesTab data={data} staff={staff} onSaved={refresh} /> },
             { key: "timeline", label: t("tabs.timeline"), children: <TimelineTab data={data} staff={staff} composing={composing} onSaved={refresh} /> },
-            { key: "care", label: t("tabs.care"), children: <Result status="info" title={t("comingSoon")} subTitle={t("comingSoonDesc")} /> },
           ]} />
         </div>
       </div>}
@@ -111,11 +111,9 @@ function Header({ data, index, total, onPrev, onNext }: {
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-center gap-2">
         <span className="truncate text-lg font-semibold">{c?.full_name ?? t("title")}</span>
-        {stage && <EnumTag label={optionLabel(stage, locale)} icon={stage.icon} color={stage.color} />}
+        {stage && <StatusDot label={optionLabel(stage, locale)} color={stage.color} className="font-normal" />}
       </div>
-      <div className="min-h-4 text-xs font-normal text-muted-foreground tabular-nums">
-        {[c?.phone, data && t(`hint.${data.role}`)].filter(Boolean).join(" · ")}
-      </div>
+      <div className="min-h-4 text-xs font-normal text-muted-foreground tabular-nums">{c?.phone}</div>
     </div>
     {index >= 0 && <div className="flex items-center gap-1 font-normal">
       <Button size="small" aria-label={t("prev")} title={t("prev")} disabled={index <= 0} icon={<ChevronLeft className="size-4" />} onClick={onPrev} />
@@ -148,26 +146,24 @@ function SideColumn({ data }: { data: Customer360 }) {
   const locale = useLocale();
   const latest = latestPortrait(data.portrait);
   return <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto max-lg:hidden">
-    <section className="rounded-lg border border-border p-3">
-      <h3 className="mb-2 text-sm font-semibold">{t("quickPortrait")}</h3>
+    <Section title={t("quickPortrait")}>
       <dl className="flex flex-col gap-2 text-sm">
         {PORTRAIT_FIELDS.map((f) => <div key={f}>
           <dt className="text-xs text-muted-foreground">{t(`portrait.fields.${f}`)}</dt>
           <dd className="line-clamp-2">{latest[f]
             ? <>{portraitText(latest[f]!, locale)} <SourceTag source={latest[f]!.source} /></>
-            : <span className="text-muted-foreground">—</span>}</dd>
+            : DASH}</dd>
         </div>)}
       </dl>
-    </section>
-    <section className="rounded-lg border border-border p-3">
-      <h3 className="mb-2 text-sm font-semibold">{t("nextTasks")}</h3>
+    </Section>
+    <Section title={t("nextTasks")}>
       {data.reminders.length ? <ul className="flex flex-col gap-2 text-sm">
         {data.reminders.map((r) => <li key={r.id}>
-          <Tag color={Date.parse(r.remind_at) < data.now ? "red" : "blue"} className="me-0 tabular-nums">{dayjs(r.remind_at).format("DD/MM HH:mm")}</Tag>
-          <p className="mt-1 line-clamp-3 whitespace-pre-wrap">{r.note}</p>
+          <span className={Date.parse(r.remind_at) < data.now ? "text-destructive tabular-nums" : "tabular-nums"}>{dayjs(r.remind_at).format("DD/MM HH:mm")}</span>
+          <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap">{r.note}</p>
         </li>)}
-      </ul> : <p className="text-sm text-muted-foreground">{t("noTasks")}</p>}
-    </section>
+      </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noTasks")} />}
+    </Section>
   </aside>;
 }
 

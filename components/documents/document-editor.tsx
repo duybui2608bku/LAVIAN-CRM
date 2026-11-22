@@ -102,7 +102,8 @@ export function DocumentEditor({ doc }: { doc: DocumentRecord | null }) {
               options={DEPARTMENTS.map((d) => ({ value: d, label: tu(`dept_${d}`) }))}
             />
           </Form.Item>
-          <Form.Item name="pdf_path" label={t("pdf")} extra={t("pdfHint", { mb: MAX_PDF_MB })} className="mb-0!">
+          <Form.Item name="pdf_path" label={t("pdf")} className="mb-0!">
+
             <PdfField />
           </Form.Item>
         </aside>

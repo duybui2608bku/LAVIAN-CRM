@@ -25,3 +25,9 @@ export function sanitizeCurrencyInput(value: string) {
   const digits = value.replace(/\D/g, "");
   return digits.replace(/^0+(?=\d)/, "");
 }
+
+/** Số tiền không ký hiệu tiền tệ: 1500000 → "1.500.000". */
+export function formatIdr(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return "";
+  return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(value);
+}

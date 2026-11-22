@@ -1,11 +1,12 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
-import { Button, Drawer, Input, Tag, Timeline } from "antd";
+import { Button, Drawer, Empty, Input, Tag, Timeline } from "antd";
 import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { ConfirmAction } from "@/components/common/confirm-action";
+import { Section } from "@/components/common/section";
 import { UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { toast } from "@/lib/toast";
 
@@ -48,7 +49,7 @@ export function NoteTimeline({ notes, staff, canDelete, onDelete }: {
   onDelete?: (n: NoteEntry) => Promise<unknown>;
 }) {
   const t = useTranslations("notes");
-  if (!notes.length) return <p className="text-muted-foreground">{t("empty")}</p>;
+  if (!notes.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("empty")} />;
   return <Timeline items={[...notes].reverse().map((n, i) => ({
     key: n.id ?? i,
     icon: <UserAvatar src={noteAuthor(n, staff).avatar} size={22} />,
@@ -132,8 +133,9 @@ export function NotesDrawer({ open, title, notes, staff, onAdd, canDelete, onDel
   });
   return <Drawer open={open} onClose={onClose} size={520} destroyOnHidden title={title}>
     {onAdd && <NoteComposer onAdd={onAdd} />}
-    <h3 className="mt-5 mb-3 font-semibold">{t("history")} <span className="font-normal text-muted-foreground">({notes.length})</span></h3>
-    <NoteTimeline notes={notes} staff={staff} canDelete={canDelete} onDelete={remove} />
+    <Section title={<>{t("history")} <span className="font-normal text-muted-foreground">({notes.length})</span></>} className="mt-5">
+      <NoteTimeline notes={notes} staff={staff} canDelete={canDelete} onDelete={remove} />
+    </Section>
   </Drawer>;
 }
 

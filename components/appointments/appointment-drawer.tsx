@@ -1,28 +1,26 @@
 "use client";
 
 import { useTransition } from "react";
-import { Button, Divider, Form, Select, Tag } from "antd";
+import { Button, Empty, Form, Select } from "antd";
 import { NotebookPen, PanelRightOpen, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { setAppointmentPerformers } from "@/app/(app)/customers/customer-360-actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
-import { staffOptions, type AppointmentStaff } from "@/components/appointments/appointments-manager";
+import { type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { DueText } from "@/components/cards/card-drawer";
 import { cardMoney } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
 import { NoteItem } from "@/components/common/notes";
 import { FormDrawer } from "@/components/common/form-drawer";
-import { staffLabel } from "@/components/common/user-avatar";
+import { Section } from "@/components/common/section";
+import { staffName, staffOptions } from "@/components/common/user-avatar";
 import { toast } from "@/lib/toast";
 import {
-  BOOKING_STATUS_COLORS, VISIT_STATUSES,
-  type Appointment, type AppointmentCustomer, type AppointmentPatch, type VisitStatus,
+  VISIT_STATUSES, type Appointment, type AppointmentCustomer, type AppointmentPatch, type VisitStatus,
 } from "@/types/appointment";
 import { PERFORMER_ROLES, type AppointmentPerformer } from "@/types/customer-360";
 import type { TreatmentCard } from "@/types/card";
-import type { Service } from "@/types/service";
-import { useServiceGroups } from "@/components/common/service-groups";
 
 // Trường drawer sửa được — gửi lên server chỉ những trường đã đổi. Dịch vụ / tiền nằm ở thẻ liệu trình (cột Thẻ trên bảng).
 const FIELDS = ["scheduled_at", "visit_status", "sales_id", "technician_id"] as const satisfies readonly (keyof AppointmentPatch)[];
@@ -35,7 +33,6 @@ type Props = {
   appointment: Appointment;
   customer: AppointmentCustomer | undefined;
   staff: AppointmentStaff[];
-  services: Service[];
   canEdit: boolean;
   /** Status được chọn (Sales/admin: tất cả; Master: chỉ Đã thực hiện; rỗng = không đổi được). */
   visitChoices: VisitStatus[];
@@ -55,20 +52,12 @@ export function AppointmentDrawer({ appointment, ...props }: Omit<Props, "appoin
 }
 
 function AppointmentDrawerBody({
-  appointment: a, customer, staff, services, canEdit, visitChoices, card, deposit, onViewInfo, onOpenNotes, onClose,
+  appointment: a, customer, staff, canEdit, visitChoices, card, deposit, onViewInfo, onOpenNotes, onClose,
 }: Props) {
   const t = useTranslations("appointments");
   const tn = useTranslations("notes");
-  const groups = useServiceGroups();
   const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
-  const nameOf = (id: string) => services.find((x) => x.id === id)?.name ?? "—";
-  // Dòng phụ đầu drawer: SĐT · Nhóm DV – dịch vụ trong thẻ · Xác nhận lịch.
-  const serviceLine = [
-    groups.label(a.service_categories),
-    card?.items.filter((i) => !i.refunded_at).map((i) => nameOf(i.service_id)).join(", "),
-  ].filter(Boolean).join(" – ");
-  const tele = a.staff_id ? staff.find((s) => s.id === a.staff_id) : undefined;
   // Tài chính chỉ xem, giống cột Tài chính trên bảng: có thẻ → Giá trị / Đã thu / Công nợ; chưa có → cọc chưa trừ.
   const m = card && cardMoney(card);
   const finance: [string, React.ReactNode][] = m
@@ -96,103 +85,98 @@ function AppointmentDrawerBody({
   };
 
   return <FormDrawer open onClose={onClose} pending={pending} width={560} submitText={t("saveUpdate")}
-    onSubmit={canEdit ? () => form.submit() : onClose}
-    title={<div className="flex items-start justify-between gap-2">
-      <div className="min-w-0">
-        <div className="truncate text-lg font-semibold">{customer?.full_name}</div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs font-normal text-muted-foreground tabular-nums">
-          {[customer?.phone, serviceLine].filter(Boolean).join(" · ")}
-          <Tag color={BOOKING_STATUS_COLORS[a.booking_confirm]} className="me-0">{t(`bookingStatus.${a.booking_confirm}`)}</Tag>
-        </div>
-      </div>
+    onSubmit={canEdit ? () => form.submit() : undefined}
+    title={<div className="flex items-center justify-between gap-2">
+      <span className="truncate">{customer?.full_name}</span>
       {customer && <Button type="text" size="small" aria-label={t("viewInfo")} title={t("viewInfo")}
         icon={<PanelRightOpen className="size-4" />} onClick={() => onViewInfo(customer)} />}
     </div>}>
     <Form form={form} layout="vertical" disabled={!canEdit || pending} onFinish={submit} requiredMark={false}
       initialValues={{ ...Object.fromEntries(FIELDS.map((f) => [f, a[f]])), performers: a.performers ?? [] }}>
-      <h3 className="mb-3 font-semibold">{t("sectionBooking")}</h3>
-      <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
-        <Form.Item name="scheduled_at" label={t("date")} trigger="onSave" rules={[{ required: true, message: t("chooseDate") }]}>
-          <AppointmentDate className="w-full" onSave={() => {}} />
-        </Form.Item>
-        {/* Status: Sales/admin đổi mọi trạng thái; Master chỉ chọn được Đã thực hiện. */}
-        <Form.Item name="visit_status" label={t("confirmation")}>
-          <Select disabled={!visitChoices.length} options={VISIT_STATUSES.map((value) => ({
-            value, label: t(`visitStatus.${value}`), disabled: value !== a.visit_status && !visitChoices.includes(value),
-          }))} />
-        </Form.Item>
-      </div>
+      <Section title={t("sectionBooking")}>
+        <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
+          <Form.Item name="scheduled_at" label={t("date")} trigger="onSave" rules={[{ required: true, message: t("chooseDate") }]}>
+            <AppointmentDate className="w-full" onSave={() => {}} />
+          </Form.Item>
+          {/* Status: Sales/admin đổi mọi trạng thái; Master chỉ chọn được Đã thực hiện. */}
+          <Form.Item name="visit_status" label={t("confirmation")}>
+            <Select disabled={!visitChoices.length} options={VISIT_STATUSES.map((value) => ({
+              value, label: t(`visitStatus.${value}`), disabled: value !== a.visit_status && !visitChoices.includes(value),
+            }))} />
+          </Form.Item>
+        </div>
+      </Section>
 
-      <Divider className="mt-1 mb-4" />
       {/* Tài chính: chỉ xem — tiền sửa ở drawer thẻ liệu trình (bấm mã thẻ trên bảng). */}
-      <h3 className="mb-3 font-semibold">{t("sectionFinance")}</h3>
-      <div className="grid grid-cols-3 gap-x-4 tabular-nums max-sm:grid-cols-1">
-        {finance.map(([label, value]) => <Form.Item key={label} label={label}>{value}</Form.Item>)}
-      </div>
+      <Section title={t("sectionFinance")}>
+        <div className="grid grid-cols-3 gap-x-4 tabular-nums max-sm:grid-cols-1">
+          {finance.map(([label, value]) => <Form.Item key={label} label={label}>{value}</Form.Item>)}
+        </div>
+      </Section>
 
-      <Divider className="mt-1 mb-4" />
-      <h3 className="mb-3 font-semibold">{t("sectionStaff")}</h3>
-      {/* Telesales · Sales · Master cùng 1 hàng (điện thoại: xếp dọc). */}
-      <div className="grid grid-cols-3 gap-x-4 max-sm:grid-cols-1">
-        <Form.Item label={t("staff")}>
-          <span className={tele ? undefined : "text-muted-foreground"}>{tele ? staffLabel(tele) : "—"}</span>
-        </Form.Item>
-        <Form.Item name="sales_id" label={t("sales")}>
-          <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("choose")}
-            options={staffOptions(staff, a.sales_id, ["sales"])} />
-        </Form.Item>
-        {/* E3: Đã thực hiện cần Master; Đang thực hiện cần Master hoặc Sales. */}
-        <Form.Item name="technician_id" label={t("master")} dependencies={["visit_status", "sales_id"]} rules={[{
-          validator: (_, v?: string | null) => {
-            const status = form.getFieldValue("visit_status");
-            if (!v && status === "done") return Promise.reject(new Error(t("rule.doneNeedsMaster")));
-            if (!v && status === "in_progress" && !form.getFieldValue("sales_id")) return Promise.reject(new Error(t("rule.inProgressNeedsStaff")));
-            return Promise.resolve();
-          },
-        }]}>
-          <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("unassigned")}
-            options={staffOptions(staff, a.technician_id, ["technician"])} />
-        </Form.Item>
-      </div>
+      <Section title={t("sectionStaff")}>
+        {/* Telesales · Sales · Master cùng 1 hàng (điện thoại: xếp dọc). */}
+        <div className="grid grid-cols-3 gap-x-4 max-sm:grid-cols-1">
+          <Form.Item label={t("staff")}>
+            {staffName(staff, a.staff_id)}
+          </Form.Item>
+          <Form.Item name="sales_id" label={t("sales")}>
+            <Select allowClear showSearch={{ optionFilterProp: "title" }} placeholder={t("choose")}
+              options={staffOptions(staff, a.sales_id, ["sales"])} />
+          </Form.Item>
+          {/* E3: Đã thực hiện cần Master; Đang thực hiện cần Master hoặc Sales. */}
+          <Form.Item name="technician_id" label={t("master")} dependencies={["visit_status", "sales_id"]} rules={[{
+            validator: (_, v?: string | null) => {
+              const status = form.getFieldValue("visit_status");
+              if (!v && status === "done") return Promise.reject(new Error(t("rule.doneNeedsMaster")));
+              if (!v && status === "in_progress" && !form.getFieldValue("sales_id")) return Promise.reject(new Error(t("rule.inProgressNeedsStaff")));
+              return Promise.resolve();
+            },
+          }]}>
+            <Select allowClear showSearch={{ optionFilterProp: "title" }} placeholder={t("unassigned")}
+              options={staffOptions(staff, a.technician_id, ["technician"])} />
+          </Form.Item>
+        </div>
 
-      {/* Người thực hiện thêm (ngoài Master): mỗi người 1 vai trò, mỗi người tối đa 1 lần. */}
-      <div className="mb-4">
-        <div className="mb-2 text-sm">{t("performers")}</div>
-        <Form.List name="performers">{(fields, { add, remove }) => <div className="flex flex-col gap-2">
-          {fields.map((field) => <div key={field.key} className="flex items-start gap-2">
-            <Form.Item name={[field.name, "profile_id"]} className="mb-0 min-w-0 flex-1" rules={[
-              { required: true, message: t("performer") },
-              { validator: (_, v?: string) => v && (form.getFieldValue("performers") as Partial<AppointmentPerformer>[])
-                .filter((p) => p?.profile_id === v).length > 1 ? Promise.reject(new Error(t("performerDuplicate"))) : Promise.resolve() },
-            ]}>
-              <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("performer")} aria-label={t("performer")}
-                options={staffOptions(staff, a.performers?.[field.name]?.profile_id, ["technician", "sales"])}
-                // Đổi người → chọn sẵn vai trò hợp bộ phận.
-                onChange={(id: string) => form.setFieldValue(["performers", field.name, "role"],
-                  rolesOf(staff.find((s) => s.id === id)?.department)[0])} />
-            </Form.Item>
-            <Form.Item noStyle shouldUpdate>{() => {
-              const person = staff.find((s) => s.id === form.getFieldValue(["performers", field.name, "profile_id"]));
-              return <Form.Item name={[field.name, "role"]} className="mb-0 w-36" rules={[{ required: true, message: t("performerRole") }]}>
-                <Select placeholder={t("performerRole")} aria-label={t("performerRole")}
-                  options={rolesOf(person?.department).map((r) => ({ value: r, label: t(`performerRoles.${r}`) }))} />
-              </Form.Item>;
-            }}</Form.Item>
-            <Button type="text" aria-label={tn("delete")} icon={<X className="size-4" />} onClick={() => remove(field.name)} />
-          </div>)}
-          <Button type="dashed" icon={<Plus className="size-4" />} onClick={() => add({})} className="self-start">{t("addPerformer")}</Button>
-        </div>}</Form.List>
-      </div>
+        {/* Người thực hiện thêm (ngoài Master): mỗi người 1 vai trò, mỗi người tối đa 1 lần. */}
+        <div className="mb-4">
+          <div className="mb-2 text-sm">{t("performers")}</div>
+          <Form.List name="performers">{(fields, { add, remove }) => <div className="flex flex-col gap-2">
+            {fields.map((field) => <div key={field.key} className="flex items-start gap-2">
+              <Form.Item name={[field.name, "profile_id"]} className="mb-0 min-w-0 flex-1" rules={[
+                { required: true, message: t("performer") },
+                { validator: (_, v?: string) => v && (form.getFieldValue("performers") as Partial<AppointmentPerformer>[])
+                  .filter((p) => p?.profile_id === v).length > 1 ? Promise.reject(new Error(t("performerDuplicate"))) : Promise.resolve() },
+              ]}>
+                <Select showSearch={{ optionFilterProp: "title" }} placeholder={t("performer")} aria-label={t("performer")}
+                  options={staffOptions(staff, a.performers?.[field.name]?.profile_id, ["technician", "sales"])}
+                  // Đổi người → chọn sẵn vai trò hợp bộ phận.
+                  onChange={(id: string) => form.setFieldValue(["performers", field.name, "role"],
+                    rolesOf(staff.find((s) => s.id === id)?.department)[0])} />
+              </Form.Item>
+              <Form.Item noStyle shouldUpdate>{() => {
+                const person = staff.find((s) => s.id === form.getFieldValue(["performers", field.name, "profile_id"]));
+                return <Form.Item name={[field.name, "role"]} className="mb-0 w-36" rules={[{ required: true, message: t("performerRole") }]}>
+                  <Select placeholder={t("performerRole")} aria-label={t("performerRole")}
+                    options={rolesOf(person?.department).map((r) => ({ value: r, label: t(`performerRoles.${r}`) }))} />
+                </Form.Item>;
+              }}</Form.Item>
+              <Button type="text" aria-label={tn("delete")} icon={<X className="size-4" />} onClick={() => remove(field.name)} />
+            </div>)}
+            <Button type="dashed" icon={<Plus className="size-4" />} onClick={() => add({})} className="self-start">{t("addPerformer")}</Button>
+          </div>}</Form.List>
+        </div>
+      </Section>
 
-      <Divider className="mt-1 mb-4" />
       {/* Ghi chú Sales: xem nhanh 2 ghi chú mới nhất, thêm / xem hết ở drawer Ghi chú Sales. */}
-      <h3 className="mb-3 font-semibold">{t("sectionNote")}</h3>
-      {a.sales_notes.length ? <div className="mb-3 space-y-3">
-        {a.sales_notes.slice(-2).reverse().map((n) => <NoteItem key={n.id} note={n} staff={staff} clamp />)}
-      </div> : <p className="mb-3 text-muted-foreground">{tn("empty")}</p>}
-      <Button block icon={<NotebookPen className="size-4" />} disabled={false} onClick={onOpenNotes}>
-        {tn("viewAll", { count: a.sales_notes.length })}
-      </Button>
+      <Section title={t("sectionNote")}>
+        {a.sales_notes.length ? <div className="space-y-3">
+          {a.sales_notes.slice(-2).reverse().map((n) => <NoteItem key={n.id} note={n} staff={staff} clamp />)}
+        </div> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={tn("empty")} />}
+        <Button block icon={<NotebookPen className="size-4" />} disabled={false} onClick={onOpenNotes}>
+          {tn("viewAll", { count: a.sales_notes.length })}
+        </Button>
+      </Section>
     </Form>
   </FormDrawer>;
 }

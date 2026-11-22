@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Form, Select, Tag } from "antd";
+import { Button, Form, Select } from "antd";
 import { CheckCircle2, NotebookPen, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addTourNote, claimTour, confirmTour, deleteTourNote, releaseTour, updateTour } from "@/app/(app)/tour/actions";
+import { StatusDot } from "@/components/common/cells";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { NoteItem, NotesDrawer } from "@/components/common/notes";
-import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { Section } from "@/components/common/section";
+import { staffName, staffOptions, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
 import { formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
@@ -29,7 +31,7 @@ const STATUS_COLOR: Record<TourStatus, string> = { pending: "gold", claimed: "bl
 export const TourStatusTag = ({ tour }: { tour: Pick<Tour, "technician_id" | "confirmed_at"> }) => {
   const t = useTranslations("tour");
   const status = tourStatus(tour);
-  return <Tag color={STATUS_COLOR[status]} className="me-0">{t(`status_${status}`)}</Tag>;
+  return <StatusDot color={STATUS_COLOR[status]} label={t(`status_${status}`)} />;
 };
 
 /** "Lần n" của tour — dịch vụ chi tiết (New/Retouch/Laser…) suy từ lần, không hiện trên UI (sếp làm lại sau). */
@@ -81,7 +83,6 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   const canEditBasic = canEdit && !me.isTechnician;
   const fromCard = !!tour.card_item_id; // tour từ thẻ liệu trình: khách + dịch vụ cố định theo thẻ
   const canClaim = me.canEdit && me.isTechnician && status === "pending";
-  const technician = staff.find((s) => s.id === tour.technician_id);
   const done = t("saved");
   const failed = t("saveError");
 
@@ -118,7 +119,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
 
   return <FormDrawer open onClose={onClose} pending={pending} width={520} footerExtra={footerExtra}
     title={<span className="flex items-center gap-2">{tour.customer?.full_name ?? t("title")} <TourStatusTag tour={tour} /></span>}
-    submitText={canEdit ? t("save") : t("close")} onSubmit={() => (canEdit ? save() : onClose())}>
+    submitText={t("save")} onSubmit={canEdit ? () => save() : undefined}>
     <Form form={form} layout="vertical" requiredMark={false} disabled={!canEdit || pending}
       initialValues={{
         tour_date: tour.tour_date, customer_id: tour.customer_id, service_id: tour.service_id,
@@ -144,41 +145,37 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
         <dd>{tour.customer?.full_name} {tour.customer?.phone ? <a href={`tel:${tour.customer.phone}`} className="text-muted-foreground">· {tour.customer.phone}</a> : null}</dd>
         <dt className="text-muted-foreground">{t("service")}</dt>
         <dd>{(() => { const s = services.find((x) => x.id === tour.service_id); return s ? s.name : "—"; })()}</dd>
-        {!me.isAdmin ? <><dt className="text-muted-foreground">{t("technician")}</dt><dd>{technician ? staffLabel(technician) : "—"}</dd></> : null}
+        {!me.isAdmin ? <><dt className="text-muted-foreground">{t("technician")}</dt><dd>{staffName(staff, tour.technician_id)}</dd></> : null}
       </dl>}
 
       {me.isAdmin ? <Form.Item name="technician_id" label={t("technician")}>
         <Select allowClear showSearch={{ optionFilterProp: "title" }} placeholder={t("unassigned")}
-          options={staff.filter((s) => s.id === tour.technician_id || (s.status === "active" && s.department === "technician"))
-            .map((s) => ({ value: s.id, title: s.user_name, label: staffLabel(s) }))} />
+          options={staffOptions(staff, tour.technician_id, ["technician"])} />
       </Form.Item> : null}
 
-      {canClaim ? <p className="mb-4 text-sm text-muted-foreground">{t("claimHint")}</p> : <>
-        <div className="grid grid-cols-2 gap-3">
-          <Form.Item name="kind" label={t("kind")} extra={kindText(t, tour) || undefined}>
-            <Select placeholder="—"
-              options={[...TOUR_KINDS, ...(tour.service_detail === "debt" ? ["debt"] : [])]
-                .map((k) => ({ value: k, label: t(`detail_${k}`), disabled: k === "debt" }))} />
-          </Form.Item>
-          {/* Hoá đơn chỉ xem (giá bán lấy từ thẻ khi tạo tour) — thanh toán thu ở thẻ liệu trình. */}
-          <Form.Item label={t("bill")}>
-            <span className="tabular-nums">{tour.bill_amount == null ? "—" : formatRupiah(tour.bill_amount)}</span>
-            <div className="text-xs text-muted-foreground tabular-nums">{t("commission")}: {formatRupiah(tourCommission(tour))}</div>
-          </Form.Item>
-        </div>
-      </>}
+      {canClaim ? null : <div className="grid grid-cols-2 gap-3">
+        <Form.Item name="kind" label={t("kind")}>
+          <Select placeholder="—"
+            options={[...TOUR_KINDS, ...(tour.service_detail === "debt" ? ["debt"] : [])]
+              .map((k) => ({ value: k, label: t(`detail_${k}`), disabled: k === "debt" }))} />
+        </Form.Item>
+        {/* Hoá đơn chỉ xem (giá bán lấy từ thẻ khi tạo tour) — thanh toán thu ở thẻ liệu trình. */}
+        <Form.Item label={t("bill")}>
+          <span className="tabular-nums">{tour.bill_amount == null ? "—" : formatRupiah(tour.bill_amount)}</span>
+          <div className="text-xs text-muted-foreground tabular-nums">{t("commission")}: {formatRupiah(tourCommission(tour))}</div>
+        </Form.Item>
+      </div>}
     </Form>
 
     {/* Ghi chú tour (timeline): xem nhanh 2 ghi chú mới nhất, thêm / xem hết ở drawer ghi chú chung. */}
-    <section className="mb-4">
-      <div className="mb-2">{t("note")}</div>
-      {tour.notes.length ? <div className="mb-3 space-y-3">
+    <Section title={t("note")} className="mb-4">
+      {tour.notes.length ? <div className="space-y-3">
         {tour.notes.slice(-2).reverse().map((n) => <NoteItem key={n.id} note={n} staff={staff} clamp />)}
       </div> : null}
       <Button block icon={<NotebookPen className="size-4" />} onClick={() => setNotesOpen(true)}>
         {tn("viewAll", { count: tour.notes.length })}
       </Button>
-    </section>
+    </Section>
     <NotesDrawer open={notesOpen} staff={staff} notes={tour.notes} onClose={() => setNotesOpen(false)}
       title={[t("note"), tour.customer?.full_name].filter(Boolean).join(" · ")}
       onAdd={canEdit ? (input) => addTourNote(tour.id, input) : undefined}

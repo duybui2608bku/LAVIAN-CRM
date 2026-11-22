@@ -5,13 +5,6 @@ import type { Reminder, ReminderState } from "@/types/reminder";
 /** Tạm tắt tính năng nhắc hẹn (menu, cột Nhắc hẹn, trang calendar). Chuông vẫn bật cho Khách tiềm năng. */
 export const REMINDERS_ENABLED = false;
 
-export const REMINDER_COLORS: Record<ReminderState, string> = {
-  overdue: "red",
-  today: "orange",
-  upcoming: "blue",
-  done: "default",
-};
-
 /** Trạng thái lịch nhắc so với `now` (ngày theo giờ máy — nhân viên ở cùng múi giờ cơ sở). */
 export function reminderState(r: Pick<Reminder, "remind_at" | "done_at">, now: number): ReminderState {
   if (r.done_at) return "done";

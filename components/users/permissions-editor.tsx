@@ -73,16 +73,12 @@ export function PermissionsEditor({ initial, members }: { initial: Values; membe
   const treeData: TreeProps["treeData"] = MODULES.map((m) => {
     const Icon = MODULE_ICONS[m];
     const actions = PERMISSION_MODULES[m];
-    const count = actions.filter((a) => checked.includes(`${m}.${a}`)).length;
     return {
       key: m,
       title: (
         <span className="flex items-center gap-2 py-0.5">
           <Icon className="size-4 text-muted-foreground" />
           <span className="font-medium">{tNav(m)}</span>
-          <span className="text-xs tabular-nums text-muted-foreground">
-            {count}/{actions.length}
-          </span>
         </span>
       ),
       children: actions.map((a) => ({
@@ -154,12 +150,7 @@ export function PermissionsEditor({ initial, members }: { initial: Values; membe
 
         <section className="surface flex min-w-0 flex-col">
           <header className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <h2 className="truncate font-semibold">{t(`dept_${current}`)}</h2>
-              <p className="text-xs text-muted-foreground">
-                {t("selectedCount", { n: checked.length, total: ALL_PERMISSIONS.length })}
-              </p>
-            </div>
+            <h2 className="min-w-0 flex-1 truncate font-semibold">{t(`dept_${current}`)}</h2>
             <Button size="small" disabled={checked.length === ALL_PERMISSIONS.length} onClick={() => set(ALL_PERMISSIONS)}>
               {t("selectAll")}
             </Button>
@@ -186,7 +177,8 @@ export function PermissionsEditor({ initial, members }: { initial: Values; membe
 
           <footer className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
             <span className="min-w-0 flex-1 text-sm text-muted-foreground">
-              {dirty.length ? t("unsaved", { n: dirty.length }) : t("allSaved")}
+              {dirty.length ? t("unsaved", { n: dirty.length }) : null}
+
             </span>
             <Button disabled={!dirty.length || pending} onClick={() => setDraft(saved)}>
               {t("discard")}
