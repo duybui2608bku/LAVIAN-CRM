@@ -86,19 +86,31 @@ export function AdsStatsView() {
       ? { style: "currency", currency, maximumFractionDigits: 0 }
       : { maximumFractionDigits: 0 },
   );
-  const money = (n: number | null) => (n == null ? null : moneyFormat.format(n));
-  const count = (n: number | null) => (n == null ? null : n.toLocaleString(locale));
+  // Thiếu số hoặc bằng 0 → null, ô hiện "—".
+  const money = (n: number | null) => (n ? moneyFormat.format(n) : null);
+  const count = (n: number | null) => (n ? n.toLocaleString(locale) : null);
+  const pct = new Intl.NumberFormat(LOCALE_TAG[locale] ?? locale, { style: "percent", maximumFractionDigits: 1 });
+  // Đặt lịch kèm tỉ lệ so với Tin nhắn: "1 · 3%".
+  const withRate = (booking: number | null, messages: number | null): React.ReactNode =>
+    booking && messages ? (
+      <>
+        {count(booking)}{" "}
+        <span className="text-[0.75em] font-normal text-muted-foreground">· {pct.format(booking / messages)}</span>
+      </>
+    ) : (
+      count(booking)
+    );
   const e = stats?.errors;
   const s = stats;
   const total = s?.potential?.total;
   // KH tiềm năng = khách mới của kỳ (không gồm purchase); Đặt lịch / Đến cơ sở = tag booking / purchase gắn trong kỳ.
-  const cards: { key: string; value: string | null; hint?: string }[] = [
+  const cards: { key: string; value: React.ReactNode; hint?: string }[] = [
     { key: "spend", value: money(s?.spend ?? null) },
     { key: "messages", value: count(s?.messages ?? null) },
     { key: "costPerMessage", value: money(ratio(s?.spend ?? null, s?.messages ?? null)) },
     { key: "leads", value: count(total?.potential ?? null) },
     { key: "costPerLead", value: money(ratio(s?.spend ?? null, total?.potential ?? null)) },
-    { key: "colBooking", value: count(total?.booking ?? null), hint: t("funnelHint") },
+    { key: "colBooking", value: withRate(total?.booking ?? null, s?.messages ?? null), hint: t("funnelHint") },
     { key: "colShowUp", value: count(total?.showUp ?? null), hint: t("funnelHint") },
   ];
   // Lỗi từng nguồn hiện 1 lần ở đầu trang (trước đây lặp lại dưới nhiều card).
@@ -155,7 +167,7 @@ export function AdsStatsView() {
     return wa && ig ? { ...c, children: [{ ...c, platform: "wa" }, { ...c, platform: "ig" }] } : c;
   });
   // Ô số liệu từ phễu SMAX: lỗi → "—" kèm lỗi; số WA dùng chung nhiều chiến dịch → gạch chấm + tooltip.
-  const funnelCell = (r: CampaignRow, text: string | null) => {
+  const funnelCell = (r: CampaignRow, text: React.ReactNode) => {
     if (text == null)
       return (
         <Tooltip title={e?.potential}>
@@ -276,7 +288,7 @@ export function AdsStatsView() {
       title: t("spend"),
       align: "right",
       width: 140,
-      render: (_, r) => money(r.spend),
+      render: (_, r) => money(r.spend) ?? "—",
       sorter: numSorter("spend"),
       defaultSortOrder: "descend",
     },
@@ -285,7 +297,7 @@ export function AdsStatsView() {
       title: t("messages"),
       align: "right",
       width: 110,
-      render: (_, r) => r.messages.toLocaleString(locale),
+      render: (_, r) => count(r.messages) ?? "—",
       sorter: numSorter("messages"),
     },
     {
@@ -299,7 +311,12 @@ export function AdsStatsView() {
         (ratio(b.spend, b.messages) ?? Infinity),
     },
     funnelColumn("potential", t("colPotential"), 140),
-    funnelColumn("booking", t("colBooking"), 110),
+    {
+      ...funnelColumn("booking", t("colBooking"), 140),
+      // Dòng con WA/IG không có tin nhắn riêng → chỉ hiện số.
+      render: (_, r) =>
+        funnelCell(r, r.platform ? count(funnelOf(r, "booking")) : withRate(funnelOf(r, "booking"), r.messages)),
+    },
     {
       key: "costPerBooking",
       title: t("costPerBooking"),
@@ -315,7 +332,7 @@ export function AdsStatsView() {
       title: t("colImpressions"),
       align: "right",
       width: 130,
-      render: (_, r) => r.impressions.toLocaleString(locale),
+      render: (_, r) => count(r.impressions) ?? "—",
       sorter: numSorter("impressions"),
     },
     {
@@ -323,7 +340,7 @@ export function AdsStatsView() {
       title: t("colReach"),
       align: "right",
       width: 130,
-      render: (_, r) => r.reach.toLocaleString(locale),
+      render: (_, r) => count(r.reach) ?? "—",
       sorter: numSorter("reach"),
     },
   ];
@@ -429,7 +446,7 @@ export function AdsStatsView() {
                   )}
                   style={{ fontSize: "clamp(0.95rem, 24cqi, 1.75rem)" }}
                 >
-                  {g.messages.toLocaleString(locale)}
+                  {count(g.messages) ?? "—"}
                 </span>
                 <span className="hidden text-xs text-muted-foreground @min-[5.5rem]:block">
                   {t("waMessagesLabel")}
@@ -496,7 +513,7 @@ export function AdsStatsView() {
               showTotal: (total, [from, to]) =>
                 t("totalCampaigns", { from, to, total }),
             }}
-            scroll={{ x: 1940 }}
+            scroll={{ x: 1970 }}
             size="middle"
             locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
           />
