@@ -197,7 +197,7 @@
     "tabPending": "Waiting",
     "tabMine": "My tours",
     "noPending": "No tours waiting",
-    "needDetail": "No service detail",
+    "needDetail": "No session",
     "claim": "Take tour",
     "claimed": "Tour taken",
     "claimHint": "Take this tour to fill in the service detail, bill and photos.",
@@ -237,7 +237,7 @@
     "forbidden": "You can't change this tour (or it has changed)",
     "alreadyClaimed": "This tour was already taken",
     "onlyTechnician": "Only technicians can take tours",
-    "confirmMissing": "Technician, service detail and bill are required before confirming"
+    "confirmMissing": "Technician, session and bill are required before confirming"
   },
   "nav": {
     "usersList": "All users",

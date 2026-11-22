@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cardDone, cardMoney, cardPaymentSchema, cardTourSchema, suggestRefund, tourDetailFor } from "./cards.ts";
+import { cardDone, cardMoney, cardPaymentSchema, cardTourSchema, suggestRefund, tourDetailFor, tourSessionOf } from "./cards.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
 const id2 = "c102ac72-d890-479b-a51b-126494cf73ac";
@@ -37,6 +37,14 @@ test("dịch vụ chi tiết tour suy từ dịch vụ + lần", () => {
   assert.deepEqual(tourDetailFor({ group_id: "laser", name: "Laser Removal (once)" }, 3), { service_detail: "laser", service_session: 3 });
   assert.deepEqual(tourDetailFor({ group_id: "eyeliner_treatment", name: "Laser Removal (once)" }, 1), { service_detail: "laser", service_session: 1 });
   assert.deepEqual(tourDetailFor({ group_id: "lips_treatment", name: "Lip Spray Removal (plasma)" }, 2), { service_detail: "plasma", service_session: 2 });
+});
+
+test("Lần của tour ↔ dịch vụ chi tiết (đi rồi về giữ nguyên)", () => {
+  for (const s of [{ group_id: "alis", name: "Ombre" }, { group_id: "laser", name: "Laser Removal (once)" }]) {
+    for (const n of [1, 2, 3, 20]) assert.equal(tourSessionOf(tourDetailFor(s, n)), n);
+  }
+  assert.equal(tourSessionOf({ service_detail: "debt", service_session: null }), 1);
+  assert.equal(tourSessionOf({ service_detail: null, service_session: null }), null);
 });
 
 test("schema thanh toán + tạo tour", () => {

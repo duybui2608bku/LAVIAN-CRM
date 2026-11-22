@@ -14,9 +14,9 @@ import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { useServiceGroups } from "@/components/common/service-groups";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
-import { detailText, runAction, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
+import { runAction, sessionText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import {
-  CARD_PAYMENT_METHODS, cardDone, cardMoney, MAX_TOUR_SESSION, suggestRefund, tourDetailFor, type CardPaymentMethod,
+  CARD_PAYMENT_METHODS, cardDone, cardMoney, MAX_TOUR_SESSION, suggestRefund, type CardPaymentMethod,
 } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
 import type { CardItem, TreatmentCard } from "@/types/card";
@@ -170,7 +170,7 @@ export function CardDrawer({ card, tours, services, staff, me, onClose }: {
               <TourStatusTag tour={tour} />
             </div>
             <div className="text-sm">{serviceOf(item?.service_id ?? tour.service_id)?.name ?? "—"}
-              {tour.service_detail ? <span className="text-muted-foreground"> · {detailText(tt, tour)}</span> : null}</div>
+              {tour.service_detail ? <span className="text-muted-foreground"> · {sessionText(tt, tour)}</span> : null}</div>
             <div className="text-xs text-muted-foreground">{tech ? staffLabel(tech) : tt("status_pending")}</div>
           </button>
         </li>;
@@ -270,7 +270,6 @@ function CreateCardTourModal({ card, services, used, onClose }: {
           const s = services.find((x) => x.id === item.service_id);
           const n = picked[item.id];
           const on = n != null;
-          const detail = s && on ? tourDetailFor(s, n) : null;
           return <li key={item.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
             <Checkbox checked={on} aria-label={s?.name}
               onChange={(e) => setPicked((p) => ({ ...p, [item.id]: e.target.checked ? Math.min(used(item.id) + 1, MAX_TOUR_SESSION) : null }))} />
@@ -278,7 +277,6 @@ function CreateCardTourModal({ card, services, used, onClose }: {
               <div className="font-medium">{s?.name ?? "—"}</div>
               <div className="text-xs text-muted-foreground">
                 {t("usedSessions", { used: used(item.id), total: item.sessions })}
-                {detail ? ` · ${detailText(tt, detail)}` : ""}
                 {on && n > item.sessions ? <span className="text-warning"> · {t("overSessions")}</span> : null}
               </div>
             </div>

@@ -197,7 +197,7 @@
     "tabPending": "Chờ nhận",
     "tabMine": "Tour của tôi",
     "noPending": "Không có tour chờ nhận",
-    "needDetail": "Chưa chọn dịch vụ",
+    "needDetail": "Chưa chọn lần",
     "claim": "Nhận tour",
     "claimed": "Đã nhận tour",
     "claimHint": "Nhận tour để điền dịch vụ chi tiết, hoá đơn và chụp ảnh.",
@@ -237,7 +237,7 @@
     "forbidden": "Bạn không có quyền với tour này (hoặc tour đã thay đổi)",
     "alreadyClaimed": "Tour đã có người nhận",
     "onlyTechnician": "Chỉ Master được nhận tour",
-    "confirmMissing": "Cần có Master, dịch vụ chi tiết và hoá đơn trước khi xác nhận"
+    "confirmMissing": "Cần có Master, lần và hoá đơn trước khi xác nhận"
   },
   "nav": {
     "usersList": "Danh sách",
