@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-22 — Cột Dịch vụ ở `/cards` gọn 1 dòng
+- **Thay đổi:** Cột Dịch vụ bảng thẻ liệu trình chỉ hiện tối đa 2 tag (`MAX_TAGS`), dư → tag "+N" (hover Popover xem đủ). Tên dịch vụ tự cắt "…" (giữ `· đã dùng/tổng buổi`, `title` hiện tên đủ); dịch vụ đã hoàn tiền xếp cuối. Dòng không còn cao lên theo số dịch vụ.
+- **File ảnh hưởng:** `components/cards/cards-view.tsx`
+- **Còn dở / ghi chú:** Chưa xem trên trang thật (cần đăng nhập) — đã kiểm CSS bằng DOM mô phỏng (1 dòng cao 22px, cắt tên đúng, gạch ngang giữ nguyên).
+
 ### 2026-11-22 — Siết RLS theo quyền bộ phận
 - **Thay đổi:** Migration `20261122130000_rls_by_permission.sql`: hàm `has_permission()`; thay policy "mọi nhân viên active" / `using (true)` bằng policy theo key quyền cho customers, clinic_appointments(+logs, performers), customer_needs/portrait/chat_summaries/reminders, tours, treatment_cards/items/payments, services/service_groups (ghi); `can_access_ba_photos()` thêm điều kiện quyền (áp cả storage `ba-photos`); revoke TRUNCATE/TRIGGER/REFERENCES của `authenticated` trên 6 bảng. **Đã chạy thử trên DB thật trong khối DO rồi rollback** (kết quả: technician thấy 1/246 khách = khách có tour, 0 lịch hẹn/thẻ/360, sửa được tour; telesales không thấy tour/thẻ, không sửa dịch vụ; sales thấy thẻ + lịch hẹn, khoá được dòng khách cho RPC bán thẻ; mọi vai trò `tours_missing_customer` = 0). Đã kiểm DB nguyên trạng sau rollback.
 - **File ảnh hưởng:** `supabase/migrations/20261122130000_rls_by_permission.sql`

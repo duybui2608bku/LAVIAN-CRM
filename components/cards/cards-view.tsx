@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Input, Select, Tag, type TableProps } from "antd";
+import { Input, Popover, Select, Tag, type TableProps } from "antd";
 import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
@@ -16,12 +16,14 @@ import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { cardDone, cardMoney } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
 import { matchesNameOrPhone } from "@/lib/customers";
-import type { TreatmentCard } from "@/types/card";
+import { cn } from "@/lib/utils";
+import type { CardItem, TreatmentCard } from "@/types/card";
 import type { Service } from "@/types/service";
 import type { Tour } from "@/types/tour";
 
 const STATUSES = ["active", "debt", "done", "cancelled"] as const;
 const million = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
+const MAX_TAGS = 2;
 
 /** Bảng thẻ liệu trình — lọc theo ngày bán (doanh số theo kỳ), trạng thái, tìm mã / tên / SĐT. */
 export function CardsView({ cards, cardTours, services, staff, me }: {
@@ -40,6 +42,11 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
   const [openId, setOpenId] = useState<string | null>(null);
   const used = usageOf(cardTours);
   const serviceName = (id: string) => services.find((s) => s.id === id)?.name ?? "—";
+  const itemTag = (i: CardItem) => <Tag key={i.id} title={serviceName(i.service_id)}
+    className={cn("me-0 inline-flex min-w-0", i.refunded_at && "line-through opacity-60")}>
+    <span className="truncate">{serviceName(i.service_id)}</span>
+    <span className="shrink-0 whitespace-pre"> · {used(i.id)}/{i.sessions}</span>
+  </Tag>;
 
   const rows = cards.map((card) => ({ ...card, money: cardMoney(card) }));
   const matches = (c: (typeof rows)[number]) => {
@@ -74,11 +81,18 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
     { title: t("customer"), width: 200, render: (_, c) => <NamePhone phone={c.customer?.phone} name={
       <button type="button" title={t("openProfile")} aria-label={t("openProfile")} className="font-medium hover:text-primary hover:underline"
         onClick={(e) => { e.stopPropagation(); c360.open(c.customer_id); }}>{c.customer?.full_name ?? "—"}</button>} /> },
-    { title: t("services"), width: 300, render: (_, c) => <div className="flex flex-wrap gap-1">
-      {c.items.map((i) => <Tag key={i.id} className={i.refunded_at ? "me-0 line-through opacity-60" : "me-0"}>
-        {serviceName(i.service_id)} · {used(i.id)}/{i.sessions}
-      </Tag>)}
-    </div> },
+    { title: t("services"), width: 300, render: (_, c) => {
+      // 1 dòng cố định: tối đa MAX_TAGS tag (tên tự cắt "…", giữ số buổi), dư → "+N" hover xem đủ.
+      // Dịch vụ còn hiệu lực lên trước, đã hoàn tiền xuống cuối.
+      const items = [...c.items].sort((a, b) => Number(!!a.refunded_at) - Number(!!b.refunded_at));
+      const rest = items.length - MAX_TAGS;
+      return <div className="flex min-w-0 gap-1">
+        {(rest > 0 ? items.slice(0, MAX_TAGS) : items).map(itemTag)}
+        {rest > 0 ? <Popover content={<div className="flex max-w-80 flex-wrap gap-1">{items.map(itemTag)}</div>}>
+          <Tag className="me-0 shrink-0">+{rest}</Tag>
+        </Popover> : null}
+      </div>;
+    } },
     { title: t("value"), width: 140, align: "right", render: (_, c) => <span className="tabular-nums">{formatRupiah(c.money.value)}</span> },
     { title: t("collected"), width: 140, align: "right", render: (_, c) => <span className="tabular-nums text-success">{formatRupiah(c.money.collected)}</span> },
     { title: t("due"), width: 140, align: "right", render: (_, c) => <DueText due={c.money.due} /> },
