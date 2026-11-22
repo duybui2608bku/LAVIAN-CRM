@@ -13,7 +13,7 @@ import {
   type LeadInput,
   type LeadMode,
 } from "@/app/lead-form/actions";
-import { AppointmentDate } from "@/components/appointments/appointment-date";
+import { AppointmentDate, nowMinute } from "@/components/appointments/appointment-date";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { ImageUpload } from "@/components/common/image-upload";
 import { RegionSelect } from "@/components/common/region-select";
@@ -328,6 +328,13 @@ function LeadFormInner({ staff, stages }: LeadFormProps) {
         // Chỉ chạy khi người dùng tự chọn (setFieldValue không kích hoạt) → không lưu nhầm CSKH của khách.
         onValuesChange={(changed: Partial<Values>) => {
           if (changed.staff_id) saveStaff(changed.staff_id);
+          // Chọn stage → ô ngày giờ bắt buộc vừa hiện (Lịch nhắc / Lịch hẹn) điền sẵn giờ hiện tại nếu còn trống.
+          // Lịch hẹn không bắt buộc thì để trống — có giá trị là server tạo lịch hẹn kèm.
+          if (changed.stage) {
+            const field = isFollowUpStage(changed.stage) ? "follow_up_at"
+              : needsAppointment(changed.stage, existing?.stage) ? "scheduled_at" : null;
+            if (field && !form.getFieldValue(field)) form.setFieldValue(field, nowMinute());
+          }
         }}
       >
         <div className="grid grid-cols-2 gap-x-3">

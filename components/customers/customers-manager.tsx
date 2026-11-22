@@ -35,7 +35,7 @@ import {
 } from "@/app/(app)/customers/actions";
 import { NoteItem, NotesDrawer } from "@/components/common/notes";
 import { CreateAppointmentDrawer, VisitStatusTag, type AppointmentStaff } from "@/components/appointments/appointments-manager";
-import { AppointmentDate } from "@/components/appointments/appointment-date";
+import { AppointmentDate, nowMinute } from "@/components/appointments/appointment-date";
 import { ClearableSelect, type SelectOption } from "@/components/common/clearable-select";
 import { useCan } from "@/components/common/permissions";
 import { useIsMobile, useMedia } from "@/hooks/use-is-mobile";
@@ -331,7 +331,7 @@ export function CustomersManager({
           disabled={!canEdit || !!stages}
           onSave={(v) =>
             isFollowUpStage(v)
-              ? setFollowUp({ id: c.id, stage: v, at: c.follow_up_at ?? null })
+              ? setFollowUp({ id: c.id, stage: v, at: c.follow_up_at ?? nowMinute() })
               : patchField(c.id, { stage: v })
           }
         />
@@ -815,6 +815,12 @@ function CustomerDialog({
         layout="vertical"
         requiredMark={false}
         onFinish={onFinish}
+        // Chọn stage Liên hệ lại → điền sẵn giờ hiện tại vào Lịch nhắc nếu còn trống.
+        onValuesChange={(changed: Partial<Values>) => {
+          if (changed.stage && isFollowUpStage(changed.stage) && !form.getFieldValue("follow_up_at")) {
+            form.setFieldValue("follow_up_at", nowMinute());
+          }
+        }}
         className="grid gap-x-4"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
         initialValues={{
@@ -824,7 +830,7 @@ function CustomerDialog({
           stage: editing?.stage ?? "", // khách mới: bắt buộc chọn, không mặc định
           rating: editing?.rating ?? "",
           staff_id: editing?.staff_id ?? "",
-          first_contact: editing?.first_contact?.slice(0, 10) ?? "",
+          first_contact: editing ? editing.first_contact?.slice(0, 10) ?? "" : dayjs().format("YYYY-MM-DD"), // khách mới: hôm nay
           payment_confirm_url: editing?.payment_confirm_url ?? null,
           region_code: editing?.region_code ?? "",
           address_detail: editing?.address_detail ?? "",

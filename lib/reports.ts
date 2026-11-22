@@ -69,7 +69,8 @@ export type ReportSources = {
   customers: { id: string; created_at: string; stage: string }[] | null;
   /** Khách có ≥ 1 lịch hẹn. */
   bookedIds: Set<string> | null;
-  tours: { tour_date: string; bill_amount: number | null }[] | null;
+  /** Tiền thu ở thẻ liệu trình (thẻ chưa huỷ): cọc trừ vào thẻ theo giờ bán thẻ + từng lần thu (âm = hoàn) theo giờ thu. */
+  money: { at: string; amount: number }[] | null;
 };
 
 /** Dựng dòng theo ngày cho khoảng [from, to] (tăng dần). Đặt cọc/Đặt lịch tính dồn trong số Data của ngày đó. */
@@ -84,7 +85,7 @@ export function buildDays(from: string, to: string, src: ReportSources): DayRow[
       data: src.customers ? 0 : null,
       deposits: src.customers ? 0 : null,
       bookings: src.customers && src.bookedIds ? 0 : null,
-      revenue: src.tours ? 0 : null,
+      revenue: src.money ? 0 : null,
     });
   }
   for (const c of src.customers ?? []) {
@@ -95,9 +96,9 @@ export function buildDays(from: string, to: string, src: ReportSources): DayRow[
     if (row.bookings != null && (src.bookedIds!.has(c.id) || BOOKED_OR_LATER.has(c.stage)))
       row.bookings += 1;
   }
-  for (const t of src.tours ?? []) {
-    const row = rows.get(t.tour_date);
-    if (row) row.revenue! += t.bill_amount ?? 0;
+  for (const m of src.money ?? []) {
+    const row = rows.get(vnDay(m.at));
+    if (row) row.revenue! += m.amount;
   }
   return [...rows.values()];
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Input, Popover, Select, Tag, type TableProps } from "antd";
+import { Input, Popover, Segmented, Select, Tag, type TableProps } from "antd";
 import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { CardDrawer, CardStatusTag, DueText, toursOfCard, usageOf, type CardMe } from "@/components/cards/card-drawer";
+import { JourneyDueTable } from "@/components/cards/journey-due";
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { DataTable } from "@/components/common/data-table";
 import { DateRangePicker } from "@/components/common/date-picker";
@@ -13,7 +14,7 @@ import { NamePhone } from "@/components/common/name-phone";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { cardDone, cardMoney } from "@/lib/cards";
+import { cardDone, cardMoney, journeyDue } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
 import { matchesNameOrPhone } from "@/lib/customers";
 import { cn } from "@/lib/utils";
@@ -40,7 +41,12 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
   const [creator, setCreator] = useState("all");
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [tab, setTab] = useState<"cards" | "due">("cards");
   const used = usageOf(cardTours);
+  // Đến hạn kiểm tra laser / dặm (tự tính); số trên tab = việc quá hạn + hôm nay của mình (admin: tất cả).
+  const due = journeyDue(cards, cardTours);
+  const today = dayjs().format("YYYY-MM-DD");
+  const dueNow = due.filter((d) => d.due <= today && (me.isAdmin || d.card.created_by === me.id)).length;
   const serviceName = (id: string) => services.find((s) => s.id === id)?.name ?? "—";
   const itemTag = (i: CardItem) => <Tag key={i.id} title={serviceName(i.service_id)}
     className={cn("me-0 inline-flex min-w-0", i.refunded_at && "line-through opacity-60")}>
@@ -105,6 +111,12 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
 
   return <Page>
     <PageHeader title={t("title")} />
+    <Segmented value={tab} onChange={(v) => setTab(v as typeof tab)} className="self-start" options={[
+      { value: "cards", label: t("tabCards") },
+      { value: "due", label: dueNow ? `${t("tabDue")} (${dueNow})` : t("tabDue") },
+    ]} />
+    {tab === "due" ? <JourneyDueTable rows={due} staff={staff} services={services} me={me}
+      onOpenCard={setOpenId} onOpenCustomer={c360.open} /> : <>
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <StatCard label={t("statCount")} value={filtered.filter((c) => !c.cancelled_at).length} />
       <StatCard label={t("statValue")} value={million.format(sum((c) => c.money.value) / 1e6)} hint={t("millionIdr")} />
@@ -125,6 +137,7 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
     <DataTable columns={columns} dataSource={filtered} scroll={{ x: 1450 }} empty={t("empty")} page={page} onPageChange={setPage}
       onChange={c360.onTableChange}
       onRow={(c) => ({ onClick: () => setOpenId(c.id), className: "cursor-pointer" })} />
+    </>}
     {open ? <CardDrawer key={open.id} card={open} tours={toursOfCard(open, cardTours)} services={services} staff={staff} me={me}
       onOpenCustomer={c360.open} onClose={() => setOpenId(null)} /> : null}
     {c360.modal}

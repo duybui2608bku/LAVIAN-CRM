@@ -34,7 +34,7 @@ export async function getReport(from: string, to: string): Promise<Report> {
   const supabase = await createClient();
   const range = supaRange(start, to);
 
-  const [fb, customers, booked, tours] = await Promise.allSettled([
+  const [fb, customers, booked, cards, payments] = await Promise.allSettled([
     fetchFbAdsDaily(start, to),
     fetchAll<{ id: string; created_at: string; stage: string }>((a, b) =>
       supabase
@@ -54,13 +54,25 @@ export async function getReport(from: string, to: string): Promise<Report> {
         .order("id")
         .range(a, b),
     ),
-    fetchAll<{ tour_date: string; bill_amount: number | null }>((a, b) =>
+    // Doanh thu = tiền thu ở thẻ liệu trình (Đã thu = cọc trừ vào thẻ + các lần thu), bỏ thẻ đã huỷ.
+    fetchAll<{ created_at: string; deposit_used: number }>((a, b) =>
       supabase
-        .from("tours")
-        .select("tour_date, bill_amount")
-        .is("deleted_at", null)
-        .gte("tour_date", start)
-        .lte("tour_date", to)
+        .from("treatment_cards")
+        .select("created_at, deposit_used")
+        .is("cancelled_at", null)
+        .gt("deposit_used", 0)
+        .gte("created_at", range.start)
+        .lt("created_at", range.end)
+        .order("id")
+        .range(a, b),
+    ),
+    fetchAll<{ paid_at: string; amount: number }>((a, b) =>
+      supabase
+        .from("treatment_card_payments")
+        .select("paid_at, amount, card:treatment_cards!inner(cancelled_at)")
+        .is("card.cancelled_at", null)
+        .gte("paid_at", range.start)
+        .lt("paid_at", range.end)
         .order("id")
         .range(a, b),
     ),
@@ -68,14 +80,17 @@ export async function getReport(from: string, to: string): Promise<Report> {
 
   if (fb.status === "fulfilled") report.currency = fb.value.currency;
   else report.errors.fb = normalizeError(fb.reason).message;
-  const dbError = [customers, booked, tours].find((r) => r.status === "rejected");
+  const dbError = [customers, booked, cards, payments].find((r) => r.status === "rejected");
   if (dbError) report.errors.db = normalizeError(dbError.reason).message;
 
   report.rows = buildDays(start, to, {
     fb: fb.status === "fulfilled" ? fb.value.days : null,
     customers: customers.status === "fulfilled" ? customers.value : null,
     bookedIds: booked.status === "fulfilled" ? new Set(booked.value.map((r) => r.customer_id)) : null,
-    tours: tours.status === "fulfilled" ? tours.value : null,
+    money: cards.status === "fulfilled" && payments.status === "fulfilled" ? [
+      ...cards.value.map((c) => ({ at: c.created_at, amount: c.deposit_used })),
+      ...payments.value.map((p) => ({ at: p.paid_at, amount: p.amount })),
+    ] : null,
   });
   return report;
 }

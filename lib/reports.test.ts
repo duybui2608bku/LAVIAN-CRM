@@ -20,7 +20,7 @@ test("vnDay đổi UTC sang ngày UTC+7", () => {
   assert.equal(vnDay("2026-11-08T17:00:00Z"), "2026-11-09");
 });
 
-test("buildDays đếm Data/Đặt cọc/Đặt lịch theo ngày tạo khách + doanh thu theo tour", () => {
+test("buildDays đếm Data/Đặt cọc/Đặt lịch theo ngày tạo khách + doanh thu theo tiền thu ở thẻ", () => {
   const rows = buildDays("2026-11-01", "2026-11-02", {
     fb: new Map([["2026-11-01", { spend: 100, messages: 4 }]]),
     customers: [
@@ -30,9 +30,11 @@ test("buildDays đếm Data/Đặt cọc/Đặt lịch theo ngày tạo khách +
       { id: "d", created_at: "2026-10-30T03:00:00Z", stage: "booked" }, // ngoài khoảng
     ],
     bookedIds: new Set(["a"]),
-    tours: [
-      { tour_date: "2026-11-02", bill_amount: 500 },
-      { tour_date: "2026-11-02", bill_amount: null },
+    money: [
+      { at: "2026-11-02T03:00:00Z", amount: 300 }, // cọc trừ vào thẻ
+      { at: "2026-11-01T17:30:00Z", amount: 400 }, // = 02/11 giờ VN
+      { at: "2026-11-02T05:00:00Z", amount: -200 }, // hoàn tiền khách
+      { at: "2026-10-31T03:00:00Z", amount: 999 }, // ngoài khoảng
     ],
   });
   assert.deepEqual(rows, [
@@ -50,7 +52,7 @@ test("nguồn lỗi → null, chia cho 0 → null", () => {
     fb: null,
     customers: [],
     bookedIds: null,
-    tours: [],
+    money: [],
   });
   const t = totals(rows);
   assert.equal(t.spend, null);

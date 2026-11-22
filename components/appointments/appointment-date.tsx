@@ -6,6 +6,9 @@ import { useTranslations } from "next-intl";
 
 import { useIsTouch } from "@/hooks/use-is-mobile";
 
+/** Giờ hiện tại làm tròn phút (cùng dạng ISO picker trả về) — mặc định cho các form tạo. */
+export const nowMinute = () => dayjs().second(0).millisecond(0).toISOString();
+
 /** Confirm date and time together; changing the day alone never writes a booking. */
 export function AppointmentDate({ value, disabled, inline, className, format = "DD/MM/YYYY HH:mm", onSave }: {
   value?: string | null;

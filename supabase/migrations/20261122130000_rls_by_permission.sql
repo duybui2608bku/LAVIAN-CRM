@@ -14,7 +14,7 @@
 --   needs, portrait, chat summary, reminders: người xem hồ sơ 360° (customers.view/edit, appointments.view/edit);
 --                               reminders ghi: customers.edit
 --   tours                     : tour.* | cards.* | reports.view           ; tạo: tour.edit | cards.edit ; sửa: tour.edit | tour.delete
---   treatment_cards/items/payments: cards.*                               ; ghi: cards.edit (huỷ thẻ: cards.delete)
+--   treatment_cards/items/payments: cards.* (thẻ + thanh toán: + reports.view) ; ghi: cards.edit (huỷ thẻ: cards.delete)
 --   services, service_groups  : ai đăng nhập cũng đọc                    ; thêm/sửa: services.edit ; xoá: services.delete
 --   ảnh B/A (bảng + storage)  : can_access_ba_photos() = như cũ (trừ Telesales) VÀ có quyền xem hồ sơ 360°
 
@@ -173,7 +173,7 @@ drop policy if exists treatment_cards_staff on public.treatment_cards;
 drop policy if exists treatment_cards_read on public.treatment_cards;
 drop policy if exists treatment_cards_write on public.treatment_cards;
 create policy treatment_cards_read on public.treatment_cards for select to authenticated
-  using ((select public.has_permission('cards.view', 'cards.edit', 'cards.delete')));
+  using ((select public.has_permission('cards.view', 'cards.edit', 'cards.delete', 'reports.view')));
 create policy treatment_cards_write on public.treatment_cards for all to authenticated
   using ((select public.has_permission('cards.edit', 'cards.delete')))
   with check ((select public.has_permission('cards.edit', 'cards.delete')));
@@ -191,7 +191,7 @@ drop policy if exists treatment_card_payments_staff on public.treatment_card_pay
 drop policy if exists treatment_card_payments_read on public.treatment_card_payments;
 drop policy if exists treatment_card_payments_write on public.treatment_card_payments;
 create policy treatment_card_payments_read on public.treatment_card_payments for select to authenticated
-  using ((select public.has_permission('cards.view', 'cards.edit', 'cards.delete')));
+  using ((select public.has_permission('cards.view', 'cards.edit', 'cards.delete', 'reports.view')));
 -- Xoá thanh toán nhập nhầm: app chỉ cho admin.
 create policy treatment_card_payments_write on public.treatment_card_payments for all to authenticated
   using ((select public.has_permission('cards.edit')))

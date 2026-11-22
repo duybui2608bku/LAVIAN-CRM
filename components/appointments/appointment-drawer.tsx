@@ -8,6 +8,9 @@ import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { setAppointmentPerformers } from "@/app/(app)/customers/customer-360-actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { staffOptions, type AppointmentStaff } from "@/components/appointments/appointments-manager";
+import { DueText } from "@/components/cards/card-drawer";
+import { cardMoney } from "@/lib/cards";
+import { formatRupiah } from "@/lib/currency";
 import { NoteItem } from "@/components/common/notes";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { staffLabel } from "@/components/common/user-avatar";
@@ -38,6 +41,8 @@ type Props = {
   visitChoices: VisitStatus[];
   /** Thẻ liệu trình bán ở lịch này (chưa huỷ). */
   card: TreatmentCard | undefined;
+  /** Cọc chưa trừ vào thẻ nào của khách (hiện khi lịch chưa có thẻ). */
+  deposit: number;
   onViewInfo: (customer: AppointmentCustomer) => void;
   onOpenNotes: () => void;
   onClose: () => void;
@@ -50,7 +55,7 @@ export function AppointmentDrawer({ appointment, ...props }: Omit<Props, "appoin
 }
 
 function AppointmentDrawerBody({
-  appointment: a, customer, staff, services, canEdit, visitChoices, card, onViewInfo, onOpenNotes, onClose,
+  appointment: a, customer, staff, services, canEdit, visitChoices, card, deposit, onViewInfo, onOpenNotes, onClose,
 }: Props) {
   const t = useTranslations("appointments");
   const tn = useTranslations("notes");
@@ -64,6 +69,12 @@ function AppointmentDrawerBody({
     card?.items.filter((i) => !i.refunded_at).map((i) => nameOf(i.service_id)).join(", "),
   ].filter(Boolean).join(" – ");
   const tele = a.staff_id ? staff.find((s) => s.id === a.staff_id) : undefined;
+  // Tài chính chỉ xem, giống cột Tài chính trên bảng: có thẻ → Giá trị / Đã thu / Công nợ; chưa có → cọc chưa trừ.
+  const m = card && cardMoney(card);
+  const finance: [string, React.ReactNode][] = m
+    ? [[t("cardValue"), formatRupiah(m.value)], [t("paidTotal"), <span key="c" className="text-success">{formatRupiah(m.collected)}</span>],
+      [t("due"), <DueText key="d" due={m.due} />]]
+    : [[t("deposit"), formatRupiah(deposit)]];
 
   const submit = (values: Values) => {
     const patch = Object.fromEntries(FIELDS
@@ -110,6 +121,13 @@ function AppointmentDrawerBody({
             value, label: t(`visitStatus.${value}`), disabled: value !== a.visit_status && !visitChoices.includes(value),
           }))} />
         </Form.Item>
+      </div>
+
+      <Divider className="mt-1 mb-4" />
+      {/* Tài chính: chỉ xem — tiền sửa ở drawer thẻ liệu trình (bấm mã thẻ trên bảng). */}
+      <h3 className="mb-3 font-semibold">{t("sectionFinance")}</h3>
+      <div className="grid grid-cols-3 gap-x-4 tabular-nums max-sm:grid-cols-1">
+        {finance.map(([label, value]) => <Form.Item key={label} label={label}>{value}</Form.Item>)}
       </div>
 
       <Divider className="mt-1 mb-4" />

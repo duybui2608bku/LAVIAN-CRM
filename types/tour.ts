@@ -1,7 +1,8 @@
-import type { PaymentMethod, ServiceDetail } from "@/lib/tours";
+import type { TourKind } from "@/lib/cards";
+import type { ServiceDetail } from "@/lib/tours";
 import type { TimelineNote } from "./note";
 
-/** Bảng `public.tours`. Thực thu = bill × % tính trong code (lib/tours.ts). */
+/** Bảng `public.tours`. Hoá đơn = giá bán DV trong thẻ (gán khi tạo tour, chỉ xem); thanh toán thu ở thẻ. */
 export interface Tour {
   id: string;
   tour_date: string; // YYYY-MM-DD
@@ -16,19 +17,18 @@ export interface Tour {
   after_images: string[];
   extra_images: string[];
   bill_amount: number | null; // Rupiah
-  payment_method: PaymentMethod | null;
   confirmed_at: string | null;
   created_by: string | null;
   customer: { full_name: string; phone: string } | null;
 }
 
 export const TOUR_FIELDS = "id,tour_date,customer_id,service_id,card_item_id,service_detail,service_session,notes,technician_id,"
-  + "before_images,after_images,extra_images,bill_amount,payment_method,confirmed_at,created_by,"
+  + "before_images,after_images,extra_images,bill_amount,confirmed_at,created_by,"
   + "customer:customers(full_name,phone)";
 
+/** Sửa tour: Loại (`kind`) gửi lên, server tự tính service_detail + số lần. */
 export type TourPatch = Partial<Pick<Tour,
-  "tour_date" | "customer_id" | "service_id" | "technician_id" | "service_detail" | "service_session"
-  | "bill_amount" | "payment_method" | "before_images" | "after_images" | "extra_images"
->>;
+  "tour_date" | "customer_id" | "service_id" | "technician_id" | "before_images" | "after_images" | "extra_images"
+> & { kind: TourKind | null }>;
 
 export type TourImageField = "before_images" | "after_images" | "extra_images";

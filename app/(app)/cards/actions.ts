@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { requirePermission } from "@/lib/auth";
 import {
-  cardCreateSchema, cardItemsAddSchema, cardPaymentSchema, cardRefundSchema, cardTourSchema, tourDetailFor,
+  cardCreateSchema, cardItemSessionsSchema, cardItemsAddSchema, cardPaymentSchema, cardRefundSchema, cardTourSchema, tourKindDetail,
 } from "@/lib/cards";
 import { normalizeError } from "@/lib/errors";
 import { initialNotes } from "@/lib/notes";
@@ -128,9 +128,28 @@ export async function cancelCard(cardId: string) {
   });
 }
 
+/** Sửa số buổi 1 DV trong thẻ: DV chưa hoàn, thẻ chưa huỷ, không nhỏ hơn số tour đã có. */
+export async function updateCardItemSessions(itemId: string, sessions: number) {
+  return run(async (t, db) => {
+    z.uuid().parse(itemId);
+    const value = cardItemSessionsSchema.parse(sessions);
+    await requirePermission("cards.edit");
+    const { data: item, error: readErr } = await db.from("treatment_card_items").select("card_id")
+      .eq("id", itemId).is("refunded_at", null).maybeSingle();
+    if (readErr) throw readErr;
+    if (!item || !(await openCard(db, item.card_id))) return t("error.cancelled");
+    const { count, error: countErr } = await db.from("tours").select("id", { count: "exact", head: true })
+      .eq("card_item_id", itemId).is("deleted_at", null);
+    if (countErr) throw countErr;
+    if (value < (count ?? 0)) return t("error.sessionsBelowUsed", { used: count ?? 0 });
+    const { error } = await db.from("treatment_card_items").update({ sessions: value }).eq("id", itemId).is("refunded_at", null);
+    if (error) throw error;
+  });
+}
+
 /**
- * Tạo tour từ thẻ: mỗi dịch vụ chọn = 1 tour (khách, dịch vụ, Hoá đơn = giá bán lấy từ thẻ);
- * Dịch vụ chi tiết + lần suy từ lần thứ n (tourDetailFor). Tour vào "Chờ nhận" như cũ.
+ * Tạo tour từ thẻ: mỗi dịch vụ chọn = 1 tour (khách, dịch vụ, Hoá đơn = giá bán lấy từ thẻ) theo Loại đã chọn;
+ * số lần server tự tính theo tour đã có của dòng DV (tourKindDetail). Tour vào "Chờ nhận" như cũ.
  */
 export async function createCardTours(cardId: string, input: z.input<typeof cardTourSchema>) {
   return run(async (t, db) => {
@@ -139,18 +158,21 @@ export async function createCardTours(cardId: string, input: z.input<typeof card
     const profile = await requirePermission("cards.edit");
     const card = await openCard(db, cardId);
     if (!card) return t("error.cancelled");
-    const { data: items, error } = await db.from("treatment_card_items")
-      .select("id,service_id,price,service:services(group_id,name)")
-      .eq("card_id", cardId).is("refunded_at", null).in("id", values.items.map((i) => i.card_item_id));
+    const ids = values.items.map((i) => i.card_item_id);
+    const [{ data: items, error }, { data: existing, error: toursErr }] = await Promise.all([
+      db.from("treatment_card_items").select("id,service_id,price").eq("card_id", cardId).is("refunded_at", null).in("id", ids),
+      db.from("tours").select("card_item_id,tour_date,service_detail").in("card_item_id", ids).is("deleted_at", null),
+    ]);
     if (error) throw error;
+    if (toursErr) throw toursErr;
     if (items.length !== values.items.length) return t("error.itemUnavailable");
     const notes = initialNotes(values.note, profile);
-    const rows = values.items.map(({ card_item_id, session }) => {
+    const rows = values.items.map(({ card_item_id, kind }) => {
       const item = items.find((i) => i.id === card_item_id)!;
-      const service = item.service as unknown as { group_id: string; name: string };
       return {
         tour_date: values.tour_date, customer_id: card.customer_id, service_id: item.service_id, card_item_id,
-        bill_amount: item.price, ...tourDetailFor(service, session), notes, created_by: profile.id,
+        bill_amount: item.price, notes, created_by: profile.id,
+        ...tourKindDetail(kind, values.tour_date, (existing ?? []).filter((x) => x.card_item_id === card_item_id)),
       };
     });
     const { error: insertErr } = await db.from("tours").insert(rows);

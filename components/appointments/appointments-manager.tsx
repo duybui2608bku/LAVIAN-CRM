@@ -10,7 +10,7 @@ import { createCard } from "@/app/(app)/cards/actions";
 import { CardDrawer, DueText, toursOfCard, type CardMe } from "@/components/cards/card-drawer";
 import { CardItemsDrawer } from "@/components/cards/card-items-drawer";
 import { runAction } from "@/components/tour/tour-drawer";
-import { AppointmentDate } from "@/components/appointments/appointment-date";
+import { AppointmentDate, nowMinute } from "@/components/appointments/appointment-date";
 import { AppointmentDrawer } from "@/components/appointments/appointment-drawer";
 import { MessagesModal } from "@/components/appointments/messages-modal";
 import { DataTable } from "@/components/common/data-table";
@@ -326,7 +326,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
       staff={staff} services={services} canEdit={canEdit} visitChoices={visitChoices}
-      card={editing ? cardByAppointment.get(editing.id) : undefined}
+      card={editing ? cardByAppointment.get(editing.id) : undefined} deposit={editing ? depositLeft(editing.customer_id) : 0}
       onViewInfo={setInfoFor} onOpenNotes={() => editingId && setNotesOpen({ id: editingId, field: "sales_notes" })} onClose={() => setEditingId(null)} />
     <AppointmentNotesDrawer appointment={notesFor} field={notesOpen?.field ?? "notes"} staff={staff} canEdit={canEdit}
       customerName={notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : ""} onClose={() => setNotesOpen(null)} />
@@ -423,7 +423,8 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
       onValuesChange={(changed: Partial<CreateValues>) => {
         if ("customer_id" in changed) form.setFieldValue("staff_id", customerStaff(changed.customer_id));
       }}
-      initialValues={{ customer_id: initialCustomer || undefined, staff_id: customerStaff(initialCustomer) }}>
+      // Ngày giờ hẹn mặc định = bây giờ (drawer huỷ khi đóng → mỗi lần mở lấy giờ mới).
+      initialValues={{ customer_id: initialCustomer || undefined, staff_id: customerStaff(initialCustomer), scheduled_at: nowMinute() }}>
       {quick ? <>
         <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
           <Form.Item name="new_name" label={t("name")} rules={[{ required: true, whitespace: true, message: t("enterName") }, { max: 200 }]}>

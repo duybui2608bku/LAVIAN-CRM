@@ -1,15 +1,8 @@
 import { z } from "zod";
 
-// Dịch vụ chi tiết của tour. Laser = mày, Plasma = môi; có "lần" với laser/plasma/retouch.
+// Loại tour (cột service_detail). Laser = mày, Plasma = môi; có số lần với laser/plasma/retouch. Debt chỉ còn ở dữ liệu cũ.
 export const SERVICE_DETAILS = ["laser", "plasma", "new", "debt", "retouch"] as const;
-export const SESSION_DETAILS = ["laser", "plasma", "retouch"] as const;
 export type ServiceDetail = (typeof SERVICE_DETAILS)[number];
-export const MAX_SESSION = 20;
-export const PAYMENT_METHODS = ["cash", "bank", "card"] as const;
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
-
-export const needsSession = (detail: ServiceDetail | null | undefined) =>
-  !!detail && (SESSION_DETAILS as readonly string[]).includes(detail);
 
 export type TourStatus = "pending" | "claimed" | "confirmed";
 
@@ -18,22 +11,16 @@ export const tourStatus = (t: { technician_id: string | null; confirmed_at: stri
   t.confirmed_at ? "confirmed" : t.technician_id ? "claimed" : "pending";
 
 const images = z.array(z.url({ protocol: /^https?$/ })).max(30);
-const billAmount = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).nullable();
 
 export const tourPatchSchema = z.object({
   tour_date: z.iso.date(),
   customer_id: z.uuid(),
   service_id: z.uuid(),
   technician_id: z.uuid().nullable(),
-  service_detail: z.enum(SERVICE_DETAILS).nullable(),
-  service_session: z.number().int().min(1).max(MAX_SESSION).nullable(),
-  bill_amount: billAmount,
-  payment_method: z.enum(PAYMENT_METHODS).nullable(),
+  // Loại tour — server tự tính số lần (tourKindDetail). Khớp TOUR_KINDS (lib/cards.ts).
+  kind: z.enum(["laser", "plasma", "new", "retouch"]).nullable(),
   before_images: images,
   after_images: images,
   extra_images: images,
-}).partial().strict()
-  .refine((p) => Object.keys(p).length > 0)
-  // Dịch vụ chi tiết luôn gửi kèm lần, khớp check constraint DB.
-  .refine((p) => (p.service_detail === undefined) === (p.service_session === undefined))
-  .refine((p) => p.service_detail === undefined || needsSession(p.service_detail) === (p.service_session != null));
+}).partial().strict() // không có bill/thanh toán: tiền tour lấy từ thẻ, thu tiền ở thẻ
+  .refine((p) => Object.keys(p).length > 0);

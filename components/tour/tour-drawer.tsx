@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Form, InputNumber, Radio, Select, Tag } from "antd";
+import { Button, Form, Select, Tag } from "antd";
 import { CheckCircle2, NotebookPen, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
@@ -12,10 +12,10 @@ import { FormDrawer } from "@/components/common/form-drawer";
 import { NoteItem, NotesDrawer } from "@/components/common/notes";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
-import { sanitizeCurrencyInput } from "@/lib/currency";
+import { formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
-import { tourDetailFor, tourSessionOf } from "@/lib/cards";
-import { MAX_SESSION, PAYMENT_METHODS, tourStatus, type TourStatus } from "@/lib/tours";
+import { TOUR_KINDS } from "@/lib/cards";
+import { tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import type { Tour, TourImageField, TourPatch } from "@/types/tour";
@@ -33,10 +33,9 @@ export const TourStatusTag = ({ tour }: { tour: Pick<Tour, "technician_id" | "co
 };
 
 /** "Lần n" của tour — dịch vụ chi tiết (New/Retouch/Laser…) suy từ lần, không hiện trên UI (sếp làm lại sau). */
-export const sessionText = (t: T, tour: Pick<Tour, "service_detail" | "service_session">) => {
-  const n = tourSessionOf(tour);
-  return n ? t("sessionN", { n }) : "";
-};
+/** Nhãn Loại tour: "Laser 2", "Làm mới", "Dặm 1" (Debt cũ không số); chưa có → "". */
+export const kindText = (t: T, tour: Pick<Tour, "service_detail" | "service_session">) =>
+  tour.service_detail ? [t(`detail_${tour.service_detail}`), tour.service_session].filter(Boolean).join(" ") : "";
 
 /** Gọi server action, hiện toast; trả true khi thành công. */
 export async function runAction(action: Promise<{ error?: string }>, success: string, failed: string) {
@@ -51,21 +50,13 @@ export async function runAction(action: Promise<{ error?: string }>, success: st
   }
 }
 
-const formatBill = (v: number | string | undefined) => (v === undefined || v === "" ? "" : Number(v).toLocaleString("id-ID"));
-const parseBill = (v: string | undefined) => sanitizeCurrencyInput(v ?? "") as unknown as number;
-const billInput = <InputNumber<number> className="w-full" min={0} precision={0} controls={false} placeholder="Rp"
-  inputMode="numeric" formatter={formatBill} parser={parseBill} />;
-/** Nhóm nút chọn kéo giãn hết chiều ngang, các nút chia đều. */
-const FULL_GROUP = "flex! w-full flex-wrap gap-y-2";
-const FULL_OPTION = "flex-1 text-center whitespace-nowrap";
-
 const customerOptions = (customers: AppointmentCustomer[]) =>
   customers.map((c) => ({ value: c.id, label: [c.full_name, c.phone].filter(Boolean).join(" · ") }));
 const serviceOptions = (services: Service[], current?: string) => services
   .filter((s) => s.is_active || s.id === current).map((s) => ({ value: s.id, label: s.name }));
 
-type WorkValues = Pick<TourPatch, "tour_date" | "customer_id" | "service_id" | "technician_id" | "bill_amount" | "payment_method">
-  & { session_no?: number | null };
+type WorkValues = Pick<TourPatch, "tour_date" | "customer_id" | "service_id" | "technician_id">
+  & { kind?: string | null };
 
 /**
  * Drawer xem/sửa 1 tour — dùng chung cho KTV (nhận, điền chi tiết + ảnh), CSKH và admin (xác nhận).
@@ -84,12 +75,6 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   const [pending, start] = useTransition();
   const [notesOpen, setNotesOpen] = useState(false);
   const tn = useTranslations("notes");
-  // Dịch vụ chi tiết + lần lưu DB suy từ (dịch vụ, Lần).
-  const derive = (id: string, n: number | null | undefined) => {
-    const service = services.find((s) => s.id === id);
-    return n && service ? tourDetailFor(service, n) : null;
-  };
-
   const status = tourStatus(tour);
   const isOwner = tour.technician_id === me.id;
   const canEdit = me.canEdit && (me.isAdmin || (status !== "confirmed" && (!me.isTechnician || isOwner)));
@@ -103,15 +88,14 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   const save = (confirm?: boolean) => start(async () => {
     let values: WorkValues;
     try { values = await form.validateFields(); } catch { return; }
-    const patch: TourPatch = { bill_amount: values.bill_amount ?? null, payment_method: values.payment_method ?? null };
-    // Chỉ ghi lại dịch vụ chi tiết khi đổi Lần (tour cũ Debt… giữ nguyên nếu không đụng tới).
-    if ((values.session_no ?? null) !== tourSessionOf(tour) || (values.service_id ?? tour.service_id) !== tour.service_id) {
-      Object.assign(patch, derive(values.service_id ?? tour.service_id, values.session_no) ?? { service_detail: null, service_session: null });
-    }
+    const patch: TourPatch = {};
+    // Đổi Loại → server tính lại số lần (tour cũ Debt giữ nguyên nếu không đụng tới).
+    if ((values.kind ?? null) !== tour.service_detail) patch.kind = (values.kind ?? null) as TourPatch["kind"];
     if (canEditBasic) Object.assign(patch, fromCard ? { tour_date: values.tour_date }
       : { tour_date: values.tour_date, customer_id: values.customer_id, service_id: values.service_id });
     if (me.isAdmin && (values.technician_id ?? null) !== tour.technician_id) patch.technician_id = values.technician_id ?? null;
-    if (canEdit && !(await runAction(updateTour(tour.id, patch), done, failed))) return;
+    // Không đổi gì (vd. Master chỉ mở rồi lưu) → bỏ qua, schema không nhận patch rỗng.
+    if (canEdit && Object.keys(patch).length && !(await runAction(updateTour(tour.id, patch), done, failed))) return;
     if (confirm === undefined) { onClose(); return; }
     if (await runAction(confirmTour(tour.id, confirm), confirm ? t("confirmedToast") : t("unconfirmedToast"), failed)) onClose();
   });
@@ -138,8 +122,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
     <Form form={form} layout="vertical" requiredMark={false} disabled={!canEdit || pending}
       initialValues={{
         tour_date: tour.tour_date, customer_id: tour.customer_id, service_id: tour.service_id,
-        technician_id: tour.technician_id ?? undefined, session_no: tourSessionOf(tour) ?? undefined,
-        bill_amount: tour.bill_amount ?? undefined, payment_method: tour.payment_method ?? undefined,
+        technician_id: tour.technician_id ?? undefined, kind: tour.service_detail ?? undefined,
       }}>
       {canEditBasic && !fromCard ? <>
         <div className="grid grid-cols-2 gap-3">
@@ -172,16 +155,16 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
 
       {canClaim ? <p className="mb-4 text-sm text-muted-foreground">{t("claimHint")}</p> : <>
         <div className="grid grid-cols-2 gap-3">
-          <Form.Item name="session_no" label={t("session")}>
+          <Form.Item name="kind" label={t("kind")} extra={kindText(t, tour) || undefined}>
             <Select allowClear placeholder="—"
-              options={Array.from({ length: MAX_SESSION }, (_, i) => ({ value: i + 1, label: t("sessionN", { n: i + 1 }) }))} />
+              options={[...TOUR_KINDS, ...(tour.service_detail === "debt" ? ["debt"] : [])]
+                .map((k) => ({ value: k, label: t(`detail_${k}`), disabled: k === "debt" }))} />
           </Form.Item>
-          <Form.Item name="bill_amount" label={t("bill")}>{billInput}</Form.Item>
+          {/* Hoá đơn chỉ xem (giá bán lấy từ thẻ khi tạo tour) — thanh toán thu ở thẻ liệu trình. */}
+          <Form.Item label={t("bill")}>
+            <span className="tabular-nums">{tour.bill_amount == null ? "—" : formatRupiah(tour.bill_amount)}</span>
+          </Form.Item>
         </div>
-        <Form.Item name="payment_method" label={t("payment")}>
-          <Radio.Group optionType="button" className={FULL_GROUP}
-            options={PAYMENT_METHODS.map((m) => ({ value: m, label: t(`pay_${m}`), className: FULL_OPTION }))} />
-        </Form.Item>
       </>}
     </Form>
 
