@@ -14,7 +14,7 @@ import { Section } from "@/components/common/section";
 import type { StaffRef } from "@/components/common/user-avatar";
 import { MessagesTab, PhotosTab, TimelineTab } from "@/components/customers/customer-360/activity-tabs";
 import { OverviewTab, PortraitTab, ServicesTab, SourceTag } from "@/components/customers/customer-360/profile-tabs";
-import { customerFinance, latestPortrait, nextNeed, portraitText } from "@/lib/customer-360";
+import { currentAppointment, latestPortrait, nextNeed, portraitText } from "@/lib/customer-360";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import { optionLabel } from "@/lib/customers";
 import { PORTRAIT_FIELDS, type Customer360, type ViewerRole } from "@/types/customer-360";
@@ -64,7 +64,7 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
   const active = tab ?? (data ? ROLE_TAB[data.role] : "overview");
 
   const editButton = customerId && (onEdit
-    ? <Button icon={<PanelRightOpen className="size-4" />} onClick={() => { close(); onEdit(customerId, data ? customerFinance(data.appointments, 0, data.now).current?.appointment.id ?? null : null); }}>{t("toEdit")}</Button>
+    ? <Button icon={<PanelRightOpen className="size-4" />} onClick={() => { close(); onEdit(customerId, data ? currentAppointment(data.appointments, data.now)?.id ?? null : null); }}>{t("toEdit")}</Button>
     : can("appointments.view") && <Link href={`/appointments?customer=${customerId}`} onClick={close}>
       <Button icon={<PanelRightOpen className="size-4" />}>{t("toEdit")}</Button>
     </Link>);
@@ -89,7 +89,7 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
             items={[
             { key: "overview", label: t("tabs.overview"), children: <OverviewTab data={data} staff={staff} /> },
             { key: "portrait", label: t("tabs.portrait"), children: <PortraitTab data={data} staff={staff} onSaved={refresh} /> },
-            { key: "services", label: t("tabs.services"), children: <ServicesTab data={data} onSaved={refresh} /> },
+            { key: "services", label: t("tabs.services"), children: <ServicesTab data={data} staff={staff} onSaved={refresh} /> },
             ...(data.can.photos ? [{ key: "photos", label: t("tabs.photos"), children: <PhotosTab data={data} /> }] : []),
             { key: "messages", label: t("tabs.messages"), children: <MessagesTab data={data} staff={staff} onSaved={refresh} /> },
             { key: "timeline", label: t("tabs.timeline"), children: <TimelineTab data={data} staff={staff} composing={composing} onSaved={refresh} /> },

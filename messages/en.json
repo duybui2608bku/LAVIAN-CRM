@@ -916,7 +916,9 @@
     "firstContact": "First contact",
     "appointments": "Appointments ({count})",
     "noAppointments": "No appointments",
+    "tours": "Tours ({count})",
     "performers": "Performers",
+    "purchased": "Purchased services",
     "portrait": {
       "fields": {
         "wish": "Wishes",
@@ -966,10 +968,12 @@
     "finance": {
       "title": "Finance",
       "total": "Lifetime total",
-      "current": "Current order",
-      "history": "Purchase history",
-      "paid": "Extra paid",
-      "empty": "No appointments"
+      "cards": "Treatment cards ({count})",
+      "noCards": "No cards yet",
+      "payments": "Payment history",
+      "noPayments": "No payments yet",
+      "deposit": "Deposit",
+      "depositLeft": "Includes {amount} deposit not yet applied to a card"
     },
     "photos": {
       "before": "Before",
@@ -1004,7 +1008,12 @@
       "customer_note": "Telesales",
       "appointment_note": "Appointment notes",
       "sales_note": "Sales",
-      "empty": "No activity yet"
+      "empty": "No activity yet",
+      "card": "Cards",
+      "tour": "Tours",
+      "cardSold": "Sold card {code}",
+      "payment": "Payment {code}",
+      "refund": "Refund {code}"
     }
   },
   "cards": {

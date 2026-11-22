@@ -7,4 +7,4 @@
 - [x] tsc + eslint + test (105)
 - [x] Chạy migration thật trên Supabase (Lavian, 2026-11-22; kiểm RLS/quyền/RPC dưới role authenticated trong khối rollback)
 - [ ] Xem trên trình duyệt (cần đăng nhập + migration)
-- [ ] Popup 360° tab Tài chính vẫn đọc tiền lịch hẹn cũ → chuyển sang thẻ
+- [x] Popup 360° tab Tài chính vẫn đọc tiền lịch hẹn cũ → chuyển sang thẻ (change `customer-360-linked-data`)

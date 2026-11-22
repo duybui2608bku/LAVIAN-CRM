@@ -1,7 +1,9 @@
 import type { Appointment, AppointmentLog } from "./appointment";
+import type { CardItem, CardPayment, TreatmentCard } from "./card";
 import type { CustomerNote } from "./customer";
 import type { Reminder } from "./reminder";
 import type { Service } from "./service";
+import type { Tour } from "./tour";
 import type { ChatMessage } from "@/lib/smax-messages";
 
 // Hồ sơ khách 360° (popup Customer Detail). Danh mục khớp check constraint ở migration 20261120120000.
@@ -67,12 +69,21 @@ export interface AppointmentPhoto {
   created_at: string;
 }
 
-/** Lịch hẹn trong hồ sơ: kèm người thực hiện thêm. Tiền chỉ có khi được xem tài chính. */
+/** Lịch hẹn trong hồ sơ: kèm người thực hiện thêm. Tiền đã chuyển sang thẻ liệu trình. */
 export type Customer360Appointment = Omit<Appointment, "bill_amount" | "paid_amount" | "created_by"> & {
-  bill_amount?: number | null;
-  paid_amount?: number | null;
   performers: AppointmentPerformer[];
 };
+
+/** Thẻ liệu trình của khách. Cột tiền (`?`) chỉ có khi được xem tài chính. */
+export type Customer360Card = Pick<TreatmentCard, "id" | "code" | "cancelled_at" | "created_by" | "created_at"> & {
+  deposit_used?: number;
+  items: (Pick<CardItem, "id" | "service_id" | "sessions" | "refunded_at" | "service"> & Partial<Pick<CardItem, "price" | "refund_amount">>)[];
+  payments?: Omit<CardPayment, "card_id">[];
+};
+
+/** Tour (buổi làm) của khách. Ảnh (`?`) chỉ có khi được xem ảnh B/A — URL CDN công khai. */
+export type Customer360Tour = Pick<Tour, "id" | "tour_date" | "service_id" | "card_item_id" | "service_detail" | "service_session" | "technician_id" | "confirmed_at">
+  & Partial<Pick<Tour, "before_images" | "after_images" | "extra_images">>;
 
 export interface Customer360 {
   customer: {
@@ -90,10 +101,13 @@ export interface Customer360 {
     thread_link: string | null;
     notes: CustomerNote[];
     smax_messages_at: string | null; // thời điểm chụp smax_messages
-    /** Chỉ có khi được xem tài chính. */
+    /** Chỉ có khi được xem tài chính: tiền cọc + ảnh xác nhận chuyển khoản. */
     deposit_amount?: number | null;
+    payment_confirm_url?: string | null;
   };
   appointments: Customer360Appointment[]; // mới nhất trước
+  cards: Customer360Card[]; // mới nhất trước (gồm thẻ đã huỷ)
+  tours: Customer360Tour[]; // mới nhất trước
   logs: AppointmentLog[];
   portrait: PortraitEntry[]; // mới nhất trước
   needs: CustomerNeed[]; // mới nhất trước

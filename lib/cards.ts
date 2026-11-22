@@ -18,6 +18,18 @@ export function cardMoney(card: MoneyCard) {
   return { value, collected, due: value - collected };
 }
 
+/**
+ * Tiền của 1 khách qua mọi thẻ chưa huỷ (hồ sơ 360°). Cọc chưa trừ vào thẻ nào vẫn là tiền đã thu.
+ * Chưa có thẻ mà có cọc → Công nợ null ("Chưa xác định").
+ */
+export function customerCardMoney(cards: (MoneyCard & { cancelled_at: string | null })[], deposit: number | null | undefined) {
+  const active = cards.filter((c) => !c.cancelled_at);
+  const depositLeft = Math.max((deposit ?? 0) - active.reduce((s, c) => s + c.deposit_used, 0), 0);
+  const value = active.reduce((s, c) => s + cardMoney(c).value, 0);
+  const collected = depositLeft + active.reduce((s, c) => s + cardMoney(c).collected, 0);
+  return { value, collected, depositLeft, due: !active.length && depositLeft > 0 ? null : value - collected };
+}
+
 /** Gợi ý tiền hoàn 1 dịch vụ = giá × buổi chưa làm / tổng buổi. */
 export const suggestRefund = (price: number, sessions: number, used: number) =>
   Math.round((price * Math.max(sessions - used, 0)) / Math.max(sessions, 1));

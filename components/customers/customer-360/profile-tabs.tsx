@@ -1,28 +1,31 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Collapse, Empty, Form, Input, Radio, Select } from "antd";
+import { Button, Collapse, Empty, Form, Image, Input, Radio, Select } from "antd";
 import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addCustomerNeed, addPortraitEntry, setNeedStatus } from "@/app/(app)/customers/customer-360-actions";
 import { VisitStatusTag } from "@/components/appointments/appointments-manager";
+import { CardStatusTag, DueText, usageOf } from "@/components/cards/card-drawer";
 import { DASH, StatusTag } from "@/components/common/cells";
 import { Section } from "@/components/common/section";
 import { SourceIcon } from "@/components/common/source-icon";
 import { staffName, type StaffRef } from "@/components/common/user-avatar";
 import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
+import { kindText, TourStatusTag } from "@/components/tour/tour-drawer";
+import { cardMoney, customerCardMoney, isTourable } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
-import { customerFinance, latestPortrait, portraitText } from "@/lib/customer-360";
+import { latestPortrait, portraitText } from "@/lib/customer-360";
 import { toast } from "@/lib/toast";
 import { useServiceGroups } from "@/components/common/service-groups";
 import {
   NEED_ORIGINS, NEED_STATUSES, NEED_STATUS_COLORS, PORTRAIT_FIELDS, PORTRAIT_SOURCES,
-  type Customer360, type Customer360Appointment, type MessageRef, type NeedOrigin, type NeedStatus, type PortraitField, type PortraitSource,
+  type Customer360, type Customer360Appointment, type Customer360Card, type MessageRef, type NeedOrigin, type NeedStatus, type PortraitField, type PortraitSource,
 } from "@/types/customer-360";
 
 const fmt = (iso: string, f = "DD/MM/YYYY HH:mm") => dayjs(iso).format(f);
-const money = (v: number | null) => (v === null ? null : formatRupiah(v));
+const serviceName = (data: Customer360, id: string) => data.services.find((s) => s.id === id)?.name ?? "";
 
 /** Nguồn chân dung (Khách nói / NV nhận định / AI) — chữ phụ sau nội dung. */
 export function SourceTag({ source }: { source: PortraitSource }) {
@@ -47,6 +50,7 @@ function useApptServices(data: Customer360) {
 export function OverviewTab({ data, staff }: { data: Customer360; staff: StaffRef[] }) {
   const t = useTranslations("c360");
   const ta = useTranslations("appointments");
+  const tt = useTranslations("tour");
   const services = useApptServices(data);
   const c = data.customer;
   return <div className="flex flex-col gap-5">
@@ -82,6 +86,17 @@ export function OverviewTab({ data, staff }: { data: Customer360; staff: StaffRe
         </li>)}
       </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noAppointments")} />}
     </Section>
+    {/* Tour (buổi làm) nối theo customer_id — chỉ hiện khi có (RLS lọc theo quyền tour / thẻ). */}
+    {data.tours.length > 0 && <Section title={t("tours", { count: data.tours.length })}>
+      <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+        {data.tours.map((r) => <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
+          <span className="tabular-nums">{fmt(r.tour_date, "DD/MM/YYYY")}</span>
+          <span className="min-w-0 flex-1 truncate">{[serviceName(data, r.service_id), kindText(tt, r)].filter(Boolean).join(" · ")}</span>
+          <span className="text-muted-foreground">{nameOf(staff, r.technician_id)}</span>
+          <TourStatusTag tour={r} />
+        </li>)}
+      </ul>
+    </Section>}
   </div>;
 }
 
@@ -160,7 +175,7 @@ export function PortraitTab({ data, staff, onSaved }: { data: Customer360; staff
 
 type NeedValues = { title: string; service_id?: string; origin: NeedOrigin };
 
-export function ServicesTab({ data, onSaved }: { data: Customer360; onSaved: () => void }) {
+export function ServicesTab({ data, staff, onSaved }: { data: Customer360; staff: StaffRef[]; onSaved: () => void }) {
   const t = useTranslations("c360.needs");
   const tc = useTranslations("common");
   const [form] = Form.useForm<NeedValues>();
@@ -182,6 +197,7 @@ export function ServicesTab({ data, onSaved }: { data: Customer360; onSaved: () 
   });
 
   return <div className="flex flex-col gap-5">
+    <PurchasedServices data={data} />
     <Section title={t("title")}
       extra={!adding && <Button size="small" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>{t("add")}</Button>}>
       {adding && <Form form={form} layout="vertical" requiredMark={false} disabled={pending} onFinish={add}
@@ -221,60 +237,120 @@ export function ServicesTab({ data, onSaved }: { data: Customer360; onSaved: () 
         </li>)}
       </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("empty")} />}
     </Section>
-    {data.can.finance && <FinanceZones data={data} />}
+    {data.can.finance && <FinanceZones data={data} staff={staff} />}
   </div>;
 }
 
-/** Vùng 1: Tổng tích luỹ (Giá trị DV, Thực thu, Phải thu). */
-function FinanceTotal({ data }: { data: Customer360 }) {
-  const t = useTranslations("c360.finance");
-  const ta = useTranslations("appointments");
-  const f = customerFinance(data.appointments, data.customer.deposit_amount, data.now);
-  return <Section title={t("total")}>
-    <div className="grid grid-cols-3 gap-3">
-      {([[ta("bill"), money(f.total.bill)], [ta("paidTotal"), money(f.total.collected)], [ta("due"), money(f.total.due)]] as const)
-        .map(([label, v]) => <div key={label} className="rounded-lg border border-border p-3">
-          <div className="text-xs text-muted-foreground">{label}</div>
-          <div className="mt-1 font-semibold tabular-nums">{v ?? ta("dueUnknown")}</div>
-        </div>)}
-    </div>
+/** Dịch vụ đã mua: mọi dòng của thẻ chưa huỷ — đã dùng x/y buổi (đếm tour gắn dòng thẻ), DV đã hoàn gạch ngang. */
+function PurchasedServices({ data }: { data: Customer360 }) {
+  const t = useTranslations("c360");
+  const tc = useTranslations("cards");
+  const groups = useServiceGroups();
+  const used = usageOf(data.tours);
+  const rows = data.cards.filter((c) => !c.cancelled_at).flatMap((card) => card.items.map((item) => ({ card, item })));
+  if (!rows.length) return null;
+  return <Section title={t("purchased")}>
+    <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+      {rows.map(({ card, item }) => {
+        const s = data.services.find((x) => x.id === item.service_id);
+        const n = used(item.id);
+        return <li key={item.id} className="flex items-center justify-between gap-3 px-3 py-2">
+          <div className="min-w-0">
+            <div className={item.refunded_at ? "font-medium line-through opacity-60" : "font-medium"}>{s?.name ?? DASH}</div>
+            <div className="text-xs text-muted-foreground">{[s && groups.name(s.group_id), card.code].filter(Boolean).join(" · ")}</div>
+          </div>
+          {/* Mực / phí Master không tạo tour → không có buổi. */}
+          {isTourable(item) && !item.refunded_at ? <span className={`shrink-0 tabular-nums ${n >= item.sessions ? "text-success" : "text-muted-foreground"}`}>
+            {tc("usedSessions", { used: n, total: item.sessions })}
+          </span> : null}
+        </li>;
+      })}
+    </ul>
   </Section>;
 }
 
-/** Tài chính 3 vùng: Tổng tích luỹ · Đơn hiện tại · Lịch sử mua. */
-function FinanceZones({ data }: { data: Customer360 }) {
+/** Có `can.finance` → server đã select đủ cột tiền của thẻ (xem `cardFields`). */
+type MoneyCard = Customer360Card & {
+  deposit_used: number;
+  items: (Customer360Card["items"][number] & { price: number; refund_amount: number | null })[];
+  payments: NonNullable<Customer360Card["payments"]>;
+};
+const moneyCards = (data: Customer360) => data.cards as MoneyCard[];
+
+/** Tổng tích luỹ từ thẻ chưa huỷ: Giá trị thẻ · Đã thu (gồm cọc chưa trừ) · Công nợ. */
+function FinanceTotal({ data }: { data: Customer360 }) {
   const t = useTranslations("c360.finance");
+  const tc = useTranslations("cards");
   const ta = useTranslations("appointments");
-  const services = useApptServices(data);
-  const f = customerFinance(data.appointments, data.customer.deposit_amount, data.now);
-  const row = (label: string, v: string | null, className?: string) => <>
-    <dt className="text-muted-foreground">{label}</dt><dd className={`text-right tabular-nums ${className ?? ""}`}>{v ?? ta("dueUnknown")}</dd>
-  </>;
+  const f = customerCardMoney(moneyCards(data), data.customer.deposit_amount);
+  const cells: [string, React.ReactNode][] = [
+    [tc("value"), formatRupiah(f.value)],
+    [tc("collected"), formatRupiah(f.collected)],
+    [f.due !== null && f.due < 0 ? tc("refundOwed") : tc("due"), f.due === null ? ta("dueUnknown") : <DueText due={f.due} />],
+  ];
+  return <Section title={t("total")}>
+    <div className="grid grid-cols-3 gap-3">
+      {cells.map(([label, v]) => <div key={label} className="rounded-lg border border-border p-3">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className="mt-1 font-semibold tabular-nums">{v}</div>
+      </div>)}
+    </div>
+    {f.depositLeft > 0 && <p className="mt-2 text-xs text-muted-foreground tabular-nums">{t("depositLeft", { amount: formatRupiah(f.depositLeft) })}</p>}
+  </Section>;
+}
+
+/** Tài chính: Tổng tích luỹ · Thẻ liệu trình · Lịch sử thanh toán (cọc + từng lần thu / hoàn ở thẻ, kèm ảnh). */
+function FinanceZones({ data, staff }: { data: Customer360; staff: StaffRef[] }) {
+  const t = useTranslations("c360.finance");
+  const tc = useTranslations("cards");
+  const cards = moneyCards(data);
+  // Thẻ đã huỷ không tính tiền (khớp Tổng tích luỹ + báo cáo doanh thu).
+  const payments = cards.filter((c) => !c.cancelled_at).flatMap((c) => c.payments.map((p) => ({ ...p, code: c.code })))
+    .sort((a, b) => b.paid_at.localeCompare(a.paid_at));
+  const deposit = data.customer.deposit_amount ?? 0;
+  const proof = data.customer.payment_confirm_url;
+  const amount = (v: number) => <span className={`shrink-0 tabular-nums ${v < 0 ? "text-destructive" : "text-success"}`}>
+    {v < 0 ? `− ${formatRupiah(-v)}` : formatRupiah(v)}</span>;
+  const thumb = (url: string) => <Image key={url} src={url} alt="" width={40} height={40} className="rounded object-cover" />;
   return <>
     <FinanceTotal data={data} />
-    <Section title={t("current")}>
-      {f.current ? <div className="text-sm">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="font-medium tabular-nums">{fmt(f.current.appointment.scheduled_at)}</span>
-          <span className="text-muted-foreground">{services(f.current.appointment)}</span>
-        </div>
-        <dl className="grid grid-cols-[1fr_auto] gap-y-1">
-          {row(ta("deposit"), money(f.current.deposit))}
-          {row(ta("bill"), money(f.current.bill))}
-          {row(ta("paidTotal"), money(f.current.collected), "text-success")}
-          {row(ta("due"), money(f.current.due), "font-medium text-warning")}
-        </dl>
-      </div> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("empty")} />}
+    <Section title={t("cards", { count: cards.length })}>
+      {cards.length ? <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+        {cards.map((c) => {
+          const m = cardMoney(c);
+          return <li key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
+            <span className="font-medium">{c.code}</span>
+            <CardStatusTag card={c} tours={data.tours} />
+            <span className="text-muted-foreground tabular-nums">{fmt(c.created_at, "DD/MM/YYYY")}</span>
+            <span className="ms-auto flex flex-wrap items-center gap-x-3 tabular-nums">
+              <span><span className="text-muted-foreground">{tc("value")}</span> {formatRupiah(m.value)}</span>
+              <span><span className="text-muted-foreground">{tc("collected")}</span> {formatRupiah(m.collected)}</span>
+              <span><span className="text-muted-foreground">{tc("due")}</span> <DueText due={m.due} /></span>
+            </span>
+          </li>;
+        })}
+      </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noCards")} />}
     </Section>
-    <Section title={t("history")}>
-      {f.history.length ? <ul className="divide-y divide-border rounded-lg border border-border text-sm">
-        {f.history.map((h) => <li key={h.appointment.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
-          <span className="tabular-nums">{fmt(h.appointment.scheduled_at, "DD/MM/YYYY")}</span>
-          <span className="min-w-0 flex-1 truncate text-muted-foreground">{services(h.appointment)}</span>
-          <span className="tabular-nums">{ta("bill")}: {formatRupiah(h.bill)}</span>
-          <span className="tabular-nums text-muted-foreground">{t("paid")}: {formatRupiah(h.paid)}</span>
-        </li>)}
-      </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("empty")} />}
+    <Section title={t("payments")}>
+      {deposit > 0 || payments.length ? <Image.PreviewGroup>
+        <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+          {deposit > 0 && <li className="flex items-center justify-between gap-3 px-3 py-2">
+            <div className="flex items-center gap-2">{proof && thumb(proof)}{t("deposit")}</div>
+            {amount(deposit)}
+          </li>}
+          {payments.map((p) => <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2">
+                <span className="tabular-nums">{fmt(p.paid_at, "DD/MM/YYYY")}</span> · {tc(`method.${p.method}`)} · {p.code}
+                {p.created_by && <span className="text-muted-foreground">{nameOf(staff, p.created_by)}</span>}
+              </div>
+              {p.note && <div className="text-xs text-muted-foreground">{p.note}</div>}
+              {p.images.length > 0 && <div className="mt-1 flex flex-wrap gap-1">{p.images.map(thumb)}</div>}
+            </div>
+            {amount(p.amount)}
+          </li>)}
+        </ul>
+      </Image.PreviewGroup> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noPayments")} />}
     </Section>
   </>;
 }
