@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Thẻ liệu trình — tiền + quy tắc dùng chung client/server. Literal (không import "@/…") để node --test chạy được.
-export const CARD_PAYMENT_METHODS = ["cash", "bank", "card"] as const; // khớp check DB + PAYMENT_METHODS của tour
+export const CARD_PAYMENT_METHODS = ["cash", "bank", "card"] as const; // khớp check DB treatment_card_payments.method
 export type CardPaymentMethod = (typeof CARD_PAYMENT_METHODS)[number];
 export const MAX_TOUR_SESSION = 20; // khớp check tours.service_session
 

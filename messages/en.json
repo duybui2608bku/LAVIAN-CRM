@@ -164,10 +164,6 @@
     "session": "Session",
     "sessionN": "Session {n}",
     "bill": "Bill",
-    "payment": "Payment",
-    "pay_cash": "Cash",
-    "pay_bank": "Bank transfer",
-    "pay_card": "Card",
     "note": "Note",
     "photos": "Photos",
     "beforePhotos": "Before photos",
@@ -232,7 +228,7 @@
     "forbidden": "You can't change this tour (or it has changed)",
     "alreadyClaimed": "This tour was already taken",
     "onlyTechnician": "Only technicians can take tours",
-    "confirmMissing": "Technician, session and bill are required before confirming"
+    "confirmMissing": "Technician and session are required before confirming"
   },
   "nav": {
     "usersList": "All users",

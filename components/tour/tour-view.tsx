@@ -199,7 +199,6 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
     { title: t("photos"), width: 90, render: (_, r) => <PhotoCountButton tour={r} onOpen={onPhotos} /> },
     { title: t("bill"), width: 140, align: "right", render: (_, r) =>
       r.bill_amount == null ? DASH : <span className="tabular-nums">{formatRupiah(r.bill_amount)}</span> },
-    { title: t("payment"), width: 120, render: (_, r) => r.payment_method ? t(`pay_${r.payment_method}`) : DASH },
     { title: t("status"), width: 140, render: (_, r) => <TourStatusTag tour={r} /> },
     { key: "actions", width: 56, align: "right", fixed: "right", render: (_, r) => <div onClick={(e) => e.stopPropagation()}>
       <RowActions label={t("actions")} items={[

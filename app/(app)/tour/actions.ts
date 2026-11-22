@@ -120,7 +120,7 @@ export async function deleteTourNote(id: string, noteId: string) {
   return changeTourNotes(id, (notes, profile) => withoutNote(notes, noteId, profile));
 }
 
-/** Admin xác nhận (cần có KTV, dịch vụ chi tiết, bill) hoặc bỏ xác nhận. */
+/** Admin xác nhận (cần có KTV + dịch vụ chi tiết) hoặc bỏ xác nhận. */
 export async function confirmTour(id: string, confirmed: boolean) {
   return run(async (t) => {
     z.uuid().parse(id);
@@ -131,7 +131,7 @@ export async function confirmTour(id: string, confirmed: boolean) {
       : { confirmed_at: null, confirmed_by: null })
       .eq("id", id).is("deleted_at", null);
     if (confirmed) {
-      query = query.not("technician_id", "is", null).not("service_detail", "is", null).not("bill_amount", "is", null);
+      query = query.not("technician_id", "is", null).not("service_detail", "is", null);
     }
     const { data, error } = await query.select("id");
     if (error) throw error;
