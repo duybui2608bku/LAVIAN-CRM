@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Button, Switch, Table, Tag, Tooltip, type TableColumnType } from "antd";
+import { Alert, Button, Switch, Table, Tooltip, type TableColumnType } from "antd";
 
+import { StatusDot } from "@/components/common/cells";
+import { Section } from "@/components/common/section";
 import { StatCard } from "@/components/common/stat-card";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
@@ -22,7 +24,7 @@ import { toast } from "@/lib/toast";
 import type { FbCampaign } from "@/lib/marketing";
 import type { FunnelKey } from "@/lib/smax-inbox";
 import { cn } from "@/lib/utils";
-import { campaignIg, campaignWa, summarizeByWa, waColor } from "@/lib/wa";
+import { campaignIg, campaignWa, summarizeByWa } from "@/lib/wa";
 import { useCan } from "@/components/common/permissions";
 import { SourceIcon } from "@/components/common/source-icon";
 
@@ -46,7 +48,7 @@ const adsManagerUrl = (c: FbCampaign) =>
     selected_campaign_ids: c.id,
   })}`;
 
-// effective_status của Graph API → màu tag; trạng thái lạ hiện nguyên văn, màu mặc định.
+// effective_status của Graph API → màu chấm trạng thái; trạng thái lạ hiện nguyên văn, màu mặc định.
 const STATUS_COLOR: Record<string, string> = {
   ACTIVE: "green",
   PAUSED: "orange",
@@ -104,14 +106,14 @@ export function AdsStatsView() {
   const s = stats;
   const total = s?.potential?.total;
   // KH tiềm năng = khách mới của kỳ (không gồm purchase); Đặt lịch / Đến cơ sở = tag booking / purchase gắn trong kỳ.
-  const cards: { key: string; value: React.ReactNode; hint?: string }[] = [
+  const cards: { key: string; value: React.ReactNode }[] = [
     { key: "spend", value: money(s?.spend ?? null) },
     { key: "messages", value: count(s?.messages ?? null) },
     { key: "costPerMessage", value: money(ratio(s?.spend ?? null, s?.messages ?? null)) },
     { key: "leads", value: count(total?.potential ?? null) },
     { key: "costPerLead", value: money(ratio(s?.spend ?? null, total?.potential ?? null)) },
-    { key: "colBooking", value: withRate(total?.booking ?? null, s?.messages ?? null), hint: t("funnelHint") },
-    { key: "colShowUp", value: count(total?.showUp ?? null), hint: t("funnelHint") },
+    { key: "colBooking", value: withRate(total?.booking ?? null, s?.messages ?? null) },
+    { key: "colShowUp", value: count(total?.showUp ?? null) },
   ];
   // Lỗi từng nguồn hiện 1 lần ở đầu trang (trước đây lặp lại dưới nhiều card).
   const errorLines = [...new Set([stats?.error, e?.fb, e?.potential].filter(Boolean))] as string[];
@@ -209,10 +211,10 @@ export function AdsStatsView() {
       title: t("colStatus"),
       dataIndex: "status",
       width: 96,
-      // Chỉ ACTIVE/PAUSED bật tắt được; trạng thái khác (xoá, lưu trữ, lỗi…) giữ dạng tag.
+      // Chỉ ACTIVE/PAUSED bật tắt được; trạng thái khác (xoá, lưu trữ, lỗi…) hiện chấm trạng thái.
       render: (status: string, r) => {
         if (status !== "ACTIVE" && status !== "PAUSED")
-          return <Tag color={STATUS_COLOR[status]}>{statusLabel(status)}</Tag>;
+          return <StatusDot color={STATUS_COLOR[status]} label={statusLabel(status)} />;
         const active = status === "ACTIVE";
         if (!canEdit) return <Switch size="small" checked={active} disabled aria-label={statusLabel(status)} />;
         return (
@@ -261,11 +263,7 @@ export function AdsStatsView() {
         return (
           <span className="inline-flex items-center gap-1.5 align-middle">
             {wa && <SourceIcon source="whatsapp" className="size-4" />}
-            {waNo && (
-              <Tag color={waColor(waNo)} className="me-0">
-                {waNo}
-              </Tag>
-            )}
+            {waNo}
             {r.platform === "wa" && !waNo && "WhatsApp"}
             {ig && <SourceIcon source="instagrams" className="size-4" />}
             {r.platform === "ig" && "Instagram"}
@@ -385,17 +383,7 @@ export function AdsStatsView() {
       />
 
       {errorLines.length > 0 && (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-        >
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <div className="min-w-0 space-y-0.5 break-words">
-            {errorLines.map((m) => (
-              <p key={m}>{m}</p>
-            ))}
-          </div>
-        </div>
+        <Alert type="error" showIcon title={errorLines.map((m) => <div key={m}>{m}</div>)} />
       )}
 
       <div
@@ -409,61 +397,27 @@ export function AdsStatsView() {
             key={card.key}
             label={t(card.key)}
             value={card.value ?? "—"}
-            hint={card.hint}
             loading={!stats}
           />
         ))}
       </div>
 
       {byWa.length > 0 && (
-        <section className="space-y-2">
-          <SectionTitle>{t("byWa")}</SectionTitle>
-          {/* Luôn 1 hàng: N cột bằng nhau; chữ co giãn theo bề rộng ô (container query). */}
+        <Section title={t("byWa")}>
           <div
             className={cn(
-              "surface grid divide-x divide-border overflow-hidden transition-opacity duration-200",
+              "grid grid-cols-2 gap-3 transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-6",
               pending && "opacity-60",
             )}
-            style={{ gridTemplateColumns: `repeat(${byWa.length}, minmax(0, 1fr))` }}
           >
             {byWa.map((g) => (
-              <div
-                key={g.wa ?? "none"}
-                className="@container flex min-w-0 flex-col items-center gap-1 px-1 py-3 text-center"
-              >
-                {g.wa ? (
-                  <Tag
-                    color={waColor(g.wa)}
-                    className="me-0 max-w-full truncate px-1 text-[clamp(10px,10cqi,12px)] @min-[5.5rem]:px-2"
-                  >
-                    <span className="hidden @min-[5.5rem]:inline">WA-</span>
-                    {g.wa.slice(3)}
-                  </Tag>
-                ) : (
-                  <span className="max-w-full truncate text-[clamp(10px,10cqi,12px)] leading-[22px] text-muted-foreground">
-                    {t("waUnknown")}
-                  </span>
-                )}
-                <span
-                  className={cn(
-                    "font-semibold leading-none tracking-tight tabular-nums",
-                    !g.wa && "text-muted-foreground",
-                  )}
-                  style={{ fontSize: "clamp(0.95rem, 24cqi, 1.75rem)" }}
-                >
-                  {count(g.messages) ?? "—"}
-                </span>
-                <span className="hidden text-xs text-muted-foreground @min-[5.5rem]:block">
-                  {t("waMessagesLabel")}
-                </span>
-              </div>
+              <StatCard key={g.wa ?? "none"} label={g.wa ?? t("waUnknown")} value={count(g.messages) ?? "—"} />
             ))}
           </div>
-        </section>
+        </Section>
       )}
 
-      <section className="space-y-2">
-        <SectionTitle>{t("campaigns")}</SectionTitle>
+      <Section title={t("campaigns")}>
         {mobile ? (
           <div className="surface overflow-hidden">
             <MetricList
@@ -524,16 +478,8 @@ export function AdsStatsView() {
           />
         </div>
         )}
-      </section>
+      </Section>
     </>
   );
 }
 
-/** Tiêu đề phần: nhỏ, chữ hoa, màu phụ — để số liệu nổi bật hơn tiêu đề. */
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      {children}
-    </h2>
-  );
-}

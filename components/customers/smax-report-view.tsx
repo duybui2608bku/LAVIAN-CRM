@@ -9,6 +9,7 @@ import { getSmaxReport } from "@/app/(app)/customers/smax-report/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { initialRange } from "@/components/common/date-range-filter";
+import { Section } from "@/components/common/section";
 import { StatCard } from "@/components/common/stat-card";
 import {
   bookingNew,
@@ -145,10 +146,10 @@ export function SmaxReportView() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-10">
-          <Section title={t("byChannel")} className="lg:col-span-7">
+          <Section title={t("byChannel")} className="surface p-4 lg:col-span-7">
             <ChannelTable scope={scope} channel={channel} loading={loading} />
           </Section>
-          <Section title={t("bySource")} className="lg:col-span-3">
+          <Section title={t("bySource")} className="surface p-4 lg:col-span-3">
             <BookingDonut scope={scope} />
           </Section>
         </div>
@@ -156,6 +157,7 @@ export function SmaxReportView() {
         {!staff ? (
           <>
             <Section
+              className="surface p-4"
               title={t("byStaff")}
               extra={
                 <span className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground max-sm:hidden">
@@ -170,35 +172,13 @@ export function SmaxReportView() {
             >
               <StaffTable report={report} channel={channel} avatars={result?.avatars} loading={loading} onPick={setStaff} />
             </Section>
-            <Section title={tf("byStaff")}>
+            <Section title={tf("byStaff")} className="surface p-4">
               <FollowupTable report={result?.data?.followup ?? null} avatars={result?.avatars} loading={loading} onPick={setStaff} />
             </Section>
           </>
         ) : null}
       </div>
     </>
-  );
-}
-
-function Section({
-  title,
-  extra,
-  className,
-  children,
-}: {
-  title: string;
-  extra?: React.ReactNode;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className={cn("surface flex min-w-0 flex-col gap-3 p-4", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {extra}
-      </div>
-      {children}
-    </section>
   );
 }
 

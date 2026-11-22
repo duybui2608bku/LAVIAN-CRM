@@ -1,43 +1,44 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Button, Image, Input, Tag, type TableProps } from "antd";
+import { Button, Image, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
-import { CalendarPlus, MessageCircleMore, Search, X } from "lucide-react";
+import { CalendarPlus, MessageCircleMore } from "lucide-react";
 
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import {
   AppointmentNotesDrawer,
+  BookingStatusTag,
   CreateAppointmentDrawer,
-  staffOptions,
   type AppointmentStaff,
 } from "@/components/appointments/appointments-manager";
+import { DASH, StatusDot } from "@/components/common/cells";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
 import { MessagesModal, type MessagesCustomer } from "@/components/appointments/messages-modal";
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
+import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
 import { InlineSelect } from "@/components/common/inline-select";
+import { NamePhone } from "@/components/common/name-phone";
 import { NoteCell } from "@/components/common/notes";
 import { useCan } from "@/components/common/permissions";
 import { StatCard } from "@/components/common/stat-card";
-import { staffLabel } from "@/components/common/user-avatar";
+import { staffName, staffOptions } from "@/components/common/user-avatar";
 import { SourceCell } from "@/components/customers/customers-manager";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { IDR_CURRENCY } from "@/lib/currency";
+import { formatRupiah } from "@/lib/currency";
 import { matchesNameOrPhone } from "@/lib/customers";
 import { toast } from "@/lib/toast";
 import {
   BOOKING_STATUSES,
-  BOOKING_STATUS_COLORS,
   type Appointment,
   type AppointmentCustomer,
   type AppointmentPatch,
 } from "@/types/appointment";
 import type { Customer } from "@/types/customer";
 import type { Service } from "@/types/service";
-import { TELESALES_DEPARTMENTS } from "@/types/user";
 import { useServiceGroups } from "@/components/common/service-groups";
 
 /** Khách kèm cột cần cho bảng Booking (cọc + nguồn). */
@@ -49,9 +50,6 @@ export type BookingCustomer = AppointmentCustomer & {
 
 type Tab = "today" | "tomorrow" | "action" | "all";
 type Status = (typeof BOOKING_STATUSES)[number] | "show_up";
-
-const DASH = <span className="text-muted-foreground">—</span>;
-const num = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
 
 /** Trạng thái hiển thị: đã check-in → Đã đến, còn lại theo xác nhận lịch. */
 const statusOf = (a: Appointment): Status => (a.checked_in ? "show_up" : a.booking_confirm);
@@ -76,7 +74,6 @@ export function BookingsManager({
   const t = useTranslations("bookings");
   const ta = useTranslations("appointments");
   const tc = useTranslations("customers");
-  const tCommon = useTranslations("common");
   const can = useCan();
   const canEdit = can("appointments.edit");
   const [, start] = useTransition();
@@ -118,20 +115,10 @@ export function BookingsManager({
       .join(", ");
 
   const statusLabel = (s: Status) => (s === "show_up" ? ta("showUp") : ta(`bookingStatus.${s}`));
-  const statusTag = (s: Status) => (
-    <Tag color={s === "show_up" ? "green" : BOOKING_STATUS_COLORS[s]} className="me-0">
-      {statusLabel(s)}
-    </Tag>
-  );
-  // Option select = chữ trần; tag màu chỉ ở ô hiển thị.
+  const statusTag = (s: Status) =>
+    s === "show_up" ? <StatusDot color="green" label={statusLabel(s)} /> : <BookingStatusTag status={s} />;
+  // Option select = chữ trần; chấm màu chỉ ở ô hiển thị.
   const statusOptions = BOOKING_STATUSES.map((value) => ({ value, label: statusLabel(value) }));
-  const teleOptions = staff
-    .filter((s) => TELESALES_DEPARTMENTS.includes(s.department ?? ""))
-    .map((s) => ({ value: s.id, label: staffLabel(s) }));
-  const staffDisplay = (id: string | null) => {
-    const s = id ? staff.find((x) => x.id === id) : undefined;
-    return s ? staffLabel(s) : DASH;
-  };
 
   // Lịch của khách đã xoá không hiện.
   const visible = useMemo(() => rows.filter((a) => customerMap.has(a.customer_id)), [rows, customerMap]);
@@ -206,22 +193,23 @@ export function BookingsManager({
       render: (_, a) => {
         const c = customerMap.get(a.customer_id)!;
         const svc = serviceText(a);
+        // Bấm tên → popup hồ sơ 360°; tin SMAX mở ở cột Tin nhắn.
         return (
-          <div className="min-w-0 leading-tight">
-            {/* Bấm tên → popup hồ sơ 360°; tin SMAX mở ở cột Tin nhắn. */}
-            <button
-              type="button"
-              title={ta("openProfile")}
-              onClick={() => c360.open(c.id)}
-              className="block max-w-full truncate text-start font-medium hover:text-primary hover:underline"
-            >
-              {c.full_name}
-            </button>
-            <div className="mt-0.5 truncate text-xs text-muted-foreground" title={svc}>
-              <span className="tabular-nums">{c.phone}</span>
-              {svc ? ` · ${svc}` : null}
-            </div>
-          </div>
+          <NamePhone
+            phone={c.phone}
+            title={c.full_name}
+            extra={svc ? <span title={svc}> · {svc}</span> : null}
+            name={
+              <button
+                type="button"
+                title={ta("openProfile")}
+                onClick={() => c360.open(c.id)}
+                className="max-w-full truncate text-start font-medium hover:text-primary hover:underline"
+              >
+                {c.full_name}
+              </button>
+            }
+          />
         );
       },
     },
@@ -249,12 +237,13 @@ export function BookingsManager({
       title: t("colDeposit"),
       key: "deposit",
       width: 170,
+      align: "right",
       // Có ảnh xác nhận thanh toán → thumbnail nhỏ cạnh số tiền, bấm mở preview to (giống trang Khách hàng).
       render: (_, a) => {
         const c = customerMap.get(a.customer_id);
         const amount = c?.deposit_amount ?? 0;
-        return (
-          <div className="flex items-center gap-2">
+        return amount > 0 || c?.payment_confirm_url ? (
+          <div className="flex items-center justify-end gap-2">
             {c?.payment_confirm_url ? (
               <Image
                 src={c.payment_confirm_url}
@@ -264,21 +253,9 @@ export function BookingsManager({
                 className="rounded border border-border object-cover"
               />
             ) : null}
-            {amount > 0 ? (
-              <div className="leading-tight tabular-nums">
-                <div className="font-medium">{num.format(amount)}</div>
-                <div className="mt-0.5 text-xs text-success">
-                  {IDR_CURRENCY} · {t("deposited")}
-                </div>
-              </div>
-            ) : (
-              <div className="leading-tight text-muted-foreground">
-                <div>{t("notDeposited")}</div>
-                <div className="mt-0.5 text-xs tabular-nums">0 {IDR_CURRENCY}</div>
-              </div>
-            )}
+            {amount > 0 ? <span className="tabular-nums">{formatRupiah(amount)}</span> : null}
           </div>
-        );
+        ) : DASH;
       },
     },
     {
@@ -288,7 +265,7 @@ export function BookingsManager({
       render: (_, a) => (
         <InlineSelect
           value={a.staff_id ?? ""}
-          display={staffDisplay(a.staff_id)}
+          display={staffName(staff, a.staff_id)}
           options={staffOptions(staff, a.staff_id)}
           noneLabel={ta("choose")}
           ariaLabel={t("colTele")}
@@ -345,10 +322,7 @@ export function BookingsManager({
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={t("kpiToday")} value={counts.today} />
         <StatCard label={t("kpiPending")} value={counts.pending} />
-        <StatCard
-          label={t("kpiAction")}
-          value={<span className={counts.action ? "text-destructive" : undefined}>{counts.action}</span>}
-        />
+        <StatCard label={t("kpiAction")} value={counts.action} tone={counts.action ? "destructive" : "muted"} />
         <StatCard label={t("kpiShowUp")} value={counts.showUp} />
       </div>
 
@@ -358,15 +332,7 @@ export function BookingsManager({
             {t("create")}
           </Button>
         )}
-        <Input
-          allowClear
-          className="w-full sm:max-w-72"
-          prefix={<Search className="size-4 text-muted-foreground" />}
-          placeholder={t("searchPlaceholder")}
-          aria-label={t("searchPlaceholder")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <SearchInput placeholder={t("searchPlaceholder")} value={search} onChange={setSearch} />
         {/* Lọc nhanh dạng nút như Sales Management; nút đang chọn viền màu chính. */}
         {(["today", "tomorrow", "action", "all"] as const).map((k) => (
           <Button
@@ -391,23 +357,18 @@ export function BookingsManager({
           className="min-w-40"
           value={staffId}
           onChange={setStaffId}
-          options={teleOptions}
+          options={staffOptions(staff)}
           placeholder={t("allTele")}
           ariaLabel={t("colTele")}
         />
-        {activeFilters > 0 && (
-          <Button
-            type="text"
-            icon={<X className="size-4" />}
-            onClick={() => {
-              setSearch("");
-              setStatus("");
-              setStaffId("");
-            }}
-          >
-            {tCommon("clearFilters")}
-          </Button>
-        )}
+        <ClearFilters
+          show={activeFilters > 0}
+          onClick={() => {
+            setSearch("");
+            setStatus("");
+            setStaffId("");
+          }}
+        />
       </PageToolbar>
 
       <DataTable

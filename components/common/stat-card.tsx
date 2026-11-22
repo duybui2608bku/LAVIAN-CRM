@@ -11,14 +11,16 @@ export function StatCard({
   label: React.ReactNode;
   value: React.ReactNode;
   hint?: React.ReactNode;
-  /** Màu dòng gợi ý: `warning` / `destructive` khi cần cảnh báo. */
+  /** Màu dòng gợi ý (không có gợi ý → màu số): `warning` / `destructive` khi cần cảnh báo. */
   tone?: "muted" | "warning" | "destructive";
   loading?: boolean;
 }) {
   return (
     <div className="surface flex min-w-0 flex-col gap-1 p-3 sm:p-4">
       <p className="truncate text-xs font-medium text-muted-foreground">{label}</p>
-      <div className="truncate text-xl font-semibold sm:text-2xl tracking-tight tabular-nums">
+      {/* Không có dòng gợi ý → `tone` tô thẳng lên số (vd. số quá hạn màu đỏ). */}
+      <div className={cn("truncate text-xl font-semibold sm:text-2xl tracking-tight tabular-nums",
+        !hint && tone === "warning" && "text-warning", !hint && tone === "destructive" && "text-destructive")}>
         {loading ? (
           <span className="inline-block h-7 w-24 animate-pulse rounded-md bg-muted" />
         ) : (

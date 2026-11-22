@@ -90,11 +90,12 @@ export function ReminderFormModal({
             <AppointmentDate className="w-full" onSave={() => {}} />
           </Form.Item>
           {/* Không chọn tay: thông báo chỉ gửi Telesales phụ trách khách (đổi ở cột Nhân viên). */}
-          <Form.Item label={t("assignee")} tooltip={t("assigneeHint")}>
+          <Form.Item label={t("assignee")}>
             <div className="flex h-8 items-center">{telesales ? staffLabel(telesales) : "—"}</div>
           </Form.Item>
         </div>
-        {!telesales && <Alert type="warning" showIcon className="mb-4" message={t("noTelesales")} />}
+        {!telesales && <Alert type="warning" showIcon className="mb-4" title={t("noTelesales")} />}
+
         <Form.Item name="note" label={t("note")} className="mb-0">
           <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={5000} />
         </Form.Item>

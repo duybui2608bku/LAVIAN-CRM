@@ -2,20 +2,23 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Checkbox, Divider, Image, Input, InputNumber, Modal, Popover, Radio, Select, Tag } from "antd";
+import { Button, Checkbox, Divider, Empty, Image, Input, InputNumber, Modal, Popover, Radio, Select } from "antd";
 import { History as HistoryIcon, PencilLine, Plus, Printer, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import {
   addCardItems, addCardPayment, cancelCard, createCardTours, deleteCardPayment, getCardHistory, refundCardItem, updateCardItemSessions,
 } from "@/app/(app)/cards/actions";
-import { CardItemsDrawer, MoneyInput } from "@/components/cards/card-items-drawer";
+import { CardItemsDrawer } from "@/components/cards/card-items-drawer";
+import { MoneyInput } from "@/components/common/money-input";
 import { CardPrint } from "@/components/cards/card-print";
+import { StatusDot } from "@/components/common/cells";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
+import { Section } from "@/components/common/section";
 import { useServiceGroups } from "@/components/common/service-groups";
-import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { staffName, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
 import { runAction, kindText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import {
@@ -37,7 +40,7 @@ export const usageOf = (tours: Pick<Tour, "card_item_id">[]) => (itemId: string)
 export function CardStatusTag({ card, tours }: { card: TreatmentCard; tours: Pick<Tour, "card_item_id">[] }) {
   const t = useTranslations("cards");
   const status = card.cancelled_at ? "cancelled" : cardDone(card.items, usageOf(tours)) ? "done" : "active";
-  return <Tag color={{ cancelled: "red", done: "green", active: "blue" }[status]} className="me-0">{t(`status.${status}`)}</Tag>;
+  return <StatusDot color={{ cancelled: "red", done: "green", active: "blue" }[status]} label={t(`status.${status}`)} />;
 }
 
 /** Công nợ: dương = còn phải thu (cam), âm = phải hoàn khách (đỏ), 0 = "—". */
@@ -80,7 +83,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
   const openTour = tours.find((x) => x.id === tourId);
   const consultant = staff.find((s) => s.id === card.created_by)?.user_name ?? "";
 
-  return <FormDrawer open onClose={onClose} width={600} submitText={t("close")} onSubmit={onClose}
+  return <FormDrawer open onClose={onClose} width={600}
     footerExtra={<>
       {me.canCancel && active ? <ConfirmAction title={t("cancelTitle")} description={t("cancelBody")}
         okText={t("cancelCard")} cancelText={t("back")}
@@ -88,14 +91,13 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
         <Button danger>{t("cancelCard")}</Button>
       </ConfirmAction> : null}
       {/* In A4 cho khách ký: CardPrint (ẩn trên màn hình) + window.print() → "Save as PDF". */}
-      <Button icon={<Printer className="size-4" />} onClick={() => window.print()}>{t("print")}</Button>
+      <Button className="ms-auto" icon={<Printer className="size-4" />} onClick={() => window.print()}>{t("print")}</Button>
     </>}
     title={<div className="min-w-0">
       <div className="flex items-center gap-2 text-lg font-semibold">{card.code} <CardStatusTag card={card} tours={tours} /></div>
-      <div className="mt-1 text-xs font-normal text-muted-foreground">
+      <div className="mt-1 text-sm font-normal">
         {onOpenCustomer ? <button type="button" title={t("openProfile")} onClick={() => onOpenCustomer(card.customer_id)}
-          className="font-medium text-foreground hover:text-primary hover:underline">{card.customer?.full_name}</button> : card.customer?.full_name}
-        {[card.customer?.phone, dayjs(card.created_at).format("DD/MM/YYYY HH:mm"), consultant].filter(Boolean).map((x) => ` · ${x}`).join("")}
+          className="hover:text-primary hover:underline">{card.customer?.full_name}</button> : card.customer?.full_name}
       </div>
     </div>}>
     <CardPrint card={card} services={services} consultant={consultant} used={used} />
@@ -107,96 +109,86 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
     </dl>
     {card.note ? <p className="mb-4 whitespace-pre-line text-sm text-muted-foreground">{card.note}</p> : null}
 
-    {/* Dịch vụ */}
-    <div className="mb-2 flex items-center justify-between">
-      <h3 className="font-semibold">{t("services")}</h3>
-      {canEdit ? <Button size="small" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>{t("addService")}</Button> : null}
-    </div>
-    <ul className="mb-4 flex flex-col divide-y divide-border rounded-lg border border-border">
-      {card.items.map((item) => {
-        const s = serviceOf(item.service_id);
-        const n = used(item.id);
-        return <li key={item.id} className="flex items-start justify-between gap-3 p-3">
-          <div className="min-w-0">
-            <div className={item.refunded_at ? "font-medium line-through opacity-60" : "font-medium"}>{s?.name ?? "—"}</div>
-            <div className="text-xs text-muted-foreground tabular-nums">{s ? `${groups.name(s.group_id)} · ` : ""}{formatRupiah(item.price)}</div>
-            {item.refunded_at ? <div className="mt-1 text-xs text-destructive">
-              {t("refundedLine", { amount: formatRupiah(item.refund_amount ?? 0), date: dayjs(item.refunded_at).format("DD/MM/YYYY") })}
-              {item.refund_note ? ` · ${item.refund_note}` : ""}
-            </div> : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {/* Mực / phí Master: không tạo tour → không có buổi. */}
-            {isTourable(item) ? <Tag color={n >= item.sessions ? "green" : n ? "blue" : "default"} className="me-0 tabular-nums">
-              {t("usedSessions", { used: n, total: item.sessions })}
-            </Tag> : null}
-            {canEdit && !item.refunded_at ? <>
-              {isTourable(item) ? <SessionsButton item={item} used={n} /> : null}
-              <RefundButton item={item} used={n} />
-            </> : null}
-          </div>
-        </li>;
-      })}
-    </ul>
-
-    {/* Thanh toán */}
-    <div className="mb-2 flex items-center justify-between">
-      <h3 className="font-semibold">{t("payments")}</h3>
-      {canEdit ? <PaymentButton cardId={card.id} /> : null}
-    </div>
-    <ul className="mb-4 flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
-      {card.deposit_used ? <li className="flex justify-between gap-3 p-3">
-        <span className="text-muted-foreground">{t("depositUsed")}</span>
-        <span className="tabular-nums text-success">{formatRupiah(card.deposit_used)}</span>
-      </li> : null}
-      {[...card.payments].sort((a, b) => a.paid_at.localeCompare(b.paid_at)).map((p) => <li key={p.id} className="flex items-center justify-between gap-3 p-3">
-        <div className="min-w-0">
-          <div>{dayjs(p.paid_at).format("DD/MM/YYYY")} · {t(`method.${p.method}`)}
-            {p.created_by ? <span className="text-muted-foreground"> · {staff.find((x) => x.id === p.created_by)?.user_name ?? "—"}</span> : null}
-          </div>
-          {p.note ? <div className="text-xs text-muted-foreground">{p.note}</div> : null}
-          {p.images.length ? <div className="mt-1 flex flex-wrap gap-1"><Image.PreviewGroup>
-            {p.images.map((url) => <Image key={url} src={url} alt="" width={40} height={40} className="rounded object-cover" />)}
-          </Image.PreviewGroup></div> : null}
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <span className={p.amount < 0 ? "tabular-nums text-destructive" : "tabular-nums text-success"}>
-            {p.amount < 0 ? `− ${formatRupiah(-p.amount)}` : formatRupiah(p.amount)}
-          </span>
-          {me.isAdmin && active ? <ConfirmAction title={t("deletePaymentTitle")} okText={t("delete")} cancelText={t("back")}
-            onConfirm={() => runAction(deleteCardPayment(p.id), t("saved"), failed)}>
-            <Button type="text" size="small" aria-label={t("delete")} icon={<Trash2 className="size-4" />} />
-          </ConfirmAction> : null}
-        </div>
-      </li>)}
-      {!card.deposit_used && !card.payments.length ? <li className="p-3 text-muted-foreground">{t("noPayments")}</li> : null}
-    </ul>
-
-    {/* Lộ trình tour */}
-    <div className="mb-2 flex items-center justify-between">
-      <h3 className="font-semibold">{t("journey")}</h3>
-      {canEdit && card.items.some((i) => !i.refunded_at && isTourable(i))
-        ? <Button size="small" type="primary" icon={<Route className="size-4" />} onClick={() => setCreatingTour(true)}>{t("createTour")}</Button> : null}
-    </div>
-    {journey.length ? <ol className="relative ms-2 border-s border-border">
-      {journey.map((tour) => {
-        const item = itemOf(tour.card_item_id);
-        const tech = staff.find((s) => s.id === tour.technician_id);
-        return <li key={tour.id} className="ms-4 pb-3">
-          <span className="absolute -start-1.5 mt-2 size-3 rounded-full border-2 border-background bg-primary" />
-          <button type="button" onClick={() => setTourId(tour.id)}
-            className="w-full cursor-pointer rounded-md p-2 text-left hover:bg-muted">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium tabular-nums">{dayjs(tour.tour_date).format("DD/MM/YYYY")}</span>
-              <TourStatusTag tour={tour} />
+    <Section title={t("services")} className="mb-4"
+        extra={canEdit ? <Button size="small" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>{t("addService")}</Button> : null}>
+      <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        {card.items.map((item) => {
+          const s = serviceOf(item.service_id);
+          const n = used(item.id);
+          return <li key={item.id} className="flex items-start justify-between gap-3 p-3">
+            <div className="min-w-0">
+              <div className={item.refunded_at ? "font-medium line-through opacity-60" : "font-medium"}>{s?.name ?? "—"}</div>
+              <div className="text-xs text-muted-foreground tabular-nums">{s ? `${groups.name(s.group_id)} · ` : ""}{formatRupiah(item.price)}</div>
+              {item.refunded_at ? <div className="mt-1 text-xs text-destructive">
+                {t("refundedLine", { amount: formatRupiah(item.refund_amount ?? 0), date: dayjs(item.refunded_at).format("DD/MM/YYYY") })}
+                {item.refund_note ? ` · ${item.refund_note}` : ""}
+              </div> : null}
             </div>
-            <div className="text-sm">{serviceOf(item?.service_id ?? tour.service_id)?.name ?? "—"}
-              {tour.service_detail ? <span className="text-muted-foreground"> · {kindText(tt, tour)}</span> : null}</div>
-            <div className="text-xs text-muted-foreground">{tech ? staffLabel(tech) : tt("status_pending")}</div>
-          </button>
-        </li>;
-      })}
-    </ol> : <p className="text-sm text-muted-foreground">{t("noTours")}</p>}
+            <div className="flex shrink-0 items-center gap-2">
+              {/* Mực / phí Master: không tạo tour → không có buổi. */}
+              {isTourable(item) ? <span className={`text-sm tabular-nums ${n >= item.sessions ? "text-success" : "text-muted-foreground"}`}>
+                {t("usedSessions", { used: n, total: item.sessions })}
+              </span> : null}
+              {canEdit && !item.refunded_at ? <>
+                {isTourable(item) ? <SessionsButton item={item} used={n} /> : null}
+                <RefundButton item={item} used={n} />
+              </> : null}
+            </div>
+          </li>;
+        })}
+      </ul>
+    </Section>
+
+    <Section title={t("payments")} className="mb-4" extra={canEdit ? <PaymentButton cardId={card.id} /> : null}>
+      {card.deposit_used || card.payments.length ? <ul className="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
+        {card.deposit_used ? <li className="flex justify-between gap-3 p-3">
+          <span className="text-muted-foreground">{t("depositUsed")}</span>
+          <span className="tabular-nums text-success">{formatRupiah(card.deposit_used)}</span>
+        </li> : null}
+        {[...card.payments].sort((a, b) => a.paid_at.localeCompare(b.paid_at)).map((p) => <li key={p.id} className="flex items-center justify-between gap-3 p-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2">{dayjs(p.paid_at).format("DD/MM/YYYY")} · {t(`method.${p.method}`)}
+              {p.created_by ? <span className="text-muted-foreground">{staffName(staff, p.created_by)}</span> : null}
+            </div>
+            {p.note ? <div className="text-xs text-muted-foreground">{p.note}</div> : null}
+            {p.images.length ? <div className="mt-1 flex flex-wrap gap-1"><Image.PreviewGroup>
+              {p.images.map((url) => <Image key={url} src={url} alt="" width={40} height={40} className="rounded object-cover" />)}
+            </Image.PreviewGroup></div> : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <span className={p.amount < 0 ? "tabular-nums text-destructive" : "tabular-nums text-success"}>
+              {p.amount < 0 ? `− ${formatRupiah(-p.amount)}` : formatRupiah(p.amount)}
+            </span>
+            {me.isAdmin && active ? <ConfirmAction title={t("deletePaymentTitle")} okText={t("delete")} cancelText={t("back")}
+              onConfirm={() => runAction(deleteCardPayment(p.id), t("saved"), failed)}>
+              <Button type="text" size="small" aria-label={t("delete")} icon={<Trash2 className="size-4" />} />
+            </ConfirmAction> : null}
+          </div>
+        </li>)}
+      </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noPayments")} />}
+    </Section>
+
+    <Section title={t("journey")} className="mb-4" extra={canEdit && card.items.some((i) => !i.refunded_at && isTourable(i))
+        ? <Button size="small" type="primary" icon={<Route className="size-4" />} onClick={() => setCreatingTour(true)}>{t("createTour")}</Button> : null}>
+      {journey.length ? <ol className="relative ms-2 border-s border-border">
+        {journey.map((tour) => {
+          const item = itemOf(tour.card_item_id);
+          return <li key={tour.id} className="ms-4 pb-3">
+            <span className="absolute -start-1.5 mt-2 size-3 rounded-full border-2 border-background bg-primary" />
+            <button type="button" onClick={() => setTourId(tour.id)}
+              className="w-full cursor-pointer rounded-md p-2 text-left hover:bg-muted">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-medium tabular-nums">{dayjs(tour.tour_date).format("DD/MM/YYYY")}</span>
+                <TourStatusTag tour={tour} />
+              </div>
+              <div className="text-sm">{serviceOf(item?.service_id ?? tour.service_id)?.name ?? "—"}
+                {tour.service_detail ? <span className="text-muted-foreground"> · {kindText(tt, tour)}</span> : null}</div>
+              <div className="text-xs text-muted-foreground">{tour.technician_id ? staffName(staff, tour.technician_id) : tt("status_pending")}</div>
+            </button>
+          </li>;
+        })}
+      </ol> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noTours")} />}
+    </Section>
     <CardHistory card={card} tours={tours} services={services} staff={staff} />
 
     <CardItemsDrawer open={adding} title={t("addServiceTitle", { code: card.code })} submitText={t("addService")}
@@ -248,16 +240,11 @@ function CardHistory({ card, tours, services, staff }: { card: TreatmentCard; to
     else groups.push({ at: row.at, actor: row.actor, lines });
   }
 
-  return <section className="mt-4">
-    <div className="mb-2 flex items-center justify-between">
-      <h3 className="font-semibold">{t("history.title")}</h3>
-      <Button size="small" icon={<HistoryIcon className="size-4" />} loading={open && history.isFetching} onClick={() => setOpen((v) => !v)}>
-        {t(open ? "history.hide" : "history.show")}
-      </Button>
-    </div>
+  return <Section title={t("history.title")} extra={<Button size="small" icon={<HistoryIcon className="size-4" />}
+    loading={open && history.isFetching} onClick={() => setOpen((v) => !v)}>{t(open ? "history.hide" : "history.show")}</Button>}>
     {!open || history.isPending ? null
       : history.error ? <p className="text-sm text-destructive">{history.error.message}</p>
-      : !groups.length ? <p className="text-sm text-muted-foreground">{t("history.empty")}</p>
+      : !groups.length ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("history.empty")} />
       : <ol className="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
         {groups.map((g) => <li key={`${g.at}|${g.actor}`} className="p-3">
           <div className="text-xs text-muted-foreground tabular-nums">
@@ -270,7 +257,7 @@ function CardHistory({ card, tours, services, staff }: { card: TreatmentCard; to
           </ul>
         </li>)}
       </ol>}
-  </section>;
+  </Section>;
 }
 
 /** Sửa số buổi 1 DV (không nhỏ hơn số tour đã có) — hết buổi = xong liệu trình, không còn nhắc dặm / kiểm tra laser. */
@@ -288,7 +275,6 @@ function SessionsButton({ item, used }: { item: CardItem; used: number }) {
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">{t("sessions")}
         <InputNumber<number> className="w-full" min={min} max={100} precision={0} value={sessions} onChange={setSessions}
           aria-label={t("sessions")} onPressEnter={save} />
-        <span>{t("sessionsHint", { used })}</span>
       </label>
       <Button type="primary" loading={pending} disabled={sessions == null || sessions < min || sessions === item.sessions} onClick={save}>
         {t("save")}

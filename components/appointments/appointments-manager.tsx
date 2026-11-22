@@ -1,8 +1,8 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Button, Form, Input, Popover, Select, Tag, type TableProps } from "antd";
-import { CalendarPlus, MessageCircleMore, Rows3, Search, ShoppingCart, SquarePen } from "lucide-react";
+import { Button, Form, Input, Popover, Select, type TableProps } from "antd";
+import { CalendarPlus, MessageCircleMore, Rows3, ShoppingCart, SquarePen } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addAppointmentNote, createAppointment, deleteAppointmentNote, patchAppointment } from "@/app/(app)/appointments/actions";
@@ -23,7 +23,11 @@ import { useCan, useCurrentUserId } from "@/components/common/permissions";
 import { CustomerInfoDrawer } from "@/components/customers/customer-info-drawer";
 import { CustomerNotesDrawer, SourceCell } from "@/components/customers/customers-manager";
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
-import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
+import { staffName, staffOptions, type StaffRef } from "@/components/common/user-avatar";
+import { DASH, StatusDot } from "@/components/common/cells";
+import { ClearableSelect } from "@/components/common/clearable-select";
+import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
+import { formatIdr, formatRupiahCompact } from "@/lib/currency";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { ARRIVED_STATUSES, appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
 import { cardMoney } from "@/lib/cards";
@@ -33,32 +37,30 @@ import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 import {
   BOOKING_STATUSES, BOOKING_STATUS_COLORS, VISIT_STATUSES, VISIT_STATUS_COLORS,
-  type Appointment, type AppointmentCustomer, type AppointmentPatch, type VisitStatus,
+  type Appointment, type AppointmentCustomer, type AppointmentPatch, type BookingStatus, type VisitStatus,
 } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import { useServiceGroups } from "@/components/common/service-groups";
 import type { TreatmentCard } from "@/types/card";
 import type { Customer } from "@/types/customer";
 import type { Tour } from "@/types/tour";
-import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
 
-const idr = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
 // Thứ tự nhóm khi "Nhóm theo xác nhận": Confirmed trước, còn lại giữ thứ tự gốc.
 const GROUP_ORDER = ["confirmed", ...BOOKING_STATUSES.filter((s) => s !== "confirmed")] as const;
-const million = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 }); // 11.300.000 → "11,3" (triệu)
 
-/** Tag Status lịch hẹn (Chưa đến / Đã đến / Đang thực hiện / Đã thực hiện / Đổi lịch) — dùng chung cột Sales Status. */
+/** Status lịch hẹn (Chưa đến / Đã đến / Đang thực hiện / Đã thực hiện / Đổi lịch) — dùng chung cột Sales Status. */
 export function VisitStatusTag({ status }: { status: VisitStatus }) {
   const t = useTranslations("appointments.visitStatus");
-  return <Tag color={VISIT_STATUS_COLORS[status]} className="me-0">{t(status)}</Tag>;
+  return <StatusDot color={VISIT_STATUS_COLORS[status]} label={t(status)} />;
 }
 
-// Chỉ chọn user đang hoạt động của bộ phận (mặc định Telesales); giữ người đang gán để vẫn hiển thị.
-export const staffOptions = (staff: AppointmentStaff[], current?: string | null, depts = TELESALES_DEPARTMENTS) => staff
-  .filter((s) => s.id === current || (s.status === "active" && depts.includes(s.department ?? "")))
-  .map((s) => ({ value: s.id, label: staffLabel(s) }));
+/** Xác nhận đặt lịch (Chờ xác nhận / Đã xác nhận / Huỷ / Đổi lịch). */
+export function BookingStatusTag({ status }: { status: BookingStatus }) {
+  const t = useTranslations("appointments.bookingStatus");
+  return <StatusDot color={BOOKING_STATUS_COLORS[status]} label={t(status)} />;
+}
 
 export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, visitChoices, cards, cardTours, cardMe }: {
   appointments: Appointment[];
@@ -81,8 +83,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [search, setSearch] = useState("");
   const [dates, setDates] = useState({ from: "", to: "" });
   const [customerFilter, setCustomerFilter] = useState(initialCustomer);
-  const [visit, setVisit] = useState("all");
-  const [booking, setBooking] = useState("all");
+  const [visit, setVisit] = useState("");
+  const [booking, setBooking] = useState("");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
   const [chatFor, setChatFor] = useState<AppointmentCustomer | null>(null);
@@ -117,8 +119,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     const customer = customerMap.get(row.customer_id);
     return customer && (!customerFilter || row.customer_id === customerFilter)
       && inRange(dayjs(row.scheduled_at).format("YYYY-MM-DD"))
-      && (visit === "all" || row.visit_status === visit)
-      && (booking === "all" || row.booking_confirm === booking)
+      && (!visit || row.visit_status === visit)
+      && (!booking || row.booking_confirm === booking)
       && matchesNameOrPhone(customer.full_name, customer.phone, search);
   });
   // Thẻ đang hiệu lực theo lịch bán; cọc chưa trừ vào thẻ nào của khách (thẻ mới sẽ trừ phần này).
@@ -139,6 +141,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const editing = editingId ? rows.find((row) => row.id === editingId) ?? null : null;
   const notesFor = notesOpen ? rows.find((row) => row.id === notesOpen.id) ?? null : null;
   const resetPage = () => setPage(1);
+  const clearFilters = () => { setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setVisit(""); setBooking(""); setPage(1); };
   // Lọc nhanh 1 ngày: 0 = hôm nay, 1 = ngày mai.
   const pickDay = (offset: number) => {
     const d = dayjs().add(offset, "day").format("YYYY-MM-DD");
@@ -195,11 +198,11 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       return customer?.thread_link
         ? <Button type="text" size="small" aria-label={t("viewMessages")} title={t("viewMessages")}
           icon={<MessageCircleMore className="size-4" />} onClick={() => setChatFor(customer)} />
-        : <span className="text-muted-foreground">—</span>;
+        : DASH;
     } },
     { title: t("bookingConfirm"), width: 160, render: (_, row) => <InlineSelect
       value={row.booking_confirm} ariaLabel={t("bookingConfirm")} disabled={!canEdit}
-      display={<Tag color={BOOKING_STATUS_COLORS[row.booking_confirm]} className="me-0">{t(`bookingStatus.${row.booking_confirm}`)}</Tag>}
+      display={<BookingStatusTag status={row.booking_confirm} />}
       options={statusOptions}
       onSave={(value) => save(row.id, { booking_confirm: value as Appointment["booking_confirm"] })} /> },
     // Status 5 bước (thay Clinic confirmation); Đã đến / Đang thực hiện / Đã thực hiện = khách đã đến (DB tự tính checked_in).
@@ -212,10 +215,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     // Thẻ liệu trình: có thẻ → chỉ mã thẻ (bấm mở thẻ xem chi tiết); khách đã đến chưa có thẻ → giỏ hàng bán thẻ.
     { title: tc("column"), width: 140, render: (_, row) => {
       const card = cardByAppointment.get(row.id);
-      if (card) return <button type="button" onClick={() => setCardId(card.id)} className="cursor-pointer">
-        <Tag color="purple" className="me-0">{card.code}</Tag>
-      </button>;
-      if (!cardMe.canEdit) return <span className="text-muted-foreground">—</span>;
+      if (card) return <button type="button" onClick={() => setCardId(card.id)}
+        className="cursor-pointer font-medium text-primary hover:underline">{card.code}</button>;
+      if (!cardMe.canEdit) return DASH;
       const arrived = ARRIVED_STATUSES.includes(row.visit_status);
       return <Button type="text" aria-label={t("sellCard")} title={arrived ? t("sellCard") : t("sellCardNeedsArrival")} disabled={!arrived}
         icon={<ShoppingCart className="size-4" />} onClick={() => setSellFor(row)} />;
@@ -227,12 +229,12 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
         <span className="text-muted-foreground">{label}</span><span className="text-right">{value}</span>
       </>;
       if (!card) return <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 tabular-nums">
-        {line(t("deposit"), idr.format(depositLeft(row.customer_id)))}
+        {line(t("deposit"), formatIdr(depositLeft(row.customer_id)))}
       </div>;
       const m = cardMoney(card);
       return <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 tabular-nums">
-        {line(t("cardValue"), idr.format(m.value))}
-        {line(t("paidTotal"), <span className="text-success">{idr.format(m.collected)}</span>)}
+        {line(t("cardValue"), formatIdr(m.value))}
+        {line(t("paidTotal"), <span className="text-success">{formatIdr(m.collected)}</span>)}
         {line(t("due"), <DueText due={m.due} />)}
       </div>;
     } },
@@ -240,30 +242,23 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     // người chưa gán thì bỏ qua, hover thấy vai trò. Bấm → popup chọn Sales / Master (lưu ngay; Telesales chỉ xem).
     { title: t("staffColumn"), width: 300, render: (_, row) => {
       const people = ([["staff", row.staff_id], ["sales", row.sales_id], ["master", row.technician_id]] as const)
-        .flatMap(([role, id]) => {
-          const member = id ? staff.find((s) => s.id === id) : undefined;
-          return member ? [{ role, member }] : [];
-        });
+        .filter(([, id]) => id);
       const display = people.length
-        ? <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{people.map(({ role, member }) =>
-          <span key={role} title={`${t(role)}: ${member.user_name}`} className="flex min-w-0 items-center gap-1.5">
-            <UserAvatar src={member.avatar_url} />
-            <span className="max-w-28 truncate">{member.user_name || "—"}</span>
-          </span>)}</div>
-        : <span className="text-muted-foreground">—</span>;
+        ? <div className="flex flex-wrap items-center gap-x-3 gap-y-1">{people.map(([role, id]) =>
+          <span key={role} title={t(role)} className="flex max-w-36 min-w-0">{staffName(staff, id)}</span>)}</div>
+        : DASH;
       if (!canEdit) return display;
-      const tele = row.staff_id ? staff.find((s) => s.id === row.staff_id) : undefined;
       const pick = (field: "sales_id" | "technician_id", label: string, depts: string[], placeholder: string) =>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">{label}</span>
-          <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={placeholder} aria-label={label}
+          <Select allowClear showSearch={{ optionFilterProp: "title" }} placeholder={placeholder} aria-label={label}
             value={row[field] ?? undefined} options={staffOptions(staff, row[field], depts)}
             onChange={(v?: string) => { if ((v ?? null) !== row[field]) save(row.id, { [field]: v ?? null }); }} />
         </label>;
       return <Popover trigger="click" placement="bottomLeft" title={t("staffColumn")} content={<div className="flex w-64 flex-col gap-3">
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">{t("staff")}</span>
-          <span className={tele ? undefined : "text-muted-foreground"}>{tele ? staffLabel(tele) : "—"}</span>
+          {staffName(staff, row.staff_id)}
         </div>
         {pick("sales_id", t("sales"), ["sales"], t("choose"))}
         {pick("technician_id", t("master"), ["technician"], t("unassigned"))}
@@ -288,32 +283,32 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <StatCard label={t("statArrived")} value={stats.arrived} />
       <StatCard label={t("statCancelled")} value={stats.cancelled} />
       <StatCard label={t("statWaiting")} value={stats.waiting} />
-      <StatCard label={t("statBill")} value={million.format(stats.bill / 1e6)} hint={t("millionIdr")} />
-      <StatCard label={t("statCollected")} value={million.format(stats.collected / 1e6)} hint={t("millionIdr")} />
-      <StatCard label={t("statDue")} value={million.format(stats.due / 1e6)} hint={t("millionIdr")} />
+      <StatCard label={t("statBill")} value={formatRupiahCompact(stats.bill)} />
+      <StatCard label={t("statCollected")} value={formatRupiahCompact(stats.collected)} />
+      <StatCard label={t("statDue")} value={formatRupiahCompact(stats.due)} />
     </div>
     <PageToolbar>
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
         onClick={() => setCreating(true)}>{t("create")}</Button>}
-      <Input value={search} allowClear className="w-full sm:max-w-64" placeholder={t("search")}
-        aria-label={t("search")} prefix={<Search className="size-4" />} onChange={(e) => { setSearch(e.target.value); resetPage(); }} />
+      <SearchInput value={search} placeholder={t("search")} onChange={(v) => { setSearch(v); resetPage(); }} />
       <DateRangePicker from={dates.from} to={dates.to} onChange={(r) => { setDates(r); resetPage(); }} placeholder={t("allDates")} />
       <Button onClick={() => pickDay(0)}>{t("today")}</Button>
       <Button onClick={() => pickDay(1)}>{t("tomorrow")}</Button>
-      <Select value={visit} aria-label={t("confirmation")} className="min-w-40" onChange={(v) => { setVisit(v); resetPage(); }}
-        options={[{ value: "all", label: t("allArrivals") }, ...visitOptions]} />
-      <Select value={booking} aria-label={t("bookingConfirm")} className="min-w-40" onChange={(v) => { setBooking(v); resetPage(); }}
-        options={[{ value: "all", label: t("allBookingConfirms") }, ...statusOptions]} />
+      <ClearableSelect value={visit} ariaLabel={t("confirmation")} className="min-w-40" placeholder={t("allArrivals")}
+        options={visitOptions} onChange={(v) => { setVisit(v); resetPage(); }} />
+      <ClearableSelect value={booking} ariaLabel={t("bookingConfirm")} className="min-w-40" placeholder={t("allBookingConfirms")}
+        options={statusOptions} onChange={(v) => { setBooking(v); resetPage(); }} />
       <Button aria-pressed={grouped} type={grouped ? "primary" : "default"} ghost={grouped}
         icon={<Rows3 className="size-4" />} onClick={() => setGrouped(!grouped)}>{t("groupByConfirm")}</Button>
       {customerFilter ? <Button onClick={() => { setCustomerFilter(""); resetPage(); }}>{t("allCustomers")}</Button> : null}
+      <ClearFilters show={!!(search || dates.from || visit || booking || customerFilter)} onClick={clearFilters} />
     </PageToolbar>
     {/* Nhóm theo Xác nhận lịch: mỗi nhóm 1 bảng (phân trang riêng), nhóm trống ẩn; Confirmed lên đầu. */}
     {grouped && filtered.length ? GROUP_ORDER.map((s) => {
       const items = filtered.filter((row) => row.booking_confirm === s);
       return items.length ? <section key={s} className="flex flex-col gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <Tag color={BOOKING_STATUS_COLORS[s]} className="me-0">{t(`bookingStatus.${s}`)}</Tag>
+          {t(`bookingStatus.${s}`)}
           <span className="font-normal text-muted-foreground">{t("count", { count: items.length })}</span>
         </h3>
         <DataTable columns={columns} dataSource={items} scroll={{ x: 1990 }} pageSize={30} onChange={c360.onTableChange} />
@@ -322,10 +317,10 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       page={page} onPageChange={setPage} pageSize={30} onChange={c360.onTableChange} />}
     <CreateAppointmentDrawer open={creating} onClose={() => setCreating(false)} initialCustomer={customerFilter}
       customers={customers} staff={staff}
-      onCreated={() => { setCreating(false); setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setVisit("all"); setBooking("all"); setPage(1); }} />
+      onCreated={() => { setCreating(false); clearFilters(); }} />
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
-      staff={staff} services={services} canEdit={canEdit} visitChoices={visitChoices}
+      staff={staff} canEdit={canEdit} visitChoices={visitChoices}
       card={editing ? cardByAppointment.get(editing.id) : undefined} deposit={editing ? depositLeft(editing.customer_id) : 0}
       onViewInfo={setInfoFor} onOpenNotes={() => editingId && setNotesOpen({ id: editingId, field: "sales_notes" })} onClose={() => setEditingId(null)} />
     <AppointmentNotesDrawer appointment={notesFor} field={notesOpen?.field ?? "notes"} staff={staff} canEdit={canEdit}
@@ -437,10 +432,7 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
             <Input inputMode="tel" autoComplete="off" />
           </Form.Item>
         </div>
-        <div className="-mt-3 mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>{t("quickHint")}</span>
-          {toggle(t("pickExisting"), () => setQuick(false))}
-        </div>
+        <div className="-mt-3 mb-4">{toggle(t("pickExisting"), () => setQuick(false))}</div>
       </> : <Form.Item name="customer_id" label={t("name")} rules={[{ required: true, message: t("chooseCustomer") }]}
         extra={toggle(t("quickCustomer"), startQuick)}>
         <Select showSearch={{ optionFilterProp: "label", onSearch: setSearch }} placeholder={t("chooseCustomer")}
@@ -450,7 +442,7 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
       </Form.Item>}
       <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
         <Form.Item name="staff_id" label={t("staff")}>
-          <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("choose")}
+          <Select allowClear showSearch={{ optionFilterProp: "title" }} placeholder={t("choose")}
             options={staffOptions(staff, staffId)} />
         </Form.Item>
         <Form.Item name="scheduled_at" label={t("date")} trigger="onSave" rules={[{ required: true, message: t("chooseDate") }]}>

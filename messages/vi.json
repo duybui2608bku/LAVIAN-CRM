@@ -69,16 +69,15 @@
     "quickCustomer": "+ Khách mới? Tạo nhanh",
     "quickCreate": "+ Tạo nhanh khách “{name}”",
     "pickExisting": "Chọn khách có sẵn",
-    "quickHint": "Khách mới được tạo với trạng thái Đã đặt lịch.",
     "enterName": "Nhập tên khách hàng",
     "enterPhone": "Nhập số điện thoại",
     "phoneInvalid": "Số điện thoại không hợp lệ",
     "phoneExists": "SĐT này đã thuộc khách {name} — hãy chọn khách có sẵn.",
     "editTitle": "Sửa lịch hẹn",
-    "sectionBooking": "1. Khách hàng & Đặt lịch",
-    "sectionFinance": "2. Tài chính",
-    "sectionStaff": "3. Nhân sự",
-    "sectionNote": "4. Ghi chú Sales",
+    "sectionBooking": "Khách hàng & Đặt lịch",
+    "sectionFinance": "Tài chính",
+    "sectionStaff": "Nhân sự",
+    "sectionNote": "Ghi chú Sales",
     "paidTotal": "Đã thu",
     "due": "Công nợ",
     "paidInput": "Thu thêm sau tiền cọc (IDR)",
@@ -92,7 +91,6 @@
     "statBill": "Giá trị dịch vụ",
     "statCollected": "Tổng thực thu",
     "statDue": "Còn phải thu",
-    "millionIdr": "triệu IDR",
     "groupByConfirm": "Nhóm theo Xác nhận lịch",
     "staffColumn": "Nhân sự",
     "teleNote": "Ghi chú Telesales",
@@ -188,7 +186,6 @@
     "needDetail": "Chưa chọn loại",
     "claim": "Nhận tour",
     "claimed": "Đã nhận tour",
-    "claimHint": "Nhận tour để điền dịch vụ chi tiết, hoá đơn và chụp ảnh.",
     "release": "Trả tour",
     "releaseTitle": "Trả lại tour này cho danh sách chờ nhận?",
     "released": "Đã trả tour",
@@ -209,7 +206,6 @@
     "removed": "Đã xoá tour",
     "cancel": "Huỷ",
     "save": "Lưu",
-    "close": "Đóng",
     "saved": "Đã lưu",
     "saveError": "Lưu thất bại, thử lại",
     "count": "Số tour",
@@ -235,14 +231,9 @@
     "tour": "Tour",
     "appointments": "Quản lý bán hàng",
     "cards": "Thẻ liệu trình",
-    "dashboard": "Báo cáo",
     "marketing": "Marketing",
     "customers": "Khách hàng",
-    "contacts": "Khách hàng",
-    "deals": "Cơ hội",
-    "tasks": "Công việc",
     "reports": "Báo cáo",
-    "settings": "Cài đặt",
     "users": "Người dùng",
     "services": "Dịch vụ",
     "toggleSidebar": "Đóng/mở thanh bên",
@@ -305,18 +296,15 @@
     "dept_sales": "Sales",
     "dept_telesales_leader": "Trưởng nhóm Telesales",
     "permissionsTitle": "Phân quyền",
-    "permissionsHint": "Chọn menu và thao tác mỗi bộ phận được dùng. Quản trị viên luôn toàn quyền; trang Người dùng chỉ quản trị viên. Chọn Sửa/Xoá sẽ tự bật Xem, bỏ Xem sẽ tắt cả menu đó.",
     "permissionsOk": "Đã lưu phân quyền",
     "perm_view": "Xem",
     "perm_edit": "Thêm / Sửa",
     "perm_delete": "Xoá",
     "memberCount": "{n} nhân viên",
-    "selectedCount": "Đã chọn {n}/{total} quyền",
     "selectAll": "Chọn tất cả",
     "clearAll": "Bỏ chọn hết",
     "unsaved": "{n} bộ phận có thay đổi chưa lưu",
     "unsavedDot": "Có thay đổi chưa lưu",
-    "allSaved": "Mọi thay đổi đã được lưu",
     "discard": "Hoàn tác",
     "saveChanges": "Lưu thay đổi",
     "perm_view_desc": "Mở menu và xem dữ liệu",
@@ -332,7 +320,6 @@
     "empty": "Không có người dùng nào",
     "role_admin": "Quản trị viên",
     "role_user": "Người dùng",
-    "status_active": "Hoạt động",
     "status_banned": "Bị khoá",
     "ban": "Cấm",
     "unban": "Bỏ cấm",
@@ -380,13 +367,12 @@
     "editTitle": "Sửa dịch vụ",
     "required": "Bắt buộc",
     "optional": "Không bắt buộc",
-    "activeLabel": "Kích hoạt (hiện trong lựa chọn)",
+    "activeLabel": "Kích hoạt",
     "cancel": "Huỷ",
     "save": "Lưu",
     "updateOk": "Đã cập nhật",
     "createOk": "Đã thêm",
-    "tourableLabel": "Tạo tour",
-    "tourableHint": "Bỏ chọn với mực, phí Master, sản phẩm: không tạo tour, không tính buổi / đến hạn."
+    "tourableLabel": "Tạo tour"
   },
   "customers": {
     "bookingsTitle": "Quản lý đặt lịch",
@@ -408,7 +394,7 @@
       "deposited": "Đặt cọc",
       "booked": "Lịch hẹn",
       "showUp": "Đã đến",
-      "total": "Tổng lịch hẹn ({range})",
+      "total": "Tổng lịch hẹn",
       "todayAppointments": "Lịch hẹn hôm nay",
       "tomorrow": "Lịch hẹn ngày mai"
     },
@@ -556,7 +542,6 @@
     "costPerLead": "Chi tiêu / KH tiềm năng",
     "costPerBooking": "Chi tiêu / Đặt lịch",
     "bookingRate": "Tỉ lệ đặt lịch",
-    "funnelHint": "Theo lúc gắn tag trong kỳ",
     "appointments": "Lịch hẹn",
     "campaigns": "Chiến dịch",
     "noCampaigns": "Không có chiến dịch nào có lượt hiển thị trong khoảng ngày này",
@@ -565,7 +550,6 @@
     "colPlatform": "Nền tảng",
     "byWa": "Tin nhắn theo số WA",
     "waUnknown": "Chưa gắn WA",
-    "waMessagesLabel": "tin nhắn",
     "confirmPause": "Tạm dừng chiến dịch này?",
     "confirmActivate": "Bật chiến dịch này?",
     "statusUpdated": "Đã cập nhật trạng thái chiến dịch",
@@ -588,8 +572,6 @@
   },
   "reports": {
     "title": "Báo cáo",
-    "subtitle": "Từ quảng cáo đến doanh thu · {range}, so với {prev}",
-    "subtitleShort": "Từ quảng cáo đến doanh thu",
     "refresh": "Tải lại",
     "metric": {
       "spend": "Chi tiêu",
@@ -602,8 +584,6 @@
       "revenue": "Doanh thu"
     },
     "hint": {
-      "ofMessages": "{pct} tin nhắn",
-      "ofData": "{pct} data",
       "roas": "ROAS {x}x"
     },
     "vsPrevious": "Kỳ trước: {value}",
@@ -623,7 +603,6 @@
   },
   "telesales": {
     "title": "Báo cáo Telesales",
-    "subtitleShort": "Hiệu suất đội Telesales theo khoảng ngày",
     "refresh": "Tải lại",
     "sourceError": "Một số nguồn dữ liệu lỗi — phần liên quan hiện “-”",
     "card": {
@@ -635,32 +614,10 @@
       "cancelled": "Khách hủy / Đổi lịch"
     },
     "hint": {
-      "previous": "Kỳ trước: {value}",
-      "fbError": "Lỗi Facebook Ads",
-      "bookingRate": "Tỉ lệ đặt lịch: {value} / tin nhắn",
-      "newShare": "{value} tổng lượt đặt lịch",
-      "confirmRate": "Tỉ lệ xác nhận: {value}",
-      "showUp": "Đã đến: {value} / {scheduled} lịch hẹn",
-      "cancel": "Hủy {cancelled} · Đổi {rescheduled} · {value} / lượt đặt lịch"
-    },
-    "tip": {
-      "messages": "Số cuộc trò chuyện nhắn tin bắt đầu từ quảng cáo Facebook (2 tài khoản quảng cáo) trong kỳ.",
-      "bookings": "Số lịch hẹn được TẠO trong kỳ. Tỉ lệ đặt lịch = Lượt đặt lịch / Tin nhắn.",
-      "newBookings": "Lượt đặt lịch của khách hàng được tạo trong cùng kỳ (khách mới).",
-      "confirmed": "Lượt đặt lịch tạo trong kỳ đang ở trạng thái “Đã xác nhận”.",
-      "arrived": "Lịch có NGÀY HẸN trong kỳ và khách đã đến. Tỉ lệ đến = Đã đến / lịch hẹn trong kỳ.",
-      "cancelled": "Lượt đặt lịch tạo trong kỳ ở trạng thái “Khách hủy” hoặc “Đổi lịch”. Giảm là tốt.",
-      "funnel": "Tin nhắn → Đặt lịch → Đã xác nhận → Đã đến; % so với Tin nhắn.",
-      "trend": "Lượt đặt lịch mới theo ngày tạo lịch, Đã đến theo ngày hẹn.",
-      "sources": "Lượt đặt lịch tạo trong kỳ theo nguồn của khách.",
-      "staff": "Lượt đặt lịch / Đã đến theo nhân viên phụ trách lịch hẹn. Hoàn thành KPI = Tỉ lệ đặt lịch / {kpi}.",
-      "conversations": "Số hội thoại nhân viên đã xử lý trên SMAX trong kỳ."
+      "previous": "Kỳ trước: {value}"
     },
     "funnel": "Phễu chuyển đổi",
     "trend": "Xu hướng đặt lịch",
-    "response": "Tốc độ phản hồi tin nhắn",
-    "updating": "Đang cập nhật",
-    "updatingHint": "Số liệu này sẽ có trong bản cập nhật tới.",
     "staffTitle": "Hiệu suất nhân viên Telesales",
     "col": {
       "staff": "Nhân viên",
@@ -679,8 +636,7 @@
       "instagrams": "Instagram",
       "whatsapp": "WhatsApp",
       "other": "Khác"
-    },
-    "alerts": "Cảnh báo & công việc cần xử lý"
+    }
   },
   "smaxReport": {
     "refresh": "Tải lại",
@@ -753,7 +709,6 @@
     "departmentsHint": "Bỏ trống = mọi bộ phận. Quản trị viên luôn xem được.",
     "allDepartments": "Mọi bộ phận",
     "pdf": "Tệp PDF",
-    "pdfHint": "Tuỳ chọn, tối đa {mb}MB. Hiển thị phía trên nội dung.",
     "uploadPdf": "Tải PDF lên",
     "replacePdf": "Đổi tệp PDF",
     "removePdf": "Gỡ tệp PDF",
@@ -814,7 +769,6 @@
   },
   "reminders": {
     "title": "Lịch nhắc hẹn",
-    "pageHint": "Lịch nhắc khách đến cơ sở — tick khi đã nhắn khách.",
     "add": "Thêm nhắc hẹn",
     "editTitle": "Sửa nhắc hẹn",
     "remindAt": "Thời điểm nhắc",
@@ -837,7 +791,6 @@
     "searchPlaceholder": "Tìm tên / SĐT khách",
     "more": "+{n} lịch nữa",
     "count": "{n} lịch",
-    "createHint": "Thêm lịch nhắc ở cột Nhắc hẹn trang Quản lý đặt lịch.",
     "state": {
       "overdue": "Quá hạn",
       "today": "Hôm nay",
@@ -855,7 +808,6 @@
       "digestOverdue": "{n} lịch quá hạn",
       "assigned": "{by} tạo lịch nhắc cho khách {customer} của bạn lúc {time}"
     },
-    "assigneeHint": "Chỉ Telesales phụ trách khách nhận thông báo. Đổi ở cột Nhân viên của khách.",
     "noTelesales": "Khách chưa có Telesales phụ trách nên lịch nhắc này sẽ không gửi thông báo cho ai.",
     "notePlaceholder": "Ghi chú (không bắt buộc)",
     "notifyTo": "Thông báo cho"
@@ -881,7 +833,6 @@
     "colStatus": "Tình trạng",
     "colSalesStatus": "Trạng thái Sales",
     "colFollowUp": "Ngày giờ liên hệ lại",
-    "followUps": "{n} lần liên hệ lại",
     "empty": "Không có khách tiềm năng nào",
     "convertedOk": "Đã chuyển khách sang Đã đặt lịch",
     "notify": {
@@ -914,8 +865,6 @@
     "colSource": "Nguồn",
     "colStatus": "Trạng thái",
     "colNote": "Ghi chú",
-    "deposited": "Đã cọc",
-    "notDeposited": "Chưa cọc",
     "empty": "Không có lịch hẹn nào"
   },
   "notes": {
@@ -941,12 +890,6 @@
     "prev": "Khách trước",
     "next": "Khách tiếp",
     "position": "{index}/{total}",
-    "hint": {
-      "admin": "Quản trị viên: xem toàn bộ hồ sơ",
-      "telesales": "Telesales: tập trung chân dung, nhu cầu và hội thoại",
-      "sales": "Sales: kiểm tra tài chính và nhu cầu Upsell",
-      "master": "Master: xem lịch hẹn, ảnh B/A và chân dung khách"
-    },
     "summary": {
       "wish": "Mong muốn",
       "pain": "Nỗi lo",
@@ -959,11 +902,8 @@
       "services": "Dịch vụ & Upsell",
       "photos": "Ảnh B/A",
       "messages": "Hội thoại",
-      "timeline": "Lịch sử & Ghi chú",
-      "care": "CSKH"
+      "timeline": "Lịch sử & Ghi chú"
     },
-    "comingSoon": "Coming soon",
-    "comingSoonDesc": "Tab CSKH đang được phát triển.",
     "quickNote": "Ghi chú nhanh",
     "toEdit": "Chuyển sang nhập liệu",
     "noteSuggestions": "Tư vấn|Kỹ thuật|CSKH|Phản hồi",
@@ -999,8 +939,7 @@
       "messagePlaceholder": "Gắn tin SMAX (không bắt buộc)",
       "saved": "Đã lưu chân dung",
       "history": "Lịch sử ({count})",
-      "empty": "Chưa có",
-      "immutable": "Mỗi lần cập nhật được lưu thành bản mới; bản cũ giữ nguyên, không sửa hay xoá được."
+      "empty": "Chưa có"
     },
     "needs": {
       "title": "Nhu cầu / Upsell",
@@ -1100,15 +1039,13 @@
     "statValue": "Doanh số",
     "statCollected": "Đã thu",
     "statDue": "Công nợ",
-    "millionIdr": "triệu IDR",
     "sellTitle": "Bán thẻ liệu trình · {name}",
     "confirmSell": "Xác nhận tạo thẻ",
     "created": "Đã tạo thẻ liệu trình",
     "addService": "Thêm dịch vụ",
     "addServiceTitle": "Thêm dịch vụ vào thẻ {code}",
     "needItems": "Chọn ít nhất 1 dịch vụ",
-    "emptyItems": "Chọn dịch vụ từ bảng giá ở ô trên.",
-    "listPrice": "giá niêm yết",
+    "emptyItems": "Chọn dịch vụ từ bảng giá.",
     "removeLine": "Bỏ dịch vụ",
     "price": "Giá bán (IDR)",
     "sessions": "Số buổi",
@@ -1145,7 +1082,6 @@
     "cancelBody": "Thẻ không tính vào doanh số nữa; tiền cọc đã trừ được trả lại để trừ vào thẻ khác.",
     "cancelled": "Đã huỷ thẻ",
     "back": "Quay lại",
-    "close": "Đóng",
     "saved": "Đã lưu",
     "saveError": "Lưu không thành công",
     "error": {
@@ -1172,7 +1108,6 @@
     "print": "In thẻ (PDF)",
     "save": "Lưu",
     "editSessions": "Sửa số buổi",
-    "sessionsHint": "Đã làm {used} buổi — không nhỏ hơn số này. Hết buổi = xong liệu trình, không còn nhắc.",
     "sessionsFull": "đã đủ buổi (chỉ admin tạo thêm)",
     "history": {
       "title": "Lịch sử thao tác",
@@ -1208,7 +1143,6 @@
   },
   "journey": {
     "title": "Đến hạn liệu trình",
-    "subtitle": "Khách cần gọi kiểm tra sau laser (20 ngày) hoặc hẹn dặm (45 ngày). Đặt lịch hẹn hoặc tạo tour là mục tự hết.",
     "dueDate": "Hạn",
     "overdueDays": "Quá hạn {n} ngày",
     "dueToday": "Hôm nay",

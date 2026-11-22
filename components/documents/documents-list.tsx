@@ -4,16 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Button, Input, Tag, type TableColumnsType } from "antd";
+import { Button, Input, type TableColumnsType } from "antd";
 import dayjs from "dayjs";
-import { Heart, MessageSquare, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { FileText, Heart, MessageSquare, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
+import { StatusDot } from "@/components/common/cells";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
 import { RowActions } from "@/components/common/row-actions";
 import { UserAvatar } from "@/components/common/user-avatar";
-import { Page, PageToolbar } from "@/components/layout/page";
+import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { deleteDocument } from "@/app/(app)/documents/actions";
 import { DOCUMENT_CATEGORIES, categoryColor } from "@/lib/document-categories";
 import { toast } from "@/lib/toast";
@@ -25,6 +26,7 @@ const fold = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").re
 export function DocumentsList({ documents, isAdmin }: { documents: DocumentListItem[]; isAdmin: boolean }) {
   const t = useTranslations("documents");
   const tu = useTranslations("users");
+  const tn = useTranslations("nav");
   const router = useRouter();
   const confirm = useConfirm();
   const [q, setQ] = useState("");
@@ -59,9 +61,9 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
             {d.title}
           </Link>
           {d.pdf_path ? (
-            <Tag color="red" variant="filled" className="m-0! shrink-0">
-              PDF
-            </Tag>
+            <FileText className="size-4 shrink-0 text-muted-foreground" role="img" aria-label="PDF">
+              <title>PDF</title>
+            </FileText>
           ) : null}
         </span>
       ),
@@ -69,23 +71,15 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
     {
       key: "category",
       title: t("category"),
-      render: (_, d) => (
-        <Tag color={categoryColor(d.category)} variant="filled" className="m-0!">
-          {t(`cat_${d.category}`)}
-        </Tag>
-      ),
+      render: (_, d) => <StatusDot color={categoryColor(d.category)} label={t(`cat_${d.category}`)} />,
     },
     {
       key: "departments",
       title: t("colDepartments"),
       hidden: !isAdmin,
       render: (_, d) => (
-        <span className="flex flex-wrap gap-1">
-          {(d.departments.length ? d.departments.map((dep) => tu(`dept_${dep}`)) : [t("allDepartments")]).map((l) => (
-            <Tag key={l} variant="filled" className="m-0!">
-              {l}
-            </Tag>
-          ))}
+        <span className="text-muted-foreground">
+          {d.departments.length ? d.departments.map((dep) => tu(`dept_${dep}`)).join(", ") : t("allDepartments")}
         </span>
       ),
     },
@@ -139,16 +133,21 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
 
   return (
     <Page>
-      {/* Không tiêu đề trang — menu đã nói đây là "Tài liệu"; chỉ nút thêm (đầu hàng) + ô tìm, lọc danh mục. */}
+      <PageHeader
+        title={tn("documents")}
+        actions={
+          isAdmin ? (
+            <Link href="/documents/new">
+              <Button type="primary" icon={<Plus className="size-4" />} className="w-full">
+                {t("new")}
+              </Button>
+            </Link>
+          ) : null
+        }
+      />
       <PageToolbar>
-        {isAdmin ? (
-          <Link href="/documents/new">
-            <Button type="primary" icon={<Plus className="size-4" />} className="w-full">
-              {t("new")}
-            </Button>
-          </Link>
-        ) : null}
         <Input
+
           allowClear
           value={q}
           onChange={(e) => {

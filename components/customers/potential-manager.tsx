@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Button, Input, type TableProps } from "antd";
-import dayjs from "dayjs";
+import { Badge, Button, type TableProps } from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { MessageCircleMore, MessageSquareText, Search, X } from "lucide-react";
+import { MessageCircleMore, MessageSquareText } from "lucide-react";
 
 import { convertPotentialCustomer, patchCustomer } from "@/app/(app)/customers/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
@@ -13,11 +12,13 @@ import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
 import { MessagesModal, type MessagesCustomer } from "@/components/appointments/messages-modal";
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
-import { EnumTag } from "@/components/common/enum-tag";
+import { DASH, DateTimeCell, StatusDot } from "@/components/common/cells";
+import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
 import { InlineSelect } from "@/components/common/inline-select";
 import { useCan } from "@/components/common/permissions";
+import { NamePhone } from "@/components/common/name-phone";
 import { StatCard } from "@/components/common/stat-card";
-import { staffLabel } from "@/components/common/user-avatar";
+import { staffName, staffOptions } from "@/components/common/user-avatar";
 import type { PipelineAppointment } from "@/components/customers/customer-pipeline";
 import { CustomerNotesDrawer, SourceCell } from "@/components/customers/customers-manager";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
@@ -26,20 +27,17 @@ import { CONVERTED_STATUS } from "@/lib/customer-options";
 import { matchesNameOrPhone, optionLabel } from "@/lib/customers";
 import { reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import type { Customer, EnumOption } from "@/types/customer";
-import { TELESALES_DEPARTMENTS } from "@/types/user";
 import { useServiceGroups } from "@/components/common/service-groups";
 
 type Tab = "all" | "overdue" | "today" | "upcoming";
 type Patch = { staff_id?: string | null; potential_status?: string | null; follow_up_at?: string | null };
 
-const DASH = <span className="text-muted-foreground">—</span>;
-
-/** Trạng thái hạn follow-up = chữ nhỏ màu ngữ nghĩa (không tag — ô đã có giờ hẹn là điểm nhấn). */
-const FOLLOW_UP_TONE: Record<Exclude<Tab, "all">, string> = {
-  overdue: "text-destructive",
-  today: "text-warning",
-  upcoming: "text-muted-foreground",
+/** Hạn follow-up tô màu chính ô giờ hẹn: quá hạn đỏ, hôm nay cam (input antd tự đặt màu chữ → cần `!`). */
+const FOLLOW_UP_TONE: Partial<Record<Exclude<Tab, "all">, string>> = {
+  overdue: "[&_input]:text-destructive!",
+  today: "[&_input]:text-warning!",
 };
 
 /** Mốc liên hệ lại so với `now`: quá hạn (đã qua) / hôm nay (còn trong ngày) / sắp tới; chưa đặt → null. */
@@ -62,7 +60,6 @@ export function PotentialManager({
   const groups = useServiceGroups();
   const t = useTranslations("potential");
   const tc = useTranslations("customers");
-  const tCommon = useTranslations("common");
   const locale = useLocale();
   const can = useCan();
   const canEdit = can("customers.edit");
@@ -92,22 +89,15 @@ export function PotentialManager({
       else toast.success(tc("updateOk"));
     });
 
-  // Option select = chữ trần; tag màu chỉ ở ô hiển thị trên bảng.
+  // Option select = chữ trần; chấm màu chỉ ở ô hiển thị trên bảng.
   const statusDefs = options.filter((o) => o.kind === "potential_status");
   const statusOptions = statusDefs.map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
   const statusTag = (v: string | null | undefined) => {
     const o = statusDefs.find((x) => x.value === v);
-    return o ? <EnumTag label={optionLabel(o, locale)} color={o.color} /> : DASH;
+    return o ? <StatusDot label={optionLabel(o, locale)} color={o.color} /> : DASH;
   };
-  // Trang gộp 2 stage: khách Cân nhắc ghi chữ nhạt để phân biệt với Tiềm năng (1 ô tối đa 1 tag).
+  // Trang gộp 2 stage: khách Cân nhắc ghi chữ nhạt để phân biệt với Tiềm năng.
   const considerOpt = options.find((o) => o.kind === "stage" && o.value === "consider");
-  const teleOptions = staff
-    .filter((s) => TELESALES_DEPARTMENTS.includes(s.department ?? ""))
-    .map((s) => ({ value: s.id, label: staffLabel(s) }));
-  const staffDisplay = (id: string | null) => {
-    const s = id ? staff.find((x) => x.id === id) : undefined;
-    return s ? staffLabel(s) : DASH;
-  };
 
   // Card số liệu tính trên toàn bộ khách tiềm năng (không theo bộ lọc).
   const counts = useMemo(() => {
@@ -155,29 +145,37 @@ export function PotentialManager({
           <div className="flex items-start gap-1">
             <div className="min-w-0 flex-1 leading-tight">
               {/* Bấm tên → popup hồ sơ 360° (hội thoại SMAX mở bằng icon tin nhắn). */}
-              <button
-                type="button"
-                title={tc("openProfile")}
-                onClick={() => c360.open(c.id)}
-                className="block max-w-full truncate text-start font-medium hover:text-primary hover:underline"
-              >
-                {c.full_name}
-              </button>
-              <div className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">{c.phone}</div>
+              <NamePhone
+                phone={c.phone}
+                title={c.full_name}
+                name={
+                  <button
+                    type="button"
+                    title={tc("openProfile")}
+                    onClick={() => c360.open(c.id)}
+                    className="max-w-full truncate text-start font-medium hover:text-primary hover:underline"
+                  >
+                    {c.full_name}
+                  </button>
+                }
+              />
               {last ? (
                 <div className="mt-0.5 max-w-72 truncate text-xs text-muted-foreground" title={last}>
                   {last}
                 </div>
               ) : null}
             </div>
-            <Button
-              type="text"
-              size="small"
-              aria-label={tc("viewNotes")}
-              title={tc("viewNotes")}
-              icon={<MessageSquareText className="size-4" />}
-              onClick={() => setNotesFor(c.id)}
-            />
+            {/* Badge = số lần liên hệ lại (ghi chú). */}
+            <Badge count={c.notes?.length ?? 0} size="small" overflowCount={9} color="var(--primary)">
+              <Button
+                type="text"
+                size="small"
+                aria-label={tc("viewNotes")}
+                title={tc("viewNotes")}
+                icon={<MessageSquareText className="size-4" />}
+                onClick={() => setNotesFor(c.id)}
+              />
+            </Badge>
           </div>
         );
       },
@@ -208,14 +206,13 @@ export function PotentialManager({
       render: (_, c) => {
         const s = followUpState(c.follow_up_at, now);
         return (
-          <div className="leading-tight">
+          <div className={cn(s && FOLLOW_UP_TONE[s])}>
             <AppointmentDate
               inline
               value={c.follow_up_at}
               disabled={!canEdit}
               onSave={(iso) => patchField(c.id, { follow_up_at: iso })}
             />
-            {s ? <div className={`mt-0.5 text-xs ${FOLLOW_UP_TONE[s]}`}>{t(`tab.${s}`)}</div> : null}
           </div>
         );
       },
@@ -238,10 +235,9 @@ export function PotentialManager({
               v === CONVERTED_STATUS ? setConvertFor(c.id) : patchField(c.id, { potential_status: v || null })
             }
           />
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            {c.stage === "consider" && considerOpt ? `${optionLabel(considerOpt, locale)} · ` : null}
-            {t("followUps", { n: c.notes?.length ?? 0 })}
-          </div>
+          {c.stage === "consider" && considerOpt ? (
+            <div className="mt-0.5 text-xs text-muted-foreground">{optionLabel(considerOpt, locale)}</div>
+          ) : null}
         </div>
       ),
     },
@@ -270,13 +266,8 @@ export function PotentialManager({
       render: (_, c) => (
         <InlineSelect
           value={c.staff_id ?? ""}
-          display={staffDisplay(c.staff_id)}
-          options={[
-            ...teleOptions,
-            ...(c.staff_id && !teleOptions.some((o) => o.value === c.staff_id)
-              ? [{ value: c.staff_id, label: staffDisplay(c.staff_id) }]
-              : []),
-          ]}
+          display={staffName(staff, c.staff_id)}
+          options={staffOptions(staff, c.staff_id)}
           noneLabel={tc("noneOption")}
           ariaLabel={t("colTele")}
           disabled={!canEdit}
@@ -290,12 +281,7 @@ export function PotentialManager({
       key: "created",
       dataIndex: "created_at",
       width: 120,
-      render: (v: string) => (
-        <div className="leading-tight tabular-nums">
-          <div>{dayjs(v).format("DD/MM/YYYY")}</div>
-          <div className="text-xs text-muted-foreground">{dayjs(v).format("HH:mm")}</div>
-        </div>
-      ),
+      render: (v: string) => <DateTimeCell value={v} />,
     },
   ];
 
@@ -307,24 +293,13 @@ export function PotentialManager({
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={t("kpiTotal")} value={rows.length} />
-        <StatCard
-          label={t("kpiOverdue")}
-          value={<span className={counts.overdue ? "text-destructive" : undefined}>{counts.overdue}</span>}
-        />
+        <StatCard label={t("kpiOverdue")} value={counts.overdue} tone={counts.overdue ? "destructive" : "muted"} />
         <StatCard label={t("kpiToday")} value={counts.today} />
         <StatCard label={t("kpiConverted")} value={convertedToday} />
       </div>
 
       <PageToolbar>
-        <Input
-          allowClear
-          className="w-full sm:max-w-72"
-          prefix={<Search className="size-4 text-muted-foreground" />}
-          placeholder={t("searchPlaceholder")}
-          aria-label={t("searchPlaceholder")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <SearchInput placeholder={t("searchPlaceholder")} value={search} onChange={setSearch} />
         {/* Lọc nhanh dạng nút như Booking Management (Tìm → Tab → Trạng thái → Tele); nút đang chọn viền màu chính. */}
         {(["all", "overdue", "today", "upcoming"] as const).map((k) => (
           <Button
@@ -349,23 +324,18 @@ export function PotentialManager({
           className="min-w-40"
           value={staffId}
           onChange={setStaffId}
-          options={teleOptions}
+          options={staffOptions(staff)}
           placeholder={t("allTele")}
           ariaLabel={t("colTele")}
         />
-        {activeFilters > 0 && (
-          <Button
-            type="text"
-            icon={<X className="size-4" />}
-            onClick={() => {
-              setSearch("");
-              setStaffId("");
-              setStatus("");
-            }}
-          >
-            {tCommon("clearFilters")}
-          </Button>
-        )}
+        <ClearFilters
+          show={activeFilters > 0}
+          onClick={() => {
+            setSearch("");
+            setStaffId("");
+            setStatus("");
+          }}
+        />
       </PageToolbar>
 
       <DataTable columns={columns} dataSource={filtered} page={page} onPageChange={setPage} empty={t("empty")}

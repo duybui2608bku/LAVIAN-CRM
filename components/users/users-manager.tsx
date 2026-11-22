@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { Avatar, Button, Form, Input, Modal, Tag, Tooltip, Typography, Upload, type TableProps } from "antd";
+import { Avatar, Button, Form, Input, Modal, Tooltip, Typography, Upload, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
-import { Ban, Camera, KeyRound, Loader2, Search, ShieldCheck, User, UserPlus } from "lucide-react";
+import { Ban, Camera, KeyRound, Loader2, ShieldCheck, User, UserPlus } from "lucide-react";
 
 import {
   createUser,
@@ -13,9 +13,11 @@ import {
   setUserSmaxId,
   setUserStatus,
 } from "@/app/(app)/users/actions";
+import { StatusDot } from "@/components/common/cells";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
+import { SearchInput } from "@/components/common/filter-controls";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { InlineSelect } from "@/components/common/inline-select";
 import { RowActions } from "@/components/common/row-actions";
@@ -134,9 +136,7 @@ export function UsersManager({
     {
       title: t("colRole"),
       dataIndex: "role",
-      render: (role: Profile["role"]) => (
-        <Tag color={role === "admin" ? "purple" : undefined} variant={role === "admin" ? "solid" : undefined}>{t(`role_${role}`)}</Tag>
-      ),
+      render: (role: Profile["role"]) => t(`role_${role}`),
     },
     {
       title: t("colDepartment"),
@@ -169,11 +169,9 @@ export function UsersManager({
     {
       title: t("colStatus"),
       dataIndex: "status",
-      render: (status: Profile["status"]) => (
-        <Tag color={status === "banned" ? "error" : "default"} variant={status === "banned" ? "solid" : undefined}>
-          {t(`status_${status}`)}
-        </Tag>
-      ),
+      // Chỉ báo khi bị khoá; đang hoạt động là mặc định → để trống.
+      render: (status: Profile["status"]) =>
+        status === "banned" ? <StatusDot color="red" label={t("status_banned")} /> : null,
     },
     {
       title: t("colCreated"),
@@ -231,14 +229,8 @@ export function UsersManager({
         >
           {t("create")}
         </Button>
-        <Input
-          allowClear
-          className="w-full sm:max-w-56"
-          prefix={<Search className="size-4 text-muted-foreground" />}
-          placeholder={t("searchPlaceholder")}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <SearchInput placeholder={t("searchPlaceholder")} value={query} onChange={setQuery} />
+
         <ClearableSelect
           className="min-w-32"
           value={role}

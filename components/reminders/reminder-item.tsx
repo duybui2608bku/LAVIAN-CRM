@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Button, Checkbox, Tag, Tooltip } from "antd";
+import { Button, Checkbox, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
 import { MessageCircle, Pencil, Trash2 } from "lucide-react";
@@ -10,7 +10,7 @@ import { deleteReminder, setReminderDone } from "@/app/(app)/customers/reminders
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { customerTelesales } from "@/components/reminders/reminder-form-modal";
-import { REMINDER_COLORS, reminderState } from "@/lib/reminders";
+import { reminderState } from "@/lib/reminders";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { Reminder, ReminderCustomer } from "@/types/reminder";
@@ -68,9 +68,17 @@ export function ReminderItem({
       </Tooltip>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <Tag color={REMINDER_COLORS[state]} className="me-0 tabular-nums" title={t(`state.${state}`)}>
+          <span
+            className={cn(
+              "font-medium tabular-nums",
+              state === "overdue" && "text-destructive",
+              state === "today" && "text-warning",
+            )}
+            title={t(`state.${state}`)}
+          >
             {dayjs(r.remind_at).format(timeFormat)}
-          </Tag>
+          </span>
+
           {showCustomer && customer && (
             <span className="min-w-0 truncate font-medium">
               {customer.full_name}
