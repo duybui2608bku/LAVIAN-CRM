@@ -7,8 +7,6 @@ export type TourExcelLabels = {
   customer: string;
   service: string;
   bill: string;
-  rate: string;
-  tour: string;
   subtotal: string;
   total: string;
   detail: (row: TourGroup["rows"][number]) => string;
@@ -25,8 +23,6 @@ export async function downloadTourExcel(groups: TourGroup[], month: string, labe
     { header: labels.customer, width: 28 },
     { header: labels.service, width: 14 },
     { header: labels.bill, width: 16, style: { numFmt: "#,##0" } },
-    { header: labels.rate, width: 8, style: { numFmt: "0%" } },
-    { header: labels.tour, width: 16, style: { numFmt: "#,##0" } },
   ];
   ws.getRow(1).font = { bold: true };
 
@@ -39,19 +35,16 @@ export async function downloadTourExcel(groups: TourGroup[], month: string, labe
         row.customer?.full_name ?? "",
         labels.detail(row),
         row.bill_amount,
-        row.rate,
-        row.amount,
       ]);
     }
-    const sub = ws.addRow([`${labels.subtotal} ${g.technician.user_name}`, `${g.rows.length}`, null, null, g.bill, null, g.amount]);
+    const sub = ws.addRow([`${labels.subtotal} ${g.technician.user_name}`, `${g.rows.length}`, null, null, g.bill]);
     sub.font = { bold: true };
     sub.eachCell((cell) => { cell.fill = fill; });
   }
   const count = groups.reduce((n, g) => n + g.rows.length, 0);
   const total = ws.addRow([
     labels.total, `${count}`, null, null,
-    groups.reduce((n, g) => n + g.bill, 0), null,
-    groups.reduce((n, g) => n + g.amount, 0),
+    groups.reduce((n, g) => n + g.bill, 0),
   ]);
   total.font = { bold: true };
 

@@ -1,20 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { tourAmount, tourPatchSchema, tourStatus } from "./tours.ts";
+import { tourPatchSchema, tourStatus } from "./tours.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
-
-test("thực thu = bill × %", () => {
-  assert.equal(tourAmount("new", null, 1_000_000), 70_000);
-  assert.equal(tourAmount("debt", null, 1_000_000), 70_000);
-  assert.equal(tourAmount("retouch", 1, 1_000_000), 30_000);
-  assert.equal(tourAmount("retouch", 2, 1_000_000), 0);
-  assert.equal(tourAmount("laser", 3, 2_000_000), 0);
-  assert.equal(tourAmount("plasma", 1, 2_000_000), 0);
-  assert.equal(tourAmount(null, null, 1_000_000), null);
-  assert.equal(tourAmount("new", null, null), null);
-  assert.equal(tourAmount("retouch", null, 1_000_000), null);
-});
 
 test("status is derived from technician + confirmation", () => {
   assert.equal(tourStatus({ technician_id: null, confirmed_at: null }), "pending");

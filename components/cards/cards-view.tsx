@@ -67,6 +67,9 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
     .map((id) => staffById.get(id)).filter((s): s is StaffRef => !!s);
 
   const columns: TableProps<(typeof rows)[number]>["columns"] = [
+    { title: t("createdAt"), width: 110, fixed: "left", render: (_, c) => <div className="leading-tight tabular-nums">
+      {dayjs(c.created_at).format("DD/MM/YYYY")}<div className="text-xs text-muted-foreground">{dayjs(c.created_at).format("HH:mm")}</div>
+    </div> },
     { title: t("code"), width: 130, fixed: "left", render: (_, c) => <span className="font-medium text-primary">{c.code}</span> },
     { title: t("customer"), width: 200, render: (_, c) => <NamePhone phone={c.customer?.phone} name={
       <button type="button" title={t("openProfile")} aria-label={t("openProfile")} className="font-medium hover:text-primary hover:underline"
@@ -79,9 +82,6 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
     { title: t("value"), width: 140, align: "right", render: (_, c) => <span className="tabular-nums">{formatRupiah(c.money.value)}</span> },
     { title: t("collected"), width: 140, align: "right", render: (_, c) => <span className="tabular-nums text-success">{formatRupiah(c.money.collected)}</span> },
     { title: t("due"), width: 140, align: "right", render: (_, c) => <DueText due={c.money.due} /> },
-    { title: t("createdAt"), width: 110, render: (_, c) => <div className="leading-tight tabular-nums">
-      {dayjs(c.created_at).format("DD/MM/YYYY")}<div className="text-xs text-muted-foreground">{dayjs(c.created_at).format("HH:mm")}</div>
-    </div> },
     { title: t("createdBy"), width: 170, render: (_, c) => {
       const s = c.created_by ? staffById.get(c.created_by) : undefined;
       return s ? staffLabel(s) : <span className="text-muted-foreground">—</span>;

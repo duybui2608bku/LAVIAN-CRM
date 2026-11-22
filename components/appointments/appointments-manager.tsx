@@ -209,14 +209,11 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       options={visitOptions.map((o) => ({ ...o, disabled: o.value !== row.visit_status && !visitChoices.includes(o.value) }))}
       onSave={(value) => save(row.id, { visit_status: value as VisitStatus })} /> },
     // Cột Nhóm dịch vụ đã gộp vào ô Khách hàng (sau SĐT).
-    // Thẻ liệu trình: có thẻ → mã thẻ + dịch vụ (bấm mở thẻ); khách đã đến chưa có thẻ → giỏ hàng bán thẻ.
-    { title: tc("column"), width: 220, render: (_, row) => {
+    // Thẻ liệu trình: có thẻ → chỉ mã thẻ (bấm mở thẻ xem chi tiết); khách đã đến chưa có thẻ → giỏ hàng bán thẻ.
+    { title: tc("column"), width: 140, render: (_, row) => {
       const card = cardByAppointment.get(row.id);
-      if (card) return <button type="button" onClick={() => setCardId(card.id)} className="w-full cursor-pointer text-left">
+      if (card) return <button type="button" onClick={() => setCardId(card.id)} className="cursor-pointer">
         <Tag color="purple" className="me-0">{card.code}</Tag>
-        <div className="mt-0.5 truncate text-xs text-muted-foreground hover:text-primary">
-          {card.items.filter((i) => !i.refunded_at).map((i) => services.find((s) => s.id === i.service_id)?.name ?? "—").join(", ")}
-        </div>
       </button>;
       if (!cardMe.canEdit) return <span className="text-muted-foreground">—</span>;
       const arrived = ARRIVED_STATUSES.includes(row.visit_status);
@@ -329,8 +326,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
       staff={staff} services={services} canEdit={canEdit} visitChoices={visitChoices}
-      card={editing ? cardByAppointment.get(editing.id) : undefined} canSellCard={cardMe.canEdit}
-      onOpenCard={(c) => setCardId(c.id)} onSellCard={() => editing && setSellFor(editing)}
+      card={editing ? cardByAppointment.get(editing.id) : undefined}
       onViewInfo={setInfoFor} onOpenNotes={() => editingId && setNotesOpen({ id: editingId, field: "sales_notes" })} onClose={() => setEditingId(null)} />
     <AppointmentNotesDrawer appointment={notesFor} field={notesOpen?.field ?? "notes"} staff={staff} canEdit={canEdit}
       customerName={notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : ""} onClose={() => setNotesOpen(null)} />

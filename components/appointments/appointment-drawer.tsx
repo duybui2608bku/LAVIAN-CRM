@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { Button, Divider, Form, Select, Tag } from "antd";
-import { NotebookPen, PanelRightOpen, Plus, ShoppingCart, X } from "lucide-react";
+import { NotebookPen, PanelRightOpen, Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { setAppointmentPerformers } from "@/app/(app)/customers/customer-360-actions";
@@ -11,10 +11,6 @@ import { staffOptions, type AppointmentStaff } from "@/components/appointments/a
 import { NoteItem } from "@/components/common/notes";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { staffLabel } from "@/components/common/user-avatar";
-import { DueText } from "@/components/cards/card-drawer";
-import { ARRIVED_STATUSES } from "@/lib/appointments";
-import { cardMoney } from "@/lib/cards";
-import { formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import {
   BOOKING_STATUS_COLORS, VISIT_STATUSES,
@@ -25,8 +21,8 @@ import type { TreatmentCard } from "@/types/card";
 import type { Service } from "@/types/service";
 import { useServiceGroups } from "@/components/common/service-groups";
 
-// Trường drawer sửa được — gửi lên server chỉ những trường đã đổi. Tiền / dịch vụ chi tiết nằm ở thẻ liệu trình.
-const FIELDS = ["scheduled_at", "visit_status", "service_categories", "sales_id", "technician_id"] as const satisfies readonly (keyof AppointmentPatch)[];
+// Trường drawer sửa được — gửi lên server chỉ những trường đã đổi. Dịch vụ / tiền nằm ở thẻ liệu trình (cột Thẻ trên bảng).
+const FIELDS = ["scheduled_at", "visit_status", "sales_id", "technician_id"] as const satisfies readonly (keyof AppointmentPatch)[];
 type Values = Pick<Appointment, (typeof FIELDS)[number]> & { performers: Partial<AppointmentPerformer>[] };
 // Vai trò theo bộ phận: Sales → "sales"; Master (technician) → Mapping / Phun-xăm / Hỗ trợ.
 const rolesOf = (department: string | null | undefined) =>
@@ -42,9 +38,6 @@ type Props = {
   visitChoices: VisitStatus[];
   /** Thẻ liệu trình bán ở lịch này (chưa huỷ). */
   card: TreatmentCard | undefined;
-  canSellCard: boolean;
-  onOpenCard: (card: TreatmentCard) => void;
-  onSellCard: () => void;
   onViewInfo: (customer: AppointmentCustomer) => void;
   onOpenNotes: () => void;
   onClose: () => void;
@@ -57,14 +50,13 @@ export function AppointmentDrawer({ appointment, ...props }: Omit<Props, "appoin
 }
 
 function AppointmentDrawerBody({
-  appointment: a, customer, staff, services, canEdit, visitChoices, card, canSellCard, onOpenCard, onSellCard, onViewInfo, onOpenNotes, onClose,
+  appointment: a, customer, staff, services, canEdit, visitChoices, card, onViewInfo, onOpenNotes, onClose,
 }: Props) {
   const t = useTranslations("appointments");
   const tn = useTranslations("notes");
   const groups = useServiceGroups();
   const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
-  const money = card ? cardMoney(card) : null;
   const nameOf = (id: string) => services.find((x) => x.id === id)?.name ?? "—";
   // Dòng phụ đầu drawer: SĐT · Nhóm DV – dịch vụ trong thẻ · Xác nhận lịch.
   const serviceLine = [
@@ -118,29 +110,6 @@ function AppointmentDrawerBody({
             value, label: t(`visitStatus.${value}`), disabled: value !== a.visit_status && !visitChoices.includes(value),
           }))} />
         </Form.Item>
-      </div>
-
-      <Divider className="mt-1 mb-4" />
-      <h3 className="mb-3 font-semibold">{t("sectionService")}</h3>
-      <Form.Item name="service_categories" label={t("serviceCategories")}>
-        <Select mode="multiple" allowClear placeholder={t("choose")} options={groups.options} />
-      </Form.Item>
-      {/* Tài chính = thẻ liệu trình bán ở lịch này (Giá trị, Đã thu = cọc trừ + đã thu, Công nợ). */}
-      <div className="mb-4 rounded-lg border border-border p-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <span className="font-semibold">{t("financeCard")}</span>
-          {card ? <Button size="small" onClick={() => onOpenCard(card)}>{t("openCard", { code: card.code })}</Button>
-            : canSellCard ? <Button size="small" type="primary" icon={<ShoppingCart className="size-4" />}
-              disabled={!ARRIVED_STATUSES.includes(a.visit_status)} title={ARRIVED_STATUSES.includes(a.visit_status) ? undefined : t("sellCardNeedsArrival")}
-              onClick={onSellCard}>{t("sellCard")}</Button> : null}
-        </div>
-        {money ? <dl className="grid grid-cols-[1fr_auto] gap-y-2 text-sm tabular-nums">
-          <dt className="text-muted-foreground">{t("cardValue")}</dt><dd className="text-right">{formatRupiah(money.value)}</dd>
-          <dt className="text-muted-foreground">{t("paidTotal")}</dt><dd className="text-right text-success">{formatRupiah(money.collected)}</dd>
-          <dt className="font-medium">{t("due")}</dt><dd className="text-right"><DueText due={money.due} /></dd>
-        </dl> : <p className="text-sm text-muted-foreground">
-          {t("noCard")}{customer?.deposit_amount ? ` · ${t("deposit")}: ${formatRupiah(customer.deposit_amount)}` : ""}
-        </p>}
       </div>
 
       <Divider className="mt-1 mb-4" />
