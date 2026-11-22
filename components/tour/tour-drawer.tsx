@@ -14,10 +14,8 @@ import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
 import { formatRupiah, sanitizeCurrencyInput } from "@/lib/currency";
 import { toast } from "@/lib/toast";
-import {
-  MAX_SESSION, needsSession, PAYMENT_METHODS, SERVICE_DETAILS, tourAmount, tourRate, tourStatus,
-  type ServiceDetail, type TourStatus,
-} from "@/lib/tours";
+import { tourDetailFor, tourSessionOf } from "@/lib/cards";
+import { MAX_SESSION, PAYMENT_METHODS, tourAmount, tourRate, tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import type { Tour, TourImageField, TourPatch } from "@/types/tour";
@@ -34,8 +32,11 @@ export const TourStatusTag = ({ tour }: { tour: Pick<Tour, "technician_id" | "co
   return <Tag color={STATUS_COLOR[status]} className="me-0">{t(`status_${status}`)}</Tag>;
 };
 
-export const detailText = (t: T, tour: Pick<Tour, "service_detail" | "service_session">) =>
-  tour.service_detail ? `${t(`detail_${tour.service_detail}`)}${tour.service_session ? ` ${tour.service_session}` : ""}` : "";
+/** "Lần n" của tour — dịch vụ chi tiết (New/Retouch/Laser…) suy từ lần, không hiện trên UI (sếp làm lại sau). */
+export const sessionText = (t: T, tour: Pick<Tour, "service_detail" | "service_session">) => {
+  const n = tourSessionOf(tour);
+  return n ? t("sessionN", { n }) : "";
+};
 
 /** Gọi server action, hiện toast; trả true khi thành công. */
 export async function runAction(action: Promise<{ error?: string }>, success: string, failed: string) {
@@ -63,8 +64,8 @@ const customerOptions = (customers: AppointmentCustomer[]) =>
 const serviceOptions = (services: Service[], current?: string) => services
   .filter((s) => s.is_active || s.id === current).map((s) => ({ value: s.id, label: s.name }));
 
-type WorkValues = Pick<TourPatch, "tour_date" | "customer_id" | "service_id" | "technician_id" | "service_detail"
-  | "service_session" | "bill_amount" | "payment_method">;
+type WorkValues = Pick<TourPatch, "tour_date" | "customer_id" | "service_id" | "technician_id" | "bill_amount" | "payment_method">
+  & { session_no?: number | null };
 
 /**
  * Drawer xem/sửa 1 tour — dùng chung cho KTV (nhận, điền chi tiết + ảnh), CSKH và admin (xác nhận).
@@ -83,9 +84,15 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   const [pending, start] = useTransition();
   const [notesOpen, setNotesOpen] = useState(false);
   const tn = useTranslations("notes");
-  const detail = Form.useWatch("service_detail", form) as ServiceDetail | null | undefined;
-  const session = Form.useWatch("service_session", form) as number | null | undefined;
+  const sessionNo = Form.useWatch("session_no", form) as number | null | undefined;
+  const serviceId = (Form.useWatch("service_id", form) as string | undefined) ?? tour.service_id;
   const bill = Form.useWatch("bill_amount", form) as number | null | undefined;
+  // Dịch vụ chi tiết + lần lưu DB suy từ (dịch vụ, Lần) → giữ cách tính % thực thu cũ.
+  const derive = (id: string, n: number | null | undefined) => {
+    const service = services.find((s) => s.id === id);
+    return n && service ? tourDetailFor(service, n) : null;
+  };
+  const detail = derive(serviceId, sessionNo);
 
   const status = tourStatus(tour);
   const isOwner = tour.technician_id === me.id;
@@ -100,12 +107,11 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   const save = (confirm?: boolean) => start(async () => {
     let values: WorkValues;
     try { values = await form.validateFields(); } catch { return; }
-    const patch: TourPatch = {
-      service_detail: values.service_detail ?? null,
-      service_session: needsSession(values.service_detail) ? values.service_session ?? null : null,
-      bill_amount: values.bill_amount ?? null,
-      payment_method: values.payment_method ?? null,
-    };
+    const patch: TourPatch = { bill_amount: values.bill_amount ?? null, payment_method: values.payment_method ?? null };
+    // Chỉ ghi lại dịch vụ chi tiết khi đổi Lần (tour cũ Debt… giữ nguyên nếu không đụng tới).
+    if ((values.session_no ?? null) !== tourSessionOf(tour) || (values.service_id ?? tour.service_id) !== tour.service_id) {
+      Object.assign(patch, derive(values.service_id ?? tour.service_id, values.session_no) ?? { service_detail: null, service_session: null });
+    }
     if (canEditBasic) Object.assign(patch, fromCard ? { tour_date: values.tour_date }
       : { tour_date: values.tour_date, customer_id: values.customer_id, service_id: values.service_id });
     if (me.isAdmin && (values.technician_id ?? null) !== tour.technician_id) patch.technician_id = values.technician_id ?? null;
@@ -117,7 +123,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   const savePhotos = (field: TourImageField) => (next: string[]) =>
     runAction(updateTour(tour.id, { [field]: next }), t("photoSaved"), failed);
 
-  const amount = detail ? tourAmount(detail, session ?? null, bill ?? null) : null;
+  const amount = detail ? tourAmount(detail.service_detail, detail.service_session, bill ?? null) : null;
 
   const footerExtra = <>
     {canClaim ? <Button type="primary" loading={pending} onClick={() => start(async () => {
@@ -138,14 +144,8 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
     <Form form={form} layout="vertical" requiredMark={false} disabled={!canEdit || pending}
       initialValues={{
         tour_date: tour.tour_date, customer_id: tour.customer_id, service_id: tour.service_id,
-        technician_id: tour.technician_id ?? undefined, service_detail: tour.service_detail ?? undefined,
-        service_session: tour.service_session ?? undefined, bill_amount: tour.bill_amount ?? undefined,
-        payment_method: tour.payment_method ?? undefined,
-      }}
-      onValuesChange={(changed: Partial<WorkValues>) => {
-        if (!("service_detail" in changed)) return;
-        const next = changed.service_detail;
-        form.setFieldValue("service_session", needsSession(next) ? form.getFieldValue("service_session") ?? 1 : undefined);
+        technician_id: tour.technician_id ?? undefined, session_no: tourSessionOf(tour) ?? undefined,
+        bill_amount: tour.bill_amount ?? undefined, payment_method: tour.payment_method ?? undefined,
       }}>
       {canEditBasic && !fromCard ? <>
         <div className="grid grid-cols-2 gap-3">
@@ -177,19 +177,14 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
       </Form.Item> : null}
 
       {canClaim ? <p className="mb-4 text-sm text-muted-foreground">{t("claimHint")}</p> : <>
-        <Form.Item name="service_detail" label={t("serviceDetail")}>
-          <Radio.Group optionType="button" buttonStyle="solid" className={FULL_GROUP}
-            options={SERVICE_DETAILS.map((d) => ({ value: d, label: t(`detail_${d}`), className: FULL_OPTION }))} />
-        </Form.Item>
         <div className="grid grid-cols-2 gap-3">
-          <Form.Item name="service_session" label={t("session")}
-            rules={[{ required: needsSession(detail), message: t("required") }]}>
-            <Select disabled={!needsSession(detail) || !canEdit} placeholder="—"
+          <Form.Item name="session_no" label={t("session")}>
+            <Select allowClear placeholder="—"
               options={Array.from({ length: MAX_SESSION }, (_, i) => ({ value: i + 1, label: t("sessionN", { n: i + 1 }) }))} />
           </Form.Item>
           <Form.Item label={t("rate")}>
             <div className="flex h-8 items-center tabular-nums">
-              {detail && (!needsSession(detail) || session) ? `${Math.round(tourRate(detail, session ?? null) * 100)}%` : "—"}
+              {detail ? `${Math.round(tourRate(detail.service_detail, detail.service_session) * 100)}%` : "—"}
             </div>
           </Form.Item>
         </div>

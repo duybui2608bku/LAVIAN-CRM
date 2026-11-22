@@ -39,6 +39,13 @@ export function tourDetailFor(service: { group_id: string; name: string }, n: nu
   return n <= 1 ? { service_detail: "new", service_session: null } as const : { service_detail: "retouch", service_session: n - 1 } as const;
 }
 
+/** Ngược của tourDetailFor: Lần n của tour (New/Debt = 1, Retouch k = k+1, Laser/Plasma k = k); chưa có → null. */
+export function tourSessionOf(tour: { service_detail: string | null; service_session: number | null }): number | null {
+  if (tour.service_detail === "new" || tour.service_detail === "debt") return 1;
+  if (tour.service_detail === "retouch") return tour.service_session == null ? null : tour.service_session + 1;
+  return tour.service_detail ? tour.service_session : null;
+}
+
 const money = z.number().int().min(0).max(1e13);
 const note = z.string().trim().max(2000).default("");
 export const cardItemInputSchema = z.object({

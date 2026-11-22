@@ -1,6 +1,7 @@
 // Dữ liệu dùng chung cho Excel + phiếu tour PDF (admin).
 import type { StaffRef } from "@/components/common/user-avatar";
-import { tourAmount, tourRate, type ServiceDetail } from "@/lib/tours";
+import { tourSessionOf } from "@/lib/cards";
+import { tourAmount, tourRate } from "@/lib/tours";
 import type { Tour } from "@/types/tour";
 
 /** Tour kèm thực thu (`amount`) và % (`rate`). */
@@ -39,10 +40,8 @@ export function groupByTechnician(items: TourItem[], staff: StaffRef[]): TourGro
   return [...groups.values()].sort((a, b) => a.technician.user_name.localeCompare(b.technician.user_name));
 }
 
-const DETAIL_EN: Record<ServiceDetail, string> = {
-  laser: "Laser", plasma: "Plasma", new: "New", debt: "Debt", retouch: "Retouch",
+/** Nhãn lần tiếng Anh (phiếu tour luôn tiếng Anh). */
+export const detailLabelEn = (row: Tour) => {
+  const n = tourSessionOf(row);
+  return n ? `Session ${n}` : "";
 };
-
-/** Nhãn dịch vụ chi tiết tiếng Anh (phiếu tour luôn tiếng Anh). */
-export const detailLabelEn = (row: Tour) =>
-  row.service_detail ? `${DETAIL_EN[row.service_detail]}${row.service_session ? ` ${row.service_session}` : ""}` : "";

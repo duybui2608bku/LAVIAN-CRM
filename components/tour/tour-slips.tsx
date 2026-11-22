@@ -65,7 +65,7 @@ export function TourSlips({ groups, month }: { groups: TourGroup[]; month: strin
 
           {g.missing ? (
             <p className="tour-slip-note">
-              {g.missing} tour(s) missing bill or service detail are not included in the total.
+              {g.missing} tour(s) missing bill or session are not included in the total.
             </p>
           ) : null}
 
