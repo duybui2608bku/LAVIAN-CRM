@@ -53,6 +53,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-22 — Marketing: tỉ lệ Đặt lịch / Tin nhắn + số 0 hiện "—"
+- **Thay đổi:** Thẻ **Đặt lịch** và cột **Đặt lịch** (dòng chiến dịch cha) hiện thêm tỉ lệ so với Tin nhắn dạng `1 · 3%` (tối đa 1 chữ số thập phân; dòng con WA/IG chỉ hiện số vì không có tin nhắn riêng). `money` / `count` trả null khi 0 → mọi ô số liệu bằng 0 (thẻ, bảng, mobile, tin nhắn theo số WA) hiện "—". openspec `marketing-booking-rate`.
+- **File ảnh hưởng:** `components/marketing/ads-stats.tsx`, `openspec/changes/marketing-booking-rate/`.
+- **Còn dở / ghi chú:** tsc + eslint sạch; chưa xem trên trình duyệt (trang cần đăng nhập). Chưa commit (nhánh `claude/marketing-booking-rate`).
+
 ### 2026-11-21 — Cột Tin nhắn riêng + căn thẳng icon ô Tên
 - **Thay đổi:** Icon tin nhắn (mở `MessagesModal`) tách thành **cột "Tin nhắn" riêng** (width 90, căn giữa, chưa có hội thoại → "—") ngay sau cột tên ở `/customers`, `/customers/potential`, `/customers/bookings`. `/customers`: cột Họ tên width cố định 240 + `NamePhone` `flex-1` → nút sửa (hover) luôn sát mép phải, thẳng hàng. Thêm key `customers.colMessages` (vi/en).
 - **File ảnh hưởng:** `components/customers/customers-manager.tsx`, `components/customers/potential-manager.tsx`, `components/appointments/bookings-manager.tsx`, `messages/vi.json`, `messages/en.json`.
