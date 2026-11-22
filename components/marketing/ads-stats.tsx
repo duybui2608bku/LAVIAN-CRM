@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Alert, Button, Switch, Table, Tooltip, type TableColumnType } from "antd";
 
-import { StatusDot } from "@/components/common/cells";
+import { StatusTag } from "@/components/common/cells";
 import { Section } from "@/components/common/section";
 import { StatCard } from "@/components/common/stat-card";
 import { RefreshCw } from "lucide-react";
@@ -48,7 +48,7 @@ const adsManagerUrl = (c: FbCampaign) =>
     selected_campaign_ids: c.id,
   })}`;
 
-// effective_status của Graph API → màu chấm trạng thái; trạng thái lạ hiện nguyên văn, màu mặc định.
+// effective_status của Graph API → màu tag trạng thái; trạng thái lạ hiện nguyên văn, màu mặc định.
 const STATUS_COLOR: Record<string, string> = {
   ACTIVE: "green",
   PAUSED: "orange",
@@ -211,10 +211,10 @@ export function AdsStatsView() {
       title: t("colStatus"),
       dataIndex: "status",
       width: 96,
-      // Chỉ ACTIVE/PAUSED bật tắt được; trạng thái khác (xoá, lưu trữ, lỗi…) hiện chấm trạng thái.
+      // Chỉ ACTIVE/PAUSED bật tắt được; trạng thái khác (xoá, lưu trữ, lỗi…) hiện tag trạng thái.
       render: (status: string, r) => {
         if (status !== "ACTIVE" && status !== "PAUSED")
-          return <StatusDot color={STATUS_COLOR[status]} label={statusLabel(status)} />;
+          return <StatusTag color={STATUS_COLOR[status]} label={statusLabel(status)} />;
         const active = status === "ACTIVE";
         if (!canEdit) return <Switch size="small" checked={active} disabled aria-label={statusLabel(status)} />;
         return (

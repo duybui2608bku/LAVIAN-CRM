@@ -13,7 +13,7 @@ import {
   setUserSmaxId,
   setUserStatus,
 } from "@/app/(app)/users/actions";
-import { StatusDot } from "@/components/common/cells";
+import { StatusTag } from "@/components/common/cells";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
@@ -171,7 +171,7 @@ export function UsersManager({
       dataIndex: "status",
       // Chỉ báo khi bị khoá; đang hoạt động là mặc định → để trống.
       render: (status: Profile["status"]) =>
-        status === "banned" ? <StatusDot color="red" label={t("status_banned")} /> : null,
+        status === "banned" ? <StatusTag color="red" label={t("status_banned")} /> : null,
     },
     {
       title: t("colCreated"),

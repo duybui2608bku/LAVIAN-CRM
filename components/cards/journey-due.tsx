@@ -5,7 +5,7 @@ import { Button, Select, type TableProps } from "antd";
 import { MessageCircle, Phone } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
-import { StatusDot } from "@/components/common/cells";
+import { StatusTag } from "@/components/common/cells";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
 import { ClearFilters } from "@/components/common/filter-controls";
@@ -69,9 +69,9 @@ export function JourneyDueTable({ rows, staff, me }: {
       const d = daysLeft(r.due);
       return <div className="leading-tight tabular-nums">
         {dayjs(r.due).format("DD/MM/YYYY")}
-        <div>{d < 0 ? <StatusDot color="red" label={t("overdueDays", { n: -d })} />
-          : d === 0 ? <StatusDot color="orange" label={t("dueToday")} />
-          : <StatusDot color={d <= SOON_DAYS ? "blue" : "default"} label={t("daysLeft", { n: d })} />}</div>
+        <div>{d < 0 ? <StatusTag color="red" label={t("overdueDays", { n: -d })} />
+          : d === 0 ? <StatusTag color="orange" label={t("dueToday")} />
+          : <StatusTag color={d <= SOON_DAYS ? "blue" : "default"} label={t("daysLeft", { n: d })} />}</div>
       </div>;
     } },
     { title: t("customer"), width: 200, render: (_, r) => <NamePhone phone={r.customer.phone} name={

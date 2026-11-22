@@ -46,7 +46,7 @@ import { CustomerRemindersPopover } from "@/components/reminders/customer-remind
 import { FormDrawer } from "@/components/common/form-drawer";
 import { ImageUpload } from "@/components/common/image-upload";
 import { DatePicker, DateRangePicker } from "@/components/common/date-picker";
-import { DASH, DateTimeCell, StatusDot } from "@/components/common/cells";
+import { DASH, DateTimeCell, StatusTag } from "@/components/common/cells";
 import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
 import { InlineSelect } from "@/components/common/inline-select";
 import { RegionSelect } from "@/components/common/region-select";
@@ -154,11 +154,11 @@ export function CustomersManager({
   );
 
   // Trạng thái (theo locale) cho một value bất kỳ — dùng cả option inactive để hiện dữ
-  // liệu cũ; value mất option hiển thị thô, chấm xám.
+  // liệu cũ; value mất option hiển thị thô, tag xám.
   const tagFor = (kind: EnumKind, value: string | null) => {
     if (!value) return DASH;
     const opt = options.find((o) => o.kind === kind && o.value === value);
-    return <StatusDot color={opt?.color} label={opt ? optionLabel(opt, locale) : value} />;
+    return <StatusTag color={opt?.color} label={opt ? optionLabel(opt, locale) : value} />;
   };
 
   // Lịch hẹn gần nhất mỗi khách: lịch sắp tới sớm nhất; không có thì lịch đã qua mới nhất.
@@ -214,7 +214,7 @@ export function CustomersManager({
     });
 
   // Option cho Select (lọc + sửa inline): active + giá trị hiện tại (kể cả inactive), theo sort_order.
-  // Chữ trần — chấm màu chỉ ở ô hiển thị trên bảng (`tagFor`).
+  // Chữ trần — tag màu chỉ ở ô hiển thị trên bảng (`tagFor`).
   const kindOptions = (kind: EnumKind, current?: string | null): SelectOption[] =>
     options
       .filter((o) => o.kind === kind && (o.is_active || o.value === current))

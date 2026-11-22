@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addQuickNote, summarizeCustomerChat } from "@/app/(app)/customers/customer-360-actions";
 import { ChatBubbles } from "@/components/appointments/chat-bubbles";
-import { StatusDot } from "@/components/common/cells";
+import { StatusTag } from "@/components/common/cells";
 import { NoteComposer, NoteItem } from "@/components/common/notes";
 import { Section } from "@/components/common/section";
 import { UserAvatar, type StaffRef } from "@/components/common/user-avatar";
@@ -97,7 +97,7 @@ function ChatSummaryBox({ data, staff, latestAt, onSaved }: {
   return <Section className="shrink-0"
     title={<span className="flex items-center gap-2"><Sparkles className="size-4 text-primary" aria-hidden />{t("title")}</span>}
     extra={<div className="flex flex-wrap items-center gap-2">
-      {stale && <StatusDot color="orange" label={t("stale")} />}
+      {stale && <StatusTag color="orange" label={t("stale")} />}
       {s?.summary_en && <Segmented size="small" value={lang} onChange={setLang}
         options={[{ value: "vi", label: "VI" }, { value: "en", label: "EN" }]} aria-label={t("language")} />}
       <Button size="small" loading={pending} onClick={run}

@@ -1,4 +1,4 @@
-import { Badge } from "antd";
+import { Tag } from "antd";
 import dayjs from "dayjs";
 
 import { cn } from "@/lib/utils";
@@ -7,14 +7,16 @@ import { cn } from "@/lib/utils";
 export const DASH = <span className="text-muted-foreground">—</span>;
 
 /**
- * Kiểu hiển thị trạng thái DUY NHẤT của app: chấm màu + chữ (checklist.design — Badge:
- * màu chỉ cho trạng thái chuẩn, luôn kèm chữ). `color` = preset antd (blue, green…) hoặc hex;
- * "default"/trống = chấm xám. Ngày, số, mã, tên, SĐT… KHÔNG dùng component này — chữ thường.
+ * Kiểu hiển thị trạng thái DUY NHẤT của app: tag màu + chữ (Status khách, Status lịch hẹn,
+ * Xác nhận đặt lịch, trạng thái thẻ / tour / chiến dịch…). `color` = preset antd (blue, green…)
+ * hoặc hex; "default"/trống = tag xám. Ngày, số, mã, tên, SĐT… KHÔNG dùng tag — chữ thường.
  */
-export function StatusDot({ color, label, className }: { color?: string | null; label: React.ReactNode; className?: string }) {
-  return !color || color === "default"
-    ? <Badge status="default" text={label} className={cn("whitespace-nowrap", className)} />
-    : <Badge color={color} text={label} className={cn("whitespace-nowrap", className)} />;
+export function StatusTag({ color, label, className }: { color?: string | null; label: React.ReactNode; className?: string }) {
+  return (
+    <Tag color={color && color !== "default" ? color : undefined} variant="outlined" className={cn("me-0 whitespace-nowrap", className)}>
+      {label}
+    </Tag>
+  );
 }
 
 /** Ô ngày giờ 2 dòng: ngày trên, giờ nhỏ màu phụ dưới. `className` vd. "text-destructive" khi quá hạn. */

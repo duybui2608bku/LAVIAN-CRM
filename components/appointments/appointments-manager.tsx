@@ -24,7 +24,7 @@ import { CustomerInfoDrawer } from "@/components/customers/customer-info-drawer"
 import { CustomerNotesDrawer, SourceCell } from "@/components/customers/customers-manager";
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { staffName, staffOptions, type StaffRef } from "@/components/common/user-avatar";
-import { DASH, StatusDot } from "@/components/common/cells";
+import { DASH, StatusTag } from "@/components/common/cells";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
 import { formatIdr, formatRupiahCompact } from "@/lib/currency";
@@ -53,13 +53,13 @@ const GROUP_ORDER = ["confirmed", ...BOOKING_STATUSES.filter((s) => s !== "confi
 /** Status lịch hẹn (Chưa đến / Đã đến / Đang thực hiện / Đã thực hiện / Đổi lịch) — dùng chung cột Sales Status. */
 export function VisitStatusTag({ status }: { status: VisitStatus }) {
   const t = useTranslations("appointments.visitStatus");
-  return <StatusDot color={VISIT_STATUS_COLORS[status]} label={t(status)} />;
+  return <StatusTag color={VISIT_STATUS_COLORS[status]} label={t(status)} />;
 }
 
 /** Xác nhận đặt lịch (Chờ xác nhận / Đã xác nhận / Huỷ / Đổi lịch). */
 export function BookingStatusTag({ status }: { status: BookingStatus }) {
   const t = useTranslations("appointments.bookingStatus");
-  return <StatusDot color={BOOKING_STATUS_COLORS[status]} label={t(status)} />;
+  return <StatusTag color={BOOKING_STATUS_COLORS[status]} label={t(status)} />;
 }
 
 export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, visitChoices, cards, cardTours, cardMe }: {

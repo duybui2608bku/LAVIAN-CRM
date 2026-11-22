@@ -12,7 +12,7 @@ import {
 import { CardItemsDrawer } from "@/components/cards/card-items-drawer";
 import { MoneyInput } from "@/components/common/money-input";
 import { CardPrint } from "@/components/cards/card-print";
-import { StatusDot } from "@/components/common/cells";
+import { StatusTag } from "@/components/common/cells";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
@@ -40,7 +40,7 @@ export const usageOf = (tours: Pick<Tour, "card_item_id">[]) => (itemId: string)
 export function CardStatusTag({ card, tours }: { card: TreatmentCard; tours: Pick<Tour, "card_item_id">[] }) {
   const t = useTranslations("cards");
   const status = card.cancelled_at ? "cancelled" : cardDone(card.items, usageOf(tours)) ? "done" : "active";
-  return <StatusDot color={{ cancelled: "red", done: "green", active: "blue" }[status]} label={t(`status.${status}`)} />;
+  return <StatusTag color={{ cancelled: "red", done: "green", active: "blue" }[status]} label={t(`status.${status}`)} />;
 }
 
 /** Công nợ: dương = còn phải thu (cam), âm = phải hoàn khách (đỏ), 0 = "—". */

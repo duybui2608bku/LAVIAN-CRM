@@ -11,13 +11,14 @@ import { type AppointmentStaff } from "@/components/appointments/appointments-ma
 import { DueText } from "@/components/cards/card-drawer";
 import { cardMoney } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
+import { StatusTag } from "@/components/common/cells";
 import { NoteItem } from "@/components/common/notes";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { Section } from "@/components/common/section";
 import { staffName, staffOptions } from "@/components/common/user-avatar";
 import { toast } from "@/lib/toast";
 import {
-  VISIT_STATUSES, type Appointment, type AppointmentCustomer, type AppointmentPatch, type VisitStatus,
+  BOOKING_STATUS_COLORS, VISIT_STATUSES, type Appointment, type AppointmentCustomer, type AppointmentPatch, type VisitStatus,
 } from "@/types/appointment";
 import { PERFORMER_ROLES, type AppointmentPerformer } from "@/types/customer-360";
 import type { TreatmentCard } from "@/types/card";
@@ -87,7 +88,10 @@ function AppointmentDrawerBody({
   return <FormDrawer open onClose={onClose} pending={pending} width={560} submitText={t("saveUpdate")}
     onSubmit={canEdit ? () => form.submit() : undefined}
     title={<div className="flex items-center justify-between gap-2">
-      <span className="truncate">{customer?.full_name}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="truncate">{customer?.full_name}</span>
+        <StatusTag color={BOOKING_STATUS_COLORS[a.booking_confirm]} label={t(`bookingStatus.${a.booking_confirm}`)} className="font-normal" />
+      </span>
       {customer && <Button type="text" size="small" aria-label={t("viewInfo")} title={t("viewInfo")}
         icon={<PanelRightOpen className="size-4" />} onClick={() => onViewInfo(customer)} />}
     </div>}>

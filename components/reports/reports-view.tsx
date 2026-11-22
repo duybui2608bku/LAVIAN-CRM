@@ -4,13 +4,25 @@ import * as React from "react";
 import { Alert, Button, Empty, Segmented, Table, Tooltip } from "antd";
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Calculator,
+  CalendarCheck,
+  HandCoins,
+  MessageCircle,
+  Phone,
+  ReceiptText,
+  RefreshCw,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 
 import { getReport, type Report } from "@/app/(app)/reports/actions";
 import { DataTable } from "@/components/common/data-table";
 import { MetricList } from "@/components/common/metric-list";
 import { Section } from "@/components/common/section";
-import { StatCard } from "@/components/common/stat-card";
+import { StatCard, type IconTone } from "@/components/common/stat-card";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { DateRangeFilter, initialRange } from "@/components/common/date-range-filter";
 import { PageHeader, PageToolbar } from "@/components/layout/page";
@@ -28,6 +40,17 @@ import {
   type Totals,
 } from "@/lib/reports";
 import { cn } from "@/lib/utils";
+
+const META: Record<Metric, { icon: React.ElementType; tone: IconTone }> = {
+  spend: { icon: Wallet, tone: "primary" },
+  messages: { icon: MessageCircle, tone: "info" },
+  costPerMessage: { icon: Calculator, tone: "info" },
+  data: { icon: Phone, tone: "success" },
+  costPerData: { icon: Calculator, tone: "success" },
+  deposits: { icon: HandCoins, tone: "warning" },
+  bookings: { icon: CalendarCheck, tone: "primary" },
+  revenue: { icon: ReceiptText, tone: "success" },
+};
 
 const FB_METRICS: ReadonlySet<Metric> = new Set(["spend", "messages", "costPerMessage", "costPerData"]);
 
@@ -127,6 +150,8 @@ export function ReportsView() {
             <StatCard
               key={m}
               label={t(`metric.${m}`)}
+              icon={META[m].icon}
+              iconTone={META[m].tone}
               loading={!report}
               value={
                 value == null && errorOf(m) ? (
@@ -176,6 +201,7 @@ export function ReportsView() {
 
         <Section
           className="surface p-4"
+          icon={TrendingUp}
           title={t("trend")}
           extra={
             <Segmented<Metric>
