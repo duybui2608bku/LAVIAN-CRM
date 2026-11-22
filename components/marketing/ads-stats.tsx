@@ -194,6 +194,10 @@ export function AdsStatsView() {
     sorter: (a, b) => (funnelOf(a, key) ?? -1) - (funnelOf(b, key) ?? -1),
   });
   const costPerBooking = (r: CampaignRow) => ratio(r.spend, funnelOf(r, "booking"));
+  const bookingRate = (r: CampaignRow) => {
+    const booking = funnelOf(r, "booking");
+    return booking == null || !r.messages ? null : booking / r.messages;
+  };
 
   const statusLabel = (status: string) =>
     t.has(`status_${status}`) ? t(`status_${status}`) : status;
@@ -204,7 +208,7 @@ export function AdsStatsView() {
       key: "status",
       title: t("colStatus"),
       dataIndex: "status",
-      width: 150,
+      width: 96,
       // Chỉ ACTIVE/PAUSED bật tắt được; trạng thái khác (xoá, lưu trữ, lỗi…) giữ dạng tag.
       render: (status: string, r) => {
         if (status !== "ACTIVE" && status !== "PAUSED")
@@ -233,12 +237,19 @@ export function AdsStatsView() {
       title: t("colName"),
       dataIndex: "name",
       width: 320,
-      ellipsis: true,
+      // Tài khoản QC thành dòng phụ dưới tên (bỏ cột riêng); filter tài khoản chuyển về cột này.
       render: (name: string, r) => (
-        <a href={adsManagerUrl(r)} target="_blank" rel="noopener noreferrer" title={name}>
-          {name}
-        </a>
+        <div className="min-w-0">
+          <a href={adsManagerUrl(r)} target="_blank" rel="noopener noreferrer" title={name} className="block truncate">
+            {name}
+          </a>
+          <div className="truncate text-xs text-muted-foreground" title={r.accountName}>
+            {r.accountName}
+          </div>
+        </div>
       ),
+      filters: accounts.length > 1 ? accounts.map((a) => ({ text: a, value: a })) : undefined,
+      onFilter: (value, r) => r.accountName === value,
     },
     {
       key: "platform",
@@ -271,19 +282,6 @@ export function AdsStatsView() {
       },
     },
     {
-      key: "account",
-      title: t("colAccount"),
-      dataIndex: "accountName",
-      width: 200,
-      ellipsis: { showTitle: true },
-      filters:
-        accounts.length > 1
-          ? accounts.map((a) => ({ text: a, value: a }))
-          : undefined,
-      onFilter: (value, r) => r.accountName === value,
-      sorter: (a, b) => a.accountName.localeCompare(b.accountName),
-    },
-    {
       key: "spend",
       title: t("spend"),
       align: "right",
@@ -311,11 +309,18 @@ export function AdsStatsView() {
         (ratio(b.spend, b.messages) ?? Infinity),
     },
     funnelColumn("potential", t("colPotential"), 140),
+    funnelColumn("booking", t("colBooking"), 110),
     {
-      ...funnelColumn("booking", t("colBooking"), 140),
-      // Dòng con WA/IG không có tin nhắn riêng → chỉ hiện số.
-      render: (_, r) =>
-        funnelCell(r, r.platform ? count(funnelOf(r, "booking")) : withRate(funnelOf(r, "booking"), r.messages)),
+      key: "bookingRate",
+      title: t("bookingRate"),
+      align: "right",
+      width: 130,
+      // Đặt lịch ÷ Tin nhắn; 0 hoặc thiếu → "—". Dòng con WA/IG không có tin nhắn riêng → trống (không nằm trong SPLIT_KEYS).
+      render: (_, r) => {
+        const rate = bookingRate(r);
+        return funnelCell(r, funnelOf(r, "booking") == null ? null : rate ? pct.format(rate) : "—");
+      },
+      sorter: (a, b) => (bookingRate(a) ?? -1) - (bookingRate(b) ?? -1),
     },
     {
       key: "costPerBooking",
@@ -485,7 +490,7 @@ export function AdsStatsView() {
                     </span>
                   ),
                   aside: cell("status"),
-                  metrics: (["spend", "messages", "costPerMessage", "potential", "booking", "costPerBooking", "showUp", "impressions", "reach"] as const).map((k) => ({
+                  metrics: (["spend", "messages", "costPerMessage", "potential", "booking", "bookingRate", "costPerBooking", "showUp", "impressions", "reach"] as const).map((k) => ({
                     label: columns.find((c) => c.key === k)!.title as React.ReactNode,
                     value: cell(k),
                   })),
@@ -513,7 +518,7 @@ export function AdsStatsView() {
               showTotal: (total, [from, to]) =>
                 t("totalCampaigns", { from, to, total }),
             }}
-            scroll={{ x: 1970 }}
+            scroll={{ x: 1810 }}
             size="middle"
             locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
           />
