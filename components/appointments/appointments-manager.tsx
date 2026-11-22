@@ -326,7 +326,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
       staff={staff} services={services} canEdit={canEdit} visitChoices={visitChoices}
-      card={editing ? cardByAppointment.get(editing.id) : undefined}
+      card={editing ? cardByAppointment.get(editing.id) : undefined} deposit={editing ? depositLeft(editing.customer_id) : 0}
       onViewInfo={setInfoFor} onOpenNotes={() => editingId && setNotesOpen({ id: editingId, field: "sales_notes" })} onClose={() => setEditingId(null)} />
     <AppointmentNotesDrawer appointment={notesFor} field={notesOpen?.field ?? "notes"} staff={staff} canEdit={canEdit}
       customerName={notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : ""} onClose={() => setNotesOpen(null)} />

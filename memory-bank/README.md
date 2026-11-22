@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-22 — Drawer lịch hẹn: thêm lại mục Tài chính (chỉ xem)
+- **Thay đổi:** Drawer sửa lịch hẹn (`/appointments`, bấm tên khách) có mục **2. Tài chính** chỉ xem, cùng số với cột Tài chính trên bảng: có thẻ → Giá trị thẻ / Đã thu / Công nợ (`cardMoney` + `DueText`); chưa có thẻ → Tiền cọc chưa trừ (`depositLeft`, truyền prop `deposit`). Tiền vẫn sửa ở drawer thẻ. Các mục sau đánh số lại: 3. Nhân sự, 4. Ghi chú Sales.
+- **File ảnh hưởng:** `components/appointments/{appointment-drawer,appointments-manager}.tsx`, `messages/{vi,en}.json`
+- **Còn dở / ghi chú:** Không đổi DB. tsc + eslint sạch; chưa xem trên trình duyệt (cần đăng nhập). Popup 360° tab Tài chính vẫn đọc `bill_amount/paid_amount` cũ — chưa chuyển sang thẻ.
+
 ### 2026-11-22 — Cột Dịch vụ ở `/cards` gọn 1 dòng
 - **Thay đổi:** Cột Dịch vụ bảng thẻ liệu trình chỉ hiện tối đa 2 tag (`MAX_TAGS`), dư → tag "+N" (hover Popover xem đủ). Tên dịch vụ tự cắt "…" (giữ `· đã dùng/tổng buổi`, `title` hiện tên đủ); dịch vụ đã hoàn tiền xếp cuối. Dòng không còn cao lên theo số dịch vụ.
 - **File ảnh hưởng:** `components/cards/cards-view.tsx`
