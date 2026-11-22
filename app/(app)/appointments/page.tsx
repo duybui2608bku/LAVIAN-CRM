@@ -1,3 +1,4 @@
+import { cardMe, loadCards } from "@/app/(app)/cards/data";
 import { AppointmentsManager, type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { getCurrentProfile } from "@/lib/auth";
 import { canSetVisitStatus } from "@/lib/appointments";
@@ -10,7 +11,7 @@ export default async function AppointmentsPage({ searchParams }: {
   searchParams: Promise<{ customer?: string }>;
 }) {
   const db = await createClient();
-  const [appointments, customers, staff, services, params, profile] = await Promise.all([
+  const [appointments, customers, staff, services, params, profile, cardData] = await Promise.all([
     db.from("clinic_appointments").select("id,customer_id,scheduled_at,booking_confirm,checked_in,visit_status,service_categories,service_ids,staff_id,sales_id,technician_id,bill_amount,paid_amount,created_by,notes,sales_notes,performers:appointment_performers(profile_id,role)")
       .is("deleted_at", null).order("scheduled_at"),
     db.from("customers").select("id,full_name,phone,source,staff_id,deposit_amount,notes,thread_link:thread->>link,other_channel,instagram_username:smax_data->customer->instagram->>username")
@@ -19,7 +20,9 @@ export default async function AppointmentsPage({ searchParams }: {
     db.from("services").select("*").order("sort_order"),
     searchParams,
     getCurrentProfile(),
+    loadCards(db), // thẻ liệu trình: cột Thẻ + Tài chính
   ]);
+  if (!profile) throw new Error("Bạn cần đăng nhập.");
   for (const result of [appointments, customers, staff, services]) {
     if (result.error) throw new Error(result.error.message);
   }
@@ -35,5 +38,7 @@ export default async function AppointmentsPage({ searchParams }: {
     initialCustomer={params.customer ?? ""}
     // Status được chọn: Sales/admin mọi trạng thái, Master chỉ "Đã thực hiện" (rỗng = không đổi được).
     visitChoices={VISIT_STATUSES.filter((s) => canSetVisitStatus(profile, s))}
+    {...cardData}
+    cardMe={cardMe(profile)}
   />;
 }

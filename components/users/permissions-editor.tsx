@@ -7,6 +7,7 @@ import {
   Briefcase,
   CalendarDays,
   ChartColumn,
+  CreditCard,
   Crown,
   Headset,
   Megaphone,
@@ -36,6 +37,7 @@ type Values = Record<string, string[]>;
 const MODULE_ICONS: Record<PermissionModule, typeof Users> = {
   customers: Users,
   appointments: CalendarDays,
+  cards: CreditCard,
   tour: Wallet,
   services: Briefcase,
   reports: ChartColumn,

@@ -7,8 +7,8 @@ import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { Permission } from "@/lib/permissions";
-import { initialNotes, newNote, withoutNote } from "@/lib/notes";
-import { tourCreateSchema, tourPatchSchema } from "@/lib/tours";
+import { newNote, withoutNote } from "@/lib/notes";
+import { tourPatchSchema } from "@/lib/tours";
 import type { NoteInput, TimelineNote } from "@/types/note";
 
 type Result = { error?: string };
@@ -31,17 +31,6 @@ async function run(action: (t: Awaited<ReturnType<typeof getTranslations<"tour">
     const code = error && typeof error === "object" && "code" in error ? error.code : null;
     return { error: code === "42501" ? t("locked") : normalizeError(error).message };
   }
-}
-
-export async function createTour(input: z.input<typeof tourCreateSchema>) {
-  return run(async () => {
-    const values = tourCreateSchema.parse(input);
-    const { profile, db } = await context("tour.edit");
-    const { note, ...rest } = values;
-    // Ô Ghi chú ở form tạo → ghi chú đầu tiên của timeline.
-    const { error } = await db.from("tours").insert({ ...rest, notes: initialNotes(note, profile), created_by: profile.id });
-    if (error) throw error;
-  });
 }
 
 /** KTV nhận tour — chỉ thành công khi tour còn trống (2 người bấm cùng lúc thì 1 người thắng). */

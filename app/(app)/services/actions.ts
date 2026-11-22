@@ -60,6 +60,11 @@ export async function deleteService(id: string): Promise<Result> {
     if (tourError) throw tourError;
     if ((tours ?? 0) > 0)
       return { error: "Dịch vụ đã dùng trong tour — hãy tắt Kích hoạt thay vì xóa." };
+    const { count: cards, error: cardError } = await supabase
+      .from("treatment_card_items").select("id", { count: "exact", head: true }).eq("service_id", id);
+    if (cardError) throw cardError;
+    if ((cards ?? 0) > 0)
+      return { error: "Dịch vụ đã bán trong thẻ liệu trình — hãy tắt Kích hoạt thay vì xóa." };
     const { error } = await supabase.from("services").delete().eq("id", id);
     if (error) throw error;
     revalidatePath("/services");

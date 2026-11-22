@@ -4,6 +4,7 @@
 export const PERMISSION_MODULES = {
   customers: ["view", "edit", "delete"],
   appointments: ["view", "edit", "delete"],
+  cards: ["view", "edit", "delete"], // thẻ liệu trình — delete = huỷ thẻ (chỉ admin)
   tour: ["view", "edit", "delete"],
   services: ["view", "edit", "delete"],
   reports: ["view"],

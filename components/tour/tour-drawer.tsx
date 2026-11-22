@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Form, Input, InputNumber, Radio, Select, Tag } from "antd";
+import { Button, Form, InputNumber, Radio, Select, Tag } from "antd";
 import { CheckCircle2, NotebookPen, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
-import { addTourNote, claimTour, confirmTour, createTour, deleteTourNote, releaseTour, updateTour } from "@/app/(app)/tour/actions";
+import { addTourNote, claimTour, confirmTour, deleteTourNote, releaseTour, updateTour } from "@/app/(app)/tour/actions";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
@@ -91,6 +91,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   const isOwner = tour.technician_id === me.id;
   const canEdit = me.canEdit && (me.isAdmin || (status !== "confirmed" && (!me.isTechnician || isOwner)));
   const canEditBasic = canEdit && !me.isTechnician;
+  const fromCard = !!tour.card_item_id; // tour từ thẻ liệu trình: khách + dịch vụ cố định theo thẻ
   const canClaim = me.canEdit && me.isTechnician && status === "pending";
   const technician = staff.find((s) => s.id === tour.technician_id);
   const done = t("saved");
@@ -105,7 +106,8 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
       bill_amount: values.bill_amount ?? null,
       payment_method: values.payment_method ?? null,
     };
-    if (canEditBasic) Object.assign(patch, { tour_date: values.tour_date, customer_id: values.customer_id, service_id: values.service_id });
+    if (canEditBasic) Object.assign(patch, fromCard ? { tour_date: values.tour_date }
+      : { tour_date: values.tour_date, customer_id: values.customer_id, service_id: values.service_id });
     if (me.isAdmin && (values.technician_id ?? null) !== tour.technician_id) patch.technician_id = values.technician_id ?? null;
     if (canEdit && !(await runAction(updateTour(tour.id, patch), done, failed))) return;
     if (confirm === undefined) { onClose(); return; }
@@ -145,7 +147,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
         const next = changed.service_detail;
         form.setFieldValue("service_session", needsSession(next) ? form.getFieldValue("service_session") ?? 1 : undefined);
       }}>
-      {canEditBasic ? <>
+      {canEditBasic && !fromCard ? <>
         <div className="grid grid-cols-2 gap-3">
           <Form.Item name="tour_date" label={t("date")} rules={[{ required: true, message: t("required") }]}>
             <DatePicker allowClear={false} />
@@ -157,8 +159,10 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
         <Form.Item name="customer_id" label={t("customer")} rules={[{ required: true, message: t("required") }]}>
           <Select showSearch={{ optionFilterProp: "label" }} options={customerOptions(customers)} />
         </Form.Item>
-      </> : <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
-        <dt className="text-muted-foreground">{t("date")}</dt><dd>{dayjs(tour.tour_date).format("DD/MM/YYYY")}</dd>
+      </> : <dl className="mb-4 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 text-sm">
+        <dt className="text-muted-foreground">{t("date")}</dt>
+        <dd>{canEditBasic ? <Form.Item name="tour_date" noStyle><DatePicker allowClear={false} /></Form.Item>
+          : dayjs(tour.tour_date).format("DD/MM/YYYY")}</dd>
         <dt className="text-muted-foreground">{t("customer")}</dt>
         <dd>{tour.customer?.full_name} {tour.customer?.phone ? <a href={`tel:${tour.customer.phone}`} className="text-muted-foreground">· {tour.customer.phone}</a> : null}</dd>
         <dt className="text-muted-foreground">{t("service")}</dt>
@@ -223,43 +227,5 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
       <PhotoField label={t("afterPhotos")} capture value={tour.after_images} disabled={!canEdit} onChange={savePhotos("after_images")} />
       <PhotoField label={t("extraPhotos")} value={tour.extra_images} disabled={!canEdit} onChange={savePhotos("extra_images")} />
     </div> : null}
-  </FormDrawer>;
-}
-
-type CreateValues = { tour_date: string; customer_id: string; service_id: string; bill_amount?: number | null; note?: string };
-
-/** CSKH tạo tour cơ bản: ngày, khách, dịch vụ, ghi chú → vào danh sách chờ nhận của KTV. */
-export function CreateTourDrawer({ open, onClose, services, customers }: {
-  open: boolean;
-  onClose: () => void;
-  services: Service[];
-  customers: AppointmentCustomer[];
-}) {
-  const t = useTranslations("tour");
-  const [form] = Form.useForm<CreateValues>();
-  const [pending, start] = useTransition();
-
-  const onFinish = (values: CreateValues) => start(async () => {
-    if (await runAction(createTour({ ...values, note: values.note ?? "" }), t("created"), t("saveError"))) onClose();
-  });
-
-  return <FormDrawer open={open} onClose={onClose} title={t("create")} submitText={t("create")}
-    pending={pending} onSubmit={() => form.submit()}>
-    <Form form={form} layout="vertical" requiredMark={false} disabled={pending} onFinish={onFinish}
-      initialValues={{ tour_date: dayjs().format("YYYY-MM-DD") }}>
-      <Form.Item name="tour_date" label={t("date")} rules={[{ required: true, message: t("required") }]}>
-        <DatePicker allowClear={false} />
-      </Form.Item>
-      <Form.Item name="customer_id" label={t("customer")} rules={[{ required: true, message: t("required") }]}>
-        <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("chooseCustomer")} options={customerOptions(customers)} />
-      </Form.Item>
-      <Form.Item name="service_id" label={t("service")} rules={[{ required: true, message: t("required") }]}>
-        <Select showSearch={{ optionFilterProp: "label" }} placeholder={t("chooseService")} options={serviceOptions(services)} />
-      </Form.Item>
-      <Form.Item name="bill_amount" label={t("bill")}>{billInput}</Form.Item>
-      <Form.Item name="note" label={t("note")} className="mb-0">
-        <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={10000} />
-      </Form.Item>
-    </Form>
   </FormDrawer>;
 }

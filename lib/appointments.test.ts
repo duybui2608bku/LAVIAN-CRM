@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  appointmentMoney, appointmentStats, canConfirmShowUp, canSetVisitStatus, validateVisitStatus, appointmentPatchSchema, nearestByCustomer, newCustomerAppointmentIds, ARRIVED_STATUSES, BOOKING_STATUS_VALUES, VISIT_STATUS_VALUES,
+  appointmentStats, canConfirmShowUp, canSetVisitStatus, validateVisitStatus, appointmentPatchSchema, nearestByCustomer, newCustomerAppointmentIds, ARRIVED_STATUSES, BOOKING_STATUS_VALUES, VISIT_STATUS_VALUES,
 } from "./appointments.ts";
 
 test("appointment edits validate dates, IDs and whitelist; no tour fields", () => {
@@ -92,21 +92,17 @@ test("ARRIVED_STATUSES là tập con của VISIT_STATUSES", async () => {
   for (const s of ARRIVED_STATUSES) assert.ok((VISIT_STATUSES as readonly string[]).includes(s));
 });
 
-test("Tiền lịch hẹn: thực thu = deposit + thu thêm, phải thu không âm", () => {
-  assert.deepEqual(appointmentMoney(3_500_000, 500_000, 2_000_000), { bill: 3_500_000, collected: 2_500_000, due: 1_000_000 });
-  assert.deepEqual(appointmentMoney(null, 500_000, null), { bill: 0, collected: 500_000, due: 0 });
-});
-
-test("Số liệu Sales Management: đếm theo Status + cộng tiền", () => {
-  const row = (customer_id: string, visit_status: string, bill_amount: number | null, paid_amount: number | null) =>
-    ({ customer_id, visit_status, bill_amount, paid_amount });
-  const deposits: Record<string, number> = { a: 500_000, b: 1_000_000 };
+test("Số liệu Sales Management: đếm theo Status + cộng tiền thẻ (công nợ âm không trừ)", () => {
+  const money: Record<string, { value: number; collected: number; due: number }> = {
+    a: { value: 3_500_000, collected: 2_500_000, due: 1_000_000 },
+    b: { value: 2_000_000, collected: 2_300_000, due: -300_000 },
+  };
+  const row = (id: string, visit_status: string) => ({ id, visit_status });
   const s = appointmentStats([
-    row("a", "done", 3_500_000, 2_000_000), row("b", "in_progress", 2_000_000, null), row("c", "arrived", null, null),
-    row("c", "cancelled", null, null), row("d", "rescheduled", null, null), row("e", "waiting", 1_000_000, null),
-  ], (id) => deposits[id]);
-  assert.deepEqual(s, { total: 6, arrived: 3, cancelled: 2, waiting: 1,
-    bill: 6_500_000, collected: 3_500_000, due: 1_000_000 + 1_000_000 + 1_000_000 });
+    row("a", "done"), row("b", "in_progress"), row("c", "arrived"),
+    row("d", "cancelled"), row("e", "rescheduled"), row("f", "waiting"),
+  ], (r) => money[r.id]);
+  assert.deepEqual(s, { total: 6, arrived: 3, cancelled: 2, waiting: 1, bill: 5_500_000, collected: 4_800_000, due: 1_000_000 });
 });
 
 test("Master chỉ được chọn Đã thực hiện; Sales/admin mọi trạng thái", () => {
