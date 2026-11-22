@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { requirePermission } from "@/lib/auth";
 import {
   cardCreateSchema, cardItemSessionsSchema, cardItemsAddSchema, cardPaymentSchema, cardRefundSchema, cardTourSchema, isTourable, tourKindDetail,
+  type CardAudit,
 } from "@/lib/cards";
 import { normalizeError } from "@/lib/errors";
 import { initialNotes } from "@/lib/notes";
@@ -191,4 +192,19 @@ export async function createCardTours(cardId: string, input: z.input<typeof card
     const { error: insertErr } = await db.from("tours").insert(rows);
     if (insertErr) throw insertErr;
   });
+}
+
+/** Lịch sử thao tác của thẻ (drawer thẻ) — nhật ký `card_audit` do trigger DB ghi, mới nhất trước. */
+export async function getCardHistory(cardId: string): Promise<{ rows?: CardAudit[]; error?: string }> {
+  try {
+    await requirePermission("cards.view");
+    z.uuid().parse(cardId);
+    const db = await createClient();
+    const { data, error } = await db.from("card_audit").select("id,table_name,op,old_row,new_row,actor,at")
+      .eq("card_id", cardId).order("at", { ascending: false }).order("id").limit(300);
+    if (error) throw error;
+    return { rows: data as CardAudit[] };
+  } catch (error) {
+    return { error: normalizeError(error).message };
+  }
 }

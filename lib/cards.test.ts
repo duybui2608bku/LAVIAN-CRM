@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  cardDone, cardItemSessionsSchema, cardMoney, cardPaymentSchema, cardTourSchema, journeyDue, suggestRefund, suggestTourKind, tourKindDetail,
+  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, cardPaymentSchema, cardTourSchema, journeyDue, suggestRefund, suggestTourKind, tourKindDetail,
 } from "./cards.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
@@ -110,4 +110,29 @@ test("schema thanh toán + tạo tour", () => {
   assert.equal(cardTourSchema.safeParse({ ...tour, items: [{ card_item_id: id, kind: "debt" }] }).success, false);
   assert.equal(cardItemSessionsSchema.safeParse(0).success, false);
   assert.equal(cardItemSessionsSchema.safeParse(3).success, true);
+});
+
+test("nhật ký thẻ → thao tác: sửa buổi, hoàn, thu / xoá tiền, tour; lưu y nguyên thì bỏ", () => {
+  const row = (table_name: string, op: "INSERT" | "UPDATE" | "DELETE", old_row: object | null, new_row: object | null) =>
+    auditEntries({ id: 1, table_name, op, old_row: old_row as Record<string, unknown>, new_row: new_row as Record<string, unknown>, actor: null, at: "" });
+  const keys = (list: ReturnType<typeof auditEntries>) => list.map((e) => e.key);
+  const item = { id: "i", card_id: "c", service_id: "s", price: 100, sessions: 2, refunded_at: null, refund_amount: null };
+
+  assert.deepEqual(row("treatment_cards", "INSERT", null, { id: "c" }).map((e) => e.key), ["cardCreated"]);
+  assert.deepEqual(row("treatment_card_items", "UPDATE", item, { ...item, sessions: 3 }),
+    [{ key: "sessions", values: { service: "s", oldN: 2, n: 3 } }]);
+  assert.deepEqual(row("treatment_card_items", "UPDATE", item, { ...item, refunded_at: "x", refund_amount: 50, refund_note: "đổi ý" }),
+    [{ key: "refunded", values: { service: "s", amount: 50 } }]);
+  assert.deepEqual(row("treatment_card_payments", "DELETE", { id: "p", card_id: "c", amount: -20, method: "cash" }, null),
+    [{ key: "paymentDeleted", values: { service: undefined, amount: -20, method: "cash" } }]);
+  assert.deepEqual(keys(row("treatment_cards", "UPDATE", { id: "c", cancelled_at: null, total: 1 }, { id: "c", cancelled_at: "x", total: 2 })),
+    ["cardCancelled", "edited"]); // cột lạ vẫn hiện
+
+  const tour = { id: "t", card_item_id: "i", service_id: "s", tour_date: "2026-11-22", bill_amount: 100, service_detail: "new",
+    service_session: null, technician_id: null, confirmed_at: null, deleted_at: null, note: "a" };
+  assert.deepEqual(row("tours", "UPDATE", tour, { ...tour, note: "b" }), []); // lưu lại y nguyên / chỉ ghi chú
+  assert.deepEqual(keys(row("tours", "UPDATE", tour, { ...tour, bill_amount: 80, service_detail: "retouch", service_session: 1, technician_id: "m" })),
+    ["tourKind", "tourBill", "tourTech"]);
+  assert.deepEqual(keys(row("tours", "UPDATE", tour, { ...tour, deleted_at: "x", bill_amount: 0 })), ["tourDeleted"]);
+  assert.deepEqual(row("tours", "INSERT", null, tour)[0].values.kind, { service_detail: "new", service_session: null });
 });
