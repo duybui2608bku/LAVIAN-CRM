@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Checkbox, Divider, Input, InputNumber, Modal, Popover, Radio, Tag } from "antd";
+import { Button, Checkbox, Divider, Image, Input, InputNumber, Modal, Popover, Radio, Tag } from "antd";
 import { Plus, Printer, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
@@ -15,6 +15,7 @@ import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { useServiceGroups } from "@/components/common/service-groups";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
+import { PhotoField } from "@/components/tour/photo-field";
 import { runAction, sessionText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import {
   CARD_PAYMENT_METHODS, cardDone, cardMoney, MAX_TOUR_SESSION, suggestRefund, type CardPaymentMethod,
@@ -148,6 +149,9 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
             {p.created_by ? <span className="text-muted-foreground"> · {staff.find((x) => x.id === p.created_by)?.user_name ?? "—"}</span> : null}
           </div>
           {p.note ? <div className="text-xs text-muted-foreground">{p.note}</div> : null}
+          {p.images.length ? <div className="mt-1 flex flex-wrap gap-1"><Image.PreviewGroup>
+            {p.images.map((url) => <Image key={url} src={url} alt="" width={40} height={40} className="rounded object-cover" />)}
+          </Image.PreviewGroup></div> : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <span className={p.amount < 0 ? "tabular-nums text-destructive" : "tabular-nums text-success"}>
@@ -219,17 +223,18 @@ function RefundButton({ item, used }: { item: CardItem; used: number }) {
   </Popover>;
 }
 
-/** Thu tiền (số âm = hoàn tiền khách). */
+/** Thu tiền (số âm = hoàn tiền khách), kèm 0..n ảnh bill / chuyển khoản. */
 function PaymentButton({ cardId }: { cardId: string }) {
   const t = useTranslations("cards");
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number | null>(null);
   const [method, setMethod] = useState<CardPaymentMethod>("cash");
   const [note, setNote] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [pending, start] = useTransition();
   const save = () => start(async () => {
-    if (await runAction(addCardPayment(cardId, { amount: amount ?? 0, method, note }), t("saved"), t("saveError"))) {
-      setOpen(false); setAmount(null); setNote("");
+    if (await runAction(addCardPayment(cardId, { amount: amount ?? 0, method, note, images }), t("saved"), t("saveError"))) {
+      setOpen(false); setAmount(null); setNote(""); setImages([]);
     }
   });
   return <Popover trigger="click" open={open} onOpenChange={setOpen} title={t("addPayment")} content={<div className="flex w-72 flex-col gap-3">
@@ -240,6 +245,7 @@ function PaymentButton({ cardId }: { cardId: string }) {
     <Radio.Group optionType="button" value={method} onChange={(e) => setMethod(e.target.value)} className="flex! w-full"
       options={CARD_PAYMENT_METHODS.map((m) => ({ value: m, label: t(`method.${m}`), className: "flex-1 text-center" }))} />
     <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("note")} maxLength={2000} />
+    <PhotoField label={t("paymentPhotos")} value={images} onChange={async (next) => setImages(next)} />
     <Button type="primary" loading={pending} disabled={!amount} onClick={save}>{t("addPayment")}</Button>
   </div>}>
     <Button size="small" icon={<Wallet className="size-4" />}>{t("addPayment")}</Button>

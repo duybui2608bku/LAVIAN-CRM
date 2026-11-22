@@ -311,7 +311,6 @@
   .tour-slip-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .tour-slip-table tr { break-inside: avoid; }
   .tour-slip-note { margin-top: 6px; color: #a15c00; }
-  .tour-slip-amount { margin-top: 12px; font-size: 13px; }
   .tour-slip-sign { display: flex; justify-content: space-between; margin-top: 40px; text-align: center; }
   .tour-slip-sign div { width: 40%; display: flex; flex-direction: column; }
   .tour-slip-sign span { font-weight: 600; }

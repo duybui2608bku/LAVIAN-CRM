@@ -29,7 +29,7 @@ export const cardDone = (items: { id: string; sessions: number; refunded_at: str
 const LASER_GROUPS = ["laser", "eyeliner_treatment"];
 
 /**
- * Dịch vụ chi tiết + lần của tour thứ `n` của 1 dịch vụ trong thẻ (tính % thực thu như cũ):
+ * Dịch vụ chi tiết + lần của tour thứ `n` của 1 dịch vụ trong thẻ (lưu DB, UI chỉ hiện "Lần n"):
  * nhóm Laser / tên có "laser" → Laser n; tên có "plasma" → Plasma n; còn lại lần 1 = New, lần n ≥ 2 = Retouch n−1.
  * ponytail: đoán theo nhóm/tên dịch vụ — Debt hay ngoại lệ thì KTV/admin sửa ở drawer tour.
  */
@@ -70,6 +70,7 @@ export const cardPaymentSchema = z.object({
   amount: z.number().int().min(-1e13).max(1e13).refine((v) => v !== 0),
   method: z.enum(CARD_PAYMENT_METHODS),
   note,
+  images: z.array(z.url({ protocol: /^https?$/ })).max(30).default([]), // khớp check DB
 }).strict();
 
 export const cardTourSchema = z.object({

@@ -18,7 +18,7 @@ import { getTranslations } from "next-intl/server";
 import { serviceCategoriesSchema } from "@/lib/appointments";
 import { phoneOwner } from "@/lib/customers";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile, requirePermission } from "@/lib/auth";
+import { getCurrentProfile, requireAnyPermission, requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { fetchFbAds } from "@/lib/marketing";
 import type { Appointment, AppointmentLog } from "@/types/appointment";
@@ -46,6 +46,7 @@ export async function getCustomerAppointments(
   customerId: string,
 ): Promise<CustomerAppointmentsData & { error?: string }> {
   try {
+    await requireAnyPermission("customers.view", "appointments.view");
     const supabase = await createClient();
     const [appts, logs, services] = await Promise.all([
       supabase
@@ -298,7 +299,8 @@ export async function getAdMessages(
   from: string,
   to: string,
 ): Promise<{ messages?: number; error?: string }> {
-  if (!(await getCurrentProfile())) return { error: "Bạn cần đăng nhập." };
+  if (!(await getCurrentProfile())?.permissions.includes("customers.view"))
+    return { error: "Bạn không có quyền thực hiện thao tác này." };
   const ymd = /^\d{4}-\d{2}-\d{2}$/;
   if (!ymd.test(from) || !ymd.test(to) || from > to)
     return { error: "Khoảng ngày không hợp lệ." };

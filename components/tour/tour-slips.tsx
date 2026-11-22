@@ -37,7 +37,7 @@ export function TourSlips({ groups, month }: { groups: TourGroup[]; month: strin
             <thead>
               <tr>
                 <th>No.</th><th>Date</th><th>Customer</th><th>Service</th>
-                <th className="num">Bill</th><th className="num">Rate</th><th className="num">Received</th>
+                <th className="num">Bill</th>
               </tr>
             </thead>
             <tbody>
@@ -48,8 +48,6 @@ export function TourSlips({ groups, month }: { groups: TourGroup[]; month: strin
                   <td>{row.customer?.full_name ?? "—"}</td>
                   <td>{detailLabelEn(row) || "—"}</td>
                   <td className="num">{row.bill_amount == null ? "—" : formatRupiah(row.bill_amount)}</td>
-                  <td className="num">{row.rate == null ? "—" : `${Math.round(row.rate * 100)}%`}</td>
-                  <td className="num">{row.amount == null ? "—" : formatRupiah(row.amount)}</td>
                 </tr>
               ))}
             </tbody>
@@ -57,19 +55,15 @@ export function TourSlips({ groups, month }: { groups: TourGroup[]; month: strin
               <tr>
                 <td colSpan={4}>Total ({g.rows.length} tours)</td>
                 <td className="num">{formatRupiah(g.bill)}</td>
-                <td />
-                <td className="num">{formatRupiah(g.amount)}</td>
               </tr>
             </tfoot>
           </table>
 
           {g.missing ? (
             <p className="tour-slip-note">
-              {g.missing} tour(s) missing bill or session are not included in the total.
+              {g.missing} tour(s) have no bill yet.
             </p>
           ) : null}
-
-          <p className="tour-slip-amount">Total payable: <strong>{formatRupiah(g.amount)}</strong></p>
 
           <div className="tour-slip-sign">
             <div><span>Technician</span><i />{g.technician.user_name}</div>

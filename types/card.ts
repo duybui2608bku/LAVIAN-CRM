@@ -21,6 +21,7 @@ export interface CardPayment {
   method: CardPaymentMethod;
   paid_at: string;
   note: string;
+  images: string[]; // ảnh bill / chuyển khoản
   created_by: string | null;
 }
 
@@ -42,5 +43,5 @@ export interface TreatmentCard {
 
 export const CARD_FIELDS = "id,code,customer_id,appointment_id,deposit_used,note,cancelled_at,created_by,created_at,"
   + "items:treatment_card_items(id,card_id,service_id,price,sessions,refunded_at,refund_amount,refund_note,created_at),"
-  + "payments:treatment_card_payments(id,card_id,amount,method,paid_at,note,created_by),"
+  + "payments:treatment_card_payments(id,card_id,amount,method,paid_at,note,images,created_by),"
   + "customer:customers(full_name,phone,address_detail)";

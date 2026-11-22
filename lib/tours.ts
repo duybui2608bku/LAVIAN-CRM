@@ -11,19 +11,6 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export const needsSession = (detail: ServiceDetail | null | undefined) =>
   !!detail && (SESSION_DETAILS as readonly string[]).includes(detail);
 
-/** % thực thu: Laser/Plasma 0, New/Debt 7%, Retouch lần 1 3%, lần ≥2 0. */
-export function tourRate(detail: ServiceDetail, session: number | null): number {
-  if (detail === "new" || detail === "debt") return 0.07;
-  if (detail === "retouch") return session === 1 ? 0.03 : 0;
-  return 0;
-}
-
-/** Thực thu = bill × %. null khi chưa đủ dịch vụ chi tiết / bill. */
-export function tourAmount(detail: ServiceDetail | null, session: number | null, bill: number | null) {
-  if (!detail || bill == null || (needsSession(detail) && !session)) return null;
-  return Math.round(bill * tourRate(detail, session));
-}
-
 export type TourStatus = "pending" | "claimed" | "confirmed";
 
 /** Trạng thái suy ra: chưa có KTV = chờ nhận; có KTV = chưa xác nhận; admin xác nhận = đã xác nhận. */

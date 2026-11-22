@@ -15,7 +15,7 @@ import { StatCard } from "@/components/common/stat-card";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { runAction, sessionText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
-import { groupByTechnician, toItem, type TourItem } from "@/components/tour/tour-data";
+import { groupByTechnician } from "@/components/tour/tour-data";
 import { PhotoCountButton, TourPhotosModal } from "@/components/tour/tour-photos";
 import { TourSlips } from "@/components/tour/tour-slips";
 import { formatRupiah } from "@/lib/currency";
@@ -80,10 +80,10 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
   const [tab, setTab] = useState<"pending" | "mine">(pending.length ? "pending" : "mine");
   const [claiming, setClaiming] = useState<string | null>(null);
   const [, start] = useTransition();
-  const items = tours.map(toItem);
+  const items = tours;
   const unconfirmed = items.filter((r) => !r.confirmed_at).length;
-  const total = items.reduce((n, r) => n + (r.amount ?? 0), 0);
-  const confirmedTotal = items.reduce((n, r) => n + (r.confirmed_at ? r.amount ?? 0 : 0), 0);
+  const total = items.reduce((n, r) => n + (r.bill_amount ?? 0), 0);
+  const confirmedTotal = items.reduce((n, r) => n + (r.confirmed_at ? r.bill_amount ?? 0 : 0), 0);
 
   const claim = (id: string) => {
     setClaiming(id);
@@ -113,7 +113,7 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
         <StatCard label={t("count")} value={items.length} />
         <StatCard label={t("status_claimed")} value={unconfirmed} />
         <div className="col-span-2 sm:col-span-1">
-          <StatCard label={t("received")} value={formatRupiah(total)}
+          <StatCard label={t("bill")} value={formatRupiah(total)}
             hint={t("confirmedAmount", { amount: formatRupiah(confirmedTotal) })} />
         </div>
       </div>
@@ -128,7 +128,7 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
               {tour.service_detail ? <Tag color="cyan" className="me-0">{sessionText(t, tour)}</Tag> : <Tag className="me-0">{t("needDetail")}</Tag>}
               <PhotoCountButton tour={tour} onOpen={onPhotos} />
             </span>
-            <span className="font-semibold tabular-nums">{tour.amount == null ? "—" : formatRupiah(tour.amount)}</span>
+            <span className="font-semibold tabular-nums">{tour.bill_amount == null ? "—" : formatRupiah(tour.bill_amount)}</span>
           </div>
         </div>) : <div className="surface py-10"><Empty description={t("empty")} /></div>}
       </div>
@@ -161,13 +161,13 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
   const staffById = new Map(staff.map((s) => [s.id, s]));
   const technicians = staff.filter((s) => s.department === "technician");
 
-  const all = tours.map(toItem);
+  const all = tours;
   const items = all.filter((r) => (status === ALL || tourStatus(r) === status)
     && (technician === ALL || r.technician_id === technician)
     && matchesNameOrPhone(r.customer?.full_name ?? "", r.customer?.phone ?? "", search));
   const groups = me.isAdmin ? groupByTechnician(items, staff) : [];
   const count = (s: TourStatus) => all.filter((r) => tourStatus(r) === s).length;
-  const total = items.reduce((n, r) => n + (r.amount ?? 0), 0);
+  const total = items.reduce((n, r) => n + (r.bill_amount ?? 0), 0);
   const failed = t("saveError");
 
   const exportExcel = async () => {
@@ -176,7 +176,7 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
       const { downloadTourExcel } = await import("@/components/tour/tour-export");
       await downloadTourExcel(groups, month, {
         technician: t("technician"), date: t("date"), customer: t("customer"), service: t("session"),
-        bill: t("bill"), rate: "%", tour: t("received"), subtotal: t("subtotal"), total: t("grandTotal"),
+        bill: t("bill"), subtotal: t("subtotal"), total: t("grandTotal"),
         detail: (row) => sessionText(t, row),
       });
     } catch {
@@ -186,7 +186,7 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
     }
   };
 
-  const columns: TableProps<TourItem>["columns"] = [
+  const columns: TableProps<Tour>["columns"] = [
     { title: t("date"), width: 110, render: (_, r) => dayjs(r.tour_date).format("DD/MM/YYYY") },
     { title: t("customer"), width: 200, render: (_, r) => <NamePhone name={r.customer?.full_name ?? "—"} phone={r.customer?.phone} /> },
     { title: t("service"), width: 140, render: (_, r) => serviceLabel(r.service_id) },
@@ -200,9 +200,6 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
     { title: t("bill"), width: 140, align: "right", render: (_, r) =>
       r.bill_amount == null ? DASH : <span className="tabular-nums">{formatRupiah(r.bill_amount)}</span> },
     { title: t("payment"), width: 120, render: (_, r) => r.payment_method ? t(`pay_${r.payment_method}`) : DASH },
-    { title: "%", width: 60, align: "right", render: (_, r) => r.rate == null ? DASH : `${Math.round(r.rate * 100)}%` },
-    { title: t("received"), width: 140, align: "right", render: (_, r) =>
-      r.amount == null ? DASH : <span className="tabular-nums font-semibold">{formatRupiah(r.amount)}</span> },
     { title: t("status"), width: 140, render: (_, r) => <TourStatusTag tour={r} /> },
     { key: "actions", width: 56, align: "right", fixed: "right", render: (_, r) => <div onClick={(e) => e.stopPropagation()}>
       <RowActions label={t("actions")} items={[
@@ -249,9 +246,9 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
       <StatCard label={t("count")} value={all.length} />
       <StatCard label={t("status_pending")} value={count("pending")} />
       <StatCard label={t("status_claimed")} value={count("claimed")} />
-      <StatCard label={t("received")} value={formatRupiah(total)} />
+      <StatCard label={t("bill")} value={formatRupiah(total)} />
     </div>
-    <DataTable<TourItem> columns={columns} dataSource={items} pageSize={50} empty={t("empty")}
+    <DataTable<Tour> columns={columns} dataSource={items} pageSize={50} empty={t("empty")}
       onRow={(r) => ({ onClick: () => onOpen(r.id), className: "cursor-pointer" })} />
     {me.isAdmin ? <TourSlips groups={groups} month={month} /> : null}
   </>;

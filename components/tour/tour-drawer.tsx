@@ -12,10 +12,10 @@ import { FormDrawer } from "@/components/common/form-drawer";
 import { NoteItem, NotesDrawer } from "@/components/common/notes";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
-import { formatRupiah, sanitizeCurrencyInput } from "@/lib/currency";
+import { sanitizeCurrencyInput } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import { tourDetailFor, tourSessionOf } from "@/lib/cards";
-import { MAX_SESSION, PAYMENT_METHODS, tourAmount, tourRate, tourStatus, type TourStatus } from "@/lib/tours";
+import { MAX_SESSION, PAYMENT_METHODS, tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import type { Tour, TourImageField, TourPatch } from "@/types/tour";
@@ -84,15 +84,11 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
   const [pending, start] = useTransition();
   const [notesOpen, setNotesOpen] = useState(false);
   const tn = useTranslations("notes");
-  const sessionNo = Form.useWatch("session_no", form) as number | null | undefined;
-  const serviceId = (Form.useWatch("service_id", form) as string | undefined) ?? tour.service_id;
-  const bill = Form.useWatch("bill_amount", form) as number | null | undefined;
-  // Dịch vụ chi tiết + lần lưu DB suy từ (dịch vụ, Lần) → giữ cách tính % thực thu cũ.
+  // Dịch vụ chi tiết + lần lưu DB suy từ (dịch vụ, Lần).
   const derive = (id: string, n: number | null | undefined) => {
     const service = services.find((s) => s.id === id);
     return n && service ? tourDetailFor(service, n) : null;
   };
-  const detail = derive(serviceId, sessionNo);
 
   const status = tourStatus(tour);
   const isOwner = tour.technician_id === me.id;
@@ -122,8 +118,6 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
 
   const savePhotos = (field: TourImageField) => (next: string[]) =>
     runAction(updateTour(tour.id, { [field]: next }), t("photoSaved"), failed);
-
-  const amount = detail ? tourAmount(detail.service_detail, detail.service_session, bill ?? null) : null;
 
   const footerExtra = <>
     {canClaim ? <Button type="primary" loading={pending} onClick={() => start(async () => {
@@ -182,17 +176,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
             <Select allowClear placeholder="—"
               options={Array.from({ length: MAX_SESSION }, (_, i) => ({ value: i + 1, label: t("sessionN", { n: i + 1 }) }))} />
           </Form.Item>
-          <Form.Item label={t("rate")}>
-            <div className="flex h-8 items-center tabular-nums">
-              {detail ? `${Math.round(tourRate(detail.service_detail, detail.service_session) * 100)}%` : "—"}
-            </div>
-          </Form.Item>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
           <Form.Item name="bill_amount" label={t("bill")}>{billInput}</Form.Item>
-          <Form.Item label={t("received")}>
-            <div className="flex h-8 items-center font-semibold tabular-nums">{amount == null ? "—" : formatRupiah(amount)}</div>
-          </Form.Item>
         </div>
         <Form.Item name="payment_method" label={t("payment")}>
           <Radio.Group optionType="button" className={FULL_GROUP}
