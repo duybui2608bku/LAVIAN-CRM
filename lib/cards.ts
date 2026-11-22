@@ -22,9 +22,15 @@ export function cardMoney(card: MoneyCard) {
 export const suggestRefund = (price: number, sessions: number, used: number) =>
   Math.round((price * Math.max(sessions - used, 0)) / Math.max(sessions, 1));
 
-/** Thẻ hoàn thành: mọi dịch vụ chưa hoàn đã dùng đủ số buổi. */
-export const cardDone = (items: { id: string; sessions: number; refunded_at: string | null }[], used: (itemId: string) => number) =>
-  items.some((i) => !i.refunded_at) && items.every((i) => i.refunded_at || used(i.id) >= i.sessions);
+/** DV của dòng thẻ (join `services`): `tourable = false` = mực, phí Master, sản phẩm — không tạo tour, không tính buổi. */
+type ItemService = { service?: { group_id: string; tourable: boolean } | null };
+export const isTourable = (item: ItemService) => item.service?.tourable !== false;
+
+/** Thẻ hoàn thành: mọi dịch vụ (tạo tour được) chưa hoàn đã dùng đủ số buổi. */
+export function cardDone(items: ({ id: string; sessions: number; refunded_at: string | null } & ItemService)[], used: (itemId: string) => number) {
+  const list = items.filter(isTourable);
+  return list.some((i) => !i.refunded_at) && list.every((i) => i.refunded_at || used(i.id) >= i.sessions);
+}
 
 // ───────── Loại tour + lộ trình liệu trình (sếp chốt 2026-11-22) ─────────
 // Laser (mày) / Plasma (môi) xoá cũ → kiểm tra sau 20 ngày: tour kế tiếp lại Laser = chưa OK, Làm mới = OK.
@@ -37,6 +43,9 @@ export type TourKind = (typeof TOUR_KINDS)[number];
 
 const LASER_GROUPS = ["laser", "eyeliner_treatment"];
 const isRemoval = (detail: string | null) => detail === "laser" || detail === "plasma";
+/** Vùng làm (mày / môi / mí): nhóm xoá cũ cùng vùng với nhóm phun — laser mày chỉ chặn dặm mày, không chặn môi. */
+const AREA: Record<string, string> = { laser: "alis", lips_treatment: "bibir", eyeliner_treatment: "eyeliner" };
+const areaOf = (groupId: string | undefined) => (groupId ? AREA[groupId] ?? groupId : "");
 
 type KindTour = { tour_date: string; service_detail: string | null };
 
@@ -60,7 +69,7 @@ export function tourKindDetail(kind: TourKind, date: string, others: KindTour[])
 
 const addDays = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
-type DueItem = { id: string; service_id: string; sessions: number; refunded_at: string | null };
+type DueItem = { id: string; service_id: string; sessions: number; refunded_at: string | null } & ItemService;
 type DueCard = { cancelled_at: string | null; items: DueItem[] };
 type DueTour = KindTour & { card_item_id: string | null; service_session: number | null };
 export type JourneyDue<C, T> = {
@@ -74,31 +83,40 @@ export type JourneyDue<C, T> = {
 };
 
 /**
- * Việc đến hạn của khách đang có liệu trình — tự tính từ thẻ + tour, không lưu.
- * - Tour cuối của cả thẻ là Laser/Plasma + thẻ còn buổi → Kiểm tra laser (ngày tour + 20).
+ * Việc đến hạn của khách đang có liệu trình — tự tính từ thẻ + tour, không lưu. Tính riêng từng vùng (mày / môi / mí):
+ * - Tour cuối của vùng là Laser/Plasma + vùng còn buổi → Kiểm tra laser (ngày tour + 20): đủ điều kiện phun mới chưa.
  * - Ngược lại, mỗi DV chưa hoàn còn buổi có tour cuối Làm mới / Dặm → Dặm (ngày tour + 45).
- * Tour ngày tương lai cũng tính là "tour kế tiếp" (đã hẹn thì không nhắc lại).
+ * Bỏ qua DV không tạo tour (mực, phí Master). Tour ngày tương lai cũng tính là "tour kế tiếp" (đã hẹn thì không nhắc lại).
  */
 export function journeyDue<C extends DueCard, T extends DueTour>(cards: C[], tours: T[]): JourneyDue<C, T>[] {
   const out: JourneyDue<C, T>[] = [];
+  // Cùng ngày: tour xoá cũ (laser/plasma) xếp trước → tour Làm mới cùng ngày mới là "tour cuối".
+  const order = (a: KindTour, b: KindTour) =>
+    a.tour_date.localeCompare(b.tour_date) || Number(isRemoval(b.service_detail)) - Number(isRemoval(a.service_detail));
+  const ofItem = (id: string) => tours.filter((t) => t.card_item_id === id).sort(order);
   for (const card of cards) {
     if (card.cancelled_at) continue;
-    const ofItem = (id: string) => tours.filter((t) => t.card_item_id === id).sort((a, b) => a.tour_date.localeCompare(b.tour_date));
-    const open = card.items.filter((i) => !i.refunded_at && ofItem(i.id).length < i.sessions);
-    const all = card.items.flatMap((i) => ofItem(i.id).map((tour) => ({ tour, item: i })))
-      .sort((a, b) => a.tour.tour_date.localeCompare(b.tour.tour_date));
-    const last = all.at(-1);
-    if (last && isRemoval(last.tour.service_detail)) {
-      if (open.length) out.push({ card, item: last.item, task: "laser_check", n: last.tour.service_session ?? 1,
-        due: addDays(last.tour.tour_date, LASER_CHECK_DAYS), last: last.tour });
-      continue;
+    const areas = new Map<string, DueItem[]>();
+    for (const i of card.items.filter(isTourable)) {
+      const key = areaOf(i.service?.group_id) || i.service_id;
+      areas.set(key, [...(areas.get(key) ?? []), i]);
     }
-    for (const item of open) {
-      const list = ofItem(item.id);
-      const end = list.at(-1);
-      if (!end || (end.service_detail !== "new" && end.service_detail !== "retouch")) continue;
-      out.push({ card, item, task: "retouch", n: list.filter((t) => t.service_detail === "retouch").length + 1,
-        due: addDays(end.tour_date, RETOUCH_DAYS), last: end });
+    for (const items of areas.values()) {
+      const open = items.filter((i) => !i.refunded_at && ofItem(i.id).length < i.sessions);
+      const last = items.flatMap((item) => ofItem(item.id).map((tour) => ({ tour, item })))
+        .sort((a, b) => order(a.tour, b.tour)).at(-1);
+      if (last && isRemoval(last.tour.service_detail)) {
+        if (open.length) out.push({ card, item: last.item, task: "laser_check", n: last.tour.service_session ?? 1,
+          due: addDays(last.tour.tour_date, LASER_CHECK_DAYS), last: last.tour });
+        continue;
+      }
+      for (const item of open) {
+        const list = ofItem(item.id);
+        const end = list.at(-1);
+        if (!end || (end.service_detail !== "new" && end.service_detail !== "retouch")) continue;
+        out.push({ card, item, task: "retouch", n: list.filter((t) => t.service_detail === "retouch").length + 1,
+          due: addDays(end.tour_date, RETOUCH_DAYS), last: end });
+      }
     }
   }
   return out.sort((a, b) => a.due.localeCompare(b.due));

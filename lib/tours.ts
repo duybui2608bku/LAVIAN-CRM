@@ -4,6 +4,14 @@ import { z } from "zod";
 export const SERVICE_DETAILS = ["laser", "plasma", "new", "debt", "retouch"] as const;
 export type ServiceDetail = (typeof SERVICE_DETAILS)[number];
 
+/**
+ * Công Master (sếp chốt 2026-11-22) = Bill (giá DV trong thẻ) × tỷ lệ theo Loại: Làm mới 7%, Dặm 3% (mọi lần),
+ * Laser / Plasma 0%; Debt (dữ liệu cũ) 7%. Mực / phí Master không tạo tour nên không có công.
+ */
+export const TOUR_RATES: Partial<Record<ServiceDetail, number>> = { new: 0.07, debt: 0.07, retouch: 0.03 };
+export const tourCommission = (t: { bill_amount: number | null; service_detail: string | null }) =>
+  Math.round((t.bill_amount ?? 0) * (TOUR_RATES[t.service_detail as ServiceDetail] ?? 0));
+
 export type TourStatus = "pending" | "claimed" | "confirmed";
 
 /** Trạng thái suy ra: chưa có KTV = chờ nhận; có KTV = chưa xác nhận; admin xác nhận = đã xác nhận. */
@@ -18,7 +26,7 @@ export const tourPatchSchema = z.object({
   service_id: z.uuid(),
   technician_id: z.uuid().nullable(),
   // Loại tour — server tự tính số lần (tourKindDetail). Khớp TOUR_KINDS (lib/cards.ts).
-  kind: z.enum(["laser", "plasma", "new", "retouch"]).nullable(),
+  kind: z.enum(["laser", "plasma", "new", "retouch"]), // bắt buộc: tour không Loại thì mất khỏi Đến hạn + không tính công
   before_images: images,
   after_images: images,
   extra_images: images,

@@ -27,6 +27,7 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  Route,
   UserCog,
   UserPen,
   UsersRound,
@@ -63,6 +64,7 @@ const ITEMS = [
     children: [
       { key: "potential", href: "/customers/potential", icon: Sparkles, perm: "customers.view" },
       { key: "bookings", href: "/customers/bookings", icon: CalendarCheck, perm: "customers.view" },
+      { key: "journey", href: "/customers/journey", icon: Route, perm: "customers.view" },
       { key: "reminders", href: "/customers/reminders", icon: BellRing, perm: "customers.view" },
       { key: "smaxReport", href: "/customers/smax-report", icon: Inbox, perm: "customers.view" },
     ],

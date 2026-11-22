@@ -226,7 +226,8 @@
     "alreadyClaimed": "This tour was already taken",
     "onlyTechnician": "Only technicians can take tours",
     "confirmMissing": "Technician and session are required before confirming",
-    "kind": "Type"
+    "kind": "Type",
+    "commission": "Commission"
   },
   "nav": {
     "usersList": "All users",
@@ -253,7 +254,8 @@
     "smaxReport": "Smax report",
     "documents": "Documents",
     "reminders": "Reminders",
-    "potential": "Customers Management"
+    "potential": "Customers Management",
+    "journey": "Treatment follow-ups"
   },
   "theme": {
     "toggle": "Toggle theme"
@@ -382,7 +384,9 @@
     "cancel": "Cancel",
     "save": "Save",
     "updateOk": "Updated",
-    "createOk": "Added"
+    "createOk": "Added",
+    "tourableLabel": "Creates tours",
+    "tourableHint": "Untick for ink, Master fees, products: no tours, no sessions / follow-ups."
   },
   "customers": {
     "bookingsTitle": "Booking management",
@@ -610,7 +614,12 @@
     "noData": "No data yet",
     "daily": "Daily breakdown",
     "date": "Date",
-    "total": "Total"
+    "total": "Total",
+    "salesCommission": "Sales commission ({rate}% of cash collected)",
+    "seller": "Sales (card creator)",
+    "collected": "Cash collected",
+    "commission": "Commission",
+    "salesEmpty": "No card payments in this period."
   },
   "telesales": {
     "title": "Leader Telesales",
@@ -1149,7 +1158,9 @@
       "refundTooHigh": "Refund can't exceed the sale price.",
       "hasTours": "The card has tours — delete them before cancelling.",
       "itemUnavailable": "Service is no longer on the card (refunded?). Reload the page.",
-      "sessionsBelowUsed": "Sessions can't be fewer than those already done ({used})."
+      "sessionsBelowUsed": "Sessions can't be fewer than those already done ({used}).",
+      "hasPayments": "This card has payments — record a refund (negative amount) before cancelling.",
+      "overSessions": "All sessions are used — only an admin can add more tours."
     },
     "selected": "Selected ({count})",
     "sessionsShort": "sess.",
@@ -1162,24 +1173,35 @@
     "save": "Save",
     "editSessions": "Edit sessions",
     "sessionsHint": "{used} session(s) done — can't go below that. All sessions used = treatment finished, no more reminders.",
-    "tabCards": "Cards",
-    "tabDue": "Due",
-    "dueDate": "Due date",
+    "sessionsFull": "sessions used up (admin only)"
+  },
+  "journey": {
+    "title": "Treatment follow-ups",
+    "subtitle": "Customers to call for a laser check (20 days) or a retouch (45 days). Booking an appointment or creating a tour clears the item.",
+    "dueDate": "Due",
     "overdueDays": "{n} days overdue",
     "dueToday": "Today",
-    "daysLeft": "In {n} days",
+    "daysLeft": "{n} days left",
+    "customer": "Customer",
+    "openProfile": "Open customer profile",
     "task": "Task",
-    "taskCheck": "{kind} check",
+    "taskCheck": "Check {kind}",
     "lastTour": "Last tour",
-    "seller": "Sold by",
-    "dueRange": "Range",
+    "telesales": "Telesales",
+    "allTelesales": "All Telesales",
+    "unassigned": "Unassigned",
+    "dueRange": "Due range",
     "range": {
-      "all": "All",
-      "overdue": "Overdue",
-      "today": "Today",
-      "soon": "Next 7 days"
+      "todo": "To call",
+      "soon": "Next 7 days",
+      "booked": "Booked",
+      "all": "All"
     },
-    "allSellers": "All sales",
-    "dueEmpty": "No customers due for a check / retouch."
+    "booked": "Booked {date}",
+    "dueEmpty": "No customers to call.",
+    "contact": "Contact",
+    "chat": "Open SMAX chat",
+    "whatsapp": "WhatsApp",
+    "call": "Call"
   }
 }

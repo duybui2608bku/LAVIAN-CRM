@@ -103,6 +103,20 @@ export function buildDays(from: string, to: string, src: ReportSources): DayRow[
   return [...rows.values()];
 }
 
+/** Hoa hồng Sales (sếp chốt 2026-11-22) = 5% tiền thực thu của thẻ, tính cho người tạo thẻ. */
+export const SALES_RATE = 0.05;
+
+/** Tiền thực thu theo Sales trong kỳ [from, to] (ngày VN): cọc trừ vào thẻ + các lần thu; hoàn tiền (âm) trừ ngược. */
+export function salesCommission(money: { at: string; amount: number; seller: string }[], from: string, to: string) {
+  const by = new Map<string, number>();
+  for (const m of money) {
+    const day = vnDay(m.at);
+    if (day >= from && day <= to) by.set(m.seller, (by.get(m.seller) ?? 0) + m.amount);
+  }
+  return [...by].map(([seller, collected]) => ({ seller, collected, commission: Math.round(collected * SALES_RATE) }))
+    .sort((a, b) => b.collected - a.collected);
+}
+
 /** Chia an toàn: thiếu số hoặc mẫu 0 → null ("—"). */
 export const ratio = (a: number | null, b: number | null) =>
   a != null && b ? a / b : null;

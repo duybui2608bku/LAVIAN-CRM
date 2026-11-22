@@ -47,8 +47,9 @@ test("Loại tour gợi ý + số lần theo tour cùng loại trước đó", (
 });
 
 test("đến hạn liệu trình: kiểm tra laser 20 ngày, dặm 45 ngày, hết buổi thì thôi", () => {
-  const laser = { id: "L", service_id: "s-laser", sessions: 3, refunded_at: null };
-  const brow = { id: "B", service_id: "s-brow", sessions: 2, refunded_at: null };
+  // Laser mày + phun mày: cùng vùng mày.
+  const laser = { id: "L", service_id: "s-laser", sessions: 3, refunded_at: null, service: { group_id: "laser", tourable: true } };
+  const brow = { id: "B", service_id: "s-brow", sessions: 2, refunded_at: null, service: { group_id: "alis", tourable: true } };
   const card = { id: "c1", cancelled_at: null, items: [laser, brow] };
   const tour = (card_item_id: string, tour_date: string, service_detail: string, service_session: number | null = 1) =>
     ({ card_item_id, tour_date, service_detail, service_session });
@@ -71,6 +72,31 @@ test("đến hạn liệu trình: kiểm tra laser 20 ngày, dặm 45 ngày, h�
   const done = { ...card, items: [{ ...laser, sessions: 1 }, { ...brow, refunded_at: "x" }] };
   assert.deepEqual(due([tour("L", "2026-12-01", "laser")], done), []);
   assert.deepEqual(due([tour("L", "2026-12-01", "laser")], { ...card, cancelled_at: "x" }), []); // thẻ huỷ
+});
+
+test("đến hạn theo vùng: laser mày không che dặm môi; cùng ngày làm mới là tour cuối; mực không tính", () => {
+  const item = (id: string, group_id: string, sessions = 2, tourable = true) =>
+    ({ id, service_id: `s-${id}`, sessions, refunded_at: null, service: { group_id, tourable } });
+  const card = { id: "c2", cancelled_at: null, items: [
+    item("LB", "laser", 3), item("B", "alis"), // mày
+    item("PL", "lips_treatment"), item("P", "bibir"), // môi
+    item("INK", "ink", 1, false), // mực: không tạo tour
+  ] };
+  const tour = (card_item_id: string, tour_date: string, service_detail: string, service_session: number | null = 1) =>
+    ({ card_item_id, tour_date, service_detail, service_session });
+  const due = (tours: ReturnType<typeof tour>[]) => journeyDue([card], tours).map((d) => `${d.task}:${d.item.id}:${d.due}`);
+
+  // Laser mày 01/12 + Làm mới môi 05/12 → vẫn kiểm tra laser mày, kèm dặm môi.
+  assert.deepEqual(due([tour("LB", "2026-12-01", "laser"), tour("P", "2026-12-05", "new", null)]),
+    ["laser_check:LB:2026-12-21", "retouch:P:2027-01-19"]);
+  // Làm mới mày 01/11 + Plasma môi 10/11 → dặm mày vẫn còn, kèm kiểm tra plasma môi.
+  assert.deepEqual(due([tour("B", "2026-11-01", "new", null), tour("PL", "2026-11-10", "plasma")]),
+    ["laser_check:PL:2026-11-30", "retouch:B:2026-12-16"]);
+  // Cùng ngày laser + làm mới mày → làm mới là tour cuối → chờ dặm.
+  assert.deepEqual(due([tour("LB", "2026-12-01", "laser"), tour("B", "2026-12-01", "new", null)]), ["retouch:B:2027-01-15"]);
+  // Hoàn thành không chờ dòng mực (không bao giờ có tour).
+  const used = (id: string) => (id === "INK" ? 0 : id === "LB" ? 3 : 2);
+  assert.equal(cardDone(card.items, used), true);
 });
 
 test("schema thanh toán + tạo tour", () => {

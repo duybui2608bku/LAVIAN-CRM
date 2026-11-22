@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import dayjs from "dayjs";
 import { detailLabelEn, type TourGroup } from "@/components/tour/tour-data";
 import { formatRupiah } from "@/lib/currency";
+import { tourCommission } from "@/lib/tours";
 
 const noopSubscribe = () => () => {};
 
@@ -38,6 +39,7 @@ export function TourSlips({ groups, month }: { groups: TourGroup[]; month: strin
               <tr>
                 <th>No.</th><th>Date</th><th>Customer</th><th>Service</th>
                 <th className="num">Bill</th>
+                <th className="num">Commission</th>
               </tr>
             </thead>
             <tbody>
@@ -48,6 +50,7 @@ export function TourSlips({ groups, month }: { groups: TourGroup[]; month: strin
                   <td>{row.customer?.full_name ?? "—"}</td>
                   <td>{detailLabelEn(row) || "—"}</td>
                   <td className="num">{row.bill_amount == null ? "—" : formatRupiah(row.bill_amount)}</td>
+                  <td className="num">{formatRupiah(tourCommission(row))}</td>
                 </tr>
               ))}
             </tbody>
@@ -55,6 +58,7 @@ export function TourSlips({ groups, month }: { groups: TourGroup[]; month: strin
               <tr>
                 <td colSpan={4}>Total ({g.rows.length} tours)</td>
                 <td className="num">{formatRupiah(g.bill)}</td>
+                <td className="num">{formatRupiah(g.commission)}</td>
               </tr>
             </tfoot>
           </table>

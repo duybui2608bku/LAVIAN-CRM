@@ -15,7 +15,7 @@ import { PhotoField } from "@/components/tour/photo-field";
 import { formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import { TOUR_KINDS } from "@/lib/cards";
-import { tourStatus, type TourStatus } from "@/lib/tours";
+import { tourCommission, tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import type { Tour, TourImageField, TourPatch } from "@/types/tour";
@@ -90,7 +90,7 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
     try { values = await form.validateFields(); } catch { return; }
     const patch: TourPatch = {};
     // Đổi Loại → server tính lại số lần (tour cũ Debt giữ nguyên nếu không đụng tới).
-    if ((values.kind ?? null) !== tour.service_detail) patch.kind = (values.kind ?? null) as TourPatch["kind"];
+    if (values.kind && values.kind !== tour.service_detail) patch.kind = values.kind as TourPatch["kind"];
     if (canEditBasic) Object.assign(patch, fromCard ? { tour_date: values.tour_date }
       : { tour_date: values.tour_date, customer_id: values.customer_id, service_id: values.service_id });
     if (me.isAdmin && (values.technician_id ?? null) !== tour.technician_id) patch.technician_id = values.technician_id ?? null;
@@ -156,13 +156,14 @@ export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
       {canClaim ? <p className="mb-4 text-sm text-muted-foreground">{t("claimHint")}</p> : <>
         <div className="grid grid-cols-2 gap-3">
           <Form.Item name="kind" label={t("kind")} extra={kindText(t, tour) || undefined}>
-            <Select allowClear placeholder="—"
+            <Select placeholder="—"
               options={[...TOUR_KINDS, ...(tour.service_detail === "debt" ? ["debt"] : [])]
                 .map((k) => ({ value: k, label: t(`detail_${k}`), disabled: k === "debt" }))} />
           </Form.Item>
           {/* Hoá đơn chỉ xem (giá bán lấy từ thẻ khi tạo tour) — thanh toán thu ở thẻ liệu trình. */}
           <Form.Item label={t("bill")}>
             <span className="tabular-nums">{tour.bill_amount == null ? "—" : formatRupiah(tour.bill_amount)}</span>
+            <div className="text-xs text-muted-foreground tabular-nums">{t("commission")}: {formatRupiah(tourCommission(tour))}</div>
           </Form.Item>
         </div>
       </>}

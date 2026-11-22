@@ -29,6 +29,6 @@ export const TOUR_FIELDS = "id,tour_date,customer_id,service_id,card_item_id,ser
 /** Sửa tour: Loại (`kind`) gửi lên, server tự tính service_detail + số lần. */
 export type TourPatch = Partial<Pick<Tour,
   "tour_date" | "customer_id" | "service_id" | "technician_id" | "before_images" | "after_images" | "extra_images"
-> & { kind: TourKind | null }>;
+> & { kind: TourKind }>;
 
 export type TourImageField = "before_images" | "after_images" | "extra_images";

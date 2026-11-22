@@ -71,8 +71,7 @@ export async function updateTour(id: string, input: z.input<typeof tourPatchSche
     const { profile, isAdmin, db } = await context("tour.edit");
     const data: Record<string, unknown> = { ...patch };
     // Loại tour → service_detail + số lần theo các tour khác cùng dòng DV thẻ (tour cũ không thẻ: lần 1).
-    if (kind === null) Object.assign(data, { service_detail: null, service_session: null });
-    else if (kind) {
+    if (kind) {
       const { data: tour, error } = await db.from("tours").select("card_item_id,tour_date").eq("id", id).single();
       if (error) throw error;
       const others = tour.card_item_id ? await db.from("tours").select("tour_date,service_detail")
