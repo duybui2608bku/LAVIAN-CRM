@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Lavian CRM — Thẻ liệu trình</title>
+<style>
+  @page { size: A4; margin: 15mm 15mm 14mm 15mm; }
+  :root {
+    --primary: #684fd4; --primary-soft: #efecfb; --ink: #1f1f24; --muted: #6b6b76;
+    --line: #e4e4e8; --bg-soft: #f7f7f9;
+    --brand: #4b2669; --gold: #b08d2e;
+    --green: #389e0d; --green-bg: #f6ffed; --orange: #d46b08; --red: #cf1322;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; font-size: 10.3pt; line-height: 1.55; color: var(--ink); background: #fff; }
+  h1, h2, h3 { line-height: 1.25; margin: 0; }
+  h2 { font-size: 16pt; color: var(--primary); margin: 0 0 3.5mm; padding-bottom: 2mm; border-bottom: 2px solid var(--primary-soft); }
+  h3 { font-size: 11.5pt; margin: 4.5mm 0 2mm; }
+  p { margin: 0 0 2.4mm; }
+  ul { margin: 0 0 3mm; padding-left: 5.5mm; }
+  li { margin-bottom: 1.1mm; }
+  b { font-weight: 600; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.8pt; }
+  .avoid { break-inside: avoid; }
+  svg { display: block; width: 100%; height: auto; font-family: "Segoe UI", Arial, sans-serif; }
+  figure { margin: 2mm 0 4mm; break-inside: avoid; }
+  figcaption { text-align: center; font-size: 8.4pt; color: var(--muted); margin-top: 1.5mm; }
+  .note { border-left: 3px solid var(--primary); background: var(--primary-soft); padding: 2.8mm 4mm; border-radius: 0 2mm 2mm 0; margin: 3mm 0; }
+  .note p:last-child, .note ul:last-child { margin-bottom: 0; }
+  .ok { border-left-color: var(--green); background: var(--green-bg); }
+  table { width: 100%; border-collapse: collapse; margin: 1mm 0 3.5mm; font-size: 9.4pt; }
+  th, td { text-align: left; padding: 1.8mm 2.4mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 8.4pt; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 600; background: var(--bg-soft); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: start; }
+  .split { display: grid; grid-template-columns: 78mm 1fr; gap: 7mm; align-items: start; }
+
+  /* Cover */
+  .cover { height: 266mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover-top { padding-top: 22mm; }
+  .cover-logo { width: 34mm; height: 34mm; }
+  .eyebrow { margin-top: 12mm; font-size: 10pt; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  .cover h1 { font-size: 34pt; margin: 3mm 0 5mm; color: var(--brand); letter-spacing: -.5px; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); max-width: 150mm; }
+  .meta { display: flex; gap: 8mm; margin-top: 8mm; font-size: 9.5pt; }
+  .meta div span { display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+  .toc { border-top: 1px solid var(--line); padding-top: 5mm; }
+  .toc-row { display: flex; gap: 4mm; padding: 2.2mm 0; border-bottom: 1px dashed var(--line); font-size: 10.5pt; }
+  .toc-num { width: 8mm; color: var(--primary); font-weight: 700; }
+  .toc-pg { margin-left: auto; color: var(--muted); font-size: 9.5pt; }
+</style>
+</head>
+<body>
+
+<!-- ============================ TRANG BÌA ============================ -->
+<section class="page cover">
+  <div class="cover-top">
+    <img class="cover-logo" src="../app/assets/logo.png" alt="Lavian Beauty Center">
+    <div class="eyebrow">Lavian CRM</div>
+    <h1>Thẻ liệu trình</h1>
+    <p class="lead">Bán thẻ dịch vụ tại Quản lý bán hàng; theo dõi tiền cọc, các lần thu, công nợ và lộ trình tour của khách trên thẻ.</p>
+    <div class="meta">
+      <div><span>Ngày</span>22/11/2026</div>
+      <div><span>Menu</span>Thẻ liệu trình</div>
+      <div><span>Mã thẻ</span>TLT00001, TLT00002…</div>
+    </div>
+  </div>
+  <div class="toc">
+    <div class="toc-row"><span class="toc-num">1</span>Quy trình<span class="toc-pg">2</span></div>
+    <div class="toc-row"><span class="toc-num">2</span>Bán thẻ ở Quản lý bán hàng<span class="toc-pg">3</span></div>
+    <div class="toc-row"><span class="toc-num">3</span>Tiền trên thẻ &amp; cách tính doanh thu<span class="toc-pg">4</span></div>
+    <div class="toc-row"><span class="toc-num">4</span>Menu Thẻ liệu trình &amp; chi tiết thẻ<span class="toc-pg">5</span></div>
+    <div class="toc-row"><span class="toc-num">5</span>Tour gắn thẻ &amp; lộ trình<span class="toc-pg">6</span></div>
+    <div class="toc-row"><span class="toc-num">6</span>In thẻ cho khách ký<span class="toc-pg">7</span></div>
+    <div class="toc-row"><span class="toc-num">7</span>Phân quyền<span class="toc-pg">7</span></div>
+  </div>
+</section>
+
+<!-- ============================ 2. QUY TRÌNH ============================ -->
+<section class="page">
+  <h2>1. Quy trình</h2>
+  <p><b>Thẻ liệu trình</b> là thẻ của một khách, gồm một hoặc nhiều dịch vụ trong bảng giá, có mã riêng (TLT00001…). Giá trị thẻ = tổng giá bán các dịch vụ, trừ tiền cọc khách đã đặt. Sau khi tạo, thẻ vẫn thêm dịch vụ, hoàn dịch vụ và ghi các lần thu tiền được; mọi tour của khách gắn vào thẻ.</p>
+  <figure>
+    <svg viewBox="0 0 720 400" role="img" aria-label="Quy trình: Sales bán thẻ và tạo tour, Master nhận tour, Admin xác nhận.">
+      <defs>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#684fd4"/></marker>
+      </defs>
+      <!-- Làn -->
+      <g>
+        <rect x="0" y="10" width="720" height="120" rx="10" fill="#f6f4fd"/>
+        <rect x="0" y="140" width="720" height="120" rx="10" fill="#f7f7f9"/>
+        <rect x="0" y="270" width="720" height="120" rx="10" fill="#fff8ec"/>
+        <g font-size="13" font-weight="700" fill="#684fd4">
+          <text x="18" y="66">Sales</text>
+          <text x="18" y="196" fill="#595966">Master</text>
+          <text x="18" y="326" fill="#b4720f">Admin</text>
+        </g>
+        <g font-size="10.5" fill="#8a8a96">
+          <text x="18" y="84">Quản lý bán hàng</text>
+          <text x="18" y="214">Menu Tour</text>
+          <text x="18" y="344">Menu Tour</text>
+        </g>
+      </g>
+      <!-- Bước -->
+      <g font-size="12.5">
+        <!-- Sales -->
+        <rect x="112" y="38" width="128" height="64" rx="9" fill="#fff" stroke="#d9d2f7"/>
+        <circle cx="128" cy="54" r="9" fill="#684fd4"/><text x="128" y="58" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+        <text x="142" y="59" font-weight="600">Khách đến</text>
+        <text x="122" y="84" font-size="11" fill="#6b6b76">Status: Đã đến</text>
+
+        <rect x="262" y="38" width="128" height="64" rx="9" fill="#684fd4"/>
+        <circle cx="278" cy="54" r="9" fill="#fff"/><text x="278" y="58" font-size="11" font-weight="700" fill="#684fd4" text-anchor="middle">2</text>
+        <text x="292" y="59" font-weight="700" fill="#fff">Bán thẻ</text>
+        <text x="272" y="84" font-size="11" fill="#e5e0fb">chọn DV · trừ cọc</text>
+
+        <rect x="412" y="38" width="128" height="64" rx="9" fill="#fff" stroke="#d9d2f7"/>
+        <circle cx="428" cy="54" r="9" fill="#684fd4"/><text x="428" y="58" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+        <text x="442" y="59" font-weight="600">Thu tiền</text>
+        <text x="422" y="84" font-size="11" fill="#6b6b76">thêm / hoàn DV</text>
+
+        <rect x="562" y="38" width="128" height="64" rx="9" fill="#fff" stroke="#d9d2f7"/>
+        <circle cx="578" cy="54" r="9" fill="#684fd4"/><text x="578" y="58" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+        <text x="592" y="59" font-weight="600">Tạo tour</text>
+        <text x="572" y="84" font-size="11" fill="#6b6b76">chọn DV · Lần n</text>
+
+        <!-- Master -->
+        <rect x="562" y="168" width="128" height="64" rx="9" fill="#fff" stroke="#d9d9de"/>
+        <circle cx="578" cy="184" r="9" fill="#595966"/><text x="578" y="188" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+        <text x="592" y="189" font-weight="600">Nhận tour</text>
+        <text x="572" y="214" font-size="11" fill="#6b6b76">tab Chờ nhận</text>
+
+        <rect x="412" y="168" width="128" height="64" rx="9" fill="#fff" stroke="#d9d9de"/>
+        <circle cx="428" cy="184" r="9" fill="#595966"/><text x="428" y="188" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">6</text>
+        <text x="442" y="189" font-weight="600">Làm dịch vụ</text>
+        <text x="422" y="214" font-size="11" fill="#6b6b76">chụp ảnh · hoá đơn</text>
+
+        <!-- Admin -->
+        <rect x="412" y="298" width="128" height="64" rx="9" fill="#fff" stroke="#f3d49a"/>
+        <circle cx="428" cy="314" r="9" fill="#d48806"/><text x="428" y="318" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">7</text>
+        <text x="442" y="319" font-weight="600">Xác nhận</text>
+        <text x="422" y="344" font-size="11" fill="#6b6b76">tính % thực thu</text>
+
+        <rect x="262" y="298" width="128" height="64" rx="9" fill="#fff" stroke="#b7eb8f"/>
+        <circle cx="278" cy="314" r="9" fill="#389e0d"/><text x="278" y="318" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">✓</text>
+        <text x="292" y="319" font-weight="600">Lộ trình</text>
+        <text x="272" y="344" font-size="11" fill="#6b6b76">ghi vào thẻ</text>
+      </g>
+      <!-- Mũi tên -->
+      <g stroke="#684fd4" stroke-width="2" fill="none" marker-end="url(#a2)">
+        <path d="M240 70 L258 70"/><path d="M390 70 L408 70"/><path d="M540 70 L558 70"/>
+        <path d="M626 102 L626 164"/>
+        <path d="M562 200 L544 200"/>
+        <path d="M476 232 L476 294"/>
+        <path d="M412 330 L394 330"/>
+      </g>
+      <!-- Chú thích nhỏ -->
+      <text x="326" y="122" font-size="10.5" fill="#684fd4" text-anchor="middle">khách → Đã mua</text>
+      <text x="112" y="372" font-size="10.5" fill="#8a7fc9">Khách quay lại → tạo tour Lần 2, 3… từ cùng thẻ</text>
+    </svg>
+    <figcaption>Hình 1 — Ai làm gì, ở đâu</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th style="width:9mm">#</th><th style="width:44mm">Bước</th><th>Trên hệ thống</th></tr></thead>
+    <tbody>
+      <tr><td>1–2</td><td>Bán thẻ</td><td>Ở <b>Quản lý bán hàng</b>, khi lịch hẹn có Status <b>Đã đến / Đang thực hiện / Đã thực hiện</b> thì hiện icon giỏ hàng. Bấm vào, chọn dịch vụ rồi xác nhận là tạo thẻ. Tiền cọc tự trừ, khách tự chuyển sang giai đoạn <b>Đã mua</b>.</td></tr>
+      <tr><td>3</td><td>Thu tiền, sửa thẻ</td><td>Mở thẻ để ghi các lần thu (tiền mặt / chuyển khoản / thẻ), bán thêm dịch vụ, hoặc hoàn dịch vụ.</td></tr>
+      <tr><td>4</td><td>Tạo tour từ thẻ</td><td>Chọn ngày và các dịch vụ trong thẻ. Mỗi dịch vụ thành 1 tour, <b>Lần</b> tự điền. Không phải chọn lại khách hay dịch vụ.</td></tr>
+      <tr><td>5–7</td><td>Master, Admin</td><td>Giữ như cũ: Master nhận tour, chụp ảnh trước/sau, điền hoá đơn; Admin xác nhận để tính % thực thu.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================ 3. BÁN THẺ ============================ -->
+<section class="page">
+  <h2>2. Bán thẻ ở Quản lý bán hàng</h2>
+  <p>Cột <b>Thẻ liệu trình</b> nằm trên bảng lịch hẹn. Cột <b>Tài chính</b> và dải số liệu phía trên bảng giờ <b>đọc tiền từ thẻ</b>, nên tiền cọc không còn bị cộng lặp.</p>
+  <figure>
+    <svg viewBox="0 0 720 168" role="img" aria-label="Bảng Quản lý bán hàng với cột Thẻ liệu trình và Tài chính.">
+      <rect x="0.5" y="0.5" width="719" height="167" rx="10" fill="#fff" stroke="#e4e4e8"/>
+      <rect x="1" y="1" width="718" height="32" rx="10" fill="#f7f7f9"/>
+      <g font-size="10.5" font-weight="600" fill="#6b6b76" letter-spacing=".3">
+        <text x="16" y="21">GIỜ</text><text x="80" y="21">KHÁCH HÀNG</text><text x="268" y="21">TRẠNG THÁI</text>
+        <text x="392" y="21">THẺ LIỆU TRÌNH</text><text x="560" y="21">TÀI CHÍNH (IDR)</text>
+      </g>
+      <g font-size="12">
+        <!-- Dòng 1: đã đến, chưa có thẻ -->
+        <line x1="1" y1="78" x2="719" y2="78" stroke="#eeeef1"/>
+        <text x="16" y="52" font-weight="600">10:00</text><text x="16" y="68" font-size="10.5" fill="#8a8a96">22/11</text>
+        <text x="80" y="52" font-weight="600">Dewi Lestari</text><circle cx="168" cy="48" r="3.5" fill="#52c41a"/>
+        <text x="80" y="68" font-size="10.5" fill="#8a8a96">0812 •••• 4521 · Alis</text>
+        <rect x="268" y="40" width="58" height="20" rx="4" fill="#e6f4ff" stroke="#91caff"/><text x="297" y="54" font-size="11" fill="#0958d9" text-anchor="middle">Đã đến</text>
+        <rect x="392" y="36" width="34" height="28" rx="6" fill="#efecfb" stroke="#684fd4" stroke-width="1.5"/>
+        <g transform="translate(400 43)" fill="none" stroke="#684fd4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M0 1h3l2 8h9l2-6H4.5"/><circle cx="7" cy="12.5" r="1.2" fill="#684fd4"/><circle cx="13" cy="12.5" r="1.2" fill="#684fd4"/>
+        </g>
+        <circle cx="436" cy="40" r="8" fill="#ff7a45"/><text x="436" y="44" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+        <text x="560" y="56" fill="#8a8a96">Tiền cọc</text><text x="704" y="56" text-anchor="end">200.000</text>
+
+        <!-- Dòng 2: chưa đến -->
+        <line x1="1" y1="122" x2="719" y2="122" stroke="#eeeef1"/>
+        <text x="16" y="96" font-weight="600">14:30</text><text x="16" y="112" font-size="10.5" fill="#8a8a96">22/11</text>
+        <text x="80" y="96" font-weight="600">Rina Putri</text>
+        <text x="80" y="112" font-size="10.5" fill="#8a8a96">0857 •••• 1190 · Bibir</text>
+        <rect x="268" y="84" width="66" height="20" rx="4" fill="#fafafa" stroke="#d9d9d9"/><text x="301" y="98" font-size="11" fill="#555" text-anchor="middle">Chưa đến</text>
+        <g transform="translate(400 88)" fill="none" stroke="#c4c4cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M0 1h3l2 8h9l2-6H4.5"/><circle cx="7" cy="12.5" r="1.2" fill="#c4c4cc"/><circle cx="13" cy="12.5" r="1.2" fill="#c4c4cc"/>
+        </g>
+        <text x="428" y="100" font-size="10.5" fill="#a0a0aa">khách chưa đến</text>
+        <text x="560" y="100" fill="#8a8a96">Tiền cọc</text><text x="704" y="100" text-anchor="end">0</text>
+
+        <!-- Dòng 3: đã có thẻ -->
+        <text x="16" y="140" font-weight="600">09:00</text><text x="16" y="156" font-size="10.5" fill="#8a8a96">21/11</text>
+        <text x="80" y="140" font-weight="600">Ayu Kartika</text>
+        <text x="80" y="156" font-size="10.5" fill="#8a8a96">0813 •••• 7702 · Alis</text>
+        <rect x="268" y="128" width="88" height="20" rx="4" fill="#f6ffed" stroke="#b7eb8f"/><text x="312" y="142" font-size="11" fill="#389e0d" text-anchor="middle">Đã thực hiện</text>
+        <rect x="392" y="128" width="72" height="20" rx="4" fill="#f9f0ff" stroke="#d3adf7"/><text x="428" y="142" font-size="11" fill="#722ed1" text-anchor="middle">TLT00012</text>
+        <text x="392" y="160" font-size="10.5" fill="#8a8a96">Ombre, Korea Ink</text>
+        <circle cx="476" cy="136" r="8" fill="#ff7a45"/><text x="476" y="140" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+        <g font-size="11">
+          <text x="560" y="134" fill="#8a8a96">Giá trị thẻ</text><text x="704" y="134" text-anchor="end">8.000.000</text>
+          <text x="560" y="148" fill="#8a8a96">Đã thu</text><text x="704" y="148" text-anchor="end" fill="#389e0d">8.000.000</text>
+          <text x="560" y="162" fill="#8a8a96">Công nợ</text><text x="704" y="162" text-anchor="end" fill="#a0a0aa">—</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption>Hình 2 — (1) Khách đã đến: bấm giỏ hàng để bán thẻ. (2) Đã có thẻ: bấm mã thẻ để mở chi tiết</figcaption>
+  </figure>
+
+  <h3>Drawer bán thẻ: tick dịch vụ như tờ bảng giá giấy</h3>
+  <figure>
+    <svg viewBox="0 0 720 352" role="img" aria-label="Drawer bán thẻ: bảng giá dạng checkbox bên trái, dịch vụ đã chọn và tạm tính bên phải.">
+      <rect x="0.5" y="0.5" width="719" height="351" rx="10" fill="#fff" stroke="#e4e4e8"/>
+      <text x="18" y="28" font-size="14" font-weight="700">Bán thẻ liệu trình · Dewi Lestari</text>
+      <line x1="1" y1="42" x2="719" y2="42" stroke="#eeeef1"/>
+      <!-- Cột bảng giá -->
+      <g font-size="11.5">
+        <text x="18" y="64" font-size="10.5" font-weight="700" fill="#684fd4" letter-spacing=".6">ALIS</text>
+        <line x1="18" y1="70" x2="206" y2="70" stroke="#eeeef1"/>
+        <g fill="#1f1f24">
+          <rect x="18" y="80" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="38" y="90">Shading</text><text x="206" y="90" text-anchor="end" fill="#8a8a96" font-size="10.5">4.000.000</text>
+          <rect x="14" y="99" width="196" height="20" rx="4" fill="#f4f1fd"/>
+          <rect x="18" y="103" width="12" height="12" rx="2.5" fill="#684fd4"/><path d="M21 109.3l2.3 2.3L27.5 106" stroke="#fff" stroke-width="1.6" fill="none"/><text x="38" y="113" font-weight="600">Ombre</text><text x="206" y="113" text-anchor="end" fill="#8a8a96" font-size="10.5">6.000.000</text>
+          <rect x="18" y="126" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="38" y="136">Hairstroke 6D</text><text x="206" y="136" text-anchor="end" fill="#8a8a96" font-size="10.5">5.000.000</text>
+          <rect x="18" y="149" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="38" y="159">Hairstroke 9D</text><text x="206" y="159" text-anchor="end" fill="#8a8a96" font-size="10.5">9.000.000</text>
+          <rect x="18" y="172" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="38" y="182">Natural Soft Brow</text><text x="206" y="182" text-anchor="end" fill="#8a8a96" font-size="10.5">17.000.000</text>
+        </g>
+        <text x="18" y="214" font-size="10.5" font-weight="700" fill="#684fd4" letter-spacing=".6">LASER</text>
+        <line x1="18" y1="220" x2="206" y2="220" stroke="#eeeef1"/>
+        <rect x="18" y="230" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="38" y="240">Laser Removal (once)</text><text x="206" y="240" text-anchor="end" fill="#8a8a96" font-size="10.5">1.000.000</text>
+        <rect x="18" y="253" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="38" y="263">Laser (full treatment)</text><text x="206" y="263" text-anchor="end" fill="#8a8a96" font-size="10.5">4.000.000</text>
+
+        <text x="232" y="64" font-size="10.5" font-weight="700" fill="#684fd4" letter-spacing=".6">BIBIR</text>
+        <line x1="232" y1="70" x2="420" y2="70" stroke="#eeeef1"/>
+        <rect x="232" y="80" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="252" y="90">Collagen Lip</text><text x="420" y="90" text-anchor="end" fill="#8a8a96" font-size="10.5">5.000.000</text>
+        <rect x="232" y="103" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="252" y="113">Nano Lip</text><text x="420" y="113" text-anchor="end" fill="#8a8a96" font-size="10.5">9.000.000</text>
+        <rect x="232" y="126" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="252" y="136">Ombre Effect</text><text x="420" y="136" text-anchor="end" fill="#8a8a96" font-size="10.5">11.000.000</text>
+        <text x="232" y="168" font-size="10.5" font-weight="700" fill="#684fd4" letter-spacing=".6">SULAM INK</text>
+        <line x1="232" y1="174" x2="420" y2="174" stroke="#eeeef1"/>
+        <rect x="232" y="184" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="252" y="194">Vietnam Ink</text><text x="420" y="194" text-anchor="end" fill="#8a8a96" font-size="10.5">0</text>
+        <rect x="232" y="207" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="252" y="217">USA Ink</text><text x="420" y="217" text-anchor="end" fill="#8a8a96" font-size="10.5">1.500.000</text>
+        <rect x="228" y="226" width="196" height="20" rx="4" fill="#f4f1fd"/>
+        <rect x="232" y="230" width="12" height="12" rx="2.5" fill="#684fd4"/><path d="M235 236.3l2.3 2.3L241.5 233" stroke="#fff" stroke-width="1.6" fill="none"/><text x="252" y="240" font-weight="600">Korea Ink</text><text x="420" y="240" text-anchor="end" fill="#8a8a96" font-size="10.5">2.500.000</text>
+        <text x="232" y="272" font-size="10.5" font-weight="700" fill="#684fd4" letter-spacing=".6">HANDLE BY</text>
+        <line x1="232" y1="278" x2="420" y2="278" stroke="#eeeef1"/>
+        <rect x="232" y="288" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="252" y="298">Sulam by Grandmaster</text><text x="420" y="298" text-anchor="end" fill="#8a8a96" font-size="10.5">2.000.000</text>
+        <text x="18" y="300" font-size="10.5" fill="#a0a0aa">… cả bảng giá, không cần cuộn</text>
+      </g>
+      <!-- Cột đã chọn -->
+      <g font-size="11.5">
+        <line x1="440" y1="54" x2="440" y2="336" stroke="#eeeef1"/>
+        <text x="456" y="66" font-weight="700">Đã chọn (2)</text>
+        <rect x="456" y="76" width="248" height="58" rx="7" fill="#fff" stroke="#e4e4e8"/>
+        <text x="466" y="94" font-weight="600">Ombre</text><text x="694" y="94" text-anchor="end" font-size="10" fill="#8a8a96">niêm yết 6.000.000</text>
+        <rect x="466" y="104" width="150" height="22" rx="4" fill="#fff" stroke="#684fd4"/><text x="474" y="119">5.500.000</text>
+        <rect x="624" y="104" width="70" height="22" rx="4" fill="#fff" stroke="#d9d9de"/><text x="632" y="119">1  buổi</text>
+        <rect x="456" y="140" width="248" height="58" rx="7" fill="#fff" stroke="#e4e4e8"/>
+        <text x="466" y="158" font-weight="600">Korea Ink</text><text x="694" y="158" text-anchor="end" font-size="10" fill="#8a8a96">niêm yết 2.500.000</text>
+        <rect x="466" y="168" width="150" height="22" rx="4" fill="#fff" stroke="#d9d9de"/><text x="474" y="183">2.500.000</text>
+        <rect x="624" y="168" width="70" height="22" rx="4" fill="#fff" stroke="#d9d9de"/><text x="632" y="183">1  buổi</text>
+        <rect x="456" y="206" width="248" height="104" rx="7" fill="#fafafc" stroke="#e4e4e8"/>
+        <g font-size="11">
+          <text x="468" y="225" fill="#6b6b76">Tổng theo bảng giá</text><text x="692" y="225" text-anchor="end">8.500.000</text>
+          <text x="468" y="243" fill="#6b6b76">Giảm giá / voucher</text><text x="692" y="243" text-anchor="end">− 500.000</text>
+          <text x="468" y="261" fill="#6b6b76">Giá trị thẻ</text><text x="692" y="261" text-anchor="end" font-weight="700">8.000.000</text>
+          <text x="468" y="279" fill="#6b6b76">Tiền cọc trừ vào thẻ</text><text x="692" y="279" text-anchor="end" fill="#389e0d">− 200.000</text>
+          <text x="468" y="299" font-weight="700">Còn phải thu</text><text x="692" y="299" text-anchor="end" font-weight="700" fill="#d46b08">7.800.000</text>
+        </g>
+        <rect x="560" y="316" width="144" height="26" rx="6" fill="#684fd4"/><text x="632" y="333" text-anchor="middle" font-weight="600" fill="#fff">Xác nhận tạo thẻ</text>
+      </g>
+    </svg>
+    <figcaption>Hình 3 — Trái: tick dịch vụ. Phải: sửa giá bán (giảm giá / voucher), số buổi, xem tạm tính sau khi trừ cọc</figcaption>
+  </figure>
+  <ul>
+    <li><b>Giá bán</b> lấy sẵn theo bảng giá và <b>sửa được</b>. Sửa thấp hơn bảng giá thì drawer tự hiện dòng "Giảm giá / voucher".</li>
+    <li><b>Số buổi</b> của từng dịch vụ mặc định là 1. Ví dụ Laser full treatment có thể đặt 5 buổi; mỗi tour tạo từ thẻ trừ 1 buổi.</li>
+    <li>1 lịch hẹn có 1 thẻ đang hiệu lực. Khách mua thêm thì <b>thêm dịch vụ vào thẻ</b> đó.</li>
+  </ul>
+</section>
+
+<!-- ============================ 4. TIỀN ============================ -->
+<section class="page">
+  <h2>3. Tiền trên thẻ &amp; cách tính doanh thu</h2>
+  <figure>
+    <svg viewBox="0 0 720 96" role="img" aria-label="Ba công thức: Giá trị thẻ, Đã thu, Công nợ.">
+      <g font-size="12.5" text-anchor="middle">
+        <rect x="0" y="6" width="222" height="84" rx="10" fill="#f6f4fd" stroke="#d9d2f7"/>
+        <text x="111" y="34" font-weight="700" fill="#684fd4">Giá trị thẻ</text>
+        <text x="111" y="56" font-size="11.5">Σ giá bán các dịch vụ</text>
+        <text x="111" y="74" font-size="11.5" fill="#6b6b76">− Σ tiền đã hoàn</text>
+        <text x="236" y="54" font-size="20" fill="#a0a0aa">·</text>
+        <rect x="249" y="6" width="222" height="84" rx="10" fill="#f6ffed" stroke="#b7eb8f"/>
+        <text x="360" y="34" font-weight="700" fill="#389e0d">Đã thu</text>
+        <text x="360" y="56" font-size="11.5">Tiền cọc trừ vào thẻ</text>
+        <text x="360" y="74" font-size="11.5" fill="#6b6b76">+ Σ các lần thu tiền</text>
+        <text x="485" y="54" font-size="20" fill="#a0a0aa">·</text>
+        <rect x="498" y="6" width="222" height="84" rx="10" fill="#fff7e6" stroke="#ffd591"/>
+        <text x="609" y="34" font-weight="700" fill="#d46b08">Công nợ</text>
+        <text x="609" y="56" font-size="11.5">Giá trị thẻ − Đã thu</text>
+        <text x="609" y="74" font-size="11.5" fill="#6b6b76">âm = phải hoàn cho khách</text>
+      </g>
+    </svg>
+  </figure>
+
+  <h3>Ví dụ theo tờ bảng giá thực tế</h3>
+  <p>Khách mua Ombre 6.000.000 và Korea Ink 2.500.000 (tổng 8.500.000), được voucher 500.000, đã đặt cọc 200.000, rồi quẹt thẻ Visa trả 7.800.000:</p>
+  <figure>
+    <svg viewBox="0 0 720 300" role="img" aria-label="Biểu đồ thác nước: 8,5 triệu trừ voucher 0,5 triệu thành giá trị thẻ 8 triệu, trừ cọc 0,2 triệu và thu 7,8 triệu, công nợ bằng 0.">
+      <g stroke="#eeeef1"><line x1="40" y1="250" x2="710" y2="250" stroke="#c4c4cc"/>
+        <line x1="40" y1="191" x2="710" y2="191"/><line x1="40" y1="132" x2="710" y2="132"/><line x1="40" y1="73" x2="710" y2="73"/></g>
+      <g font-size="10" fill="#a0a0aa" text-anchor="end">
+        <text x="34" y="254">0</text><text x="34" y="195">2,5 tr</text><text x="34" y="136">5 tr</text><text x="34" y="77">7,5 tr</text>
+      </g>
+      <!-- Thanh: thang 1 triệu = 23,6 -->
+      <rect x="62" y="49.4" width="72" height="200.6" rx="4" fill="#c9c9d3"/>
+      <rect x="172" y="49.4" width="72" height="11.8" rx="2" fill="#ff7875"/>
+      <rect x="282" y="61.2" width="72" height="188.8" rx="4" fill="#684fd4"/>
+      <rect x="392" y="61.2" width="72" height="4.7" rx="1" fill="#73d13d"/>
+      <rect x="502" y="65.9" width="72" height="184.1" rx="4" fill="#389e0d"/>
+      <rect x="612" y="247" width="72" height="3" rx="1" fill="#d46b08"/>
+      <g stroke="#a0a0aa" stroke-dasharray="3 3"><line x1="134" y1="49.4" x2="172" y2="49.4"/><line x1="244" y1="61.2" x2="282" y2="61.2"/>
+        <line x1="354" y1="61.2" x2="392" y2="61.2"/><line x1="464" y1="65.9" x2="502" y2="65.9"/><line x1="574" y1="250" x2="612" y2="250"/></g>
+      <g font-size="11.5" font-weight="700" text-anchor="middle">
+        <text x="98" y="41">8.500.000</text>
+        <text x="208" y="41" fill="#cf1322">− 500.000</text>
+        <text x="318" y="53" fill="#684fd4">8.000.000</text>
+        <text x="428" y="53" fill="#389e0d">− 200.000</text>
+        <text x="538" y="58" fill="#389e0d">− 7.800.000</text>
+        <text x="648" y="238" fill="#d46b08">0</text>
+      </g>
+      <g font-size="11" fill="#4a4a55" text-anchor="middle">
+        <text x="98" y="270">Bảng giá</text>
+        <text x="208" y="270">Voucher</text>
+        <text x="318" y="270" font-weight="700">Giá trị thẻ</text>
+        <text x="428" y="270">Cọc (DP)</text>
+        <text x="538" y="270">Thu (Visa)</text>
+        <text x="648" y="270" font-weight="700">Công nợ</text>
+      </g>
+      <g font-size="10" fill="#8a8a96" text-anchor="middle">
+        <text x="98" y="285">Ombre + Korea Ink</text><text x="208" y="285">sửa giá bán</text><text x="318" y="285">= Doanh số</text>
+        <text x="428" y="285">tự trừ khi tạo thẻ</text><text x="538" y="285">ghi 1 lần thu</text><text x="648" y="285">đã thanh toán đủ</text>
+      </g>
+    </svg>
+    <figcaption>Hình 4 — Giá trị thẻ 8.000.000 = Doanh số; Đã thu 200.000 + 7.800.000 = 8.000.000; Công nợ = 0</figcaption>
+  </figure>
+
+  <div class="two">
+    <div>
+      <h3>Quy tắc tiền</h3>
+      <ul class="small">
+        <li><b>Tiền cọc chỉ trừ 1 lần.</b> Thẻ đầu tiên nhận phần cọc chưa dùng. Thẻ sau của cùng khách chỉ trừ phần cọc còn lại. Huỷ thẻ thì cọc được trả lại để trừ vào thẻ khác.</li>
+        <li><b>Hoàn dịch vụ:</b> hệ thống gợi ý số tiền hoàn = giá × buổi chưa làm ÷ tổng buổi, nhân viên sửa được. Dịch vụ đã hoàn không tạo tour được nữa.</li>
+        <li><b>Hoàn tiền cho khách:</b> ghi một lần thu với số âm.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Doanh thu đọc thế nào</h3>
+      <table class="small">
+        <thead><tr><th>Chỉ số</th><th>Cách tính</th></tr></thead>
+        <tbody>
+          <tr><td><b>Doanh số</b></td><td>Σ giá trị thẻ bán ra, tính theo <b>ngày bán thẻ</b></td></tr>
+          <tr><td><b>Thực thu</b></td><td>Cọc + các lần thu, tính theo <b>ngày thu</b></td></tr>
+          <tr><td><b>Công nợ</b></td><td>Doanh số − Thực thu (phần khách còn nợ)</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">Xem ở menu Thẻ liệu trình (lọc theo ngày bán / người tạo) và ở dải số liệu của Quản lý bán hàng.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 5. MENU THẺ ============================ -->
+<section class="page">
+  <h2>4. Menu Thẻ liệu trình &amp; chi tiết thẻ</h2>
+  <p>Menu mới <b>Thẻ liệu trình</b> liệt kê mọi thẻ đã bán. Bấm một thẻ để mở chi tiết; bấm tên khách để mở <b>hồ sơ 360°</b>.</p>
+  <figure>
+    <svg viewBox="0 0 720 470" role="img" aria-label="Danh sách thẻ liệu trình và drawer chi tiết một thẻ.">
+      <!-- Danh sách -->
+      <rect x="0.5" y="0.5" width="404" height="469" rx="10" fill="#fff" stroke="#e4e4e8"/>
+      <text x="16" y="28" font-size="14" font-weight="700">Thẻ liệu trình</text>
+      <g font-size="10">
+        <rect x="16" y="42" width="88" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/><text x="25" y="59" fill="#6b6b76">Số thẻ</text><text x="25" y="81" font-size="16" font-weight="700">12</text>
+        <rect x="112" y="42" width="88" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/><text x="121" y="59" fill="#6b6b76">Doanh số</text><text x="121" y="81" font-size="16" font-weight="700">96,4</text><text x="160" y="81" fill="#8a8a96">tr</text>
+        <rect x="208" y="42" width="88" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/><text x="217" y="59" fill="#6b6b76">Đã thu</text><text x="217" y="81" font-size="16" font-weight="700">81,2</text><text x="256" y="81" fill="#8a8a96">tr</text>
+        <rect x="304" y="42" width="88" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/><text x="313" y="59" fill="#6b6b76">Công nợ</text><text x="313" y="81" font-size="16" font-weight="700" fill="#d46b08">15,2</text><text x="352" y="81" fill="#8a8a96">tr</text>
+      </g>
+      <g font-size="10" fill="#8a8a96">
+        <rect x="16" y="104" width="112" height="24" rx="5" fill="#fff" stroke="#d9d9de"/><text x="26" y="120">Tìm mã, tên, SĐT</text>
+        <rect x="134" y="104" width="82" height="24" rx="5" fill="#fff" stroke="#d9d9de"/><text x="144" y="120">Ngày bán</text>
+        <rect x="222" y="104" width="78" height="24" rx="5" fill="#fff" stroke="#d9d9de"/><text x="232" y="120">Trạng thái</text>
+        <rect x="306" y="104" width="86" height="24" rx="5" fill="#fff" stroke="#684fd4"/><text x="316" y="120" fill="#684fd4">Người tạo</text>
+      </g>
+      <rect x="16" y="140" width="376" height="24" fill="#f7f7f9"/>
+      <g font-size="9" font-weight="600" fill="#6b6b76" letter-spacing=".3">
+        <text x="24" y="156">MÃ THẺ</text><text x="88" y="156">KHÁCH HÀNG</text><text x="194" y="156">DỊCH VỤ</text><text x="290" y="156">CÔNG NỢ</text><text x="340" y="156">NGƯỜI TẠO</text>
+      </g>
+      <g font-size="10.5">
+        <rect x="16" y="166" width="376" height="44" fill="#f4f1fd"/>
+        <text x="24" y="185" font-weight="600" fill="#684fd4">TLT00012</text>
+        <text x="88" y="185" font-weight="600" text-decoration="underline">Ayu Kartika</text><text x="88" y="200" font-size="9.5" fill="#8a8a96">0813 •••• 7702</text>
+        <rect x="194" y="174" width="90" height="16" rx="3" fill="#fafafa" stroke="#d9d9d9"/><text x="199" y="186" font-size="9.5">Ombre · 1/2</text>
+        <text x="290" y="185" fill="#a0a0aa">—</text>
+        <circle cx="346" cy="182" r="6" fill="#d9d2f7"/><text x="356" y="186" font-size="9.5">Sari</text>
+        <line x1="16" y1="210" x2="392" y2="210" stroke="#eeeef1"/>
+        <text x="24" y="229" font-weight="600" fill="#684fd4">TLT00011</text>
+        <text x="88" y="229" font-weight="600">Dewi Lestari</text><text x="88" y="244" font-size="9.5" fill="#8a8a96">0812 •••• 4521</text>
+        <rect x="194" y="218" width="90" height="16" rx="3" fill="#fafafa" stroke="#d9d9d9"/><text x="199" y="230" font-size="9.5">Nano Lip · 0/1</text>
+        <text x="290" y="229" fill="#d46b08">4.500.000</text>
+        <circle cx="346" cy="226" r="6" fill="#d9d2f7"/><text x="356" y="230" font-size="9.5">Budi</text>
+        <line x1="16" y1="254" x2="392" y2="254" stroke="#eeeef1"/>
+        <text x="24" y="273" font-weight="600" fill="#684fd4">TLT00010</text>
+        <text x="88" y="273" font-weight="600">Maya Sari</text><text x="88" y="288" font-size="9.5" fill="#8a8a96">0878 •••• 3310</text>
+        <rect x="194" y="262" width="90" height="16" rx="3" fill="#fafafa" stroke="#d9d9d9"/><text x="199" y="274" font-size="9.5">Laser · 3/5</text>
+        <text x="290" y="273" fill="#a0a0aa">—</text>
+        <circle cx="346" cy="270" r="6" fill="#d9d2f7"/><text x="356" y="274" font-size="9.5">Sari</text>
+        <line x1="16" y1="298" x2="392" y2="298" stroke="#eeeef1"/>
+      </g>
+      <g font-size="10" fill="#6b6b76">
+        <text x="16" y="330">• <tspan font-weight="600" fill="#1f1f24">Ngày bán</tspan> (kèm giờ) và <tspan font-weight="600" fill="#1f1f24">Người tạo</tspan> trên mỗi thẻ</text>
+        <text x="16" y="350">• Lọc theo người tạo để xem doanh số từng nhân viên</text>
+        <text x="16" y="370">• Lọc "Còn công nợ" để biết khách nào còn nợ</text>
+        <text x="16" y="390">• Bấm tên khách → popup hồ sơ 360°</text>
+      </g>
+
+      <!-- Drawer chi tiết -->
+      <rect x="420.5" y="0.5" width="299" height="469" rx="10" fill="#fff" stroke="#c9bff3" stroke-width="1.5"/>
+      <text x="436" y="28" font-size="14" font-weight="700">TLT00012</text>
+      <rect x="506" y="15" width="64" height="18" rx="4" fill="#e6f4ff" stroke="#91caff"/><text x="538" y="28" font-size="10" fill="#0958d9" text-anchor="middle">Đang dùng</text>
+      <text x="436" y="46" font-size="10" fill="#8a8a96"><tspan fill="#1f1f24" font-weight="600" text-decoration="underline">Ayu Kartika</tspan> · 21/11 09:12 · Sari</text>
+      <rect x="436" y="56" width="268" height="62" rx="7" fill="#fafafc" stroke="#e4e4e8"/>
+      <g font-size="10.5">
+        <text x="446" y="74" fill="#6b6b76">Giá trị thẻ</text><text x="694" y="74" text-anchor="end" font-weight="600">8.000.000</text>
+        <text x="446" y="91" fill="#6b6b76">Đã thu</text><text x="694" y="91" text-anchor="end" fill="#389e0d">8.000.000</text>
+        <text x="446" y="108" font-weight="600">Công nợ</text><text x="694" y="108" text-anchor="end" fill="#a0a0aa">—</text>
+      </g>
+      <text x="436" y="140" font-size="11.5" font-weight="700">Dịch vụ</text>
+      <rect x="622" y="128" width="82" height="18" rx="4" fill="#fff" stroke="#d9d9de"/><text x="663" y="141" font-size="9.5" text-anchor="middle">+ Thêm dịch vụ</text>
+      <g font-size="10.5">
+        <rect x="436" y="152" width="268" height="72" rx="7" fill="#fff" stroke="#e4e4e8"/>
+        <text x="446" y="170" font-weight="600">Ombre</text><text x="446" y="184" font-size="9.5" fill="#8a8a96">Alis · 5.500.000</text>
+        <rect x="604" y="160" width="84" height="16" rx="3" fill="#e6f4ff" stroke="#91caff"/><text x="646" y="172" font-size="9" fill="#0958d9" text-anchor="middle">Đã dùng 1/2 buổi</text>
+        <line x1="437" y1="190" x2="703" y2="190" stroke="#eeeef1"/>
+        <text x="446" y="206" font-weight="600">Korea Ink</text><text x="446" y="219" font-size="9.5" fill="#8a8a96">Sulam Ink · 2.500.000</text>
+        <rect x="604" y="196" width="84" height="16" rx="3" fill="#f6ffed" stroke="#b7eb8f"/><text x="646" y="208" font-size="9" fill="#389e0d" text-anchor="middle">Đã dùng 1/1 buổi</text>
+      </g>
+      <text x="436" y="246" font-size="11.5" font-weight="700">Thanh toán</text>
+      <rect x="640" y="234" width="64" height="18" rx="4" fill="#fff" stroke="#d9d9de"/><text x="672" y="247" font-size="9.5" text-anchor="middle">Thu tiền</text>
+      <g font-size="10">
+        <rect x="436" y="258" width="268" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/>
+        <text x="446" y="276" fill="#6b6b76">Tiền cọc trừ vào thẻ</text><text x="694" y="276" text-anchor="end" fill="#389e0d">200.000</text>
+        <line x1="437" y1="283" x2="703" y2="283" stroke="#eeeef1"/>
+        <text x="446" y="299">21/11 · Thẻ · Sari</text><text x="694" y="299" text-anchor="end" fill="#389e0d">7.800.000</text>
+      </g>
+      <text x="436" y="330" font-size="11.5" font-weight="700">Lộ trình tour</text>
+      <rect x="634" y="318" width="70" height="18" rx="4" fill="#684fd4"/><text x="669" y="331" font-size="9.5" fill="#fff" text-anchor="middle">Tạo tour</text>
+      <line x1="444" y1="350" x2="444" y2="412" stroke="#d9d2f7" stroke-width="2"/>
+      <g font-size="10">
+        <circle cx="444" cy="352" r="5" fill="#684fd4"/>
+        <text x="456" y="356" font-weight="600">21/11/2026</text>
+        <rect x="628" y="344" width="76" height="16" rx="3" fill="#f6ffed" stroke="#b7eb8f"/><text x="666" y="356" font-size="9" fill="#389e0d" text-anchor="middle">Đã xác nhận</text>
+        <text x="456" y="370" fill="#4a4a55">Ombre · Lần 1 · Master Lina</text>
+        <circle cx="444" cy="392" r="5" fill="#684fd4"/>
+        <text x="456" y="396" font-weight="600">20/12/2026</text>
+        <rect x="628" y="384" width="76" height="16" rx="3" fill="#fffbe6" stroke="#ffe58f"/><text x="666" y="396" font-size="9" fill="#d48806" text-anchor="middle">Chờ nhận</text>
+        <text x="456" y="410" fill="#4a4a55">Ombre · Lần 2 · chưa có Master</text>
+      </g>
+      <line x1="421" y1="432" x2="719" y2="432" stroke="#eeeef1"/>
+      <rect x="436" y="442" width="96" height="20" rx="5" fill="#fff" stroke="#d9d9de"/><text x="484" y="456" font-size="10" text-anchor="middle">In thẻ (PDF)</text>
+      <rect x="640" y="442" width="64" height="20" rx="5" fill="#684fd4"/><text x="672" y="456" font-size="10" fill="#fff" text-anchor="middle">Đóng</text>
+    </svg>
+    <figcaption>Hình 5 — Trái: danh sách thẻ với số liệu và bộ lọc. Phải: chi tiết thẻ (dịch vụ x/y buổi, thanh toán, lộ trình tour)</figcaption>
+  </figure>
+  <p class="small muted">Số liệu và tên trong hình là ví dụ.</p>
+</section>
+
+<!-- ============================ 6. TOUR ============================ -->
+<section class="page">
+  <h2>5. Tour gắn thẻ &amp; lộ trình</h2>
+  <p>Tour giờ <b>chỉ tạo từ thẻ</b>, không còn tạo tour lẻ ở menu Tour. Phần Master nhận tour, chụp ảnh và Admin xác nhận giữ nguyên.</p>
+  <div class="split">
+    <figure>
+      <svg viewBox="0 0 312 300" role="img" aria-label="Hộp thoại Tạo tour từ thẻ.">
+        <rect x="0.5" y="0.5" width="311" height="299" rx="10" fill="#fff" stroke="#e4e4e8"/>
+        <text x="16" y="28" font-size="13" font-weight="700">Tạo tour · thẻ TLT00012</text>
+        <text x="16" y="54" font-size="10.5" fill="#6b6b76">Ngày</text>
+        <rect x="16" y="60" width="280" height="24" rx="5" fill="#fff" stroke="#d9d9de"/><text x="26" y="76" font-size="11">20/12/2026</text>
+        <g font-size="11">
+          <rect x="16" y="96" width="280" height="50" rx="7" fill="#f4f1fd" stroke="#c9bff3"/>
+          <rect x="26" y="114" width="13" height="13" rx="2.5" fill="#684fd4"/><path d="M29 120.8l2.4 2.4L36 117.5" stroke="#fff" stroke-width="1.6" fill="none"/>
+          <text x="48" y="117" font-weight="600">Ombre</text><text x="48" y="134" font-size="9.5" fill="#8a8a96">Đã dùng 1/2 buổi</text>
+          <text x="226" y="125" font-size="9.5" fill="#6b6b76">Lần</text>
+          <rect x="248" y="110" width="38" height="22" rx="4" fill="#fff" stroke="#684fd4"/><text x="267" y="125" text-anchor="middle" font-weight="700">2</text>
+          <rect x="16" y="154" width="280" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/>
+          <rect x="26" y="172" width="13" height="13" rx="2.5" fill="#fff" stroke="#c4c4cc"/>
+          <text x="48" y="175" font-weight="600" fill="#8a8a96">Korea Ink</text><text x="48" y="192" font-size="9.5" fill="#a0a0aa">Đã dùng 1/1 buổi</text>
+          <text x="226" y="183" font-size="9.5" fill="#a0a0aa">Lần</text>
+          <rect x="248" y="168" width="38" height="22" rx="4" fill="#f5f5f7" stroke="#e4e4e8"/><text x="267" y="183" text-anchor="middle" fill="#a0a0aa">—</text>
+        </g>
+        <text x="16" y="226" font-size="10.5" fill="#6b6b76">Ghi chú</text>
+        <rect x="16" y="232" width="280" height="26" rx="5" fill="#fff" stroke="#d9d9de"/>
+        <rect x="216" y="268" width="80" height="22" rx="5" fill="#684fd4"/><text x="256" y="283" font-size="11" fill="#fff" text-anchor="middle" font-weight="600">Tạo tour</text>
+        <rect x="140" y="268" width="68" height="22" rx="5" fill="#fff" stroke="#d9d9de"/><text x="174" y="283" font-size="11" text-anchor="middle">Quay lại</text>
+      </svg>
+      <figcaption>Hình 6 — Dịch vụ còn buổi được chọn sẵn; Lần tự điền</figcaption>
+    </figure>
+    <div>
+      <h3 style="margin-top:0">Tour lấy sẵn từ thẻ</h3>
+      <ul class="small">
+        <li><b>Khách, dịch vụ</b> lấy từ thẻ. Hoá đơn của tour tự điền bằng <b>giá bán</b> của dịch vụ trong thẻ.</li>
+        <li>Mỗi dịch vụ được chọn thành 1 tour. <b>Lần</b> = số tour đã làm + 1, sửa được. Làm quá số buổi của thẻ thì hệ thống cảnh báo, vẫn cho tạo (trường hợp retouch phát sinh).</li>
+        <li>Ở tour không còn trường <b>Service detail</b>, chỉ còn <b>Lần</b>. % thực thu vẫn tính như trước theo lần:</li>
+      </ul>
+      <table class="small">
+        <thead><tr><th>Dịch vụ</th><th>Lần</th><th>Tính như</th><th>% thực thu</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="3">Alis, Bibir, Eyeliner…</td><td>1</td><td>New</td><td><b>7%</b></td></tr>
+          <tr><td>2</td><td>Retouch 1</td><td><b>3%</b></td></tr>
+          <tr><td>≥ 3</td><td>Retouch ≥ 2</td><td>0%</td></tr>
+          <tr><td>Nhóm Laser</td><td>n</td><td>Laser n</td><td>0%</td></tr>
+          <tr><td>Tên có "plasma"</td><td>n</td><td>Plasma n</td><td>0%</td></tr>
+        </tbody>
+      </table>
+      <figure style="margin-top:3mm">
+        <svg viewBox="0 0 330 70" role="img" aria-label="Trạng thái tour: Chờ nhận, Đã nhận, Đã xác nhận.">
+          <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a0a0aa"/></marker></defs>
+          <g font-size="11" text-anchor="middle">
+            <rect x="0" y="16" width="92" height="28" rx="6" fill="#fffbe6" stroke="#ffe58f"/><text x="46" y="34" fill="#d48806" font-weight="600">Chờ nhận</text>
+            <rect x="119" y="16" width="92" height="28" rx="6" fill="#e6f4ff" stroke="#91caff"/><text x="165" y="34" fill="#0958d9" font-weight="600">Đã nhận</text>
+            <rect x="238" y="16" width="92" height="28" rx="6" fill="#f6ffed" stroke="#b7eb8f"/><text x="284" y="34" fill="#389e0d" font-weight="600">Đã xác nhận</text>
+            <text x="46" y="62" font-size="9.5" fill="#8a8a96">vừa tạo từ thẻ</text>
+            <text x="165" y="62" font-size="9.5" fill="#8a8a96">Master nhận</text>
+            <text x="284" y="62" font-size="9.5" fill="#8a8a96">Admin xác nhận</text>
+          </g>
+          <g stroke="#a0a0aa" stroke-width="1.6" marker-end="url(#a3)"><path d="M94 30 L115 30"/><path d="M213 30 L234 30"/></g>
+        </svg>
+      </figure>
+    </div>
+  </div>
+  <div class="note">
+    <p><b>Lộ trình:</b> mở thẻ là thấy toàn bộ tour đã và sẽ làm, xếp theo ngày (dịch vụ, lần, Master, trạng thái). Bấm vào một tour để mở chi tiết tour, có ảnh trước/sau.</p>
+  </div>
+</section>
+
+<!-- ============================ 7. IN · QUYỀN · TIẾP THEO ============================ -->
+<section class="page">
+  <h2>6. In thẻ cho khách ký</h2>
+  <div class="split">
+    <figure>
+      <svg viewBox="0 0 300 424" role="img" aria-label="Bản in thẻ liệu trình A4.">
+        <rect x="0.5" y="0.5" width="299" height="423" rx="3" fill="#fff" stroke="#d9d9de"/>
+        <circle cx="34" cy="38" r="17" fill="#4b2669"/><text x="34" y="42" font-size="9" fill="#c8a640" text-anchor="middle" font-family="Georgia, serif">Lavian</text>
+        <text x="58" y="36" font-size="13" font-weight="600" fill="#4b2669" letter-spacing="2.5" font-family="Georgia, serif">LAVIAN</text>
+        <text x="58" y="47" font-size="5.5" fill="#b08d2e" letter-spacing="2.2">BEAUTY CENTER</text>
+        <text x="284" y="32" font-size="11" font-weight="600" fill="#4b2669" text-anchor="end" letter-spacing="1" font-family="Georgia, serif">TREATMENT CARD</text>
+        <text x="284" y="44" font-size="6.5" fill="#6b5d7a" text-anchor="end">Card No. <tspan font-weight="700" fill="#4b2669">TLT00012</tspan></text>
+        <text x="284" y="53" font-size="6.5" fill="#6b5d7a" text-anchor="end">Date 21 Nov 2026</text>
+        <line x1="16" y1="62" x2="284" y2="62" stroke="#b08d2e" stroke-width="1.2"/>
+        <rect x="16" y="70" width="268" height="44" rx="3" fill="#f5f1fa"/>
+        <g font-size="5" fill="#6b5d7a" letter-spacing=".4"><text x="24" y="80">CUSTOMER NAME</text><text x="156" y="80">PHONE</text><text x="24" y="99">ADDRESS</text><text x="156" y="99">BEAUTY CONSULTANT</text></g>
+        <g font-size="7" font-weight="600" fill="#1d1626"><text x="24" y="89">Ayu Kartika</text><text x="156" y="89">0813 •••• 7702</text><text x="24" y="108">Denpasar</text><text x="156" y="108">Sari</text></g>
+        <rect x="16" y="122" width="268" height="14" fill="#4b2669"/>
+        <g font-size="5.8" font-weight="600" fill="#fff"><text x="22" y="131">No.</text><text x="40" y="131">Category</text><text x="96" y="131">Service</text><text x="196" y="131">Sessions</text><text x="278" y="131" text-anchor="end">Price (IDR)</text></g>
+        <g font-size="6.4" fill="#1d1626">
+          <text x="24" y="148">1</text><text x="40" y="148">Alis</text><text x="96" y="148">Ombre</text><text x="204" y="148">1 / 2</text><text x="278" y="148" text-anchor="end">5.500.000</text>
+          <line x1="16" y1="153" x2="284" y2="153" stroke="#d9d0e4" stroke-width=".6"/>
+          <text x="24" y="164">2</text><text x="40" y="164">Sulam Ink</text><text x="96" y="164">Korea Ink</text><text x="204" y="164">1 / 1</text><text x="278" y="164" text-anchor="end">2.500.000</text>
+          <line x1="16" y1="169" x2="284" y2="169" stroke="#d9d0e4" stroke-width=".6"/>
+        </g>
+        <text x="16" y="188" font-size="5.8" font-weight="700" fill="#4b2669" letter-spacing=".5">PAYMENTS</text>
+        <rect x="16" y="192" width="132" height="11" fill="#f5f1fa"/>
+        <g font-size="5.4"><text x="20" y="199" fill="#4b2669" font-weight="600">Date</text><text x="54" y="199" fill="#4b2669" font-weight="600">Method</text><text x="144" y="199" fill="#4b2669" font-weight="600" text-anchor="end">Amount</text>
+          <text x="20" y="211">21/11/2026</text><text x="54" y="211">Card</text><text x="144" y="211" text-anchor="end">7.800.000</text></g>
+        <g font-size="6.2">
+          <text x="166" y="190" fill="#4a3f57">Subtotal</text><text x="280" y="190" text-anchor="end">8.000.000</text>
+          <line x1="164" y1="196" x2="284" y2="196" stroke="#d9d0e4" stroke-width=".6"/>
+          <text x="166" y="205" font-weight="700">Total payment</text><text x="280" y="205" text-anchor="end" font-weight="700">8.000.000</text>
+          <text x="166" y="217" fill="#4a3f57">Deposit (DP)</text><text x="280" y="217" text-anchor="end">200.000</text>
+          <text x="166" y="229" fill="#4a3f57">Paid amount</text><text x="280" y="229" text-anchor="end">7.800.000</text>
+          <rect x="164" y="234" width="120" height="14" fill="#4b2669"/>
+          <text x="168" y="244" font-weight="700" fill="#fff">Balance due</text><text x="280" y="244" text-anchor="end" font-weight="700" fill="#fff">0</text>
+        </g>
+        <text x="16" y="278" font-size="6" font-style="italic" fill="#4a3f57">I confirm the services, sessions and prices listed above.</text>
+        <g font-size="6.2" text-anchor="middle">
+          <line x1="28" y1="330" x2="130" y2="330" stroke="#8a8094" stroke-width=".7"/>
+          <text x="79" y="340" font-weight="600" fill="#4b2669">Customer signature</text><text x="79" y="349" fill="#6b5d7a" font-size="5.6">Ayu Kartika</text>
+          <line x1="170" y1="330" x2="272" y2="330" stroke="#8a8094" stroke-width=".7"/>
+          <text x="221" y="340" font-weight="600" fill="#4b2669">Beauty consultant</text><text x="221" y="349" fill="#6b5d7a" font-size="5.6">Sari</text>
+        </g>
+        <line x1="16" y1="398" x2="284" y2="398" stroke="#d9d0e4" stroke-width=".6"/>
+        <text x="150" y="410" font-size="5.4" fill="#8a8094" text-anchor="middle">Lavian Beauty Center · TLT00012 · Printed 21/11/2026 09:30</text>
+      </svg>
+      <figcaption>Hình 7 — Bản in A4 (thu nhỏ)</figcaption>
+    </figure>
+    <div>
+      <p>Nút <b>In thẻ (PDF)</b> trong chi tiết thẻ: in thẳng ra giấy, hoặc chọn "Save as PDF" để gửi khách qua WhatsApp.</p>
+      <ul class="small">
+        <li>Thiết kế theo màu tím/vàng của logo Lavian, khổ <b>A4</b>, nội dung <b>tiếng Anh</b> giống tờ bảng giá giấy.</li>
+        <li>Có: mã thẻ, ngày, thông tin khách, Beauty consultant (người tạo thẻ), bảng dịch vụ (đã dùng / tổng buổi, giá), các lần thanh toán, ghi chú.</li>
+        <li>Khối tổng: <b>Total payment · Deposit (DP) · Paid amount · Balance due</b>, cùng ý nghĩa với các dòng viết tay trên tờ giấy.</li>
+        <li>Chỗ ký của <b>khách</b> và <b>Beauty consultant</b>. Dịch vụ đã hoàn được gạch ngang và ghi số tiền hoàn.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 style="margin-top:4mm">7. Phân quyền</h2>
+  <table class="small">
+    <thead><tr><th>Bộ phận</th><th>Thẻ liệu trình</th><th>Ghi chú</th></tr></thead>
+    <tbody>
+      <tr><td><b>Sales</b></td><td>Xem, bán thẻ, thu tiền, thêm / hoàn dịch vụ, tạo tour</td><td>Đã cấp sẵn</td></tr>
+      <tr><td><b>Master</b></td><td>Xem thẻ và lộ trình</td><td>Nhận tour ở menu Tour như cũ</td></tr>
+      <tr><td><b>Admin</b></td><td>Toàn quyền, thêm <b>huỷ thẻ</b> và <b>xoá lần thu nhập nhầm</b></td><td>Huỷ thẻ chỉ khi thẻ chưa có tour</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">Admin chỉnh quyền từng bộ phận ở trang Người dùng → Phân quyền (mục "Thẻ liệu trình").</p>
+
+</section>
+
+</body>
+</html>
