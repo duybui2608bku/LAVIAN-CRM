@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-22 — Sửa lỗi deploy: `DueItem` thiếu `service_id`
+- **Thay đổi:** build Vercel lỗi `Property 'service_id' does not exist on type 'DueItem'` (tab Đến hạn đọc `r.item.service_id`) → thêm `service_id` vào kiểu `DueItem` trong `lib/cards.ts` (+ fixture test).
+- **File ảnh hưởng:** `lib/cards.ts`, `lib/cards.test.ts`
+- **Còn dở / ghi chú:** **Cạm bẫy tsc:** file sinh tự động `.next/dev/types/routes.d.ts` (hoặc `.next/types/`) cũ có thể lỗi cú pháp → tsc chỉ báo lỗi cú pháp đó, **bỏ qua toàn bộ lỗi kiểu** → lọc `.next/` đi là tưởng sạch. Trước khi chạy `npx tsc --noEmit` hãy xoá `.next/types` + `.next/dev/types`.
+
 ### 2026-11-22 — Lộ trình liệu trình: Loại tour (Laser / Làm mới / Dặm) + tab Đến hạn + sửa số buổi
 - **Thay đổi:** OpenSpec `treatment-journey-reminders` (viết tay — máy không có CLI `openspec`, chưa `validate`). Sếp chốt: Laser → 20 ngày kiểm tra, kết quả suy theo tour kế tiếp (lại Laser = chưa OK, Làm mới = OK); Làm mới/Dặm → 45 ngày dặm nếu DV còn buổi; danh sách Đến hạn **tự tính** (không lưu, không bật lại Lịch nhắc); Sales bán thẻ (người tạo thẻ) phụ trách.
   - `lib/cards.ts`: `LASER_CHECK_DAYS`/`RETOUCH_DAYS` (sửa 1 chỗ), `TOUR_KINDS` (laser/plasma/new/retouch), `suggestTourKind`, `tourKindDetail` (số lần = tour cùng loại của dòng DV có ngày ≤ + 1), `journeyDue(cards, tours)`; bỏ `tourDetailFor`/`tourSessionOf`. Plasma (xoá môi) tính như laser.
