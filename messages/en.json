@@ -1159,6 +1159,14 @@
       "refundTooHigh": "Refund can't exceed the sale price.",
       "hasTours": "The card has tours — delete them before cancelling.",
       "itemUnavailable": "Service is no longer on the card (refunded?). Reload the page."
-    }
+    },
+    "selected": "Selected ({count})",
+    "sessionsShort": "sess.",
+    "listTotal": "List price total",
+    "discount": "Discount / voucher",
+    "createdBy": "Created by",
+    "allCreators": "All creators",
+    "openProfile": "Open customer profile",
+    "print": "Print card (PDF)"
   }
 }

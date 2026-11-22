@@ -343,7 +343,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       onSubmit={(items, note) => sellFor ? runAction(createCard({ customer_id: sellFor.customer_id, appointment_id: sellFor.id, items, note }),
         tc("created"), tc("saveError")) : Promise.resolve(false)} />
     {openCard ? <CardDrawer key={openCard.id} card={openCard} tours={toursOfCard(openCard, cardTours)} services={services}
-      staff={staff} me={cardMe} onClose={() => setCardId(null)} /> : null}
+      staff={staff} me={cardMe} onOpenCustomer={c360.open} onClose={() => setCardId(null)} /> : null}
     {c360.modal}
   </Page>;
 }

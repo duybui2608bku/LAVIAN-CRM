@@ -237,6 +237,61 @@
   min-width: 100%;
 }
 
+/* Thẻ liệu trình bản in A4 (components/cards/card-print.tsx): ẩn trên màn hình, khi in chỉ in thẻ. Màu theo logo (tím + vàng). */
+.card-print { display: none; }
+@media print {
+  body:has(> .card-print) { background: #fff !important; }
+  body:has(> .card-print) > :not(.card-print) { display: none !important; }
+  .card-print {
+    --cp-purple: #4b2669; --cp-gold: #b08d2e; --cp-tint: #f5f1fa; --cp-line: #d9d0e4;
+    display: block; color: #1d1626; font: 11px/1.5 system-ui, sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .cp-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 2px solid var(--cp-gold); }
+  .cp-brand { display: flex; align-items: center; gap: 10px; }
+  .cp-brand img { width: 64px; height: 64px; }
+  .cp-brand-name { font: 600 22px/1 Georgia, "Times New Roman", serif; letter-spacing: .18em; color: var(--cp-purple); }
+  .cp-brand-sub { margin-top: 3px; font-size: 9px; letter-spacing: .32em; color: var(--cp-gold); }
+  .cp-title { text-align: right; }
+  .cp-title h1 { font: 600 20px/1.1 Georgia, "Times New Roman", serif; color: var(--cp-purple); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+  .cp-title table { margin-left: auto; }
+  .cp-title th { padding-right: 10px; color: #6b5d7a; font-weight: 500; text-align: right; }
+  .cp-title td { text-align: right; }
+  .cp-code { font-weight: 700; color: var(--cp-purple); letter-spacing: .05em; }
+  .cp-customer { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin: 14px 0; padding: 10px 12px; background: var(--cp-tint); border-radius: 6px; }
+  .cp-customer div { display: flex; flex-direction: column; }
+  .cp-customer span { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: #6b5d7a; }
+  .cp-customer b { min-height: 16px; font-size: 12px; font-weight: 600; }
+  .cp-customer .cp-wide { grid-column: 1 / -1; }
+  .card-print h2 { margin: 12px 0 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--cp-purple); }
+  .cp-table { width: 100%; border-collapse: collapse; }
+  .cp-table th { padding: 6px 8px; background: var(--cp-purple); color: #fff; font-weight: 600; text-align: left; }
+  .cp-table td { padding: 6px 8px; border-bottom: 1px solid var(--cp-line); vertical-align: top; }
+  .cp-table tr { break-inside: avoid; }
+  .cp-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cp-table .cp-no { width: 28px; text-align: center; }
+  .cp-small th { padding: 4px 6px; background: var(--cp-tint); color: var(--cp-purple); }
+  .cp-small td { padding: 4px 6px; }
+  .cp-refunded td { color: #8a8094; }
+  .cp-refunded td:nth-child(3) { text-decoration: line-through; }
+  .cp-sub { font-size: 9px; color: #b4232f; text-decoration: none; }
+  .cp-bottom { display: flex; gap: 24px; align-items: flex-start; margin-top: 10px; break-inside: avoid; }
+  .cp-left { flex: 1; min-width: 0; }
+  .cp-note { white-space: pre-line; color: #3d3349; }
+  .cp-totals { width: 46%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .cp-totals th { padding: 4px 8px; text-align: left; font-weight: 500; color: #4a3f57; }
+  .cp-totals td { padding: 4px 8px; text-align: right; white-space: nowrap; }
+  .cp-totals .cp-strong th, .cp-totals .cp-strong td { font-weight: 700; border-top: 1px solid var(--cp-line); }
+  .cp-totals .cp-due th, .cp-totals .cp-due td { font-size: 13px; font-weight: 700; color: #fff; background: var(--cp-purple); }
+  .cp-ack { margin-top: 22px; font-style: italic; color: #4a3f57; }
+  .cp-sign { display: flex; justify-content: space-between; margin-top: 14px; text-align: center; break-inside: avoid; }
+  .cp-sign div { width: 40%; display: flex; flex-direction: column; }
+  .cp-sign i { display: block; height: 64px; border-bottom: 1px solid #8a8094; margin-bottom: 4px; }
+  .cp-sign span { font-weight: 600; color: var(--cp-purple); }
+  .cp-sign small { color: #6b5d7a; }
+  .cp-foot { margin-top: 26px; padding-top: 6px; border-top: 1px solid var(--cp-line); font-size: 9px; color: #8a8094; text-align: center; }
+}
+
 /* Phiếu tour (components/tour/tour-slips.tsx): ẩn trên màn hình, khi in chỉ in phiếu. */
 .tour-print { display: none; }
 @media print {

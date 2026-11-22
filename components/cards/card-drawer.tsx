@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { Button, Checkbox, Divider, Input, InputNumber, Modal, Popover, Radio, Tag } from "antd";
-import { Plus, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
+import { Plus, Printer, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import {
   addCardItems, addCardPayment, cancelCard, createCardTours, deleteCardPayment, refundCardItem,
 } from "@/app/(app)/cards/actions";
 import { CardItemsDrawer, MoneyInput } from "@/components/cards/card-items-drawer";
+import { CardPrint } from "@/components/cards/card-print";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
@@ -49,12 +50,14 @@ export function DueText({ due }: { due: number }) {
  * Chi tiết thẻ liệu trình: tiền, dịch vụ (đã dùng x/y buổi, hoàn), thanh toán, lộ trình tour + tạo tour.
  * Cha giữ id và truyền `card` mới nhất (sau mỗi action server revalidate → props đổi).
  */
-export function CardDrawer({ card, tours, services, staff, me, onClose }: {
+export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, onClose }: {
   card: TreatmentCard;
   tours: Tour[]; // tour của thẻ này
   services: Service[];
   staff: StaffRef[];
   me: CardMe;
+  /** Bấm tên khách → popup hồ sơ 360° (trang cha giữ popup). */
+  onOpenCustomer?: (customerId: string) => void;
   onClose: () => void;
 }) {
   const t = useTranslations("cards");
@@ -72,19 +75,27 @@ export function CardDrawer({ card, tours, services, staff, me, onClose }: {
   const failed = t("saveError");
   const journey = [...tours].sort((a, b) => a.tour_date.localeCompare(b.tour_date));
   const openTour = tours.find((x) => x.id === tourId);
+  const consultant = staff.find((s) => s.id === card.created_by)?.user_name ?? "";
 
   return <FormDrawer open onClose={onClose} width={600} submitText={t("close")} onSubmit={onClose}
-    footerExtra={me.canCancel && active ? <ConfirmAction title={t("cancelTitle")} description={t("cancelBody")}
-      okText={t("cancelCard")} cancelText={t("back")}
-      onConfirm={async () => { if (await runAction(cancelCard(card.id), t("cancelled"), failed)) onClose(); }}>
-      <Button danger>{t("cancelCard")}</Button>
-    </ConfirmAction> : null}
+    footerExtra={<>
+      {me.canCancel && active ? <ConfirmAction title={t("cancelTitle")} description={t("cancelBody")}
+        okText={t("cancelCard")} cancelText={t("back")}
+        onConfirm={async () => { if (await runAction(cancelCard(card.id), t("cancelled"), failed)) onClose(); }}>
+        <Button danger>{t("cancelCard")}</Button>
+      </ConfirmAction> : null}
+      {/* In A4 cho khách ký: CardPrint (ẩn trên màn hình) + window.print() → "Save as PDF". */}
+      <Button icon={<Printer className="size-4" />} onClick={() => window.print()}>{t("print")}</Button>
+    </>}
     title={<div className="min-w-0">
       <div className="flex items-center gap-2 text-lg font-semibold">{card.code} <CardStatusTag card={card} tours={tours} /></div>
       <div className="mt-1 text-xs font-normal text-muted-foreground">
-        {[card.customer?.full_name, card.customer?.phone, dayjs(card.created_at).format("DD/MM/YYYY")].filter(Boolean).join(" · ")}
+        {onOpenCustomer ? <button type="button" title={t("openProfile")} onClick={() => onOpenCustomer(card.customer_id)}
+          className="font-medium text-foreground hover:text-primary hover:underline">{card.customer?.full_name}</button> : card.customer?.full_name}
+        {[card.customer?.phone, dayjs(card.created_at).format("DD/MM/YYYY HH:mm"), consultant].filter(Boolean).map((x) => ` · ${x}`).join("")}
       </div>
     </div>}>
+    <CardPrint card={card} services={services} consultant={consultant} used={used} />
     {/* Tiền thẻ */}
     <dl className="mb-4 grid grid-cols-[1fr_auto] gap-y-2 rounded-lg border border-border p-4 text-sm tabular-nums">
       <dt className="text-muted-foreground">{t("value")}</dt><dd className="text-right font-medium">{formatRupiah(money.value)}</dd>
