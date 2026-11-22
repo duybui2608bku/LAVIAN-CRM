@@ -10,7 +10,7 @@ import { createCard } from "@/app/(app)/cards/actions";
 import { CardDrawer, DueText, toursOfCard, type CardMe } from "@/components/cards/card-drawer";
 import { CardItemsDrawer } from "@/components/cards/card-items-drawer";
 import { runAction } from "@/components/tour/tour-drawer";
-import { AppointmentDate } from "@/components/appointments/appointment-date";
+import { AppointmentDate, nowMinute } from "@/components/appointments/appointment-date";
 import { AppointmentDrawer } from "@/components/appointments/appointment-drawer";
 import { MessagesModal } from "@/components/appointments/messages-modal";
 import { DataTable } from "@/components/common/data-table";
@@ -423,7 +423,8 @@ export function CreateAppointmentDrawer({ open, onClose, onCreated, initialCusto
       onValuesChange={(changed: Partial<CreateValues>) => {
         if ("customer_id" in changed) form.setFieldValue("staff_id", customerStaff(changed.customer_id));
       }}
-      initialValues={{ customer_id: initialCustomer || undefined, staff_id: customerStaff(initialCustomer) }}>
+      // Ngày giờ hẹn mặc định = bây giờ (drawer huỷ khi đóng → mỗi lần mở lấy giờ mới).
+      initialValues={{ customer_id: initialCustomer || undefined, staff_id: customerStaff(initialCustomer), scheduled_at: nowMinute() }}>
       {quick ? <>
         <div className="grid grid-cols-2 gap-x-4 max-sm:grid-cols-1">
           <Form.Item name="new_name" label={t("name")} rules={[{ required: true, whitespace: true, message: t("enterName") }, { max: 200 }]}>
