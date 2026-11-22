@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, cardPaymentSchema, cardTourSchema, journeyDue, suggestRefund, suggestTourKind, tourKindDetail,
+  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, customerCardMoney, cardPaymentSchema, cardTourSchema, journeyDue, suggestRefund, suggestTourKind, tourKindDetail,
 } from "./cards.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
@@ -16,6 +16,15 @@ test("tiền thẻ: giá trị − hoàn, cọc + thu, công nợ (âm = phải 
   assert.deepEqual(cardMoney(card), { value: 6_000_000, collected: 2_300_000, due: 3_700_000 });
   assert.equal(cardMoney({ ...card, payments: [{ amount: 6_000_000 }] }).due, -300_000);
   assert.equal(cardMoney({ ...card, payments: [{ amount: 6_000_000 }, { amount: -300_000 }] }).due, 0);
+});
+
+test("tiền khách qua mọi thẻ: bỏ thẻ huỷ, cọc chưa trừ tính là đã thu, chưa có thẻ mà có cọc → công nợ null", () => {
+  const card = (deposit_used: number, price: number, paid: number, cancelled_at: string | null = null) =>
+    ({ deposit_used, cancelled_at, items: [{ price, refund_amount: null }], payments: [{ amount: paid }] });
+  assert.deepEqual(customerCardMoney([card(200_000, 5_000_000, 1_000_000), card(0, 9_000_000, 9_000_000, "x")], 500_000),
+    { value: 5_000_000, collected: 1_500_000, depositLeft: 300_000, due: 3_500_000 });
+  assert.deepEqual(customerCardMoney([], 500_000), { value: 0, collected: 500_000, depositLeft: 500_000, due: null });
+  assert.equal(customerCardMoney([], null).due, 0);
 });
 
 test("gợi ý hoàn theo buổi chưa làm", () => {

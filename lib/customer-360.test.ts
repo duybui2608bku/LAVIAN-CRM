@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canSeeFinance, canSeePhotos, customerFinance, customerRole, latestPortrait, mergeTimeline, nextNeed, portraitText } from "./customer-360.ts";
+import { canSeeFinance, canSeePhotos, currentAppointment, customerRole, latestPortrait, mergeTimeline, nextNeed, portraitText } from "./customer-360.ts";
 
 const p = (department: string | null, role = "user") => ({ role, department });
 
@@ -18,22 +18,12 @@ test("vai trò + 2 quy tắc ẩn: tài chính, ảnh B/A", () => {
   assert.equal(canSeePhotos(null), false);
 });
 
-test("tài chính 3 vùng: cọc tính 1 lần, Phải thu Chưa xác định khi có cọc mà giá = 0", () => {
+test("đơn hiện tại: lịch sắp tới sớm nhất, không có thì lịch đã qua gần nhất", () => {
   const now = Date.parse("2026-11-20T00:00:00Z");
-  const a = (id: string, scheduled_at: string, bill_amount: number | null, paid_amount: number | null) => ({ id, scheduled_at, bill_amount, paid_amount });
-  const f = customerFinance([
-    a("old", "2026-11-01T03:00:00Z", 3_000_000, 2_500_000),
-    a("next", "2026-11-22T03:00:00Z", 0, null),
-  ], 500_000, now);
-  assert.deepEqual(f.total, { bill: 3_000_000, collected: 3_000_000, due: 0 });
-  assert.equal(f.current?.appointment.id, "next");
-  assert.equal(f.current?.due, null); // có cọc, chưa chốt giá
-  assert.deepEqual(f.history.map((h) => h.appointment.id), ["next", "old"]);
-  // Không cọc, giá 0 → phải thu 0 (không phải Chưa xác định).
-  assert.equal(customerFinance([a("x", "2026-11-22T03:00:00Z", 0, null)], 0, now).current?.due, 0);
-  // Chỉ có lịch đã qua → đơn hiện tại = lịch gần nhất.
-  assert.equal(customerFinance([a("o1", "2026-10-01T03:00:00Z", 1, 0), a("o2", "2026-11-01T03:00:00Z", 1, 0)], 0, now).current?.appointment.id, "o2");
-  assert.equal(customerFinance([], 0, now).current, null);
+  const a = (id: string, scheduled_at: string) => ({ id, scheduled_at });
+  assert.equal(currentAppointment([a("old", "2026-11-01T03:00:00Z"), a("far", "2026-12-01T03:00:00Z"), a("next", "2026-11-22T03:00:00Z")], now)?.id, "next");
+  assert.equal(currentAppointment([a("o1", "2026-10-01T03:00:00Z"), a("o2", "2026-11-01T03:00:00Z")], now)?.id, "o2");
+  assert.equal(currentAppointment([], now), null);
 });
 
 test("chân dung mới nhất từng mục; nhu cầu tiếp theo; dòng thời gian mới nhất trước", () => {

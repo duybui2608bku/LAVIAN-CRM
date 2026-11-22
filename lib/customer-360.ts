@@ -22,31 +22,11 @@ export function canSeePhotos(profile: Viewer): boolean {
   return profile.role === "admin" || !["telesales", "telesales_leader"].includes(profile.department ?? "");
 }
 
-type MoneyAppointment = { id: string; scheduled_at: string; bill_amount?: number | null; paid_amount?: number | null };
-
-/**
- * Tài chính 3 vùng. Tiền cọc thuộc khách (tính 1 lần ở Tổng tích luỹ, gắn vào Đơn hiện tại).
- * Phải thu = null ("Chưa xác định") khi đã có cọc mà Giá trị DV = 0.
- * Đơn hiện tại = lịch sắp tới sớm nhất, không có thì lịch đã qua gần nhất.
- */
-export function customerFinance<T extends MoneyAppointment>(appointments: T[], deposit: number | null | undefined, now: number) {
-  const dep = deposit ?? 0;
-  const due = (bill: number, collected: number) => (bill === 0 && dep > 0 ? null : Math.max(bill - collected, 0));
-  const bill = appointments.reduce((s, a) => s + (a.bill_amount ?? 0), 0);
-  const collected = dep + appointments.reduce((s, a) => s + (a.paid_amount ?? 0), 0);
-  const upcoming = appointments.filter((a) => Date.parse(a.scheduled_at) >= now)
-    .sort((a, b) => Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at));
-  const past = appointments.filter((a) => Date.parse(a.scheduled_at) < now)
-    .sort((a, b) => Date.parse(b.scheduled_at) - Date.parse(a.scheduled_at));
-  const cur = upcoming[0] ?? past[0];
-  const curBill = cur?.bill_amount ?? 0;
-  const curCollected = dep + (cur?.paid_amount ?? 0);
-  return {
-    total: { bill, collected, due: due(bill, collected) },
-    current: cur ? { appointment: cur, bill: curBill, deposit: dep, collected: curCollected, due: due(curBill, curCollected) } : null,
-    history: [...appointments].sort((a, b) => Date.parse(b.scheduled_at) - Date.parse(a.scheduled_at))
-      .map((a) => ({ appointment: a, bill: a.bill_amount ?? 0, paid: a.paid_amount ?? 0 })),
-  };
+/** Đơn hiện tại (nút "Chuyển sang nhập liệu"): lịch sắp tới sớm nhất, không có thì lịch đã qua gần nhất. */
+export function currentAppointment<T extends { scheduled_at: string }>(appointments: T[], now: number): T | null {
+  const at = (a: T) => Date.parse(a.scheduled_at);
+  const upcoming = appointments.filter((a) => at(a) >= now).sort((a, b) => at(a) - at(b));
+  return upcoming[0] ?? appointments.filter((a) => at(a) < now).sort((a, b) => at(b) - at(a))[0] ?? null;
 }
 
 /** Bản mới nhất của từng mục chân dung. */

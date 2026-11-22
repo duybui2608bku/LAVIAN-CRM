@@ -37,7 +37,9 @@ export type CardMe = { id: string; isAdmin: boolean; canEdit: boolean; canCancel
 export const usageOf = (tours: Pick<Tour, "card_item_id">[]) => (itemId: string) =>
   tours.filter((t) => t.card_item_id === itemId).length;
 
-export function CardStatusTag({ card, tours }: { card: TreatmentCard; tours: Pick<Tour, "card_item_id">[] }) {
+export function CardStatusTag({ card, tours }: {
+  card: { cancelled_at: string | null; items: Parameters<typeof cardDone>[0] }; tours: Pick<Tour, "card_item_id">[];
+}) {
   const t = useTranslations("cards");
   const status = card.cancelled_at ? "cancelled" : cardDone(card.items, usageOf(tours)) ? "done" : "active";
   return <StatusTag color={{ cancelled: "red", done: "green", active: "blue" }[status]} label={t(`status.${status}`)} />;

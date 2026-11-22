@@ -916,7 +916,9 @@
     "firstContact": "Liên hệ đầu",
     "appointments": "Lịch hẹn ({count})",
     "noAppointments": "Chưa có lịch hẹn",
+    "tours": "Tour ({count})",
     "performers": "Người thực hiện",
+    "purchased": "Dịch vụ đã mua",
     "portrait": {
       "fields": {
         "wish": "Mong muốn",
@@ -966,10 +968,12 @@
     "finance": {
       "title": "Tài chính",
       "total": "Tổng tích luỹ",
-      "current": "Đơn hiện tại",
-      "history": "Lịch sử mua",
-      "paid": "Thu thêm",
-      "empty": "Chưa có lịch hẹn"
+      "cards": "Thẻ liệu trình ({count})",
+      "noCards": "Chưa có thẻ",
+      "payments": "Lịch sử thanh toán",
+      "noPayments": "Chưa có thanh toán",
+      "deposit": "Tiền cọc",
+      "depositLeft": "Gồm {amount} tiền cọc chưa trừ vào thẻ"
     },
     "photos": {
       "before": "Trước",
@@ -1004,7 +1008,12 @@
       "customer_note": "Telesales",
       "appointment_note": "Ghi chú lịch hẹn",
       "sales_note": "Sales",
-      "empty": "Chưa có hoạt động"
+      "empty": "Chưa có hoạt động",
+      "card": "Thẻ",
+      "tour": "Tour",
+      "cardSold": "Bán thẻ {code}",
+      "payment": "Thu tiền {code}",
+      "refund": "Hoàn tiền {code}"
     }
   },
   "cards": {

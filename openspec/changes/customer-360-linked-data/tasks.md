@@ -1,0 +1,8 @@
+- [x] `getCustomer360` tải thẻ (+items, payments khi xem tài chính) + tour của khách; bỏ tiền lịch hẹn
+- [x] `customerCardMoney` (lib/cards.ts) + `currentAppointment` (lib/customer-360.ts) + test
+- [x] Tab Dịch vụ: Dịch vụ đã mua từ thẻ
+- [x] Tài chính: tổng từ thẻ, danh sách thẻ, lịch sử thanh toán (cọc + thu ở thẻ, ảnh)
+- [x] Ảnh B/A: ảnh tour + ảnh lịch hẹn cũ
+- [x] Tổng quan: mục Tour; dòng thời gian: loại Thẻ + Tour
+- [x] tsc + eslint + test (108)
+- [ ] Xem trên trình duyệt (cần đăng nhập)

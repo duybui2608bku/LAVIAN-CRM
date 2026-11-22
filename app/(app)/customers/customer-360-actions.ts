@@ -31,9 +31,17 @@ async function requirePhotos() {
   return profile;
 }
 
-// Cột tiền chỉ select khi được xem tài chính — server không trả số tiền cho Telesales / Master.
 const APPT_FIELDS = "id,customer_id,scheduled_at,booking_confirm,checked_in,visit_status,service_categories,service_ids,staff_id,sales_id,technician_id,notes,sales_notes,performers:appointment_performers(profile_id,role)";
 const MONEY_LOG_FIELDS = ["bill_amount", "paid_amount"];
+// Thẻ + tour nối theo customer_id (RLS lọc theo quyền cards.* / tour.*). Cột tiền chỉ select khi được xem tài chính,
+// ảnh tour chỉ khi được xem ảnh B/A — server không trả dữ liệu bị ẩn.
+// ponytail: ai chỉ có reports.view (không cards.*) đọc được thẻ + thanh toán nhưng RLS chặn dòng DV → giá trị thẻ = 0.
+// 2026-11-22 chưa bộ phận nào như vậy; cấp quyền đó thì thêm reports.view vào policy đọc treatment_card_items.
+const cardFields = (finance: boolean) => `id,code,cancelled_at,created_by,created_at${finance ? ",deposit_used" : ""},`
+  + `items:treatment_card_items(id,service_id,sessions,refunded_at${finance ? ",price,refund_amount" : ""},service:services(group_id,tourable))`
+  + (finance ? ",payments:treatment_card_payments(id,amount,method,paid_at,note,images,created_by)" : "");
+const tourFields = (photos: boolean) => "id,tour_date,service_id,card_item_id,service_detail,service_session,technician_id,confirmed_at"
+  + (photos ? ",before_images,after_images,extra_images" : "");
 
 type PhotoRow = Omit<AppointmentPhoto, "url"> & { path: string };
 const PHOTO_FIELDS = "id,appointment_id,kind,path,created_by,created_at";
@@ -57,11 +65,13 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
     const finance = canSeeFinance(profile);
     const photos = canSeePhotos(profile);
     const db = await createClient();
-    const [customer, appts, logs, portrait, needs, reminders, services, photoRows, summary] = await Promise.all([
-      db.from("customers").select(`id,full_name,phone,picture,source,stage,staff_id,sales_id,technician_id,first_contact,created_at,thread_link:thread->>link,notes,smax_messages,smax_messages_at${finance ? ",deposit_amount" : ""}`)
+    const [customer, appts, cards, tours, logs, portrait, needs, reminders, services, photoRows, summary] = await Promise.all([
+      db.from("customers").select(`id,full_name,phone,picture,source,stage,staff_id,sales_id,technician_id,first_contact,created_at,thread_link:thread->>link,notes,smax_messages,smax_messages_at${finance ? ",deposit_amount,payment_confirm_url" : ""}`)
         .eq("id", customerId).is("deleted_at", null).single(),
-      db.from("clinic_appointments").select(finance ? `${APPT_FIELDS},bill_amount,paid_amount` : APPT_FIELDS)
+      db.from("clinic_appointments").select(APPT_FIELDS)
         .eq("customer_id", customerId).is("deleted_at", null).order("scheduled_at", { ascending: false }),
+      db.from("treatment_cards").select(cardFields(finance)).eq("customer_id", customerId).order("created_at", { ascending: false }),
+      db.from("tours").select(tourFields(photos)).eq("customer_id", customerId).is("deleted_at", null).order("tour_date", { ascending: false }),
       db.from("clinic_appointment_logs")
         .select("id,appointment_id,action,changes,actor_id,created_at,appointment:clinic_appointments(scheduled_at)")
         .eq("customer_id", customerId).order("created_at", { ascending: false }).limit(200),
@@ -77,13 +87,15 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
         : Promise.resolve({ data: null, error: null }),
       db.from("customer_chat_summaries").select(SUMMARY_FIELDS).eq("customer_id", customerId).maybeSingle(),
     ]);
-    const error = customer.error ?? appts.error ?? logs.error ?? portrait.error ?? needs.error ?? reminders.error ?? services.error ?? photoRows.error ?? summary.error;
+    const error = customer.error ?? appts.error ?? cards.error ?? tours.error ?? logs.error ?? portrait.error ?? needs.error ?? reminders.error ?? services.error ?? photoRows.error ?? summary.error;
     if (error) throw error;
     const { smax_messages, ...info } = customer.data as unknown as Customer360["customer"] & { smax_messages: Customer360["smax_messages"] };
     return {
       data: {
         customer: { ...info, notes: info.notes ?? [] },
         appointments: (appts.data ?? []) as unknown as Customer360["appointments"],
+        cards: (cards.data ?? []) as unknown as Customer360["cards"],
+        tours: (tours.data ?? []) as unknown as Customer360["tours"],
         // Log không lộ số tiền khi không được xem tài chính.
         logs: ((logs.data ?? []) as unknown as AppointmentLog[]).map((l) => finance ? l : {
           ...l, changes: Object.fromEntries(Object.entries(l.changes).filter(([k]) => !MONEY_LOG_FIELDS.includes(k))),

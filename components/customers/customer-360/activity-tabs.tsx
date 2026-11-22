@@ -12,37 +12,53 @@ import { NoteComposer, NoteItem } from "@/components/common/notes";
 import { Section } from "@/components/common/section";
 import { UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
+import { kindText } from "@/components/tour/tour-drawer";
+import { formatRupiah } from "@/lib/currency";
 import { mergeTimeline } from "@/lib/customer-360";
 import { toast } from "@/lib/toast";
 import type { AppointmentLog, AppointmentLogField } from "@/types/appointment";
 import type { Customer360 } from "@/types/customer-360";
 import { useServiceGroups } from "@/components/common/service-groups";
 
-// ─────────────────────────── Ảnh B/A (chỉ xem, gom theo lịch) ───────────────────────────
+// ─────────────────────────── Ảnh B/A (chỉ xem): ảnh tour + ảnh cũ gắn lịch hẹn, mới nhất trước ───────────────────────────
+
+type PhotoGroup = { key: string; at: string; title: string; kinds: [string, string[]][] };
 
 export function PhotosTab({ data }: { data: Customer360 }) {
   const sg = useServiceGroups();
   const t = useTranslations("c360.photos");
+  const tt = useTranslations("tour");
   const photos = data.photos ?? [];
-  const groups = data.appointments.filter((a) => photos.some((p) => p.appointment_id === a.id));
+  const serviceName = (id: string) => data.services.find((s) => s.id === id)?.name;
+  const groups: PhotoGroup[] = [
+    ...data.tours.map((r) => ({
+      key: r.id, at: r.tour_date,
+      title: [dayjs(r.tour_date).format("DD/MM/YYYY"), serviceName(r.service_id), kindText(tt, r)].filter(Boolean).join(" · "),
+      kinds: [[tt("beforePhotos"), r.before_images ?? []], [tt("afterPhotos"), r.after_images ?? []], [tt("extraPhotos"), r.extra_images ?? []]] as [string, string[]][],
+    })),
+    ...data.appointments.map((a) => {
+      const urls = (kind: "before" | "after") => photos.filter((p) => p.appointment_id === a.id && p.kind === kind).map((p) => p.url);
+      const services = a.service_ids.map(serviceName).filter(Boolean).join(", ") || sg.label(a.service_categories);
+      return {
+        key: a.id, at: a.scheduled_at, title: [dayjs(a.scheduled_at).format("DD/MM/YYYY"), services].filter(Boolean).join(" · "),
+        kinds: [[t("before"), urls("before")], [t("after"), urls("after")]] as [string, string[]][],
+      };
+    }),
+  ].map((g) => ({ ...g, kinds: g.kinds.filter(([, urls]) => urls.length) })).filter((g) => g.kinds.length)
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   if (!groups.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("empty")} />;
   return <Image.PreviewGroup>
     <div className="flex flex-col gap-4">
-      {groups.map((a) => {
-        const services = a.service_ids.map((id) => data.services.find((s) => s.id === id)).filter((s) => !!s)
-          .map((s) => s.name).join(", ") || sg.label(a.service_categories);
-        return <Section key={a.id} title={[dayjs(a.scheduled_at).format("DD/MM"), services].filter(Boolean).join(" · ")}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(["before", "after"] as const).map((kind) => <div key={kind}>
-              <div className="mb-1 text-xs text-muted-foreground">{t(kind)}</div>
-              <div className="flex flex-wrap gap-2">
-                {photos.filter((p) => p.appointment_id === a.id && p.kind === kind).map((p) =>
-                  <Image key={p.id} src={p.url} alt={t(kind)} width={120} height={120} className="rounded-lg object-cover" />)}
-              </div>
-            </div>)}
-          </div>
-        </Section>;
-      })}
+      {groups.map((g) => <Section key={g.key} title={g.title}>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {g.kinds.map(([label, urls]) => <div key={label}>
+            <div className="mb-1 text-xs text-muted-foreground">{label}</div>
+            <div className="flex flex-wrap gap-2">
+              {urls.map((url) => <Image key={url} src={url} alt={label} width={96} height={96} className="rounded-lg object-cover" />)}
+            </div>
+          </div>)}
+        </div>
+      </Section>)}
     </div>
   </Image.PreviewGroup>;
 }
@@ -120,7 +136,7 @@ function ChatSummaryBox({ data, staff, latestAt, onSaved }: {
 
 // ─────────────────────────── Lịch sử & Ghi chú ───────────────────────────
 
-const KINDS = ["log", "customer_note", "appointment_note", "sales_note"] as const;
+const KINDS = ["log", "card", "tour", "customer_note", "appointment_note", "sales_note"] as const;
 type Kind = (typeof KINDS)[number];
 const LOG_FIELDS: AppointmentLogField[] = ["scheduled_at", "booking_confirm", "visit_status", "service_categories", "service_ids",
   "staff_id", "sales_id", "technician_id", "bill_amount", "paid_amount", "note", "sales_note"];
@@ -130,22 +146,44 @@ export function TimelineTab({ data, staff, composing, onSaved }: {
 }) {
   const t = useTranslations("c360");
   const th = useTranslations("customers.apptHistory");
+  const tc = useTranslations("cards");
+  const tt = useTranslations("tour");
   const [filter, setFilter] = useState<Kind | "all">("all");
+  const who = (id: string | null | undefined) => (id && staff.find((s) => s.id === id)?.user_name) || "—";
+  const serviceName = (id: string) => data.services.find((s) => s.id === id)?.name;
+  // 1 mục: dòng phụ "ngày · người", dòng chính nội dung.
+  const entry = (at: string, by: string, body: React.ReactNode, f = "DD/MM/YYYY · HH:mm") => <div className="text-sm">
+    <div className="text-xs text-muted-foreground tabular-nums">{dayjs(at).format(f)} · {by}</div>
+    <p className="mt-0.5">{body}</p>
+  </div>;
 
   const items = mergeTimeline<Kind, { at: string; key: string; node: React.ReactNode; by_id?: string | null }>([
     { kind: "log", items: data.logs.map((l: AppointmentLog) => ({
       at: l.created_at, key: l.id, by_id: l.actor_id,
-      node: <div className="text-sm">
-        <div className="text-xs text-muted-foreground tabular-nums">
-          {dayjs(l.created_at).format("DD/MM/YYYY · HH:mm")} · {l.actor_id ? staff.find((s) => s.id === l.actor_id)?.user_name ?? "—" : th("systemActor")}
-        </div>
-        <p className="mt-0.5">
-          <span className="font-medium">{th(`action.${l.action}`)}</span>
-          {l.appointment && <span className="tabular-nums"> {dayjs(l.appointment.scheduled_at).format("DD/MM HH:mm")}</span>}
-          {l.action === "update" && <span className="text-muted-foreground"> · {LOG_FIELDS.filter((f) => f in l.changes).map((f) => th(`field.${f}`)).join(", ")}</span>}
-        </p>
-      </div>,
+      node: entry(l.created_at, l.actor_id ? who(l.actor_id) : th("systemActor"), <>
+        <span className="font-medium">{th(`action.${l.action}`)}</span>
+        {l.appointment && <span className="tabular-nums"> {dayjs(l.appointment.scheduled_at).format("DD/MM HH:mm")}</span>}
+        {l.action === "update" && <span className="text-muted-foreground"> · {LOG_FIELDS.filter((f) => f in l.changes).map((f) => th(`field.${f}`)).join(", ")}</span>}
+      </>),
     })) },
+    // Thẻ liệu trình: bán thẻ + từng lần thu / hoàn (thanh toán chỉ có khi được xem tài chính).
+    { kind: "card", items: data.cards.flatMap((c) => [
+      { at: c.created_at, key: c.id, by_id: c.created_by, node: entry(c.created_at, who(c.created_by), <>
+        <span className="font-medium">{t("timeline.cardSold", { code: c.code })}</span>
+        <span className="text-muted-foreground"> · {c.items.map((i) => serviceName(i.service_id)).filter(Boolean).join(", ")}</span>
+        {c.cancelled_at && <span className="text-destructive"> · {tc("status.cancelled")}</span>}
+      </>) },
+      ...(c.payments ?? []).map((p) => ({ at: p.paid_at, key: p.id, by_id: p.created_by, node: entry(p.paid_at, who(p.created_by), <>
+        <span className="font-medium">{t(p.amount < 0 ? "timeline.refund" : "timeline.payment", { code: c.code })}</span>
+        <span className="tabular-nums"> {formatRupiah(Math.abs(p.amount))}</span>
+        <span className="text-muted-foreground"> · {tc(`method.${p.method}`)}</span>
+      </>) })),
+    ]) },
+    { kind: "tour", items: data.tours.map((r) => ({ at: r.tour_date, key: r.id, by_id: r.technician_id, node: entry(r.tour_date, who(r.technician_id), <>
+      <span className="font-medium">{tt("title")}</span>
+      <span className="text-muted-foreground"> · {[serviceName(r.service_id), kindText(tt, r)].filter(Boolean).join(" · ")}</span>
+      {r.confirmed_at && <span className="text-success"> · {tt("status_confirmed")}</span>}
+    </>, "DD/MM/YYYY") })) },
     { kind: "customer_note", items: data.customer.notes.map((n, i) => ({ at: n.at, key: n.id ?? `c${i}`, by_id: n.by_id, node: <NoteItem note={n} staff={staff} /> })) },
     { kind: "appointment_note", items: data.appointments.flatMap((a) => a.notes.map((n) => ({ at: n.at, key: n.id, by_id: n.by_id, node: <NoteItem note={n} staff={staff} /> }))) },
     { kind: "sales_note", items: data.appointments.flatMap((a) => a.sales_notes.map((n) => ({ at: n.at, key: n.id, by_id: n.by_id, node: <NoteItem note={n} staff={staff} /> }))) },
