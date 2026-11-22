@@ -33,14 +33,6 @@ export const tourStatus = (t: { technician_id: string | null; confirmed_at: stri
 const images = z.array(z.url({ protocol: /^https?$/ })).max(30);
 const billAmount = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).nullable();
 
-export const tourCreateSchema = z.object({
-  tour_date: z.iso.date(),
-  customer_id: z.uuid(),
-  service_id: z.uuid(),
-  bill_amount: billAmount.optional(),
-  note: z.string().trim().max(10000).default(""),
-}).strict();
-
 export const tourPatchSchema = z.object({
   tour_date: z.iso.date(),
   customer_id: z.uuid(),

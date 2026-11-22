@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { tourAmount, tourCreateSchema, tourPatchSchema, tourStatus } from "./tours.ts";
+import { tourAmount, tourPatchSchema, tourStatus } from "./tours.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
 
@@ -20,14 +20,6 @@ test("status is derived from technician + confirmation", () => {
   assert.equal(tourStatus({ technician_id: null, confirmed_at: null }), "pending");
   assert.equal(tourStatus({ technician_id: id, confirmed_at: null }), "claimed");
   assert.equal(tourStatus({ technician_id: id, confirmed_at: "2026-11-06T00:00:00Z" }), "confirmed");
-});
-
-test("create requires date, customer, service", () => {
-  assert.deepEqual(tourCreateSchema.parse({ tour_date: "2026-11-06", customer_id: id, service_id: id }),
-    { tour_date: "2026-11-06", customer_id: id, service_id: id, note: "" });
-  assert.equal(tourCreateSchema.safeParse({ tour_date: "06/11/2026", customer_id: id, service_id: id }).success, false);
-  assert.equal(tourCreateSchema.safeParse({ tour_date: "2026-11-06", customer_id: id }).success, false);
-  assert.equal(tourCreateSchema.safeParse({ tour_date: "2026-11-06", customer_id: id, service_id: id, technician_id: id }).success, false);
 });
 
 test("patch: detail requires session only for laser/plasma/retouch; whitelist; images are http urls", () => {

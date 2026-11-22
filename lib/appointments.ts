@@ -100,24 +100,21 @@ export function newCustomerAppointmentIds(
     .map((a) => a.id));
 }
 
-/** Tiền 1 lịch: Thực thu = Deposit (của khách) + Thu thêm; Phải thu = Giá trị DV − Thực thu (không âm). */
-export function appointmentMoney(bill: number | null | undefined, deposit: number | null | undefined, paid: number | null | undefined) {
-  const collected = (deposit ?? 0) + (paid ?? 0);
-  return { bill: bill ?? 0, collected, due: Math.max((bill ?? 0) - collected, 0) };
-}
-
-/** Dải số liệu Sales Management — tính trên các lịch đang lọc. */
-export function appointmentStats(
-  rows: { customer_id: string; visit_status: string; bill_amount: number | null; paid_amount: number | null }[],
-  depositOf: (customerId: string) => number | null | undefined,
+/**
+ * Dải số liệu Sales Management — tính trên các lịch đang lọc. Tiền lấy từ thẻ liệu trình bán ở lịch
+ * (`moneyOf` → cardMoney, lịch chưa có thẻ = null): Giá trị DV, Thực thu (cọc trừ vào thẻ + đã thu), Còn phải thu (không âm).
+ */
+export function appointmentStats<T extends { visit_status: string }>(
+  rows: T[],
+  moneyOf: (row: T) => { value: number; collected: number; due: number } | null | undefined,
 ) {
   const s = { total: rows.length, arrived: 0, cancelled: 0, waiting: 0, bill: 0, collected: 0, due: 0 };
   for (const a of rows) {
     if (ARRIVED_STATUSES.includes(a.visit_status)) s.arrived++;
     else if (a.visit_status === "cancelled" || a.visit_status === "rescheduled") s.cancelled++;
     else if (a.visit_status === "waiting") s.waiting++;
-    const m = appointmentMoney(a.bill_amount, depositOf(a.customer_id), a.paid_amount);
-    s.bill += m.bill; s.collected += m.collected; s.due += m.due;
+    const m = moneyOf(a);
+    if (m) { s.bill += m.value; s.collected += m.collected; s.due += Math.max(m.due, 0); }
   }
   return s;
 }

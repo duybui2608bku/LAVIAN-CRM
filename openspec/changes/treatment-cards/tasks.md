@@ -1,0 +1,10 @@
+- [x] Migration: `treatment_cards`, `treatment_card_items`, `treatment_card_payments`, RPC `create_treatment_card`, `tours.card_item_id`, quyền `cards.*` (đã thử trong transaction rollback trên Lavian 2026-11-22)
+- [x] `lib/cards.ts` (tiền thẻ, số buổi, gợi ý hoàn, suy dịch vụ chi tiết tour) + test
+- [x] Server actions: tạo thẻ, thêm DV, hoàn DV, thu tiền, xoá lần thu (admin), huỷ thẻ (admin), tạo tour từ thẻ
+- [x] Menu `/cards` + drawer chi tiết thẻ (dịch vụ, thanh toán, lộ trình tour)
+- [x] Sales Management: cột Thẻ liệu trình (giỏ hàng), Tài chính + số liệu từ thẻ, drawer bỏ ô tiền / DV chi tiết cũ
+- [x] Tour: bỏ nút Tạo tour ở /tour; tour từ thẻ chỉ sửa ngày (khách + DV cố định)
+- [x] tsc + eslint + test (105)
+- [x] Chạy migration thật trên Supabase (Lavian, 2026-11-22; kiểm RLS/quyền/RPC dưới role authenticated trong khối rollback)
+- [ ] Xem trên trình duyệt (cần đăng nhập + migration)
+- [ ] Popup 360° tab Tài chính vẫn đọc tiền lịch hẹn cũ → chuyển sang thẻ

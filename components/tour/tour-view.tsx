@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, DatePicker, Empty, Input, Segmented, Select, Tag, type TableProps } from "antd";
-import { CheckCircle2, FileSpreadsheet, PencilLine, Plus, Printer, Search, Trash2 } from "lucide-react";
+import { CheckCircle2, FileSpreadsheet, PencilLine, Printer, Search, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { claimTour, confirmTour, deleteTour } from "@/app/(app)/tour/actions";
@@ -14,7 +14,7 @@ import { RowActions } from "@/components/common/row-actions";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { CreateTourDrawer, detailText, runAction, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
+import { detailText, runAction, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import { groupByTechnician, toItem, type TourItem } from "@/components/tour/tour-data";
 import { PhotoCountButton, TourPhotosModal } from "@/components/tour/tour-photos";
 import { TourSlips } from "@/components/tour/tour-slips";
@@ -150,14 +150,13 @@ function TourCardBody({ tour, service }: { tour: Tour; service: string }) {
 
 // ───────────────────────── CSKH / admin ─────────────────────────
 
-function TourTable({ me, month, tours, services, staff, customers, onOpen, onPhotos, goMonth }: ViewProps) {
+function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMonth }: ViewProps) {
   const t = useTranslations("tour");
   const confirm = useConfirm();
   const serviceLabel = useServiceLabel(services);
   const [status, setStatus] = useState<TourStatus | typeof ALL>(ALL);
   const [technician, setTechnician] = useState(ALL);
   const [search, setSearch] = useState("");
-  const [creating, setCreating] = useState(false);
   const [exporting, setExporting] = useState(false);
   const staffById = new Map(staff.map((s) => [s.id, s]));
   const technicians = staff.filter((s) => s.department === "technician");
@@ -233,7 +232,6 @@ function TourTable({ me, month, tours, services, staff, customers, onOpen, onPho
       </> : null}
     </>} />
     <PageToolbar>
-      {me.canEdit ? <Button type="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>{t("create")}</Button> : null}
       <MonthPicker month={month} goMonth={goMonth} />
       <Input value={search} allowClear className="w-full sm:max-w-60" placeholder={t("search")} aria-label={t("search")}
         prefix={<Search className="size-4" />} onChange={(e) => setSearch(e.target.value)} />
@@ -255,7 +253,6 @@ function TourTable({ me, month, tours, services, staff, customers, onOpen, onPho
     </div>
     <DataTable<TourItem> columns={columns} dataSource={items} pageSize={50} empty={t("empty")}
       onRow={(r) => ({ onClick: () => onOpen(r.id), className: "cursor-pointer" })} />
-    <CreateTourDrawer open={creating} onClose={() => setCreating(false)} services={services} customers={customers} />
     {me.isAdmin ? <TourSlips groups={groups} month={month} /> : null}
   </>;
 }

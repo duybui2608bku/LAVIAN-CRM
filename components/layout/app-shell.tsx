@@ -17,6 +17,7 @@ import {
   Check,
   ChevronDown,
   Headset,
+  CreditCard,
   Inbox,
   Languages,
   LayoutGrid,
@@ -67,6 +68,7 @@ const ITEMS = [
     ],
   },
   { key: "appointments", href: "/appointments", icon: CalendarDays },
+  { key: "cards", href: "/cards", icon: CreditCard },
   { key: "tour", href: "/tour", icon: Wallet },
   { key: "documents", href: "/documents", icon: BookOpen },
 ] as const;

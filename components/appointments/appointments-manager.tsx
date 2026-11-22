@@ -2,10 +2,14 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { Button, Form, Input, Popover, Select, Tag, type TableProps } from "antd";
-import { CalendarPlus, MessageCircleMore, Rows3, Search, SquarePen } from "lucide-react";
+import { CalendarPlus, MessageCircleMore, Rows3, Search, ShoppingCart, SquarePen } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addAppointmentNote, createAppointment, deleteAppointmentNote, patchAppointment } from "@/app/(app)/appointments/actions";
+import { createCard } from "@/app/(app)/cards/actions";
+import { CardDrawer, DueText, toursOfCard, type CardMe } from "@/components/cards/card-drawer";
+import { CardItemsDrawer } from "@/components/cards/card-items-drawer";
+import { runAction } from "@/components/tour/tour-drawer";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { AppointmentDrawer } from "@/components/appointments/appointment-drawer";
 import { MessagesModal } from "@/components/appointments/messages-modal";
@@ -21,7 +25,8 @@ import { CustomerNotesDrawer, SourceCell } from "@/components/customers/customer
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { staffLabel, UserAvatar, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
+import { ARRIVED_STATUSES, appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
+import { cardMoney } from "@/lib/cards";
 import { StatCard } from "@/components/common/stat-card";
 import { matchesNameOrPhone } from "@/lib/customers";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
@@ -32,7 +37,9 @@ import {
 } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import { useServiceGroups } from "@/components/common/service-groups";
+import type { TreatmentCard } from "@/types/card";
 import type { Customer } from "@/types/customer";
+import type { Tour } from "@/types/tour";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 export type AppointmentStaff = StaffRef & { status: string; department: string | null };
@@ -53,7 +60,7 @@ export const staffOptions = (staff: AppointmentStaff[], current?: string | null,
   .filter((s) => s.id === current || (s.status === "active" && depts.includes(s.department ?? "")))
   .map((s) => ({ value: s.id, label: staffLabel(s) }));
 
-export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, visitChoices }: {
+export function AppointmentsManager({ appointments, customers, staff, services, initialCustomer, visitChoices, cards, cardTours, cardMe }: {
   appointments: Appointment[];
   customers: AppointmentCustomer[];
   staff: AppointmentStaff[];
@@ -61,8 +68,12 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   initialCustomer: string;
   /** Status được chọn: Sales/admin mọi trạng thái, Master chỉ Đã thực hiện (rỗng = không đổi được). */
   visitChoices: VisitStatus[];
+  cards: TreatmentCard[]; // thẻ liệu trình (Tài chính + cột Thẻ)
+  cardTours: Tour[];
+  cardMe: CardMe;
 }) {
   const t = useTranslations("appointments");
+  const tc = useTranslations("cards");
   const groups = useServiceGroups();
   const can = useCan();
   const canEdit = can("appointments.edit");
@@ -80,6 +91,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [notesOpen, setNotesOpen] = useState<{ id: string; field: AppointmentNoteField } | null>(null);
   const [teleNotesFor, setTeleNotesFor] = useState<AppointmentCustomer | null>(null);
   const [grouped, setGrouped] = useState(false);
+  const [sellFor, setSellFor] = useState<Appointment | null>(null); // lịch đang bán thẻ (giỏ hàng)
+  const [cardId, setCardId] = useState<string | null>(null);
   const [rows, patchOptimistic] = useOptimistic(appointments,
     (state: Appointment[], patch: AppointmentPatch & { id: string }) =>
       state.map((row) => row.id === patch.id ? { ...row, ...patch } : row));
@@ -108,7 +121,16 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       && (booking === "all" || row.booking_confirm === booking)
       && matchesNameOrPhone(customer.full_name, customer.phone, search);
   });
-  const stats = appointmentStats(filtered, (id) => customerMap.get(id)?.deposit_amount);
+  // Thẻ đang hiệu lực theo lịch bán; cọc chưa trừ vào thẻ nào của khách (thẻ mới sẽ trừ phần này).
+  const activeCards = cards.filter((c) => !c.cancelled_at);
+  const cardByAppointment = new Map(activeCards.filter((c) => c.appointment_id).map((c) => [c.appointment_id!, c]));
+  const depositLeft = (customerId: string) => Math.max((customerMap.get(customerId)?.deposit_amount ?? 0)
+    - activeCards.filter((c) => c.customer_id === customerId).reduce((s, c) => s + c.deposit_used, 0), 0);
+  const openCard = cardId ? cards.find((c) => c.id === cardId) : undefined;
+  const stats = appointmentStats(filtered, (row) => {
+    const card = cardByAppointment.get(row.id);
+    return card ? cardMoney(card) : null;
+  });
   // Popup 360°: Trước/Tiếp theo khách của bảng đang lọc; "Chuyển sang nhập liệu" → Drawer lịch gần nhất của khách.
   const c360 = useCustomer360({
     ids: filtered.map((row) => row.customer_id), staff,
@@ -187,20 +209,36 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       options={visitOptions.map((o) => ({ ...o, disabled: o.value !== row.visit_status && !visitChoices.includes(o.value) }))}
       onSave={(value) => save(row.id, { visit_status: value as VisitStatus })} /> },
     // Cột Nhóm dịch vụ đã gộp vào ô Khách hàng (sau SĐT).
-    // Dịch vụ chi tiết: chỉ xem (không sửa trên bảng).
-    { title: t("serviceDetails"), width: 220, render: (_, row) => row.service_ids.length
-      ? <div className="flex flex-wrap gap-1">{row.service_ids.map((id) => {
-        const service = services.find((s) => s.id === id);
-        return <Tag key={id} color="purple" className="me-0">{service ? service.name : id}</Tag>;
-      })}</div>
-      : <span className="text-muted-foreground">—</span> },
-    // Tài chính: cọc của khách + giá trị DV của lịch — chỉ xem.
-    { title: t("finance"), width: 230, render: (_, row) => <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 tabular-nums">
-      <span className="text-muted-foreground">{t("deposit")}</span>
-      <span className="text-right">{idr.format(customerMap.get(row.customer_id)?.deposit_amount ?? 0)}</span>
-      <span className="text-muted-foreground">{t("bill")}</span>
-      <span className="text-right">{idr.format(row.bill_amount ?? 0)}</span>
-    </div> },
+    // Thẻ liệu trình: có thẻ → mã thẻ + dịch vụ (bấm mở thẻ); khách đã đến chưa có thẻ → giỏ hàng bán thẻ.
+    { title: tc("column"), width: 220, render: (_, row) => {
+      const card = cardByAppointment.get(row.id);
+      if (card) return <button type="button" onClick={() => setCardId(card.id)} className="w-full cursor-pointer text-left">
+        <Tag color="purple" className="me-0">{card.code}</Tag>
+        <div className="mt-0.5 truncate text-xs text-muted-foreground hover:text-primary">
+          {card.items.filter((i) => !i.refunded_at).map((i) => services.find((s) => s.id === i.service_id)?.name ?? "—").join(", ")}
+        </div>
+      </button>;
+      if (!cardMe.canEdit) return <span className="text-muted-foreground">—</span>;
+      const arrived = ARRIVED_STATUSES.includes(row.visit_status);
+      return <Button type="text" aria-label={t("sellCard")} title={arrived ? t("sellCard") : t("sellCardNeedsArrival")} disabled={!arrived}
+        icon={<ShoppingCart className="size-4" />} onClick={() => setSellFor(row)} />;
+    } },
+    // Tài chính (từ thẻ): Giá trị thẻ / Đã thu / Công nợ; chưa có thẻ → cọc chưa trừ của khách.
+    { title: t("finance"), width: 230, render: (_, row) => {
+      const card = cardByAppointment.get(row.id);
+      const line = (label: string, value: React.ReactNode) => <>
+        <span className="text-muted-foreground">{label}</span><span className="text-right">{value}</span>
+      </>;
+      if (!card) return <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 tabular-nums">
+        {line(t("deposit"), idr.format(depositLeft(row.customer_id)))}
+      </div>;
+      const m = cardMoney(card);
+      return <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 tabular-nums">
+        {line(t("cardValue"), idr.format(m.value))}
+        {line(t("paidTotal"), <span className="text-success">{idr.format(m.collected)}</span>)}
+        {line(t("due"), <DueText due={m.due} />)}
+      </div>;
+    } },
     // Nhân sự: Telesales · Sales · Master gộp 1 cột, đứng sát nhau trên 1 hàng (cột hẹp thì tự xuống dòng);
     // người chưa gán thì bỏ qua, hover thấy vai trò. Bấm → popup chọn Sales / Master (lưu ngay; Telesales chỉ xem).
     { title: t("staffColumn"), width: 300, render: (_, row) => {
@@ -291,11 +329,21 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
       staff={staff} services={services} canEdit={canEdit} visitChoices={visitChoices}
+      card={editing ? cardByAppointment.get(editing.id) : undefined} canSellCard={cardMe.canEdit}
+      onOpenCard={(c) => setCardId(c.id)} onSellCard={() => editing && setSellFor(editing)}
       onViewInfo={setInfoFor} onOpenNotes={() => editingId && setNotesOpen({ id: editingId, field: "sales_notes" })} onClose={() => setEditingId(null)} />
     <AppointmentNotesDrawer appointment={notesFor} field={notesOpen?.field ?? "notes"} staff={staff} canEdit={canEdit}
       customerName={notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : ""} onClose={() => setNotesOpen(null)} />
     <CustomerNotesDrawer customer={teleNotesFor} staff={staff} onClose={() => setTeleNotesFor(null)} />
     <CustomerInfoDrawer customer={infoFor} staff={staff} onClose={() => setInfoFor(null)} />
+    {/* Bán thẻ liệu trình: chọn dịch vụ → thẻ mới trừ cọc chưa dùng của khách. */}
+    <CardItemsDrawer open={sellFor !== null} services={services}
+      title={tc("sellTitle", { name: sellFor ? customerMap.get(sellFor.customer_id)?.full_name ?? "" : "" })}
+      submitText={tc("confirmSell")} deposit={sellFor ? depositLeft(sellFor.customer_id) : 0} onClose={() => setSellFor(null)}
+      onSubmit={(items, note) => sellFor ? runAction(createCard({ customer_id: sellFor.customer_id, appointment_id: sellFor.id, items, note }),
+        tc("created"), tc("saveError")) : Promise.resolve(false)} />
+    {openCard ? <CardDrawer key={openCard.id} card={openCard} tours={toursOfCard(openCard, cardTours)} services={services}
+      staff={staff} me={cardMe} onClose={() => setCardId(null)} /> : null}
     {c360.modal}
   </Page>;
 }

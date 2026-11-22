@@ -7,6 +7,7 @@ export interface Tour {
   tour_date: string; // YYYY-MM-DD
   customer_id: string;
   service_id: string;
+  card_item_id: string | null; // dòng dịch vụ của thẻ liệu trình (tour cũ = null)
   service_detail: ServiceDetail | null;
   service_session: number | null;
   notes: TimelineNote[]; // ghi chú tour dạng timeline
@@ -21,7 +22,7 @@ export interface Tour {
   customer: { full_name: string; phone: string } | null;
 }
 
-export const TOUR_FIELDS = "id,tour_date,customer_id,service_id,service_detail,service_session,notes,technician_id,"
+export const TOUR_FIELDS = "id,tour_date,customer_id,service_id,card_item_id,service_detail,service_session,notes,technician_id,"
   + "before_images,after_images,extra_images,bill_amount,payment_method,confirmed_at,created_by,"
   + "customer:customers(full_name,phone)";
 
