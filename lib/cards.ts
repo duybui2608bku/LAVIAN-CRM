@@ -158,3 +158,70 @@ export const cardTourSchema = z.object({
     .min(1).max(30).refine((list) => new Set(list.map((i) => i.card_item_id)).size === list.length),
   note: z.string().trim().max(10000).default(""),
 }).strict();
+
+/** 1 dòng nhật ký `card_audit` (trigger DB ghi mọi thay đổi thẻ / DV / thanh toán / tour). */
+export type CardAudit = {
+  id: number;
+  table_name: string;
+  op: "INSERT" | "UPDATE" | "DELETE";
+  old_row: Record<string, unknown> | null;
+  new_row: Record<string, unknown> | null;
+  actor: string | null;
+  at: string;
+};
+/** Khoá i18n `cards.history.*` + giá trị: `service` = id DV, `*amount` = tiền, `*date` = ngày, `*tech` = NV, `*kind` = loại tour. */
+export type AuditEntry = { key: string; values: Record<string, unknown> };
+
+/** Dòng nhật ký → các thao tác đáng kể. Rỗng = lưu lại y nguyên (drawer tour gửi lại bill / loại không đổi) → không hiện. */
+export function auditEntries(a: CardAudit): AuditEntry[] {
+  const o = a.old_row ?? {};
+  const n = a.new_row ?? {};
+  const r = a.op === "DELETE" ? o : n;
+  const out: AuditEntry[] = [];
+  // Tour: kèm ngày để phân biệt các tour cùng DV.
+  const base = a.table_name === "tours" ? { service: r.service_id, date: r.tour_date } : { service: r.service_id };
+  const add = (key: string, values: Record<string, unknown> = {}) => { out.push({ key, values: { ...base, ...values } }); };
+  const changed = (k: string) => a.op === "UPDATE" && JSON.stringify(o[k]) !== JSON.stringify(n[k]);
+  const kind = (x: Record<string, unknown>) => ({ service_detail: x.service_detail, service_session: x.service_session });
+  let handled = ["updated_at"];
+  switch (a.table_name) {
+    case "treatment_cards":
+      if (a.op === "INSERT") add("cardCreated");
+      else if (a.op === "DELETE") add("cardDeleted");
+      else if (changed("cancelled_at")) add(n.cancelled_at ? "cardCancelled" : "cardRestored");
+      handled.push("cancelled_at", "cancelled_by");
+      break;
+    case "treatment_card_items":
+      if (a.op === "INSERT") add("itemAdded", { n: r.sessions, amount: r.price });
+      else if (a.op === "DELETE") add("itemDeleted");
+      else {
+        if (changed("sessions")) add("sessions", { oldN: o.sessions, n: n.sessions });
+        if (changed("refunded_at")) add(n.refunded_at ? "refunded" : "refundUndone", { amount: n.refund_amount });
+        else if (changed("refund_amount")) add("refundEdited", { oldAmount: o.refund_amount, amount: n.refund_amount });
+      }
+      handled.push("sessions", "refunded_at", "refund_amount", "refund_note");
+      break;
+    case "treatment_card_payments":
+      if (a.op !== "UPDATE") add(a.op === "INSERT" ? "payment" : "paymentDeleted", { amount: r.amount, method: r.method });
+      break;
+    case "tours":
+      // Tour: chỉ các cột trigger theo dõi; đổi khách / DV của tour thẻ bị guard chặn (phải khớp DV trong thẻ).
+      handled = Object.keys(n);
+      if (a.op === "INSERT") add("tourCreated", { kind: kind(r) });
+      else if (a.op === "DELETE" || (changed("deleted_at") && n.deleted_at)) add("tourDeleted");
+      else {
+        if (changed("deleted_at")) add("tourRestored");
+        if (changed("card_item_id")) add(n.card_item_id ? "tourLinked" : "tourUnlinked");
+        if (changed("tour_date")) add("tourDate", { oldDate: o.tour_date });
+        if (changed("service_detail") || changed("service_session")) add("tourKind", { oldKind: kind(o), kind: kind(n) });
+        if (changed("bill_amount")) add("tourBill", { oldAmount: o.bill_amount, amount: n.bill_amount });
+        if (changed("technician_id")) add("tourTech", { oldTech: o.technician_id, tech: n.technician_id });
+        if (changed("confirmed_at")) add(n.confirmed_at ? "tourConfirmed" : "tourUnconfirmed");
+      }
+      break;
+  }
+  // Cột khác (admin sửa thẳng DB) — vẫn hiện để không sót.
+  const other = Object.keys(n).filter((k) => changed(k) && !handled.includes(k));
+  if (other.length) add("edited", { fields: other.join(", ") });
+  return out;
+}

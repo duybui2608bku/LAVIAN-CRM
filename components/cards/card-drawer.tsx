@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Checkbox, Divider, Image, Input, InputNumber, Modal, Popover, Radio, Select, Tag } from "antd";
-import { PencilLine, Plus, Printer, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
+import { History as HistoryIcon, PencilLine, Plus, Printer, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import {
-  addCardItems, addCardPayment, cancelCard, createCardTours, deleteCardPayment, refundCardItem, updateCardItemSessions,
+  addCardItems, addCardPayment, cancelCard, createCardTours, deleteCardPayment, getCardHistory, refundCardItem, updateCardItemSessions,
 } from "@/app/(app)/cards/actions";
 import { CardItemsDrawer, MoneyInput } from "@/components/cards/card-items-drawer";
 import { CardPrint } from "@/components/cards/card-print";
@@ -18,8 +19,8 @@ import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
 import { runAction, kindText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import {
-  CARD_PAYMENT_METHODS, cardDone, cardMoney, isTourable, journeyDue, suggestRefund, suggestTourKind, TOUR_KINDS, tourKindDetail,
-  type CardPaymentMethod, type TourKind,
+  auditEntries, CARD_PAYMENT_METHODS, cardDone, cardMoney, isTourable, journeyDue, suggestRefund, suggestTourKind, TOUR_KINDS, tourKindDetail,
+  type AuditEntry, type CardPaymentMethod, type TourKind,
 } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
 import type { CardItem, TreatmentCard } from "@/types/card";
@@ -196,6 +197,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
         </li>;
       })}
     </ol> : <p className="text-sm text-muted-foreground">{t("noTours")}</p>}
+    <CardHistory card={card} tours={tours} services={services} staff={staff} />
 
     <CardItemsDrawer open={adding} title={t("addServiceTitle", { code: card.code })} submitText={t("addService")}
       services={services} onClose={() => setAdding(false)}
@@ -205,6 +207,70 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
     {openTour ? <TourDrawer key={openTour.id} tour={openTour} me={me.tour} services={services} staff={staff}
       customers={[]} onClose={() => setTourId(null)} /> : null}
   </FormDrawer>;
+}
+
+/** Lịch sử thao tác (nhật ký DB: ai sửa buổi, hoàn, thu / xoá tiền, tạo / sửa / xoá tour) — bấm Xem mới tải. */
+function CardHistory({ card, tours, services, staff }: { card: TreatmentCard; tours: Tour[]; services: Service[]; staff: StaffRef[] }) {
+  const t = useTranslations("cards");
+  const tt = useTranslations("tour");
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const history = useQuery({
+    queryKey: ["card-history", card.id],
+    enabled: open,
+    queryFn: async () => {
+      const res = await getCardHistory(card.id);
+      if (res.error) throw new Error(res.error);
+      return res.rows ?? [];
+    },
+  });
+  // Thao tác xong server revalidate → card / tours đổi → tải lại nhật ký.
+  useEffect(() => { qc.invalidateQueries({ queryKey: ["card-history", card.id] }); }, [qc, card, tours]);
+
+  const name = (id: unknown) => staff.find((s) => s.id === id)?.user_name ?? "—";
+  const show = (k: string, v: unknown): string => {
+    if (k === "service") return services.find((s) => s.id === v)?.name ?? "—";
+    if (v == null) return "—";
+    if (/amount$/i.test(k)) return (v as number) < 0 ? `− ${formatRupiah(-(v as number))}` : formatRupiah(v as number);
+    if (/date$/i.test(k)) return dayjs(v as string).format("DD/MM/YYYY");
+    if (/tech$/i.test(k)) return name(v);
+    if (/kind$/i.test(k)) return kindText(tt, v as Pick<Tour, "service_detail" | "service_session">) || "—";
+    if (k === "method") return t(`method.${v as CardPaymentMethod}`);
+    return String(v);
+  };
+  // Cùng giao dịch (cùng giờ + người) = 1 lần thao tác, vd. tạo thẻ + các DV.
+  const groups: { at: string; actor: string | null; lines: AuditEntry[] }[] = [];
+  for (const row of history.data ?? []) {
+    const lines = auditEntries(row);
+    const last = groups[groups.length - 1];
+    if (!lines.length) continue;
+    if (last && last.at === row.at && last.actor === row.actor) last.lines.push(...lines);
+    else groups.push({ at: row.at, actor: row.actor, lines });
+  }
+
+  return <section className="mt-4">
+    <div className="mb-2 flex items-center justify-between">
+      <h3 className="font-semibold">{t("history.title")}</h3>
+      <Button size="small" icon={<HistoryIcon className="size-4" />} loading={open && history.isFetching} onClick={() => setOpen((v) => !v)}>
+        {t(open ? "history.hide" : "history.show")}
+      </Button>
+    </div>
+    {!open || history.isPending ? null
+      : history.error ? <p className="text-sm text-destructive">{history.error.message}</p>
+      : !groups.length ? <p className="text-sm text-muted-foreground">{t("history.empty")}</p>
+      : <ol className="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
+        {groups.map((g) => <li key={`${g.at}|${g.actor}`} className="p-3">
+          <div className="text-xs text-muted-foreground tabular-nums">
+            {dayjs(g.at).format("DD/MM/YYYY HH:mm")} · <span className="font-medium text-foreground">{g.actor ? name(g.actor) : t("history.system")}</span>
+          </div>
+          <ul className="mt-1 flex flex-col gap-0.5">
+            {g.lines.map((e, i) => <li key={i}>
+              {t(`history.${e.key}`, Object.fromEntries(Object.entries(e.values).map(([k, v]) => [k, show(k, v)])))}
+            </li>)}
+          </ul>
+        </li>)}
+      </ol>}
+  </section>;
 }
 
 /** Sửa số buổi 1 DV (không nhỏ hơn số tour đã có) — hết buổi = xong liệu trình, không còn nhắc dặm / kiểm tra laser. */

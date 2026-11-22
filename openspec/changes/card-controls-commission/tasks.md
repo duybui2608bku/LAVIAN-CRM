@@ -16,6 +16,12 @@
 - [x] B.2 `/customers/journey`: tính ở server, phụ trách = Telesales của khách, "Đã hẹn" theo lịch hẹn sắp tới, nút chat
 - [x] B.3 Bỏ tab Đến hạn ở `/cards`; modal Tạo tour chỉ tick sẵn DV đang đến hạn; ô Loại không xoá trống
 
+## D. Lịch sử thao tác thẻ
+
+- [x] D.1 Migration `card_audit.card_id` + ghi đổi ngày tour + cho `cards.view` đọc
+- [x] D.2 `auditEntries` + test; mục Lịch sử thao tác trong drawer thẻ
+- [x] D.3 Chạy migration `20261122160000_card_audit_history.sql` (2026-11-22, Supabase Lavian)
+
 ## Kiểm tra
 
 - [x] tsc + eslint + node --test
