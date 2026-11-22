@@ -56,6 +56,15 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-22 — Lộ trình liệu trình: Loại tour (Laser / Làm mới / Dặm) + tab Đến hạn + sửa số buổi
+- **Thay đổi:** OpenSpec `treatment-journey-reminders` (viết tay — máy không có CLI `openspec`, chưa `validate`). Sếp chốt: Laser → 20 ngày kiểm tra, kết quả suy theo tour kế tiếp (lại Laser = chưa OK, Làm mới = OK); Làm mới/Dặm → 45 ngày dặm nếu DV còn buổi; danh sách Đến hạn **tự tính** (không lưu, không bật lại Lịch nhắc); Sales bán thẻ (người tạo thẻ) phụ trách.
+  - `lib/cards.ts`: `LASER_CHECK_DAYS`/`RETOUCH_DAYS` (sửa 1 chỗ), `TOUR_KINDS` (laser/plasma/new/retouch), `suggestTourKind`, `tourKindDetail` (số lần = tour cùng loại của dòng DV có ngày ≤ + 1), `journeyDue(cards, tours)`; bỏ `tourDetailFor`/`tourSessionOf`. Plasma (xoá môi) tính như laser.
+  - Tour: UI "Lần n" → **Loại** (`kindText`: "Laser 2", "Làm mới", "Dặm 1"; Excel + phiếu tiếng Anh "Retouch 1"). `tourPatchSchema` nhận `kind` (không nhận `service_detail/service_session` nữa), `updateTour` tự tính số. `cardTourSchema.items[].kind` thay `session`; modal Tạo tour chọn Loại (gợi ý sẵn, nhãn xem trước số).
+  - Thẻ: nút sửa số buổi (`updateCardItemSessions`, ≥ số tour đã có); `/cards` có Segmented **Thẻ liệu trình | Đến hạn (N)** — `components/cards/journey-due.tsx`, N = quá hạn + hôm nay của mình (admin: tất cả), lọc thời hạn + Sales (không phải admin mặc định là mình).
+  - i18n: `tour.kind`, vi `detail_new` = "Làm mới", `detail_retouch` = "Dặm"; bỏ `tour.session/sessionN/serviceDetail`.
+- **File ảnh hưởng:** `lib/{cards,tours}{,.test}.ts`, `types/tour.ts`, `app/(app)/{cards,tour}/actions.ts`, `components/cards/{card-drawer,cards-view,journey-due}.tsx`, `components/tour/{tour-drawer,tour-view,tour-data}.ts(x)`, `messages/{vi,en}.json`, `openspec/changes/treatment-journey-reminders/`
+- **Còn dở / ghi chú:** Không đổi DB. tsc + eslint + 105 test sạch; **chưa xem trên trình duyệt** (cần đăng nhập). Hướng dẫn Thẻ liệu trình (HTML + PDF, commit 65d6fc6) chưa thêm mục Đến hạn / sửa số buổi / Loại tour. Thẻ chỉ có laser mà kiểm tra OK sớm → Sales giảm số buổi laser = số đã làm thì mục kiểm tra mới hết. Chưa commit.
+
 ### 2026-11-22 — Báo cáo: Doanh thu lấy từ tiền thu ở thẻ
 - **Thay đổi:** `/reports` (`getReport` → `buildDays`) bỏ cộng `tours.bill_amount` theo ngày tour (DV nhiều buổi bị cộng giá bán mỗi tour). Doanh thu theo ngày VN = **Đã thu của thẻ**: `treatment_cards.deposit_used` theo `created_at` (ngày bán thẻ) + `treatment_card_payments.amount` theo `paid_at` (âm = hoàn khách), bỏ thẻ đã huỷ. `ReportSources.tours` → `money: {at, amount}[]`. ROAS dùng số mới. Migration `20261122140000_reports_read_card_money.sql`: policy đọc `treatment_cards` + `treatment_card_payments` thêm `reports.view` (như `tours`); file `20261122130000` sửa cùng để chạy lại không mất quyền.
 - **File ảnh hưởng:** `app/(app)/reports/actions.ts`, `lib/reports{,.test}.ts`, `supabase/migrations/{20261122140000_reports_read_card_money,20261122130000_rls_by_permission}.sql`

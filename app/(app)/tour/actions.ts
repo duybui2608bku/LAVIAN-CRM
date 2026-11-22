@@ -8,6 +8,7 @@ import { normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { Permission } from "@/lib/permissions";
 import { newNote, withoutNote } from "@/lib/notes";
+import { tourKindDetail } from "@/lib/cards";
 import { tourPatchSchema } from "@/lib/tours";
 import type { NoteInput, TimelineNote } from "@/types/note";
 
@@ -66,9 +67,19 @@ export async function releaseTour(id: string) {
 export async function updateTour(id: string, input: z.input<typeof tourPatchSchema>) {
   return run(async (t) => {
     z.uuid().parse(id);
-    const patch = tourPatchSchema.parse(input);
+    const { kind, ...patch } = tourPatchSchema.parse(input);
     const { profile, isAdmin, db } = await context("tour.edit");
     const data: Record<string, unknown> = { ...patch };
+    // Loại tour → service_detail + số lần theo các tour khác cùng dòng DV thẻ (tour cũ không thẻ: lần 1).
+    if (kind === null) Object.assign(data, { service_detail: null, service_session: null });
+    else if (kind) {
+      const { data: tour, error } = await db.from("tours").select("card_item_id,tour_date").eq("id", id).single();
+      if (error) throw error;
+      const others = tour.card_item_id ? await db.from("tours").select("tour_date,service_detail")
+        .eq("card_item_id", tour.card_item_id).is("deleted_at", null).neq("id", id) : { data: [], error: null };
+      if (others.error) throw others.error;
+      Object.assign(data, tourKindDetail(kind, patch.tour_date ?? tour.tour_date, others.data ?? []));
+    }
     if (patch.technician_id !== undefined) {
       if (!isAdmin) return t("forbidden");
       if (patch.technician_id) {

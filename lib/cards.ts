@@ -26,24 +26,82 @@ export const suggestRefund = (price: number, sessions: number, used: number) =>
 export const cardDone = (items: { id: string; sessions: number; refunded_at: string | null }[], used: (itemId: string) => number) =>
   items.some((i) => !i.refunded_at) && items.every((i) => i.refunded_at || used(i.id) >= i.sessions);
 
-const LASER_GROUPS = ["laser", "eyeliner_treatment"];
+// ───────── Loại tour + lộ trình liệu trình (sếp chốt 2026-11-22) ─────────
+// Laser (mày) / Plasma (môi) xoá cũ → kiểm tra sau 20 ngày: tour kế tiếp lại Laser = chưa OK, Làm mới = OK.
+// Làm mới / Dặm xong → dặm sau 45 ngày nếu DV còn buổi.
+export const LASER_CHECK_DAYS = 20;
+export const RETOUCH_DAYS = 45;
+/** Loại tour chọn được = tours.service_detail (debt chỉ còn ở dữ liệu cũ). Khớp tourPatchSchema.kind (lib/tours.ts). */
+export const TOUR_KINDS = ["laser", "plasma", "new", "retouch"] as const;
+export type TourKind = (typeof TOUR_KINDS)[number];
 
-/**
- * Dịch vụ chi tiết + lần của tour thứ `n` của 1 dịch vụ trong thẻ (lưu DB, UI chỉ hiện "Lần n"):
- * nhóm Laser / tên có "laser" → Laser n; tên có "plasma" → Plasma n; còn lại lần 1 = New, lần n ≥ 2 = Retouch n−1.
- * ponytail: đoán theo nhóm/tên dịch vụ — Debt hay ngoại lệ thì KTV/admin sửa ở drawer tour.
- */
-export function tourDetailFor(service: { group_id: string; name: string }, n: number) {
-  if (LASER_GROUPS.includes(service.group_id) || /laser/i.test(service.name)) return { service_detail: "laser", service_session: n } as const;
-  if (/plasma/i.test(service.name)) return { service_detail: "plasma", service_session: n } as const;
-  return n <= 1 ? { service_detail: "new", service_session: null } as const : { service_detail: "retouch", service_session: n - 1 } as const;
+const LASER_GROUPS = ["laser", "eyeliner_treatment"];
+const isRemoval = (detail: string | null) => detail === "laser" || detail === "plasma";
+
+type KindTour = { tour_date: string; service_detail: string | null };
+
+/** Loại gợi ý cho tour mới của 1 dòng DV: nhóm Laser / tên "laser" → Laser; tên "plasma" → Plasma; chưa Làm mới → Làm mới; còn lại Dặm. */
+export function suggestTourKind(service: { group_id: string; name: string }, itemTours: KindTour[]): TourKind {
+  if (LASER_GROUPS.includes(service.group_id) || /laser/i.test(service.name)) return "laser";
+  if (/plasma/i.test(service.name)) return "plasma";
+  return itemTours.some((t) => t.service_detail === "new") ? "retouch" : "new";
 }
 
-/** Ngược của tourDetailFor: Lần n của tour (New/Debt = 1, Retouch k = k+1, Laser/Plasma k = k); chưa có → null. */
-export function tourSessionOf(tour: { service_detail: string | null; service_session: number | null }): number | null {
-  if (tour.service_detail === "new" || tour.service_detail === "debt") return 1;
-  if (tour.service_detail === "retouch") return tour.service_session == null ? null : tour.service_session + 1;
-  return tour.service_detail ? tour.service_session : null;
+/**
+ * Giá trị lưu DB của Loại: Làm mới không có số; Laser / Plasma / Dặm số n = số tour cùng loại khác của dòng DV
+ * có ngày ≤ ngày tour này + 1 (check DB: 1–20).
+ * ponytail: đổi Loại / ngày 1 tour không đánh số lại các tour sau — chỉ là nhãn.
+ */
+export function tourKindDetail(kind: TourKind, date: string, others: KindTour[]) {
+  if (kind === "new") return { service_detail: kind, service_session: null };
+  const n = others.filter((t) => t.service_detail === kind && t.tour_date <= date).length + 1;
+  return { service_detail: kind, service_session: Math.min(n, MAX_TOUR_SESSION) };
+}
+
+const addDays = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+type DueItem = { id: string; sessions: number; refunded_at: string | null };
+type DueCard = { cancelled_at: string | null; items: DueItem[] };
+type DueTour = KindTour & { card_item_id: string | null; service_session: number | null };
+export type JourneyDue<C, T> = {
+  card: C;
+  item: DueItem;
+  /** laser_check = Kiểm tra laser/plasma; retouch = Dặm lần `n`. */
+  task: "laser_check" | "retouch";
+  n: number;
+  due: string; // YYYY-MM-DD
+  last: T; // tour tính hạn
+};
+
+/**
+ * Việc đến hạn của khách đang có liệu trình — tự tính từ thẻ + tour, không lưu.
+ * - Tour cuối của cả thẻ là Laser/Plasma + thẻ còn buổi → Kiểm tra laser (ngày tour + 20).
+ * - Ngược lại, mỗi DV chưa hoàn còn buổi có tour cuối Làm mới / Dặm → Dặm (ngày tour + 45).
+ * Tour ngày tương lai cũng tính là "tour kế tiếp" (đã hẹn thì không nhắc lại).
+ */
+export function journeyDue<C extends DueCard, T extends DueTour>(cards: C[], tours: T[]): JourneyDue<C, T>[] {
+  const out: JourneyDue<C, T>[] = [];
+  for (const card of cards) {
+    if (card.cancelled_at) continue;
+    const ofItem = (id: string) => tours.filter((t) => t.card_item_id === id).sort((a, b) => a.tour_date.localeCompare(b.tour_date));
+    const open = card.items.filter((i) => !i.refunded_at && ofItem(i.id).length < i.sessions);
+    const all = card.items.flatMap((i) => ofItem(i.id).map((tour) => ({ tour, item: i })))
+      .sort((a, b) => a.tour.tour_date.localeCompare(b.tour.tour_date));
+    const last = all.at(-1);
+    if (last && isRemoval(last.tour.service_detail)) {
+      if (open.length) out.push({ card, item: last.item, task: "laser_check", n: last.tour.service_session ?? 1,
+        due: addDays(last.tour.tour_date, LASER_CHECK_DAYS), last: last.tour });
+      continue;
+    }
+    for (const item of open) {
+      const list = ofItem(item.id);
+      const end = list.at(-1);
+      if (!end || (end.service_detail !== "new" && end.service_detail !== "retouch")) continue;
+      out.push({ card, item, task: "retouch", n: list.filter((t) => t.service_detail === "retouch").length + 1,
+        due: addDays(end.tour_date, RETOUCH_DAYS), last: end });
+    }
+  }
+  return out.sort((a, b) => a.due.localeCompare(b.due));
 }
 
 const money = z.number().int().min(0).max(1e13);
@@ -66,6 +124,9 @@ export const cardItemsAddSchema = items;
 
 export const cardRefundSchema = z.object({ amount: money, note }).strict();
 
+/** Sửa số buổi 1 DV trong thẻ (khớp check DB 1–100; server chặn thêm < số tour đã có). */
+export const cardItemSessionsSchema = cardItemInputSchema.shape.sessions;
+
 export const cardPaymentSchema = z.object({
   amount: z.number().int().min(-1e13).max(1e13).refine((v) => v !== 0),
   method: z.enum(CARD_PAYMENT_METHODS),
@@ -75,7 +136,7 @@ export const cardPaymentSchema = z.object({
 
 export const cardTourSchema = z.object({
   tour_date: z.iso.date(),
-  items: z.array(z.object({ card_item_id: z.uuid(), session: z.number().int().min(1).max(MAX_TOUR_SESSION) }).strict())
+  items: z.array(z.object({ card_item_id: z.uuid(), kind: z.enum(TOUR_KINDS) }).strict())
     .min(1).max(30).refine((list) => new Set(list.map((i) => i.card_item_id)).size === list.length),
   note: z.string().trim().max(10000).default(""),
 }).strict();

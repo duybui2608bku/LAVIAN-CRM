@@ -14,7 +14,7 @@ import { RowActions } from "@/components/common/row-actions";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { runAction, sessionText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
+import { runAction, kindText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import { groupByTechnician } from "@/components/tour/tour-data";
 import { PhotoCountButton, TourPhotosModal } from "@/components/tour/tour-photos";
 import { TourSlips } from "@/components/tour/tour-slips";
@@ -125,7 +125,7 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
           <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="flex items-center gap-2">
-              {tour.service_detail ? <Tag color="cyan" className="me-0">{sessionText(t, tour)}</Tag> : <Tag className="me-0">{t("needDetail")}</Tag>}
+              {tour.service_detail ? <Tag color="cyan" className="me-0">{kindText(t, tour)}</Tag> : <Tag className="me-0">{t("needDetail")}</Tag>}
               <PhotoCountButton tour={tour} onOpen={onPhotos} />
             </span>
             <span className="font-semibold tabular-nums">{tour.bill_amount == null ? "—" : formatRupiah(tour.bill_amount)}</span>
@@ -175,9 +175,9 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
     try {
       const { downloadTourExcel } = await import("@/components/tour/tour-export");
       await downloadTourExcel(groups, month, {
-        technician: t("technician"), date: t("date"), customer: t("customer"), service: t("session"),
+        technician: t("technician"), date: t("date"), customer: t("customer"), service: t("kind"),
         bill: t("bill"), subtotal: t("subtotal"), total: t("grandTotal"),
-        detail: (row) => sessionText(t, row),
+        detail: (row) => kindText(t, row),
       });
     } catch {
       toast.error(t("exportFailed"));
@@ -190,8 +190,8 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
     { title: t("date"), width: 110, render: (_, r) => dayjs(r.tour_date).format("DD/MM/YYYY") },
     { title: t("customer"), width: 200, render: (_, r) => <NamePhone name={r.customer?.full_name ?? "—"} phone={r.customer?.phone} /> },
     { title: t("service"), width: 140, render: (_, r) => serviceLabel(r.service_id) },
-    { title: t("session"), width: 100, render: (_, r) => r.service_detail
-      ? <Tag color="cyan" className="me-0">{sessionText(t, r)}</Tag> : DASH },
+    { title: t("kind"), width: 100, render: (_, r) => r.service_detail
+      ? <Tag color="cyan" className="me-0">{kindText(t, r)}</Tag> : DASH },
     { title: t("technician"), width: 170, render: (_, r) => {
       const s = r.technician_id ? staffById.get(r.technician_id) : undefined;
       return s ? staffLabel(s) : DASH;

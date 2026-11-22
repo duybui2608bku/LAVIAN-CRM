@@ -160,9 +160,6 @@
     "date": "Date",
     "customer": "Customer",
     "service": "Service",
-    "serviceDetail": "Service detail",
-    "session": "Session",
-    "sessionN": "Session {n}",
     "bill": "Bill",
     "note": "Note",
     "photos": "Photos",
@@ -188,7 +185,7 @@
     "tabPending": "Waiting",
     "tabMine": "My tours",
     "noPending": "No tours waiting",
-    "needDetail": "No session",
+    "needDetail": "No type",
     "claim": "Take tour",
     "claimed": "Tour taken",
     "claimHint": "Take this tour to fill in the service detail, bill and photos.",
@@ -228,7 +225,8 @@
     "forbidden": "You can't change this tour (or it has changed)",
     "alreadyClaimed": "This tour was already taken",
     "onlyTechnician": "Only technicians can take tours",
-    "confirmMissing": "Technician and session are required before confirming"
+    "confirmMissing": "Technician and session are required before confirming",
+    "kind": "Type"
   },
   "nav": {
     "usersList": "All users",
@@ -1150,7 +1148,8 @@
       "forbidden": "You don't have permission for this.",
       "refundTooHigh": "Refund can't exceed the sale price.",
       "hasTours": "The card has tours — delete them before cancelling.",
-      "itemUnavailable": "Service is no longer on the card (refunded?). Reload the page."
+      "itemUnavailable": "Service is no longer on the card (refunded?). Reload the page.",
+      "sessionsBelowUsed": "Sessions can't be fewer than those already done ({used})."
     },
     "selected": "Selected ({count})",
     "sessionsShort": "sess.",
@@ -1159,6 +1158,28 @@
     "createdBy": "Created by",
     "allCreators": "All creators",
     "openProfile": "Open customer profile",
-    "print": "Print card (PDF)"
+    "print": "Print card (PDF)",
+    "save": "Save",
+    "editSessions": "Edit sessions",
+    "sessionsHint": "{used} session(s) done — can't go below that. All sessions used = treatment finished, no more reminders.",
+    "tabCards": "Cards",
+    "tabDue": "Due",
+    "dueDate": "Due date",
+    "overdueDays": "{n} days overdue",
+    "dueToday": "Today",
+    "daysLeft": "In {n} days",
+    "task": "Task",
+    "taskCheck": "{kind} check",
+    "lastTour": "Last tour",
+    "seller": "Sold by",
+    "dueRange": "Range",
+    "range": {
+      "all": "All",
+      "overdue": "Overdue",
+      "today": "Today",
+      "soon": "Next 7 days"
+    },
+    "allSellers": "All sales",
+    "dueEmpty": "No customers due for a check / retouch."
   }
 }

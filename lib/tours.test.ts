@@ -10,15 +10,12 @@ test("status is derived from technician + confirmation", () => {
   assert.equal(tourStatus({ technician_id: id, confirmed_at: "2026-11-06T00:00:00Z" }), "confirmed");
 });
 
-test("patch: detail requires session only for laser/plasma/retouch; whitelist; images are http urls", () => {
+test("patch: Loại tour (server tự tính lần); whitelist; images are http urls", () => {
   const ok = (p: object) => tourPatchSchema.safeParse(p).success;
-  assert.equal(ok({ service_detail: "retouch", service_session: 2 }), true);
-  assert.equal(ok({ service_detail: "new", service_session: null }), true);
-  assert.equal(ok({ service_detail: null, service_session: null }), true);
-  assert.equal(ok({ service_detail: "laser", service_session: null }), false);
-  assert.equal(ok({ service_detail: "laser", service_session: 21 }), false);
-  assert.equal(ok({ service_detail: "new", service_session: 1 }), false);
-  assert.equal(ok({ service_detail: "debt" }), false);
+  assert.equal(ok({ kind: "retouch" }), true);
+  assert.equal(ok({ kind: null }), true);
+  assert.equal(ok({ kind: "debt" }), false); // Debt chỉ còn ở dữ liệu cũ
+  assert.equal(ok({ service_detail: "new", service_session: null }), false); // lần do server tính
   assert.equal(ok({}), false);
   assert.equal(ok({ confirmed_at: "2026-11-06T00:00:00Z" }), false);
   assert.equal(ok({ bill_amount: 500 }), false); // tiền tour lấy từ thẻ, không sửa ở tour

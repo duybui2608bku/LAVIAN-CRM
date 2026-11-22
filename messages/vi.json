@@ -160,9 +160,6 @@
     "date": "Ngày",
     "customer": "Khách hàng",
     "service": "Dịch vụ",
-    "serviceDetail": "Dịch vụ chi tiết",
-    "session": "Lần",
-    "sessionN": "Lần {n}",
     "bill": "Hoá đơn",
     "note": "Ghi chú",
     "photos": "Ảnh",
@@ -175,9 +172,9 @@
     "photoSaved": "Đã lưu ảnh",
     "detail_laser": "Laser",
     "detail_plasma": "Plasma",
-    "detail_new": "New",
+    "detail_new": "Làm mới",
     "detail_debt": "Debt",
-    "detail_retouch": "Retouch",
+    "detail_retouch": "Dặm",
     "status": "Trạng thái",
     "status_pending": "Chờ nhận",
     "status_claimed": "Chưa xác nhận",
@@ -188,7 +185,7 @@
     "tabPending": "Chờ nhận",
     "tabMine": "Tour của tôi",
     "noPending": "Không có tour chờ nhận",
-    "needDetail": "Chưa chọn lần",
+    "needDetail": "Chưa chọn loại",
     "claim": "Nhận tour",
     "claimed": "Đã nhận tour",
     "claimHint": "Nhận tour để điền dịch vụ chi tiết, hoá đơn và chụp ảnh.",
@@ -228,7 +225,8 @@
     "forbidden": "Bạn không có quyền với tour này (hoặc tour đã thay đổi)",
     "alreadyClaimed": "Tour đã có người nhận",
     "onlyTechnician": "Chỉ Master được nhận tour",
-    "confirmMissing": "Cần có Master và lần trước khi xác nhận"
+    "confirmMissing": "Cần có Master và lần trước khi xác nhận",
+    "kind": "Loại"
   },
   "nav": {
     "usersList": "Danh sách",
@@ -1150,7 +1148,8 @@
       "forbidden": "Bạn không có quyền thao tác này.",
       "refundTooHigh": "Tiền hoàn không được lớn hơn giá bán.",
       "hasTours": "Thẻ đã có tour — xoá tour trước khi huỷ thẻ.",
-      "itemUnavailable": "Dịch vụ không còn trong thẻ (đã hoàn?). Tải lại trang."
+      "itemUnavailable": "Dịch vụ không còn trong thẻ (đã hoàn?). Tải lại trang.",
+      "sessionsBelowUsed": "Số buổi không được nhỏ hơn số buổi đã làm ({used})."
     },
     "selected": "Đã chọn ({count})",
     "sessionsShort": "buổi",
@@ -1159,6 +1158,28 @@
     "createdBy": "Người tạo",
     "allCreators": "Tất cả người tạo",
     "openProfile": "Mở hồ sơ khách hàng",
-    "print": "In thẻ (PDF)"
+    "print": "In thẻ (PDF)",
+    "save": "Lưu",
+    "editSessions": "Sửa số buổi",
+    "sessionsHint": "Đã làm {used} buổi — không nhỏ hơn số này. Hết buổi = xong liệu trình, không còn nhắc.",
+    "tabCards": "Thẻ liệu trình",
+    "tabDue": "Đến hạn",
+    "dueDate": "Hạn",
+    "overdueDays": "Quá hạn {n} ngày",
+    "dueToday": "Hôm nay",
+    "daysLeft": "Còn {n} ngày",
+    "task": "Việc",
+    "taskCheck": "Kiểm tra {kind}",
+    "lastTour": "Tour gần nhất",
+    "seller": "Sales bán thẻ",
+    "dueRange": "Thời hạn",
+    "range": {
+      "all": "Tất cả hạn",
+      "overdue": "Quá hạn",
+      "today": "Hôm nay",
+      "soon": "7 ngày tới"
+    },
+    "allSellers": "Tất cả Sales",
+    "dueEmpty": "Không có khách đến hạn kiểm tra / dặm."
   }
 }
