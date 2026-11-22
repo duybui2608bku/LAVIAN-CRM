@@ -47,8 +47,8 @@ test("Loại tour gợi ý + số lần theo tour cùng loại trước đó", (
 });
 
 test("đến hạn liệu trình: kiểm tra laser 20 ngày, dặm 45 ngày, hết buổi thì thôi", () => {
-  const laser = { id: "L", sessions: 3, refunded_at: null };
-  const brow = { id: "B", sessions: 2, refunded_at: null };
+  const laser = { id: "L", service_id: "s-laser", sessions: 3, refunded_at: null };
+  const brow = { id: "B", service_id: "s-brow", sessions: 2, refunded_at: null };
   const card = { id: "c1", cancelled_at: null, items: [laser, brow] };
   const tour = (card_item_id: string, tour_date: string, service_detail: string, service_session: number | null = 1) =>
     ({ card_item_id, tour_date, service_detail, service_session });

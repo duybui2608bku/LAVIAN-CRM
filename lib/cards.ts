@@ -60,7 +60,7 @@ export function tourKindDetail(kind: TourKind, date: string, others: KindTour[])
 
 const addDays = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
-type DueItem = { id: string; sessions: number; refunded_at: string | null };
+type DueItem = { id: string; service_id: string; sessions: number; refunded_at: string | null };
 type DueCard = { cancelled_at: string | null; items: DueItem[] };
 type DueTour = KindTour & { card_item_id: string | null; service_session: number | null };
 export type JourneyDue<C, T> = {
