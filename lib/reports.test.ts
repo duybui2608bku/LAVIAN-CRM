@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildDays, change, dayCount, previousRange, totals, vnDay } from "./reports.ts";
+import { buildDays, change, dayCount, previousRange, salesCommission, totals, vnDay } from "./reports.ts";
 
 test("previousRange lấy kỳ liền trước cùng số ngày", () => {
   assert.equal(dayCount("2026-11-01", "2026-11-07"), 7);
@@ -61,4 +61,18 @@ test("nguồn lỗi → null, chia cho 0 → null", () => {
   assert.equal(t.bookings, null);
   assert.equal(change(5, 0), null);
   assert.equal(change(15, 10), 0.5);
+});
+
+test("hoa hồng Sales = 5% tiền thực thu trong kỳ, hoàn tiền trừ ngược, theo người tạo thẻ", () => {
+  const rows = salesCommission([
+    { at: "2026-11-01T03:00:00Z", amount: 2_000_000, seller: "An" }, // cọc trừ vào thẻ
+    { at: "2026-11-05T03:00:00Z", amount: 8_000_000, seller: "An" },
+    { at: "2026-11-06T03:00:00Z", amount: -1_000_000, seller: "An" }, // hoàn khách
+    { at: "2026-11-03T03:00:00Z", amount: 3_000_000, seller: "Bình" },
+    { at: "2026-10-31T16:59:00Z", amount: 5_000_000, seller: "Bình" }, // 23:59 VN 31/10 → ngoài kỳ
+  ], "2026-11-01", "2026-11-30");
+  assert.deepEqual(rows, [
+    { seller: "An", collected: 9_000_000, commission: 450_000 },
+    { seller: "Bình", collected: 3_000_000, commission: 150_000 },
+  ]);
 });

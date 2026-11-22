@@ -31,6 +31,7 @@ import {
   LOWER_IS_BETTER,
   METRICS,
   ratio,
+  SALES_RATE,
   totals,
   type DayRow,
   type Metric,
@@ -319,6 +320,37 @@ export function ReportsView() {
           }
         />
         )}
+      </section>
+
+      {/* Hoa hồng Sales = 5% tiền thực thu của thẻ (cọc trừ vào thẻ + các lần thu − hoàn), theo người tạo thẻ. */}
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold">{t("salesCommission", { rate: SALES_RATE * 100 })}</h2>
+        <DataTable<NonNullable<Report["sales"]>[number]>
+          rowKey="seller"
+          loading={pending && !report}
+          dataSource={report?.sales ?? []}
+          empty={t("salesEmpty")}
+          columns={[
+            { key: "seller", title: t("seller"), dataIndex: "seller" },
+            { key: "collected", title: t("collected"), align: "right", render: (_, r) =>
+              <span className="tabular-nums">{formatRupiah(r.collected)}</span> },
+            { key: "commission", title: t("commission"), align: "right", render: (_, r) =>
+              <span className="font-medium tabular-nums">{formatRupiah(r.commission)}</span> },
+          ]}
+          summary={(data) => data.length > 1 ? (
+            <Table.Summary>
+              <Table.Summary.Row className="bg-muted/50 font-semibold">
+                <Table.Summary.Cell index={0}>{t("total")}</Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="right">
+                  <span className="tabular-nums">{formatRupiah(data.reduce((s, r) => s + r.collected, 0))}</span>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={2} align="right">
+                  <span className="tabular-nums">{formatRupiah(data.reduce((s, r) => s + r.commission, 0))}</span>
+                </Table.Summary.Cell>
+              </Table.Summary.Row>
+            </Table.Summary>
+          ) : null}
+        />
       </section>
     </>
   );

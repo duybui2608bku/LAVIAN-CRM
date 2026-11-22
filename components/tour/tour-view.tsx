@@ -21,7 +21,7 @@ import { TourSlips } from "@/components/tour/tour-slips";
 import { formatRupiah } from "@/lib/currency";
 import { matchesNameOrPhone } from "@/lib/customers";
 import { toast } from "@/lib/toast";
-import { tourStatus, type TourStatus } from "@/lib/tours";
+import { tourCommission, tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import type { Tour } from "@/types/tour";
@@ -82,8 +82,9 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
   const [, start] = useTransition();
   const items = tours;
   const unconfirmed = items.filter((r) => !r.confirmed_at).length;
-  const total = items.reduce((n, r) => n + (r.bill_amount ?? 0), 0);
-  const confirmedTotal = items.reduce((n, r) => n + (r.confirmed_at ? r.bill_amount ?? 0 : 0), 0);
+  // Công Master (Làm mới 7%, Dặm 3%) — phần đã xác nhận là phần được tính lương.
+  const total = items.reduce((n, r) => n + tourCommission(r), 0);
+  const confirmedTotal = items.reduce((n, r) => n + (r.confirmed_at ? tourCommission(r) : 0), 0);
 
   const claim = (id: string) => {
     setClaiming(id);
@@ -113,7 +114,7 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
         <StatCard label={t("count")} value={items.length} />
         <StatCard label={t("status_claimed")} value={unconfirmed} />
         <div className="col-span-2 sm:col-span-1">
-          <StatCard label={t("bill")} value={formatRupiah(total)}
+          <StatCard label={t("commission")} value={formatRupiah(total)}
             hint={t("confirmedAmount", { amount: formatRupiah(confirmedTotal) })} />
         </div>
       </div>
@@ -128,7 +129,7 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
               {tour.service_detail ? <Tag color="cyan" className="me-0">{kindText(t, tour)}</Tag> : <Tag className="me-0">{t("needDetail")}</Tag>}
               <PhotoCountButton tour={tour} onOpen={onPhotos} />
             </span>
-            <span className="font-semibold tabular-nums">{tour.bill_amount == null ? "—" : formatRupiah(tour.bill_amount)}</span>
+            <span className="font-semibold tabular-nums" title={t("commission")}>{formatRupiah(tourCommission(tour))}</span>
           </div>
         </div>) : <div className="surface py-10"><Empty description={t("empty")} /></div>}
       </div>
@@ -168,6 +169,7 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
   const groups = me.isAdmin ? groupByTechnician(items, staff) : [];
   const count = (s: TourStatus) => all.filter((r) => tourStatus(r) === s).length;
   const total = items.reduce((n, r) => n + (r.bill_amount ?? 0), 0);
+  const commission = items.reduce((n, r) => n + tourCommission(r), 0);
   const failed = t("saveError");
 
   const exportExcel = async () => {
@@ -176,7 +178,7 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
       const { downloadTourExcel } = await import("@/components/tour/tour-export");
       await downloadTourExcel(groups, month, {
         technician: t("technician"), date: t("date"), customer: t("customer"), service: t("kind"),
-        bill: t("bill"), subtotal: t("subtotal"), total: t("grandTotal"),
+        bill: t("bill"), commission: t("commission"), subtotal: t("subtotal"), total: t("grandTotal"),
         detail: (row) => kindText(t, row),
       });
     } catch {
@@ -199,6 +201,8 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
     { title: t("photos"), width: 90, render: (_, r) => <PhotoCountButton tour={r} onOpen={onPhotos} /> },
     { title: t("bill"), width: 140, align: "right", render: (_, r) =>
       r.bill_amount == null ? DASH : <span className="tabular-nums">{formatRupiah(r.bill_amount)}</span> },
+    { title: t("commission"), width: 120, align: "right", render: (_, r) =>
+      <span className="tabular-nums">{formatRupiah(tourCommission(r))}</span> },
     { title: t("status"), width: 140, render: (_, r) => <TourStatusTag tour={r} /> },
     { key: "actions", width: 56, align: "right", fixed: "right", render: (_, r) => <div onClick={(e) => e.stopPropagation()}>
       <RowActions label={t("actions")} items={[
@@ -241,11 +245,12 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
           ...technicians.map((s) => ({ value: s.id, title: s.user_name, label: staffLabel(s) })),
         ]} />
     </PageToolbar>
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
       <StatCard label={t("count")} value={all.length} />
       <StatCard label={t("status_pending")} value={count("pending")} />
       <StatCard label={t("status_claimed")} value={count("claimed")} />
       <StatCard label={t("bill")} value={formatRupiah(total)} />
+      <StatCard label={t("commission")} value={formatRupiah(commission)} />
     </div>
     <DataTable<Tour> columns={columns} dataSource={items} pageSize={50} empty={t("empty")}
       onRow={(r) => ({ onClick: () => onOpen(r.id), className: "cursor-pointer" })} />

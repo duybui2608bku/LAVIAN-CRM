@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { tourPatchSchema, tourStatus } from "./tours.ts";
+import { tourCommission, tourPatchSchema, tourStatus } from "./tours.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
 
@@ -13,7 +13,7 @@ test("status is derived from technician + confirmation", () => {
 test("patch: Loại tour (server tự tính lần); whitelist; images are http urls", () => {
   const ok = (p: object) => tourPatchSchema.safeParse(p).success;
   assert.equal(ok({ kind: "retouch" }), true);
-  assert.equal(ok({ kind: null }), true);
+  assert.equal(ok({ kind: null }), false); // Loại bắt buộc: không Loại thì mất khỏi Đến hạn + không tính công
   assert.equal(ok({ kind: "debt" }), false); // Debt chỉ còn ở dữ liệu cũ
   assert.equal(ok({ service_detail: "new", service_session: null }), false); // lần do server tính
   assert.equal(ok({}), false);
@@ -22,4 +22,16 @@ test("patch: Loại tour (server tự tính lần); whitelist; images are http u
   assert.equal(ok({ payment_method: "cash" }), false);
   assert.equal(ok({ before_images: ["https://cdn.example.com/a.jpg"] }), true);
   assert.equal(ok({ before_images: ["javascript:alert(1)"] }), false);
+});
+
+test("công Master: Làm mới 7%, Dặm 3% mọi lần, Laser/Plasma 0%, Debt cũ 7%", () => {
+  const c = (service_detail: string | null, bill_amount: number | null = 6_000_000) => tourCommission({ service_detail, bill_amount });
+  assert.equal(c("new"), 420_000);
+  assert.equal(c("retouch"), 180_000);
+  assert.equal(c("laser"), 0);
+  assert.equal(c("plasma"), 0);
+  assert.equal(c("debt"), 420_000);
+  assert.equal(c(null), 0);
+  assert.equal(c("new", null), 0);
+  assert.equal(c("retouch", 1_500_001), 45_000); // làm tròn
 });

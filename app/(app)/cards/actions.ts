@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { requirePermission } from "@/lib/auth";
 import {
-  cardCreateSchema, cardItemSessionsSchema, cardItemsAddSchema, cardPaymentSchema, cardRefundSchema, cardTourSchema, tourKindDetail,
+  cardCreateSchema, cardItemSessionsSchema, cardItemsAddSchema, cardPaymentSchema, cardRefundSchema, cardTourSchema, isTourable, tourKindDetail,
 } from "@/lib/cards";
 import { normalizeError } from "@/lib/errors";
 import { initialNotes } from "@/lib/notes";
@@ -14,8 +14,11 @@ import { createClient } from "@/lib/supabase/server";
 type Result = { error?: string };
 type T = Awaited<ReturnType<typeof getTranslations<"cards">>>;
 
-// Lỗi nghiệp vụ do RPC create_treatment_card raise (P0001) → key i18n.
-const RPC_ERRORS = ["card_needs_items", "customer_not_found", "appointment_not_arrived"] as const;
+// Lỗi nghiệp vụ do RPC / trigger DB raise (P0001) → key i18n `cards.error.*`.
+const DB_ERRORS: Record<string, string> = {
+  card_needs_items: "card_needs_items", customer_not_found: "customer_not_found", appointment_not_arrived: "appointment_not_arrived",
+  card_cancelled: "cancelled", item_refunded: "itemUnavailable", tour_card_mismatch: "itemUnavailable",
+};
 
 async function run(action: (t: T, db: Awaited<ReturnType<typeof createClient>>) => Promise<string | void>): Promise<Result> {
   const t = await getTranslations("cards");
@@ -27,8 +30,8 @@ async function run(action: (t: T, db: Awaited<ReturnType<typeof createClient>>) 
     return {};
   } catch (error) {
     const message = normalizeError(error).message;
-    const known = RPC_ERRORS.find((code) => message.includes(code));
-    if (known) return { error: t(`error.${known}`) };
+    const known = Object.keys(DB_ERRORS).find((code) => message.includes(code));
+    if (known) return { error: t(`error.${DB_ERRORS[known]}`) };
     // 23505 = unique: lịch hẹn đã có thẻ đang hiệu lực.
     const code = error && typeof error === "object" && "code" in error ? error.code : null;
     return { error: code === "23505" ? t("error.appointmentHasCard") : message };
@@ -110,7 +113,7 @@ export async function deleteCardPayment(paymentId: string) {
   });
 }
 
-/** Huỷ thẻ tạo nhầm — chỉ admin, thẻ chưa có tour. Cọc đã trừ được trả lại cho thẻ sau. */
+/** Huỷ thẻ tạo nhầm — chỉ admin, thẻ chưa có tour, chưa thu tiền (đã thu → ghi hoàn tiền trước). Cọc đã trừ được trả lại cho thẻ sau. */
 export async function cancelCard(cardId: string) {
   return run(async (t, db) => {
     z.uuid().parse(cardId);
@@ -120,6 +123,10 @@ export async function cancelCard(cardId: string) {
       .eq("item.card_id", cardId).is("deleted_at", null);
     if (countErr) throw countErr;
     if (count) return t("error.hasTours");
+    // Thẻ đã thu tiền: huỷ sẽ làm khoản thu biến khỏi báo cáo → phải ghi khoản hoàn (số âm) trước.
+    const { data: paid, error: paidErr } = await db.from("treatment_card_payments").select("amount").eq("card_id", cardId);
+    if (paidErr) throw paidErr;
+    if (paid.reduce((s, p) => s + p.amount, 0) !== 0) return t("error.hasPayments");
     const { data, error } = await db.from("treatment_cards")
       .update({ cancelled_at: new Date().toISOString(), cancelled_by: profile.id })
       .eq("id", cardId).is("cancelled_at", null).select("id");
@@ -148,8 +155,9 @@ export async function updateCardItemSessions(itemId: string, sessions: number) {
 }
 
 /**
- * Tạo tour từ thẻ: mỗi dịch vụ chọn = 1 tour (khách, dịch vụ, Hoá đơn = giá bán lấy từ thẻ) theo Loại đã chọn;
+ * Tạo tour từ thẻ: mỗi dịch vụ chọn = 1 tour (khách, dịch vụ, Hoá đơn = giá bán lấy từ thẻ — cơ sở tính công Master) theo Loại;
  * số lần server tự tính theo tour đã có của dòng DV (tourKindDetail). Tour vào "Chờ nhận" như cũ.
+ * Chặn DV không tạo tour (mực, phí Master); vượt số buổi chỉ admin.
  */
 export async function createCardTours(cardId: string, input: z.input<typeof cardTourSchema>) {
   return run(async (t, db) => {
@@ -160,12 +168,17 @@ export async function createCardTours(cardId: string, input: z.input<typeof card
     if (!card) return t("error.cancelled");
     const ids = values.items.map((i) => i.card_item_id);
     const [{ data: items, error }, { data: existing, error: toursErr }] = await Promise.all([
-      db.from("treatment_card_items").select("id,service_id,price").eq("card_id", cardId).is("refunded_at", null).in("id", ids),
+      db.from("treatment_card_items").select("id,service_id,price,sessions,service:services(tourable)")
+        .eq("card_id", cardId).is("refunded_at", null).in("id", ids),
       db.from("tours").select("card_item_id,tour_date,service_detail").in("card_item_id", ids).is("deleted_at", null),
     ]);
     if (error) throw error;
     if (toursErr) throw toursErr;
-    if (items.length !== values.items.length) return t("error.itemUnavailable");
+    // Join many-to-one trả object (kiểu suy ra của supabase-js là mảng).
+    if (items.length !== values.items.length || !items.every((i) => isTourable(i as unknown as { service: { group_id: string; tourable: boolean } | null })))
+      return t("error.itemUnavailable");
+    const usedOf = (id: string) => (existing ?? []).filter((x) => x.card_item_id === id).length;
+    if (profile.role !== "admin" && items.some((i) => usedOf(i.id) >= i.sessions)) return t("error.overSessions");
     const notes = initialNotes(values.note, profile);
     const rows = values.items.map(({ card_item_id, kind }) => {
       const item = items.find((i) => i.id === card_item_id)!;

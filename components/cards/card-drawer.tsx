@@ -18,7 +18,8 @@ import { staffLabel, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
 import { runAction, kindText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import {
-  CARD_PAYMENT_METHODS, cardDone, cardMoney, suggestRefund, suggestTourKind, TOUR_KINDS, tourKindDetail, type CardPaymentMethod, type TourKind,
+  CARD_PAYMENT_METHODS, cardDone, cardMoney, isTourable, journeyDue, suggestRefund, suggestTourKind, TOUR_KINDS, tourKindDetail,
+  type CardPaymentMethod, type TourKind,
 } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
 import type { CardItem, TreatmentCard } from "@/types/card";
@@ -124,10 +125,14 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
             </div> : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Tag color={n >= item.sessions ? "green" : n ? "blue" : "default"} className="me-0 tabular-nums">
+            {/* Mực / phí Master: không tạo tour → không có buổi. */}
+            {isTourable(item) ? <Tag color={n >= item.sessions ? "green" : n ? "blue" : "default"} className="me-0 tabular-nums">
               {t("usedSessions", { used: n, total: item.sessions })}
-            </Tag>
-            {canEdit && !item.refunded_at ? <><SessionsButton item={item} used={n} /><RefundButton item={item} used={n} /></> : null}
+            </Tag> : null}
+            {canEdit && !item.refunded_at ? <>
+              {isTourable(item) ? <SessionsButton item={item} used={n} /> : null}
+              <RefundButton item={item} used={n} />
+            </> : null}
           </div>
         </li>;
       })}
@@ -169,7 +174,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
     {/* Lộ trình tour */}
     <div className="mb-2 flex items-center justify-between">
       <h3 className="font-semibold">{t("journey")}</h3>
-      {canEdit && card.items.some((i) => !i.refunded_at)
+      {canEdit && card.items.some((i) => !i.refunded_at && isTourable(i))
         ? <Button size="small" type="primary" icon={<Route className="size-4" />} onClick={() => setCreatingTour(true)}>{t("createTour")}</Button> : null}
     </div>
     {journey.length ? <ol className="relative ms-2 border-s border-border">
@@ -195,7 +200,8 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
     <CardItemsDrawer open={adding} title={t("addServiceTitle", { code: card.code })} submitText={t("addService")}
       services={services} onClose={() => setAdding(false)}
       onSubmit={(items) => runAction(addCardItems(card.id, items), t("saved"), failed)} />
-    {creatingTour ? <CreateCardTourModal card={card} services={services} tours={tours} onClose={() => setCreatingTour(false)} /> : null}
+    {creatingTour ? <CreateCardTourModal card={card} services={services} tours={tours} isAdmin={me.isAdmin}
+      onClose={() => setCreatingTour(false)} /> : null}
     {openTour ? <TourDrawer key={openTour.id} tour={openTour} me={me.tour} services={services} staff={staff}
       customers={[]} onClose={() => setTourId(null)} /> : null}
   </FormDrawer>;
@@ -280,25 +286,31 @@ function PaymentButton({ cardId }: { cardId: string }) {
 /**
  * Tạo tour từ thẻ: chọn dịch vụ (mỗi DV 1 tour) + Loại — gợi ý Laser / Plasma theo DV, chưa Làm mới → Làm mới, còn lại Dặm.
  * Số lần server tự tính theo tour đã có; nhãn trong ô chọn là bản xem trước ("Dặm 1").
+ * Chỉ DV tạo tour được (không mực / phí Master); vượt số buổi chỉ admin.
  */
-function CreateCardTourModal({ card, services, tours, onClose }: {
+function CreateCardTourModal({ card, services, tours, isAdmin, onClose }: {
   card: TreatmentCard;
   services: Service[];
   tours: Tour[];
+  isAdmin: boolean;
   onClose: () => void;
 }) {
   const t = useTranslations("cards");
   const tt = useTranslations("tour");
-  const items = card.items.filter((i) => !i.refunded_at);
+  const items = card.items.filter((i) => !i.refunded_at && isTourable(i));
   const ofItem = (id: string) => tours.filter((x) => x.card_item_id === id);
   const suggest = (item: CardItem): TourKind => {
     const s = services.find((x) => x.id === item.service_id);
     return s ? suggestTourKind(s, ofItem(item.id)) : "new";
   };
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
-  // Mặc định chọn DV còn buổi, Loại gợi ý sẵn.
-  const [picked, setPicked] = useState<Record<string, TourKind | null>>(() => Object.fromEntries(items
-    .filter((i) => ofItem(i.id).length < i.sessions).map((i) => [i.id, suggest(i)])));
+  // Tick sẵn DV đang đến hạn (kiểm tra laser / dặm); không có thì chỉ khi thẻ còn đúng 1 DV còn buổi — tránh tạo nhầm tour.
+  const [picked, setPicked] = useState<Record<string, TourKind | null>>(() => {
+    const due = new Set(journeyDue([card], tours).map((d) => d.item.id));
+    const open = items.filter((i) => ofItem(i.id).length < i.sessions);
+    const pick = due.size ? open.filter((i) => due.has(i.id)) : open.length === 1 ? open : [];
+    return Object.fromEntries(pick.map((i) => [i.id, suggest(i)]));
+  });
   const [note, setNote] = useState("");
   const [pending, start] = useTransition();
   const chosen = Object.entries(picked).filter((e): e is [string, TourKind] => e[1] != null);
@@ -321,14 +333,15 @@ function CreateCardTourModal({ card, services, tours, onClose }: {
           const kind = picked[item.id];
           const on = kind != null;
           const done = ofItem(item.id).length;
+          const full = done >= item.sessions;
           return <li key={item.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-            <Checkbox checked={on} aria-label={s?.name}
+            <Checkbox checked={on} aria-label={s?.name} disabled={full && !isAdmin && !on}
               onChange={(e) => setPicked((p) => ({ ...p, [item.id]: e.target.checked ? suggest(item) : null }))} />
             <div className="min-w-0 flex-1">
               <div className="font-medium">{s?.name ?? "—"}</div>
               <div className="text-xs text-muted-foreground">
                 {t("usedSessions", { used: done, total: item.sessions })}
-                {on && done >= item.sessions ? <span className="text-warning"> · {t("overSessions")}</span> : null}
+                {full ? <span className="text-warning"> · {t(isAdmin ? "overSessions" : "sessionsFull")}</span> : null}
               </div>
             </div>
             <Select<TourKind> size="small" className="w-28" disabled={!on} value={kind ?? undefined} aria-label={tt("kind")}

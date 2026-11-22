@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import type { TourGroup } from "@/components/tour/tour-data";
+import { tourCommission } from "@/lib/tours";
 
 export type TourExcelLabels = {
   technician: string;
@@ -7,6 +8,7 @@ export type TourExcelLabels = {
   customer: string;
   service: string;
   bill: string;
+  commission: string;
   subtotal: string;
   total: string;
   detail: (row: TourGroup["rows"][number]) => string;
@@ -23,6 +25,7 @@ export async function downloadTourExcel(groups: TourGroup[], month: string, labe
     { header: labels.customer, width: 28 },
     { header: labels.service, width: 14 },
     { header: labels.bill, width: 16, style: { numFmt: "#,##0" } },
+    { header: labels.commission, width: 16, style: { numFmt: "#,##0" } },
   ];
   ws.getRow(1).font = { bold: true };
 
@@ -35,9 +38,10 @@ export async function downloadTourExcel(groups: TourGroup[], month: string, labe
         row.customer?.full_name ?? "",
         labels.detail(row),
         row.bill_amount,
+        tourCommission(row),
       ]);
     }
-    const sub = ws.addRow([`${labels.subtotal} ${g.technician.user_name}`, `${g.rows.length}`, null, null, g.bill]);
+    const sub = ws.addRow([`${labels.subtotal} ${g.technician.user_name}`, `${g.rows.length}`, null, null, g.bill, g.commission]);
     sub.font = { bold: true };
     sub.eachCell((cell) => { cell.fill = fill; });
   }
@@ -45,6 +49,7 @@ export async function downloadTourExcel(groups: TourGroup[], month: string, labe
   const total = ws.addRow([
     labels.total, `${count}`, null, null,
     groups.reduce((n, g) => n + g.bill, 0),
+    groups.reduce((n, g) => n + g.commission, 0),
   ]);
   total.font = { bold: true };
 

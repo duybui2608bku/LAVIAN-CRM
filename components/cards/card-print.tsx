@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import dayjs from "dayjs";
 import logo from "@/app/assets/logo.png";
 import { useServiceGroups } from "@/components/common/service-groups";
-import { cardMoney } from "@/lib/cards";
+import { cardMoney, isTourable } from "@/lib/cards";
 import type { TreatmentCard } from "@/types/card";
 import type { Service } from "@/types/service";
 
@@ -76,7 +76,7 @@ export function CardPrint({ card, services, consultant, used }: {
                 {s?.name ?? "—"}
                 {item.refunded_at ? <div className="cp-sub">Refunded {idr.format(item.refund_amount ?? 0)} · {dayjs(item.refunded_at).format("DD/MM/YYYY")}</div> : null}
               </td>
-              <td className="num">{item.refunded_at ? "—" : `${used(item.id)} / ${item.sessions}`}</td>
+              <td className="num">{item.refunded_at || !isTourable(item) ? "—" : `${used(item.id)} / ${item.sessions}`}</td>
               <td className="num">{idr.format(item.price)}</td>
             </tr>;
           })}

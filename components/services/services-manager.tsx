@@ -75,6 +75,7 @@ export function ServicesManager({ services }: { services: Service[] }) {
         price: s.price,
         sort_order: s.sort_order,
         is_active: !s.is_active,
+        tourable: s.tourable,
       });
       if (res.error) toast.error(res.error);
     });
@@ -181,6 +182,7 @@ type Values = {
   price?: number | null;
   sort_order?: number | null;
   is_active: boolean;
+  tourable: boolean;
 };
 
 function ServiceDialog({
@@ -204,6 +206,7 @@ function ServiceDialog({
         price: v.price ?? 0,
         sort_order: v.sort_order ?? 0,
         is_active: v.is_active,
+        tourable: v.tourable,
       };
       const res = editing
         ? await updateService(editing.id, input)
@@ -235,6 +238,7 @@ function ServiceDialog({
           price: editing?.price ?? 0,
           sort_order: editing?.sort_order ?? 0,
           is_active: editing?.is_active ?? true,
+          tourable: editing?.tourable ?? true,
         }}
       >
         <div className="grid grid-cols-2 gap-x-3">
@@ -266,8 +270,11 @@ function ServiceDialog({
             <InputNumber className="w-full" />
           </Form.Item>
         </div>
-        <Form.Item name="is_active" valuePropName="checked" className="mb-0">
+        <Form.Item name="is_active" valuePropName="checked" className="mb-2">
           <Checkbox>{t("activeLabel")}</Checkbox>
+        </Form.Item>
+        <Form.Item name="tourable" valuePropName="checked" className="mb-0" extra={t("tourableHint")}>
+          <Checkbox>{t("tourableLabel")}</Checkbox>
         </Form.Item>
       </Form>
     </FormDrawer>

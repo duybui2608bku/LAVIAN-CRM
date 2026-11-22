@@ -11,6 +11,8 @@ export interface CardItem {
   refund_amount: number | null;
   refund_note: string;
   created_at: string;
+  /** Nhóm DV + có tạo tour không (mực / phí Master = false) — join `services`. */
+  service: { group_id: string; tourable: boolean } | null;
 }
 
 /** 1 lần thu tiền — bảng `treatment_card_payments`. amount âm = hoàn tiền khách. */
@@ -42,6 +44,6 @@ export interface TreatmentCard {
 }
 
 export const CARD_FIELDS = "id,code,customer_id,appointment_id,deposit_used,note,cancelled_at,created_by,created_at,"
-  + "items:treatment_card_items(id,card_id,service_id,price,sessions,refunded_at,refund_amount,refund_note,created_at),"
+  + "items:treatment_card_items(id,card_id,service_id,price,sessions,refunded_at,refund_amount,refund_note,created_at,service:services(group_id,tourable)),"
   + "payments:treatment_card_payments(id,card_id,amount,method,paid_at,note,images,created_by),"
   + "customer:customers(full_name,phone,address_detail)";

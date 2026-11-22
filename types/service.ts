@@ -17,6 +17,8 @@ export interface Service {
   price: number; // Rupiah
   sort_order: number;
   is_active: boolean;
+  /** false = dòng phụ (mực, phí Master, sản phẩm): không tạo tour, không tính buổi / Đến hạn. */
+  tourable: boolean;
   created_at: string;
   updated_at: string;
 }
