@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
 
 import { getCustomerDetail } from "@/app/(app)/appointments/actions";
-import { DASH, StatusDot } from "@/components/common/cells";
+import { DASH, StatusTag } from "@/components/common/cells";
 import { NoteTimeline } from "@/components/common/notes";
 import { Section } from "@/components/common/section";
 import { staffName, type StaffRef } from "@/components/common/user-avatar";
@@ -77,7 +77,7 @@ export function CustomerInfoDrawer({
               {
                 key: "stage",
                 label: t("colStage"),
-                children: <StatusDot label={stage ? optionLabel(stage, locale) : c.stage} color={stage?.color} />,
+                children: <StatusTag label={stage ? optionLabel(stage, locale) : c.stage} color={stage?.color} />,
               },
               ...(c.follow_up_at
                 ? [{ key: "followUp", label: t("followUpAt"), children: date(c.follow_up_at, "DD/MM/YYYY HH:mm") }]

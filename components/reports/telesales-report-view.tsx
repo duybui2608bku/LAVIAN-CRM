@@ -4,13 +4,27 @@ import * as React from "react";
 import { Alert, Button, Progress, Table, Tooltip, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowDownRight, ArrowUpRight, RefreshCw } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  CalendarCheck,
+  CalendarPlus,
+  CalendarX2,
+  Filter,
+  MessageCircle,
+  PieChart,
+  RefreshCw,
+  TrendingUp,
+  UserCheck,
+  UserPlus,
+  UsersRound,
+} from "lucide-react";
 
 import { getTelesalesReport, type TelesalesReport } from "@/app/(app)/reports/telesales/actions";
 import { DateRangeFilter, initialRange } from "@/components/common/date-range-filter";
 import { MetricList } from "@/components/common/metric-list";
 import { Section } from "@/components/common/section";
-import { StatCard } from "@/components/common/stat-card";
+import { StatCard, type IconTone } from "@/components/common/stat-card";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { PageHeader, PageToolbar } from "@/components/layout/page";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -36,13 +50,13 @@ const SOURCE_COLOR: Record<BookingSource, string> = {
 };
 
 type CardKey = "messages" | "bookings" | "newBookings" | "confirmed" | "arrived" | "cancelled";
-const CARDS: { key: CardKey; lowerIsBetter?: boolean }[] = [
-  { key: "messages" },
-  { key: "bookings" },
-  { key: "newBookings" },
-  { key: "confirmed" },
-  { key: "arrived" },
-  { key: "cancelled", lowerIsBetter: true },
+const CARDS: { key: CardKey; icon: React.ElementType; tone: IconTone; lowerIsBetter?: boolean }[] = [
+  { key: "messages", icon: MessageCircle, tone: "info" },
+  { key: "bookings", icon: CalendarPlus, tone: "primary" },
+  { key: "newBookings", icon: UserPlus, tone: "primary" },
+  { key: "confirmed", icon: CalendarCheck, tone: "success" },
+  { key: "arrived", icon: UserCheck, tone: "success" },
+  { key: "cancelled", icon: CalendarX2, tone: "warning", lowerIsBetter: true },
 ];
 
 const cardValue = (s: PeriodStats, k: CardKey): number | null =>
@@ -104,7 +118,7 @@ export function TelesalesReportView() {
       <div className={cn("flex flex-col gap-4 transition-opacity duration-200", pending && report && "opacity-60")}>
         {/* 6 thẻ số liệu */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
-          {CARDS.map(({ key, lowerIsBetter }) => {
+          {CARDS.map(({ key, icon, tone, lowerIsBetter }) => {
             const value = cur ? cardValue(cur, key) : null;
             const delta = cur && prev ? change(value, cardValue(prev, key)) : null;
             const good = delta == null || delta === 0 ? null : lowerIsBetter ? delta < 0 : delta > 0;
@@ -112,6 +126,8 @@ export function TelesalesReportView() {
               <StatCard
                 key={key}
                 label={t(`card.${key}`)}
+                icon={icon}
+                iconTone={tone}
                 loading={!report}
                 value={num(value)}
                 hint={
@@ -132,7 +148,7 @@ export function TelesalesReportView() {
 
         {/* Phễu · Xu hướng */}
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-          <Section className="surface p-4" title={t("funnel")}>
+          <Section className="surface p-4" icon={Filter} title={t("funnel")}>
             {!report ? (
               <ChartSkeleton />
             ) : (
@@ -146,7 +162,7 @@ export function TelesalesReportView() {
               />
             )}
           </Section>
-          <Section className="surface p-4" title={t("trend")}>
+          <Section className="surface p-4" icon={TrendingUp} title={t("trend")}>
             {!data ? (
               <ChartSkeleton />
             ) : (
@@ -164,10 +180,10 @@ export function TelesalesReportView() {
 
         {/* Hiệu suất NV · Nguồn */}
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]">
-          <Section className="surface p-4" title={t("staffTitle")}>
+          <Section className="surface p-4" icon={UsersRound} title={t("staffTitle")}>
             <StaffTable staff={data?.staff ?? []} other={data?.other ?? null} loading={!report} num={num} pct={pct} />
           </Section>
-          <Section className="surface p-4" title={t("sources")}>
+          <Section className="surface p-4" icon={PieChart} title={t("sources")}>
             <Donut sources={data?.sources ?? null} num={num} pct={pct} />
           </Section>
         </div>

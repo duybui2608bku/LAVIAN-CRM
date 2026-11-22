@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addCustomerNeed, addPortraitEntry, setNeedStatus } from "@/app/(app)/customers/customer-360-actions";
 import { VisitStatusTag } from "@/components/appointments/appointments-manager";
-import { DASH } from "@/components/common/cells";
+import { DASH, StatusTag } from "@/components/common/cells";
 import { Section } from "@/components/common/section";
 import { SourceIcon } from "@/components/common/source-icon";
 import { staffName, type StaffRef } from "@/components/common/user-avatar";
@@ -17,8 +17,8 @@ import { customerFinance, latestPortrait, portraitText } from "@/lib/customer-36
 import { toast } from "@/lib/toast";
 import { useServiceGroups } from "@/components/common/service-groups";
 import {
-  NEED_ORIGINS, NEED_STATUSES, PORTRAIT_FIELDS, PORTRAIT_SOURCES,
-  type Customer360, type Customer360Appointment, type MessageRef, type NeedOrigin, type PortraitField, type PortraitSource,
+  NEED_ORIGINS, NEED_STATUSES, NEED_STATUS_COLORS, PORTRAIT_FIELDS, PORTRAIT_SOURCES,
+  type Customer360, type Customer360Appointment, type MessageRef, type NeedOrigin, type NeedStatus, type PortraitField, type PortraitSource,
 } from "@/types/customer-360";
 
 const fmt = (iso: string, f = "DD/MM/YYYY HH:mm") => dayjs(iso).format(f);
@@ -210,7 +210,9 @@ export function ServicesTab({ data, onSaved }: { data: Customer360; onSaved: () 
             <span className="text-xs text-muted-foreground">{t(`origin.${n.origin}`)}</span>
             <Select size="small" value={n.status} className="ms-auto min-w-32" aria-label={t("history")} disabled={pending}
               onChange={(s) => changeStatus(n.id, s)}
-              options={NEED_STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) }))} />
+              options={NEED_STATUSES.map((s) => ({ value: s, label: t(`status.${s}`) }))}
+              // Option chữ trần; giá trị đang chọn hiện tag màu trạng thái.
+              labelRender={({ value }) => <StatusTag color={NEED_STATUS_COLORS[value as NeedStatus]} label={t(`status.${value}`)} />} />
           </div>
           {/* Lịch sử đổi trạng thái: mốc → mốc. */}
           <p className="mt-1 text-xs text-muted-foreground tabular-nums">

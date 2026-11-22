@@ -14,7 +14,7 @@ import {
   CreateAppointmentDrawer,
   type AppointmentStaff,
 } from "@/components/appointments/appointments-manager";
-import { DASH, StatusDot } from "@/components/common/cells";
+import { DASH, StatusTag } from "@/components/common/cells";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
 import { MessagesModal, type MessagesCustomer } from "@/components/appointments/messages-modal";
@@ -116,8 +116,8 @@ export function BookingsManager({
 
   const statusLabel = (s: Status) => (s === "show_up" ? ta("showUp") : ta(`bookingStatus.${s}`));
   const statusTag = (s: Status) =>
-    s === "show_up" ? <StatusDot color="green" label={statusLabel(s)} /> : <BookingStatusTag status={s} />;
-  // Option select = chữ trần; chấm màu chỉ ở ô hiển thị.
+    s === "show_up" ? <StatusTag color="green" label={statusLabel(s)} /> : <BookingStatusTag status={s} />;
+  // Option select = chữ trần; tag màu chỉ ở ô hiển thị.
   const statusOptions = BOOKING_STATUSES.map((value) => ({ value, label: statusLabel(value) }));
 
   // Lịch của khách đã xoá không hiện.

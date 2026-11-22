@@ -8,7 +8,7 @@ import { Button, Input, type TableColumnsType } from "antd";
 import dayjs from "dayjs";
 import { FileText, Heart, MessageSquare, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
-import { StatusDot } from "@/components/common/cells";
+import { StatusTag } from "@/components/common/cells";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { useConfirm } from "@/components/common/confirm-action";
 import { DataTable } from "@/components/common/data-table";
@@ -71,7 +71,7 @@ export function DocumentsList({ documents, isAdmin }: { documents: DocumentListI
     {
       key: "category",
       title: t("category"),
-      render: (_, d) => <StatusDot color={categoryColor(d.category)} label={t(`cat_${d.category}`)} />,
+      render: (_, d) => <StatusTag color={categoryColor(d.category)} label={t(`cat_${d.category}`)} />,
     },
     {
       key: "departments",

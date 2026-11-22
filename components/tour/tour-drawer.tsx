@@ -6,7 +6,7 @@ import { CheckCircle2, NotebookPen, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addTourNote, claimTour, confirmTour, deleteTourNote, releaseTour, updateTour } from "@/app/(app)/tour/actions";
-import { StatusDot } from "@/components/common/cells";
+import { StatusTag } from "@/components/common/cells";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
@@ -31,7 +31,7 @@ const STATUS_COLOR: Record<TourStatus, string> = { pending: "gold", claimed: "bl
 export const TourStatusTag = ({ tour }: { tour: Pick<Tour, "technician_id" | "confirmed_at"> }) => {
   const t = useTranslations("tour");
   const status = tourStatus(tour);
-  return <StatusDot color={STATUS_COLOR[status]} label={t(`status_${status}`)} />;
+  return <StatusTag color={STATUS_COLOR[status]} label={t(`status_${status}`)} />;
 };
 
 /** "Lần n" của tour — dịch vụ chi tiết (New/Retouch/Laser…) suy từ lần, không hiện trên UI (sếp làm lại sau). */

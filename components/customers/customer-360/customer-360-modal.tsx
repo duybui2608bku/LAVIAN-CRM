@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight, NotebookPen, PanelRightOpen } from "lucide-r
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { getCustomer360 } from "@/app/(app)/customers/customer-360-actions";
-import { DASH, StatusDot } from "@/components/common/cells";
+import { DASH, StatusTag } from "@/components/common/cells";
 import { useCan } from "@/components/common/permissions";
 import { Section } from "@/components/common/section";
 import type { StaffRef } from "@/components/common/user-avatar";
@@ -111,7 +111,7 @@ function Header({ data, index, total, onPrev, onNext }: {
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-center gap-2">
         <span className="truncate text-lg font-semibold">{c?.full_name ?? t("title")}</span>
-        {stage && <StatusDot label={optionLabel(stage, locale)} color={stage.color} className="font-normal" />}
+        {stage && <StatusTag label={optionLabel(stage, locale)} color={stage.color} className="font-normal" />}
       </div>
       <div className="min-h-4 text-xs font-normal text-muted-foreground tabular-nums">{c?.phone}</div>
     </div>

@@ -20,3 +20,9 @@
 - [x] 3.2 Xoá key i18n không còn dùng ở `messages/{vi,en}.json`
 - [x] 3.3 `tsc --noEmit` + `eslint` + `node --test lib/*.test.ts` + `next build` sạch
 - [x] 3.4 Ghi memory-bank
+
+## 4. Điều chỉnh sau review (sếp)
+
+- [x] 4.1 Mọi trạng thái dùng tag màu `StatusTag` (Status khách, Status lịch hẹn, Xác nhận đặt lịch, thẻ, tour, chiến dịch, nhu cầu/upsell, loại tài liệu…); xoá `StatusDot`
+- [x] 4.2 Đổi nhãn Stage → Status (`customers.colStage/allStage/chooseStage`, vi + en)
+- [x] 4.3 Trả lại icon card số liệu: pipeline `/customers`, Báo cáo, Telesales (`StatCard` / `Section` thêm prop `icon`)

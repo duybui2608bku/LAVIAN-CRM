@@ -34,6 +34,9 @@ export interface PortraitEntry {
 /** Nhu cầu / Upsell: Nhu cầu → Tư vấn → Upsell → Thành công / Thất bại. */
 export const NEED_STATUSES = ["need", "consulting", "upsell", "won", "lost"] as const;
 export type NeedStatus = (typeof NEED_STATUSES)[number];
+export const NEED_STATUS_COLORS: Record<NeedStatus, string> = {
+  need: "default", consulting: "blue", upsell: "purple", won: "green", lost: "red",
+};
 /** Nguồn nhu cầu: [Khách đã hỏi] / [Sales khai thác]. */
 export const NEED_ORIGINS = ["customer_asked", "staff_found"] as const;
 export type NeedOrigin = (typeof NEED_ORIGINS)[number];

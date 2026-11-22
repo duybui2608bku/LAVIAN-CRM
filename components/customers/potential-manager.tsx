@@ -12,7 +12,7 @@ import { ClearableSelect } from "@/components/common/clearable-select";
 import { DataTable } from "@/components/common/data-table";
 import { MessagesModal, type MessagesCustomer } from "@/components/appointments/messages-modal";
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
-import { DASH, DateTimeCell, StatusDot } from "@/components/common/cells";
+import { DASH, DateTimeCell, StatusTag } from "@/components/common/cells";
 import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
 import { InlineSelect } from "@/components/common/inline-select";
 import { useCan } from "@/components/common/permissions";
@@ -89,12 +89,12 @@ export function PotentialManager({
       else toast.success(tc("updateOk"));
     });
 
-  // Option select = chữ trần; chấm màu chỉ ở ô hiển thị trên bảng.
+  // Option select = chữ trần; tag màu chỉ ở ô hiển thị trên bảng.
   const statusDefs = options.filter((o) => o.kind === "potential_status");
   const statusOptions = statusDefs.map((o) => ({ value: o.value, label: optionLabel(o, locale) }));
   const statusTag = (v: string | null | undefined) => {
     const o = statusDefs.find((x) => x.value === v);
-    return o ? <StatusDot label={optionLabel(o, locale)} color={o.color} /> : DASH;
+    return o ? <StatusTag label={optionLabel(o, locale)} color={o.color} /> : DASH;
   };
   // Trang gộp 2 stage: khách Cân nhắc ghi chữ nhạt để phân biệt với Tiềm năng.
   const considerOpt = options.find((o) => o.kind === "stage" && o.value === "consider");
