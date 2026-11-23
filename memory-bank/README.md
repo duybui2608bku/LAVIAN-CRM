@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-23 — AI tóm tắt hội thoại cũng sang Haiku 5.5 + tối ưu token
+- **Thay đổi:** Mọi lời gọi Claude trong `lib/chat-summary.ts` (tóm tắt hội thoại SMAX + tách chân dung) chạy `claude-haiku-5-5`, `thinking: disabled`, effort `low`, `max_tokens` 4000, `messages.create` thường (bỏ beta fallback). Transcript gọn: ngày ghi 1 lần/ngày, mỗi tin `HH:mm C|L: …`, `[img×N]`/`[file×N]`, gộp khoảng trắng, bỏ tin rỗng. Tóm tắt: gạch đầu dòng dạng cụm từ, tối đa ~100 từ/ngôn ngữ (trước ~150). Prompt dùng chung 3 khối `CLINIC` / `FIELDS_GUIDE` / `BILINGUAL` cho cả 2 việc. Tách chân dung chỉ gửi các mục đang có giá trị.
+- **File ảnh hưởng:** `lib/chat-summary.ts`.
+- **Còn dở / ghi chú:** Chưa gọi thử AI thật (`ANTHROPIC_API_KEY` ở `.env.local` máy này trống). Haiku không có model dự phòng khi từ chối → báo lỗi, NV thử lại.
+
 ### 2026-11-23 — Chân dung AI: đổi sang Haiku 5.5 + prompt song ngữ chuẩn hơn
 - **Thay đổi:** `detectPortrait` chạy `claude-haiku-5-5` (effort medium, `messages.create` thường — Haiku không có fallback phía server khi từ chối); tóm tắt hội thoại SMAX vẫn Opus 5.5. `askClaude` nhận object + cờ `fast`. Prompt mới: nhận ghi chú Việt/Anh/Indo lẫn lộn, viết tắt chat; hướng dẫn chọn mục (lo giá → Nỗi lo, ngân sách → Sở thích), gộp với giá trị cũ, giữ nguyên tên DV/giá; bắt buộc `vi` + `en` luôn đi cùng nhau, dịch tự nhiên, không copy; có ví dụ mẫu. Gửi thêm nguồn ghi chú (lời khách / NV nhận định) cho AI.
 - **File ảnh hưởng:** `lib/chat-summary.ts`, `app/(app)/customers/customer-360-actions.ts`.
