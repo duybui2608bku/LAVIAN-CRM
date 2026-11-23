@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Drawer } from "antd";
+import { Button, Drawer, Grid } from "antd";
 import { useTranslations } from "next-intl";
 
 /**
@@ -18,6 +18,7 @@ export function FormDrawer({
   onSubmit,
   onClose,
   footerExtra,
+  beside,
   children,
 }: {
   open: boolean;
@@ -29,18 +30,26 @@ export function FormDrawer({
   onClose: () => void;
   /** Nút phụ canh trái footer (vd. Xác nhận, Trả tour). */
   footerExtra?: React.ReactNode;
+  /**
+   * Mở bên trái 1 drawer khác rộng `beside` px, lấp phần còn lại — drawer kia vẫn nhìn thấy (vd. thêm DV cạnh drawer thẻ).
+   * Màn hình < xl: mở đè như thường. Không render lồng trong drawer kia (antd sẽ đẩy nó sang trái).
+   */
+  beside?: number;
   children: React.ReactNode;
 }) {
   const t = useTranslations("common");
+  const xl = Grid.useBreakpoint().xl;
+  const side = beside && xl ? beside : 0;
   return (
     <Drawer
       open={open}
       onClose={onClose}
-      size={width}
+      size={side ? `calc(100vw - ${side}px)` : width}
+      styles={side ? { wrapper: { right: side } } : undefined}
       destroyOnHidden
       title={title}
       closable={!pending}
-      mask={{ closable: !pending }}
+      mask={side ? false : { closable: !pending }}
       footer={
         onSubmit || footerExtra ? (
           // Điện thoại: nút giãn đều cho dễ chạm; ẩn "Huỷ" (header đã có nút đóng).

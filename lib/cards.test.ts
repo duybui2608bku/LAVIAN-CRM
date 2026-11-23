@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, customerCardMoney, cardPaymentSchema, cardTourSchema, journeyDue, suggestRefund, suggestTourKind, tourKindDetail,
+  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, customerCardMoney, cardPaymentSchema, cardTourSchema, groupTaken, journeyDue, paymentRange, suggestRefund, suggestTourKind, tourKindDetail,
 } from "./cards.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
@@ -16,6 +16,28 @@ test("tiền thẻ: giá trị − hoàn, cọc + thu, công nợ (âm = phải 
   assert.deepEqual(cardMoney(card), { value: 6_000_000, collected: 2_300_000, due: 3_700_000 });
   assert.equal(cardMoney({ ...card, payments: [{ amount: 6_000_000 }] }).due, -300_000);
   assert.equal(cardMoney({ ...card, payments: [{ amount: 6_000_000 }, { amount: -300_000 }] }).due, 0);
+});
+
+test("mỗi nhóm 1 DV tạo tour: trùng nhóm bị chặn, dòng phụ (mực / serum) không tính", () => {
+  const ombre = { group_id: "alis", tourable: true };
+  const shading = { group_id: "alis", tourable: true };
+  const serum = { group_id: "laser", tourable: false };
+  const laser = { group_id: "laser", tourable: true };
+  assert.equal(groupTaken(shading, [ombre]), true);
+  assert.equal(groupTaken(laser, [ombre]), false);
+  assert.equal(groupTaken(laser, [serum]), false); // laser + serum cùng nhóm vẫn được
+  assert.equal(groupTaken(serum, [laser]), false);
+});
+
+test("khoảng thu: thu ≤ công nợ, hoàn ≤ Σ đã thu qua thanh toán (không tính cọc)", () => {
+  const card = { deposit_used: 300_000, items: [{ price: 6_000_000, refund_amount: null }], payments: [{ amount: 2_000_000 }] };
+  assert.deepEqual(paymentRange(card), { min: -2_000_000, max: 3_700_000 });
+  // Đã thu đủ → không thu thêm được; thu dư (hoàn DV sau khi trả đủ) → max 0, vẫn hoàn được.
+  assert.equal(paymentRange({ ...card, payments: [{ amount: 5_700_000 }] }).max, 0);
+  assert.deepEqual(paymentRange({ ...card, items: [{ price: 6_000_000, refund_amount: 1_000_000 }], payments: [{ amount: 5_700_000 }] }),
+    { min: -5_700_000, max: 0 });
+  // Chưa thu lần nào → không hoàn được.
+  assert.equal(paymentRange({ ...card, payments: [] }).min, 0);
 });
 
 test("tiền khách qua mọi thẻ: bỏ thẻ huỷ, cọc chưa trừ tính là đã thu, chưa có thẻ mà có cọc → công nợ null", () => {

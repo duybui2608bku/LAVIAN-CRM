@@ -889,12 +889,6 @@
     "prev": "Previous customer",
     "next": "Next customer",
     "position": "{index}/{total}",
-    "summary": {
-      "wish": "Wishes",
-      "pain": "Concerns",
-      "next": "Next need",
-      "empty": "None yet"
-    },
     "tabs": {
       "overview": "Overview",
       "portrait": "Portrait",
@@ -909,7 +903,6 @@
     "quickPortrait": "Quick portrait",
     "nextTasks": "Next tasks",
     "noTasks": "No open reminders",
-    "info": "Customer info",
     "stage": "Status",
     "source": "Source",
     "firstContact": "First contact",
@@ -1100,6 +1093,10 @@
       "cancelled": "The card is cancelled or the service was refunded.",
       "forbidden": "You don't have permission for this.",
       "refundTooHigh": "Refund can't exceed the sale price.",
+      "paymentOverDue": "Amount exceeds the card's remaining balance.",
+      "refundOverPaid": "Refund exceeds what has been paid on this card.",
+      "sameGroup": "{group} already has a service — pick only one service per group.",
+      "groupTaken": "Only one service per group on a card (except ink, Master fee, products).",
       "hasTours": "The card has tours — delete them before cancelling.",
       "itemUnavailable": "Service is no longer on the card (refunded?). Reload the page.",
       "sessionsBelowUsed": "Sessions can't be fewer than those already done ({used}).",
