@@ -27,6 +27,12 @@
 - [x] 4b.2 `planRoadmap` nhận `pinned`; sync đọc `date_pinned`; `setPlannedTourDate`; sync sau `addCardItems`
 - [x] 4b.3 Drawer Thêm dịch vụ: 760px, bảng giá 1 cột chữ nhỏ, mục Lộ trình dự kiến sửa ngày
 
+## 4c. Lộ trình lúc bán thẻ
+
+- [x] 4c.1 `planRoadmap(..., start)` khi chưa có tour thật; `cardPlanSchema`; `syncRoadmap(db, cardId, seed)`
+- [x] 4c.2 `createCard` tạo tour dự kiến theo `plan`; `createCardTours` dùng lại tour dự kiến sớm nhất
+- [x] 4c.3 Drawer Bán thẻ: xem trước lộ trình, sửa ngày
+
 ## 5. Kiểm tra
 
 - [x] 5.1 tsc + eslint + node --test

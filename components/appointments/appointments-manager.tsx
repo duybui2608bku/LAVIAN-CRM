@@ -330,8 +330,8 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     {/* Bán thẻ liệu trình: chọn dịch vụ → thẻ mới trừ cọc chưa dùng của khách. */}
     <CardItemsDrawer open={sellFor !== null} services={services}
       title={tc("sellTitle", { name: sellFor ? customerMap.get(sellFor.customer_id)?.full_name ?? "" : "" })}
-      submitText={tc("confirmSell")} deposit={sellFor ? depositLeft(sellFor.customer_id) : 0} onClose={() => setSellFor(null)}
-      onSubmit={(items, note) => sellFor ? runAction(createCard({ customer_id: sellFor.customer_id, appointment_id: sellFor.id, items, note }),
+      submitText={tc("confirmSell")} deposit={sellFor ? depositLeft(sellFor.customer_id) : 0} onClose={() => setSellFor(null)} previewRoadmap
+      onSubmit={(items, note, plan) => sellFor ? runAction(createCard({ customer_id: sellFor.customer_id, appointment_id: sellFor.id, items, note, plan }),
         tc("created"), tc("saveError")) : Promise.resolve(false)} />
     {openCard ? <CardDrawer key={openCard.id} card={openCard} tours={toursOfCard(openCard, cardTours)} services={services}
       staff={staff} me={cardMe} onOpenCustomer={c360.open} onClose={() => setCardId(null)} /> : null}

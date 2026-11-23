@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setPlannedTourDate } from "@/app/(app)/tour/actions";
-import { DatePicker } from "@/components/common/date-picker";
-import { kindText, runAction } from "@/components/tour/tour-drawer";
 import { Button, Checkbox, Empty, Input, InputNumber, Tooltip } from "antd";
 import { CircleAlert, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+import dayjs from "dayjs";
+import { setPlannedTourDate } from "@/app/(app)/tour/actions";
+import { DatePicker } from "@/components/common/date-picker";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { MoneyInput } from "@/components/common/money-input";
 import { Section } from "@/components/common/section";
 import { useServiceGroups } from "@/components/common/service-groups";
-import { groupTaken } from "@/lib/cards";
+import { kindText, runAction } from "@/components/tour/tour-drawer";
+import { groupTaken, planRoadmap, tourKindDetail, type CardPlan } from "@/lib/cards";
 import { formatIdr, formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import type { CardItem } from "@/types/card";
@@ -25,7 +26,7 @@ export type CardItemInput = { service_id: string; price: number; sessions: numbe
  * và khi bán thêm dịch vụ vào thẻ. Trái: cả bảng giá dạng checkbox theo nhóm (như tờ bảng giá giấy, không cần cuộn);
  * phải: dịch vụ đã chọn — giá bán mặc định = bảng giá, sửa được (giảm giá / voucher), số buổi mặc định 1.
  */
-export function CardItemsDrawer({ open, title, submitText, services, deposit, existing = [], currentValue, beside, planned, onSubmit, onClose }: {
+export function CardItemsDrawer({ open, title, submitText, services, deposit, existing = [], currentValue, beside, planned, previewRoadmap, onSubmit, onClose }: {
   open: boolean;
   title: React.ReactNode;
   submitText: string;
@@ -40,7 +41,9 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
   beside?: number;
   /** Tour dự kiến của thẻ (bán thêm) — xem + sửa ngày ngay tại đây. */
   planned?: Tour[];
-  onSubmit: (items: CardItemInput[], note: string) => Promise<boolean>;
+  /** Bán thẻ mới: xem trước lộ trình từ DV đang chọn (ngày bắt đầu + sửa ngày) → gửi kèm `plan` khi tạo thẻ. */
+  previewRoadmap?: boolean;
+  onSubmit: (items: CardItemInput[], note: string, plan?: CardPlan) => Promise<boolean>;
   onClose: () => void;
 }) {
   const t = useTranslations("cards");
@@ -59,7 +62,20 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
   const taken = [...existing.map((i) => i.service_id), ...picked].flatMap((id) => byId.get(id) ?? []);
   const locked = (s: Service) => !picked.has(s.id) && groupTaken(s, taken);
 
-  const close = () => { setLines([]); setNote(""); onClose(); };
+  // Lộ trình xem trước khi bán thẻ: bước đầu = `start`, ngày sửa tay theo `${service_id}:${k}` (bước thứ k của DV).
+  const [planStart, setPlanStart] = useState(() => dayjs().format("YYYY-MM-DD"));
+  const [pins, setPins] = useState<Record<string, string>>({});
+  const steps = previewRoadmap ? planRoadmap(lines.flatMap((l) => {
+    const s = byId.get(l.service_id);
+    return s ? [{ id: s.id, service_id: s.id, sessions: l.sessions ?? 1, refunded_at: null, service: { group_id: s.group_id, tourable: s.tourable } }] : [];
+  }), [], (id, k) => pins[`${id}:${k}`] ?? null, planStart) : [];
+  const plan: CardPlan | undefined = steps.length ? {
+    start: planStart,
+    pins: Object.entries(pins).map(([key, date]) => { const [service_id, k] = key.split(":"); return { service_id, k: Number(k), date }; })
+      .filter((p) => picked.has(p.service_id)),
+  } : undefined;
+
+  const close = () => { setLines([]); setNote(""); setPins({}); setPlanStart(dayjs().format("YYYY-MM-DD")); onClose(); };
   const toggle = (s: Service, on: boolean) =>
     setLines((ls) => on
       ? [...ls, { service_id: s.id, price: s.price, sessions: 1 }]
@@ -69,7 +85,7 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
   const submit = () => {
     if (!lines.length) return void toast.error(t("needItems"));
     start(async () => {
-      if (await onSubmit(lines.map((l) => ({ ...l, price: l.price ?? 0, sessions: l.sessions ?? 1 })), note)) close();
+      if (await onSubmit(lines.map((l) => ({ ...l, price: l.price ?? 0, sessions: l.sessions ?? 1 })), note, plan)) close();
     });
   };
 
@@ -165,9 +181,47 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
           autoSize={{ minRows: 2, maxRows: 5 }} maxLength={2000} />
 
         {planned?.length ? <PlannedTours tours={planned} services={byId} /> : null}
+        {steps.length ? <RoadmapList title={t("plannedTours")} hint={t("plannedPreviewHint")} rows={steps.map((step, i) => {
+          const prior = steps.slice(0, i).filter((x) => x.card_item_id === step.card_item_id)
+            .map((x) => ({ tour_date: x.tour_date, service_detail: x.kind }));
+          return {
+            key: `${step.card_item_id}:${prior.length}`, date: step.tour_date, service: byId.get(step.service_id)?.name ?? "—",
+            kind: tourKindDetail(step.kind, step.tour_date, prior),
+            onChange: (date: string) => i === 0 ? setPlanStart(date) : setPins((p) => ({ ...p, [`${step.card_item_id}:${prior.length}`]: date })),
+          };
+        })} /> : null}
       </Section>
     </div></div>
   </FormDrawer>;
+}
+
+type RoadmapRow = {
+  key: string; date: string; service: string;
+  kind: { service_detail: string | null; service_session: number | null };
+  onChange: (date: string) => void;
+};
+
+/** Danh sách tour dự kiến: Loại + DV + ô ngày (đổi ngày → các tour sau dời theo). */
+function RoadmapList({ title, hint, rows, disabled }: { title: string; hint: string; rows: RoadmapRow[]; disabled?: boolean }) {
+  const tt = useTranslations("tour");
+  return <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-2.5">
+    <div>
+      <div className="text-sm font-medium">{title}</div>
+      <div className="text-xs text-muted-foreground">{hint}</div>
+    </div>
+    <ul className="flex flex-col gap-1.5">
+      {rows.map((row) => <li key={row.key} className="flex items-center justify-between gap-2 text-xs">
+        <div className="min-w-0">
+          <div className="font-medium">{kindText(tt, row.kind as Parameters<typeof kindText>[1]) || "—"}</div>
+          <div className="truncate text-muted-foreground">{row.service}</div>
+        </div>
+        <div className="w-36 shrink-0">
+          <DatePicker allowClear={false} value={row.date}
+            onChange={(v) => { if (!disabled && v && v !== row.date) row.onChange(v); }} />
+        </div>
+      </li>)}
+    </ul>
+  </div>;
 }
 
 /** Lộ trình dự kiến của thẻ: sửa ngày 1 tour → lưu cố định ngày đó, các tour dự kiến sau tự dời theo (server sync). */
@@ -178,23 +232,9 @@ function PlannedTours({ tours, services }: { tours: Tour[]; services: Map<string
   const save = (id: string, date: string) => start(async () => {
     await runAction(setPlannedTourDate(id, date), tt("dateSaved"), tt("saveError"));
   });
-  return <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-2.5">
-    <div>
-      <div className="text-sm font-medium">{t("plannedTours")}</div>
-      <div className="text-xs text-muted-foreground">{t("plannedToursHint")}</div>
-    </div>
-    <ul className="flex flex-col gap-1.5">
-      {[...tours].sort((a, b) => a.tour_date.localeCompare(b.tour_date)).map((tour) => <li key={tour.id}
-        className="flex items-center justify-between gap-2 text-xs">
-        <div className="min-w-0">
-          <div className="font-medium">{kindText(tt, tour) || "—"}</div>
-          <div className="truncate text-muted-foreground">{services.get(tour.service_id)?.name ?? "—"}</div>
-        </div>
-        <div className="w-36 shrink-0">
-          <DatePicker allowClear={false} value={tour.tour_date}
-            onChange={(v) => { if (!pending && v && v !== tour.tour_date) save(tour.id, v); }} />
-        </div>
-      </li>)}
-    </ul>
-  </div>;
+  return <RoadmapList title={t("plannedTours")} hint={t("plannedToursHint")} disabled={pending}
+    rows={[...tours].sort((a, b) => a.tour_date.localeCompare(b.tour_date)).map((tour) => ({
+      key: tour.id, date: tour.tour_date, service: services.get(tour.service_id)?.name ?? "—", kind: tour,
+      onChange: (date: string) => save(tour.id, date),
+    }))} />;
 }

@@ -1129,6 +1129,7 @@
     "laserMore": "Ink left +1 session",
     "plannedTours": "Planned journey",
     "plannedToursHint": "Change a tour's date — later planned tours shift accordingly.",
+    "plannedPreviewHint": "Starts from the first tour's date. Change a date and later tours shift. Creating the card adds these planned tours.",
     "editSessions": "Edit sessions",
     "sessionsFull": "sessions used up (admin only)",
     "history": {

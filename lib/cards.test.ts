@@ -198,6 +198,13 @@ test("lộ trình dự kiến mày: laser 20 ngày, làm mới 20 ngày, dặm 4
   const pin = (itemId: string, k: number) => (itemId === "B" && k === 0 ? "2027-01-20" : null);
   assert.deepEqual(planRoadmap([laser, brow], [l1], pin).map((s) => `${s.kind}:${s.tour_date}`),
     ["laser:2026-12-21", "new:2027-01-20", "retouch:2027-03-06"]);
+  // Lập lúc bán thẻ (chưa có tour thật): bước đầu đúng ngày bắt đầu, sau đó như thường.
+  const plan0 = (items: ReturnType<typeof item>[], p?: typeof pin) =>
+    planRoadmap(items, [], p, "2026-12-01").map((s) => `${s.kind}:${s.tour_date}${s.pinned ? "*" : ""}`);
+  assert.deepEqual(plan0([laser, brow]), ["laser:2026-12-01", "laser:2026-12-21", "new:2027-01-10", "retouch:2027-02-24"]);
+  assert.deepEqual(plan0([brow]), ["new:2026-12-01", "retouch:2027-01-15"]);
+  assert.deepEqual(plan0([laser, brow], pin), ["laser:2026-12-01", "laser:2026-12-21", "new:2027-01-20*", "retouch:2027-03-06"]);
+  assert.deepEqual(plan([laser, brow], []), []); // không có ngày bắt đầu → vẫn không sinh
 });
 
 test("đến hạn bỏ tour dự kiến", () => {
