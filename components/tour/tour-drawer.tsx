@@ -5,7 +5,7 @@ import { Button, Form, Select } from "antd";
 import { CheckCircle2, NotebookPen, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
-import { addTourNote, claimTour, confirmTour, deleteTourNote, releaseTour, updateTour } from "@/app/(app)/tour/actions";
+import { addTourNote, claimTour, confirmPlannedTour, confirmTour, deleteTourNote, releaseTour, updateTour } from "@/app/(app)/tour/actions";
 import { StatusTag } from "@/components/common/cells";
 import { ConfirmAction } from "@/components/common/confirm-action";
 import { DatePicker } from "@/components/common/date-picker";
@@ -23,12 +23,13 @@ import type { Service } from "@/types/service";
 import type { Tour, TourImageField, TourPatch } from "@/types/tour";
 
 // canEdit/canDelete = quyền bộ phận tour.edit/tour.delete; quản lý (xác nhận, gán KTV) = isAdmin.
-export type TourMe = { id: string; isAdmin: boolean; isTechnician: boolean; canEdit: boolean; canDelete: boolean };
+// canPlan = chốt lịch tour dự kiến (tour.edit | cards.edit).
+export type TourMe = { id: string; isAdmin: boolean; isTechnician: boolean; canEdit: boolean; canDelete: boolean; canPlan: boolean };
 type T = ReturnType<typeof useTranslations<"tour">>;
 
-const STATUS_COLOR: Record<TourStatus, string> = { pending: "gold", claimed: "blue", confirmed: "green" };
+const STATUS_COLOR: Record<TourStatus, string> = { planned: "default", pending: "gold", claimed: "blue", confirmed: "green" };
 
-export const TourStatusTag = ({ tour }: { tour: Pick<Tour, "technician_id" | "confirmed_at"> }) => {
+export const TourStatusTag = ({ tour }: { tour: Pick<Tour, "technician_id" | "confirmed_at" | "planned"> }) => {
   const t = useTranslations("tour");
   const status = tourStatus(tour);
   return <StatusTag color={STATUS_COLOR[status]} label={t(`status_${status}`)} />;
@@ -60,18 +61,50 @@ const serviceOptions = (services: Service[], current?: string) => services
 type WorkValues = Pick<TourPatch, "tour_date" | "customer_id" | "service_id" | "technician_id">
   & { kind?: string | null };
 
-/**
- * Drawer xem/sửa 1 tour — dùng chung cho KTV (nhận, điền chi tiết + ảnh), CSKH và admin (xác nhận).
- * Cha chỉ render khi có tour, `key={tour.id}` để form nạp lại theo tour.
- */
-export function TourDrawer({ tour, me, services, staff, customers, onClose }: {
+type DrawerProps = {
   tour: Tour;
   me: TourMe;
   services: Service[];
   staff: StaffRef[];
   customers: AppointmentCustomer[];
   onClose: () => void;
-}) {
+};
+
+/**
+ * Drawer xem/sửa 1 tour — dùng chung cho KTV (nhận, điền chi tiết + ảnh), CSKH và admin (xác nhận).
+ * Tour dự kiến (lộ trình tự sinh) → drawer Chốt lịch. Cha chỉ render khi có tour, `key={tour.id}` để form nạp lại theo tour.
+ */
+export function TourDrawer(props: DrawerProps) {
+  return props.tour.planned ? <PlannedTourDrawer {...props} /> : <WorkTourDrawer {...props} />;
+}
+
+/** Tour dự kiến: chỉ xem + chọn ngày + Chốt lịch (thành tour thật, vào Chờ nhận; tour dự kiến sau dời theo). */
+function PlannedTourDrawer({ tour, me, services, onClose }: DrawerProps) {
+  const t = useTranslations("tour");
+  const [date, setDate] = useState(tour.tour_date);
+  const [pending, start] = useTransition();
+  const schedule = () => start(async () => {
+    if (await runAction(confirmPlannedTour(tour.id, date), t("scheduled"), t("saveError"))) onClose();
+  });
+  return <FormDrawer open onClose={onClose} pending={pending} width={520}
+    title={<span className="flex items-center gap-2">{tour.customer?.full_name ?? t("title")} <TourStatusTag tour={tour} /></span>}
+    submitText={t("schedule")} onSubmit={me.canPlan ? schedule : undefined}>
+    <p className="mb-4 text-sm text-muted-foreground">{t("plannedHint")}</p>
+    <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 text-sm">
+      <dt className="text-muted-foreground">{t("date")}</dt>
+      <dd>{me.canPlan ? <DatePicker allowClear={false} value={date} onChange={(v) => setDate(v || tour.tour_date)} />
+        : dayjs(tour.tour_date).format("DD/MM/YYYY")}</dd>
+      <dt className="text-muted-foreground">{t("customer")}</dt>
+      <dd>{tour.customer?.full_name} {tour.customer?.phone ? <a href={`tel:${tour.customer.phone}`} className="text-muted-foreground">· {tour.customer.phone}</a> : null}</dd>
+      <dt className="text-muted-foreground">{t("service")}</dt>
+      <dd>{services.find((s) => s.id === tour.service_id)?.name ?? "—"}</dd>
+      <dt className="text-muted-foreground">{t("kind")}</dt>
+      <dd>{kindText(t, tour) || "—"}</dd>
+    </dl>
+  </FormDrawer>;
+}
+
+function WorkTourDrawer({ tour, me, services, staff, customers, onClose }: DrawerProps) {
   const t = useTranslations("tour");
   const [form] = Form.useForm<WorkValues>();
   const [pending, start] = useTransition();

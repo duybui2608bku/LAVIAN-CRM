@@ -12,11 +12,11 @@ export const TOUR_RATES: Partial<Record<ServiceDetail, number>> = { new: 0.07, d
 export const tourCommission = (t: { bill_amount: number | null; service_detail: string | null }) =>
   Math.round((t.bill_amount ?? 0) * (TOUR_RATES[t.service_detail as ServiceDetail] ?? 0));
 
-export type TourStatus = "pending" | "claimed" | "confirmed";
+export type TourStatus = "planned" | "pending" | "claimed" | "confirmed";
 
-/** Trạng thái suy ra: chưa có KTV = chờ nhận; có KTV = chưa xác nhận; admin xác nhận = đã xác nhận. */
-export const tourStatus = (t: { technician_id: string | null; confirmed_at: string | null }): TourStatus =>
-  t.confirmed_at ? "confirmed" : t.technician_id ? "claimed" : "pending";
+/** Trạng thái suy ra: dự kiến (lộ trình tự sinh, chưa chốt lịch); chưa có KTV = chờ nhận; có KTV = chưa xác nhận; admin xác nhận = đã xác nhận. */
+export const tourStatus = (t: { technician_id: string | null; confirmed_at: string | null; planned?: boolean }): TourStatus =>
+  t.planned ? "planned" : t.confirmed_at ? "confirmed" : t.technician_id ? "claimed" : "pending";
 
 const images = z.array(z.url({ protocol: /^https?$/ })).max(30);
 

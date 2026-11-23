@@ -82,7 +82,7 @@ export type Customer360Card = Pick<TreatmentCard, "id" | "code" | "cancelled_at"
 };
 
 /** Tour (buổi làm) của khách. Ảnh (`?`) chỉ có khi được xem ảnh B/A — URL CDN công khai. */
-export type Customer360Tour = Pick<Tour, "id" | "tour_date" | "service_id" | "card_item_id" | "service_detail" | "service_session" | "technician_id" | "confirmed_at">
+export type Customer360Tour = Pick<Tour, "id" | "tour_date" | "service_id" | "card_item_id" | "service_detail" | "service_session" | "technician_id" | "confirmed_at" | "planned">
   & Partial<Pick<Tour, "before_images" | "after_images" | "extra_images">>;
 
 export interface Customer360 {

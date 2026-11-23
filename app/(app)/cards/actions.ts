@@ -10,6 +10,7 @@ import {
 } from "@/lib/cards";
 import { normalizeError } from "@/lib/errors";
 import { initialNotes } from "@/lib/notes";
+import { syncRoadmap } from "@/lib/roadmap-sync";
 import { createClient } from "@/lib/supabase/server";
 
 type Result = { error?: string };
@@ -71,6 +72,7 @@ export async function addCardItems(cardId: string, input: z.input<typeof cardIte
     const { error } = await db.from("treatment_card_items")
       .insert(items.map((i) => ({ ...i, card_id: cardId, created_by: profile.id })));
     if (error) throw error;
+    await syncRoadmap(db, cardId); // bán thêm mày / laser → lộ trình dự kiến tính lại
   });
 }
 
@@ -89,6 +91,7 @@ export async function refundCardItem(itemId: string, input: z.input<typeof cardR
       .update({ refunded_at: new Date().toISOString(), refund_amount: amount, refund_note: note })
       .eq("id", itemId).is("refunded_at", null);
     if (error) throw error;
+    await syncRoadmap(db, item.card_id); // DV hoàn → bỏ tour dự kiến của DV
   });
 }
 
@@ -148,11 +151,12 @@ export async function updateCardItemSessions(itemId: string, sessions: number) {
     if (readErr) throw readErr;
     if (!item || !(await openCard(db, item.card_id))) return t("error.cancelled");
     const { count, error: countErr } = await db.from("tours").select("id", { count: "exact", head: true })
-      .eq("card_item_id", itemId).is("deleted_at", null);
+      .eq("card_item_id", itemId).is("deleted_at", null).eq("planned", false);
     if (countErr) throw countErr;
     if (value < (count ?? 0)) return t("error.sessionsBelowUsed", { used: count ?? 0 });
     const { error } = await db.from("treatment_card_items").update({ sessions: value }).eq("id", itemId).is("refunded_at", null);
     if (error) throw error;
+    await syncRoadmap(db, item.card_id); // số buổi Laser = laser dự kiến → tính lại lộ trình
   });
 }
 
@@ -172,7 +176,7 @@ export async function createCardTours(cardId: string, input: z.input<typeof card
     const [{ data: items, error }, { data: existing, error: toursErr }] = await Promise.all([
       db.from("treatment_card_items").select("id,service_id,sessions,service:services(tourable)")
         .eq("card_id", cardId).is("refunded_at", null).in("id", ids),
-      db.from("tours").select("card_item_id,tour_date,service_detail").in("card_item_id", ids).is("deleted_at", null),
+      db.from("tours").select("card_item_id,tour_date,service_detail").in("card_item_id", ids).is("deleted_at", null).eq("planned", false),
     ]);
     if (error) throw error;
     if (toursErr) throw toursErr;
@@ -192,6 +196,7 @@ export async function createCardTours(cardId: string, input: z.input<typeof card
     });
     const { error: insertErr } = await db.from("tours").insert(rows);
     if (insertErr) throw insertErr;
+    await syncRoadmap(db, cardId);
   });
 }
 
