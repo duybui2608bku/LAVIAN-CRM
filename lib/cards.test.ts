@@ -194,6 +194,10 @@ test("lộ trình dự kiến mày: laser 20 ngày, làm mới 20 ngày, dặm 4
   assert.deepEqual(plan([brow], [tour("B", "2026-12-01", "new"), tour("B", "2027-01-15", "retouch")]), []);
   assert.deepEqual(plan([laser, { ...brow, refunded_at: "x" }], [l1]), ["laser:L:2026-12-21"]);
   assert.deepEqual(plan([item("P", "bibir", 2)], [tour("P", "2026-12-01", "new")]), []);
+  // Sửa tay ngày Làm mới (bước 0 của dòng B) → giữ ngày đó, Dặm tính tiếp từ nó.
+  const pin = (itemId: string, k: number) => (itemId === "B" && k === 0 ? "2027-01-20" : null);
+  assert.deepEqual(planRoadmap([laser, brow], [l1], pin).map((s) => `${s.kind}:${s.tour_date}`),
+    ["laser:2026-12-21", "new:2027-01-20", "retouch:2027-03-06"]);
 });
 
 test("đến hạn bỏ tour dự kiến", () => {

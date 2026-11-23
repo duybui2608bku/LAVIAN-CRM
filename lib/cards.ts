@@ -166,8 +166,9 @@ export type RoadmapStep = { card_item_id: string; service_id: string; kind: Tour
  * Mỗi vùng: neo = tour thật cuối (chưa có → không sinh). Chưa Làm mới → các buổi Laser còn lại (số buổi dòng Laser
  * = laser dự kiến), rồi Làm mới; sau đó Dặm tới hết buổi DV chính (Alis 2 buổi = Làm mới + Dặm 1).
  * Khoảng cách theo Loại bước trước: sau Laser 20 ngày (Laser tiếp hoặc Làm mới), sau Làm mới / Dặm 45 ngày.
+ * `pinned(itemId, k)` = ngày người dùng đã sửa tay cho bước dự kiến thứ k của dòng DV → giữ ngày đó, các bước sau tính tiếp từ nó.
  */
-export function planRoadmap(items: PlanItem[], tours: PlanTour[]): RoadmapStep[] {
+export function planRoadmap(items: PlanItem[], tours: PlanTour[], pinned?: (itemId: string, k: number) => string | null): RoadmapStep[] {
   const out: RoadmapStep[] = [];
   for (const area of ROADMAP_AREAS) {
     const list = items.filter((i) => isTourable(i) && !i.refunded_at && areaOf(i.service?.group_id) === area);
@@ -178,7 +179,8 @@ export function planRoadmap(items: PlanItem[], tours: PlanTour[]): RoadmapStep[]
     if (!anchor) continue;
     let { tour_date: date, service_detail: prev } = anchor;
     const push = (item: PlanItem, kind: TourKind) => {
-      date = addDays(date, isRemoval(prev) ? LASER_CHECK_DAYS : RETOUCH_DAYS);
+      const k = out.filter((s) => s.card_item_id === item.id).length;
+      date = pinned?.(item.id, k) ?? addDays(date, isRemoval(prev) ? LASER_CHECK_DAYS : RETOUCH_DAYS);
       prev = kind;
       out.push({ card_item_id: item.id, service_id: item.service_id, kind, tour_date: date });
     };

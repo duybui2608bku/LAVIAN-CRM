@@ -21,6 +21,12 @@
 - [x] 4.3 Drawer thẻ: lộ trình hiện tour dự kiến (mờ + tag), đếm buổi bỏ dự kiến, nút "Sạch → lên mới" / "Còn mực +1 buổi"
 - [x] 4.4 i18n vi/en
 
+## 4b. Sửa ngày tour dự kiến
+
+- [x] 4b.1 Migration `20261123150000_tour_planned_date_pinned.sql` (cột `date_pinned`)
+- [x] 4b.2 `planRoadmap` nhận `pinned`; sync đọc `date_pinned`; `setPlannedTourDate`; sync sau `addCardItems`
+- [x] 4b.3 Drawer Thêm dịch vụ: 760px, bảng giá 1 cột chữ nhỏ, mục Lộ trình dự kiến sửa ngày
+
 ## 5. Kiểm tra
 
 - [x] 5.1 tsc + eslint + node --test

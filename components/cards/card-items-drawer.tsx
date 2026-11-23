@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { setPlannedTourDate } from "@/app/(app)/tour/actions";
+import { DatePicker } from "@/components/common/date-picker";
+import { kindText, runAction } from "@/components/tour/tour-drawer";
 import { Button, Checkbox, Empty, Input, InputNumber, Tooltip } from "antd";
 import { CircleAlert, X } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -13,6 +16,7 @@ import { formatIdr, formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import type { CardItem } from "@/types/card";
 import type { Service } from "@/types/service";
+import type { Tour } from "@/types/tour";
 
 export type CardItemInput = { service_id: string; price: number; sessions: number };
 
@@ -21,7 +25,7 @@ export type CardItemInput = { service_id: string; price: number; sessions: numbe
  * và khi bán thêm dịch vụ vào thẻ. Trái: cả bảng giá dạng checkbox theo nhóm (như tờ bảng giá giấy, không cần cuộn);
  * phải: dịch vụ đã chọn — giá bán mặc định = bảng giá, sửa được (giảm giá / voucher), số buổi mặc định 1.
  */
-export function CardItemsDrawer({ open, title, submitText, services, deposit, existing = [], currentValue, beside, onSubmit, onClose }: {
+export function CardItemsDrawer({ open, title, submitText, services, deposit, existing = [], currentValue, beside, planned, onSubmit, onClose }: {
   open: boolean;
   title: React.ReactNode;
   submitText: string;
@@ -34,6 +38,8 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
   currentValue?: number;
   /** Mở cạnh drawer thẻ (rộng `beside` px) thay vì đè lên. */
   beside?: number;
+  /** Tour dự kiến của thẻ (bán thêm) — xem + sửa ngày ngay tại đây. */
+  planned?: Tour[];
   onSubmit: (items: CardItemInput[], note: string) => Promise<boolean>;
   onClose: () => void;
 }) {
@@ -68,11 +74,11 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
   };
 
   // Bố cục theo bề rộng drawer (container query) — mở cạnh drawer thẻ thì hẹp hơn màn hình.
-  return <FormDrawer open={open} onClose={close} title={title} submitText={submitText} pending={pending} width={1120} beside={beside} onSubmit={submit}>
-    <div className="@container"><div className="grid gap-6 @3xl:grid-cols-[minmax(0,1fr)_360px]">
-      {/* Bảng giá: mỗi nhóm 1 khối, 2 cột khi đủ rộng. */}
-      <div className="@container"><div className="columns-1 gap-6 @md:columns-2">
-        {sections.map(({ group, items }) => <section key={group.id} className="mb-4 break-inside-avoid">
+  return <FormDrawer open={open} onClose={close} title={title} submitText={submitText} pending={pending} width={760} beside={beside} onSubmit={submit}>
+    <div className="@container"><div className="grid gap-5 @xl:grid-cols-[minmax(0,1fr)_320px]">
+      {/* Bảng giá: 1 cột chữ nhỏ, mỗi nhóm 1 khối. */}
+      <div>
+        {sections.map(({ group, items }) => <section key={group.id} className="mb-3">
           <h4 className="mb-1 flex items-center gap-1.5 border-b border-border pb-1 text-xs font-semibold tracking-wide text-primary uppercase">
             {group.name}
             {items.some(locked) ? <Tooltip title={t("error.sameGroup", { group: group.name })}>
@@ -84,19 +90,19 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
               const on = picked.has(s.id);
               const off = locked(s);
               return <li key={s.id}>
-                <label className={`flex items-center gap-2 rounded px-1.5 py-1 text-sm ${off ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted"} ${on ? "bg-primary/5 font-medium" : ""}`}>
+                <label className={`flex items-center gap-2 rounded px-1.5 py-0.5 text-xs ${off ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted"} ${on ? "bg-primary/5 font-medium" : ""}`}>
                   <Checkbox checked={on} disabled={pending || off} onChange={(e) => toggle(s, e.target.checked)} />
                   <span className="min-w-0 flex-1">{s.name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatIdr(s.price)}</span>
+                  <span className="shrink-0 text-muted-foreground tabular-nums">{formatIdr(s.price)}</span>
                 </label>
               </li>;
             })}
           </ul>
         </section>)}
-      </div></div>
+      </div>
 
       {/* Đã chọn + tạm tính — dính trên khi cuộn (khi 2 cột). */}
-      <Section title={t("selected", { count: lines.length })} className="self-start @3xl:sticky @3xl:top-0">
+      <Section title={t("selected", { count: lines.length })} className="self-start @xl:sticky @xl:top-0">
         {/* DV đang có trong thẻ — chỉ đọc, để thấy giá trị thẻ sau cập nhật. */}
         {existing.length ? <ul className="flex flex-col gap-1 rounded-lg border border-dashed border-border bg-muted/40 p-2.5">
           <li className="text-xs font-medium text-muted-foreground">{t("inCard")}</li>
@@ -157,7 +163,38 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
 
         <Input.TextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("note")} aria-label={t("note")}
           autoSize={{ minRows: 2, maxRows: 5 }} maxLength={2000} />
+
+        {planned?.length ? <PlannedTours tours={planned} services={byId} /> : null}
       </Section>
     </div></div>
   </FormDrawer>;
+}
+
+/** Lộ trình dự kiến của thẻ: sửa ngày 1 tour → lưu cố định ngày đó, các tour dự kiến sau tự dời theo (server sync). */
+function PlannedTours({ tours, services }: { tours: Tour[]; services: Map<string, Service> }) {
+  const t = useTranslations("cards");
+  const tt = useTranslations("tour");
+  const [pending, start] = useTransition();
+  const save = (id: string, date: string) => start(async () => {
+    await runAction(setPlannedTourDate(id, date), tt("dateSaved"), tt("saveError"));
+  });
+  return <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-2.5">
+    <div>
+      <div className="text-sm font-medium">{t("plannedTours")}</div>
+      <div className="text-xs text-muted-foreground">{t("plannedToursHint")}</div>
+    </div>
+    <ul className="flex flex-col gap-1.5">
+      {[...tours].sort((a, b) => a.tour_date.localeCompare(b.tour_date)).map((tour) => <li key={tour.id}
+        className="flex items-center justify-between gap-2 text-xs">
+        <div className="min-w-0">
+          <div className="font-medium">{kindText(tt, tour) || "—"}</div>
+          <div className="truncate text-muted-foreground">{services.get(tour.service_id)?.name ?? "—"}</div>
+        </div>
+        <div className="w-36 shrink-0">
+          <DatePicker allowClear={false} value={tour.tour_date}
+            onChange={(v) => { if (!pending && v && v !== tour.tour_date) save(tour.id, v); }} />
+        </div>
+      </li>)}
+    </ul>
+  </div>;
 }

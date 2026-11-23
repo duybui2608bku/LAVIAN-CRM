@@ -37,6 +37,8 @@
 
 7. **Đếm buổi / Đến hạn bỏ tour dự kiến**: `usageOf` (drawer thẻ, 360°), modal Tạo tour, `createCardTours`, `updateCardItemSessions`, `journeyDue` (lọc `planned`), RPC `journey_due_source` (`and not t.planned`).
 
+8. **Sửa ngày tour dự kiến** (drawer Thêm dịch vụ, mục "Lộ trình dự kiến"): `setPlannedTourDate(id, date)` (quyền `tour.edit | cards.edit`) lưu ngày + `tours.date_pinned = true`; `planRoadmap(items, tours, pinned)` giữ ngày đã ghim của bước thứ k mỗi dòng DV, các bước sau tính tiếp từ đó. `addCardItems` cũng gọi sync (bán thêm mày / laser). Drawer Thêm dịch vụ thu còn 760px: bảng giá 1 cột chữ nhỏ.
+
 ## Risks / Trade-offs
 
 - [Nhiều nơi đếm tour] → gom về lọc `planned` ở các chỗ liệt kê trong mục 7; test `planRoadmap` + `journeyDue` có tour dự kiến.

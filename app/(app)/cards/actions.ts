@@ -72,6 +72,7 @@ export async function addCardItems(cardId: string, input: z.input<typeof cardIte
     const { error } = await db.from("treatment_card_items")
       .insert(items.map((i) => ({ ...i, card_id: cardId, created_by: profile.id })));
     if (error) throw error;
+    await syncRoadmap(db, cardId); // bán thêm mày / laser → lộ trình dự kiến tính lại
   });
 }
 

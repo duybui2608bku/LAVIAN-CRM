@@ -108,6 +108,22 @@ async function syncCardOf(db: Awaited<ReturnType<typeof createClient>>, tourId: 
   if (cardId) await syncRoadmap(db, cardId);
 }
 
+/** Sửa ngày tour dự kiến (chưa chốt với khách): giữ cố định ngày đó (`date_pinned`), các tour dự kiến sau dời theo. */
+export async function setPlannedTourDate(id: string, date: string) {
+  return run(async (t) => {
+    z.uuid().parse(id);
+    const day = z.iso.date().parse(date);
+    await requireAnyPermission("tour.edit", "cards.edit");
+    const db = await createClient();
+    const { data, error } = await db.from("tours").update({ tour_date: day, date_pinned: true })
+      .eq("id", id).eq("planned", true).is("deleted_at", null).select("id");
+    if (error) throw error;
+    if (!data.length) return t("forbidden");
+    const cardId = await cardIdOfTour(db, id);
+    if (cardId) await syncRoadmap(db, cardId);
+  });
+}
+
 /**
  * Chốt lịch tour dự kiến (CSKH / Sales gọi khách xong): thành tour thật ngày `date`, vào Chờ nhận; tour dự kiến sau dời theo.
  * Chỉ tour dự kiến sớm nhất của thẻ — không nhảy bước.

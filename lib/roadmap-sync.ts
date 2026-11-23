@@ -5,7 +5,8 @@ import type { createClient } from "@/lib/supabase/server";
 type Db = Awaited<ReturnType<typeof createClient>>;
 type PlanItem = Parameters<typeof planRoadmap>[0][number];
 type TourRow = {
-  id: string; card_item_id: string; tour_date: string; service_detail: string | null; service_session: number | null; planned: boolean;
+  id: string; card_item_id: string; tour_date: string; service_detail: string | null; service_session: number | null;
+  planned: boolean; date_pinned: boolean;
 };
 
 /**
@@ -22,26 +23,29 @@ export async function syncRoadmap(db: Db, cardId: string) {
   const items = card.items as unknown as PlanItem[];
   if (!items.length) return;
   const { data, error: toursErr } = await db.from("tours")
-    .select("id,card_item_id,tour_date,service_detail,service_session,planned")
+    .select("id,card_item_id,tour_date,service_detail,service_session,planned,date_pinned")
     .in("card_item_id", items.map((i) => i.id)).is("deleted_at", null);
   if (toursErr) throw toursErr;
   const tours = (data ?? []) as TourRow[];
   const real = tours.filter((t) => !t.planned);
+  const planned = tours.filter((t) => t.planned).sort((a, b) => a.tour_date.localeCompare(b.tour_date) || a.id.localeCompare(b.id));
+  const plannedOf = (itemId: string) => planned.filter((t) => t.card_item_id === itemId);
+  // Ngày đã sửa tay (date_pinned) của bước dự kiến thứ k → giữ nguyên khi tính lại.
+  const pinned = (itemId: string, k: number) => { const h = plannedOf(itemId)[k]; return h?.date_pinned ? h.tour_date : null; };
 
   // Số lần (Laser n / Dặm n) đếm cả tour thật + bước dự kiến trước đó của cùng dòng.
   const seen: { card_item_id: string; tour_date: string; service_detail: string | null }[] = [...real];
-  const want = (card.cancelled_at ? [] : planRoadmap(items, real)).map((step) => {
+  const want = (card.cancelled_at ? [] : planRoadmap(items, real, pinned)).map((step) => {
     const detail = tourKindDetail(step.kind, step.tour_date, seen.filter((t) => t.card_item_id === step.card_item_id));
     seen.push({ card_item_id: step.card_item_id, tour_date: step.tour_date, service_detail: detail.service_detail });
     return { ...step, ...detail };
   });
 
-  const planned = tours.filter((t) => t.planned).sort((a, b) => a.tour_date.localeCompare(b.tour_date) || a.id.localeCompare(b.id));
   const now = new Date().toISOString();
   const inserts: Record<string, unknown>[] = [];
   const updates: PromiseLike<{ error: unknown }>[] = [];
   for (const item of items) {
-    const have = planned.filter((t) => t.card_item_id === item.id);
+    const have = plannedOf(item.id);
     const need = want.filter((w) => w.card_item_id === item.id);
     need.forEach((w, k) => {
       const values = { tour_date: w.tour_date, service_detail: w.service_detail, service_session: w.service_session };

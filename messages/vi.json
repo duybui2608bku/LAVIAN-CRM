@@ -179,6 +179,7 @@
     "schedule": "Chốt lịch",
     "scheduled": "Đã chốt lịch tour",
     "plannedNotFirst": "Phải chốt lịch tour dự kiến sớm nhất của thẻ trước",
+    "dateSaved": "Đã lưu ngày tour dự kiến",
     "status_pending": "Chờ nhận",
     "status_claimed": "Chưa xác nhận",
     "status_confirmed": "Đã xác nhận",
@@ -1126,6 +1127,8 @@
     "save": "Lưu",
     "laserClean": "Sạch → lên mới",
     "laserMore": "Còn mực +1 buổi",
+    "plannedTours": "Lộ trình dự kiến",
+    "plannedToursHint": "Sửa ngày 1 tour — các tour dự kiến sau tự dời theo.",
     "editSessions": "Sửa số buổi",
     "sessionsFull": "đã đủ buổi (chỉ admin tạo thêm)",
     "history": {
