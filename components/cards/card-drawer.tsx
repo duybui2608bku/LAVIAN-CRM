@@ -202,7 +202,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
   </FormDrawer>
   {/* Ngoài drawer thẻ (không lồng) → mở bên cạnh, drawer thẻ giữ nguyên để xem thẻ đang có DV gì. */}
   <CardItemsDrawer open={adding} title={t("addServiceTitle", { code: card.code })} submitText={t("addService")}
-    services={services} existing={card.items.filter((i) => !i.refunded_at).map((i) => i.service_id)} beside={CARD_DRAWER_WIDTH}
+    services={services} existing={card.items.filter((i) => !i.refunded_at)} currentValue={money.value} beside={CARD_DRAWER_WIDTH}
     onClose={() => setAdding(false)} onSubmit={(items) => runAction(addCardItems(card.id, items), t("saved"), failed)} />
   </>;
 }
