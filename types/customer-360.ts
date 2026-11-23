@@ -75,8 +75,9 @@ export type Customer360Appointment = Omit<Appointment, "created_by"> & {
 };
 
 /** Thẻ liệu trình của khách. Cột tiền (`?`) chỉ có khi được xem tài chính. */
-export type Customer360Card = Pick<TreatmentCard, "id" | "code" | "cancelled_at" | "created_by" | "created_at"> & {
+export type Customer360Card = Pick<TreatmentCard, "id" | "code" | "cancelled_at" | "refunded_at" | "created_by" | "created_at"> & {
   deposit_used?: number;
+  refund_amount?: number | null;
   items: (Pick<CardItem, "id" | "service_id" | "sessions" | "refunded_at" | "service"> & Partial<Pick<CardItem, "price" | "refund_amount">>)[];
   payments?: Omit<CardPayment, "card_id">[];
 };

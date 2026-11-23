@@ -107,6 +107,7 @@ export function CardPrint({ card, services, consultant, used }: {
             <tr className="cp-strong"><th>Total payment</th><td>{formatIdr(money.value)}</td></tr>
             {card.deposit_used ? <tr><th>Deposit (DP)</th><td>{formatIdr(card.deposit_used)}</td></tr> : null}
             {paid ? <tr><th>Paid amount</th><td>{formatIdr(paid)}</td></tr> : null}
+            {card.refunded_at ? <tr><th>Card refunded {dayjs(card.refunded_at).format("DD/MM/YYYY")}</th><td>−{formatIdr(card.refund_amount ?? 0)}</td></tr> : null}
             <tr className="cp-due"><th>{money.due < 0 ? "To refund" : "Balance due"}</th><td>{formatIdr(Math.abs(money.due))}</td></tr>
           </tbody>
         </table>

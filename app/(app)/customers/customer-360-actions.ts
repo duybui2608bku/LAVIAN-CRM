@@ -35,7 +35,7 @@ const APPT_FIELDS = "id,customer_id,scheduled_at,booking_confirm,checked_in,visi
 const MONEY_LOG_FIELDS = ["bill_amount", "paid_amount"];
 // Thẻ + tour nối theo customer_id (RLS lọc theo quyền cards.* / tour.*). Cột tiền chỉ select khi được xem tài chính,
 // ảnh tour chỉ khi được xem ảnh B/A — server không trả dữ liệu bị ẩn.
-const cardFields = (finance: boolean) => `id,code,cancelled_at,created_by,created_at${finance ? ",deposit_used" : ""},`
+const cardFields = (finance: boolean) => `id,code,cancelled_at,refunded_at,created_by,created_at${finance ? ",deposit_used,refund_amount" : ""},`
   + `items:treatment_card_items(id,service_id,sessions,refunded_at${finance ? ",price,refund_amount" : ""},service:services(group_id,tourable))`
   + (finance ? ",payments:treatment_card_payments(id,amount,method,paid_at,note,images,created_by)" : "");
 const tourFields = (photos: boolean) => "id,tour_date,service_id,card_item_id,service_detail,service_session,technician_id,confirmed_at,planned"

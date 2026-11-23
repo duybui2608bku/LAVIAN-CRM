@@ -21,6 +21,7 @@ const DB_ERRORS: Record<string, string> = {
   card_needs_items: "card_needs_items", customer_not_found: "customer_not_found", appointment_not_arrived: "appointment_not_arrived",
   card_cancelled: "cancelled", item_refunded: "itemUnavailable", tour_card_mismatch: "itemUnavailable",
   payment_over_due: "paymentOverDue", refund_over_paid: "refundOverPaid", service_group_taken: "groupTaken",
+  item_has_tours: "itemHasTours",
 };
 
 async function run(action: (t: T, db: Awaited<ReturnType<typeof createClient>>) => Promise<string | void>): Promise<Result> {
@@ -41,10 +42,10 @@ async function run(action: (t: T, db: Awaited<ReturnType<typeof createClient>>) 
   }
 }
 
-/** Thẻ còn hiệu lực (chưa huỷ) — null khi không có. */
+/** Thẻ còn hiệu lực (chưa huỷ, chưa hoàn) — null khi không có. */
 async function openCard(db: Awaited<ReturnType<typeof createClient>>, id: string) {
   const { data, error } = await db.from("treatment_cards").select("id,customer_id")
-    .eq("id", id).is("cancelled_at", null).maybeSingle();
+    .eq("id", id).is("cancelled_at", null).is("refunded_at", null).maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -78,22 +79,32 @@ export async function addCardItems(cardId: string, input: z.input<typeof cardIte
   });
 }
 
-/** Hoàn 1 dịch vụ (DV đã hoàn không tạo tour được nữa). DB chặn tiền hoàn > giá bán. */
-export async function refundCardItem(itemId: string, input: z.input<typeof cardRefundSchema>) {
+/**
+ * Xoá 1 DV khỏi thẻ (bán nhầm / khách đổi ý): RPC chặn DV đã có tour thật, thẻ chỉ còn 1 DV.
+ * Nhật ký thẻ (card_audit) tự ghi DV bị xoá. Lộ trình dự kiến tính lại.
+ */
+export async function deleteCardItem(itemId: string) {
   return run(async (t, db) => {
     z.uuid().parse(itemId);
-    const { amount, note } = cardRefundSchema.parse(input);
     await requirePermission("cards.edit");
-    const { data: item, error: readErr } = await db.from("treatment_card_items").select("card_id,price")
-      .eq("id", itemId).is("refunded_at", null).maybeSingle();
+    const { data: item, error: readErr } = await db.from("treatment_card_items").select("card_id").eq("id", itemId).maybeSingle();
     if (readErr) throw readErr;
-    if (!item || !(await openCard(db, item.card_id))) return t("error.cancelled");
-    if (amount > item.price) return t("error.refundTooHigh");
-    const { error } = await db.from("treatment_card_items")
-      .update({ refunded_at: new Date().toISOString(), refund_amount: amount, refund_note: note })
-      .eq("id", itemId).is("refunded_at", null);
+    if (!item) return t("error.itemUnavailable");
+    const { error } = await db.rpc("delete_treatment_card_item", { p_item_id: itemId });
     if (error) throw error;
-    await syncRoadmap(db, item.card_id); // DV hoàn → bỏ tour dự kiến của DV
+    await syncRoadmap(db, item.card_id);
+  });
+}
+
+/** Hoàn cả thẻ: tiền hoàn ≤ Đã thu; thẻ khoá, tour dự kiến bị xoá (RPC). */
+export async function refundCard(cardId: string, input: z.input<typeof cardRefundSchema>) {
+  return run(async (_, db) => {
+    z.uuid().parse(cardId);
+    const { amount, method, note } = cardRefundSchema.parse(input);
+    await requirePermission("cards.edit");
+    const { error } = await db.rpc("refund_treatment_card", { p_card_id: cardId, p_amount: amount, p_method: method, p_note: note });
+    if (error) throw error;
+    revalidatePath("/customers");
   });
 }
 

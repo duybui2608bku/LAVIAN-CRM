@@ -27,7 +27,7 @@ export interface CardPayment {
   created_by: string | null;
 }
 
-/** Thẻ liệu trình — bảng `treatment_cards` (mã TLT00001). */
+/** Thẻ liệu trình — bảng `treatment_cards` (mã = DV chính + số: ALIS0013, BIBIR0014). */
 export interface TreatmentCard {
   id: string;
   code: string;
@@ -36,6 +36,12 @@ export interface TreatmentCard {
   deposit_used: number; // cọc của khách trừ vào thẻ
   note: string;
   cancelled_at: string | null;
+  /** Hoàn cả thẻ: thẻ khoá, Giá trị = Đã thu sau hoàn (cardMoney). */
+  refunded_at: string | null;
+  refund_amount: number | null;
+  refund_method: CardPaymentMethod | null;
+  refund_note: string;
+  refunded_by: string | null;
   created_by: string | null;
   created_at: string;
   items: CardItem[];
@@ -43,7 +49,7 @@ export interface TreatmentCard {
   customer: { full_name: string; phone: string; address_detail: string | null } | null;
 }
 
-export const CARD_FIELDS = "id,code,customer_id,appointment_id,deposit_used,note,cancelled_at,created_by,created_at,"
+export const CARD_FIELDS = "id,code,customer_id,appointment_id,deposit_used,note,cancelled_at,refunded_at,refund_amount,refund_method,refund_note,refunded_by,created_by,created_at,"
   + "items:treatment_card_items(id,card_id,service_id,price,sessions,refunded_at,refund_amount,refund_note,created_at,service:services(group_id,tourable)),"
   + "payments:treatment_card_payments(id,card_id,amount,method,paid_at,note,images,created_by),"
   + "customer:customers(full_name,phone,address_detail)";
