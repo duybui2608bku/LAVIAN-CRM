@@ -39,6 +39,8 @@
 
 8. **Sửa ngày tour dự kiến** (drawer Thêm dịch vụ, mục "Lộ trình dự kiến"): `setPlannedTourDate(id, date)` (quyền `tour.edit | cards.edit`) lưu ngày + `tours.date_pinned = true`; `planRoadmap(items, tours, pinned)` giữ ngày đã ghim của bước thứ k mỗi dòng DV, các bước sau tính tiếp từ đó. `addCardItems` cũng gọi sync (bán thêm mày / laser). Drawer Thêm dịch vụ thu còn 760px: bảng giá 1 cột chữ nhỏ.
 
+9. **Lộ trình lúc bán thẻ**: drawer Bán thẻ (`previewRoadmap`) xem trước `planRoadmap(DV đang chọn, [], pins, start)` — bước đầu = ngày bắt đầu (mặc định hôm nay), sửa được từng ngày. `createCard` nhận `plan { start, pins[service_id, k, date] }` → `syncRoadmap(db, cardId, plan)` tạo tour dự kiến ngay (bước sửa tay `date_pinned`). Chưa có tour thật thì chuỗi neo vào tour dự kiến sớm nhất (`start` của sync). `createCardTours`: DV đã có tour dự kiến → **dùng lại tour dự kiến sớm nhất** làm tour thật (không tạo trùng).
+
 ## Risks / Trade-offs
 
 - [Nhiều nơi đếm tour] → gom về lọc `planned` ở các chỗ liệt kê trong mục 7; test `planRoadmap` + `journeyDue` có tour dự kiến.

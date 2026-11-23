@@ -54,10 +54,12 @@ export async function createCard(input: z.input<typeof cardCreateSchema>) {
   return run(async (_, db) => {
     const values = cardCreateSchema.parse(input);
     await requirePermission("cards.edit");
-    const { error } = await db.rpc("create_treatment_card", {
+    const { data: card, error } = await db.rpc("create_treatment_card", {
       p_customer_id: values.customer_id, p_appointment_id: values.appointment_id, p_items: values.items, p_note: values.note,
     });
     if (error) throw error;
+    // Lộ trình lập lúc bán (ngày bắt đầu + ngày sửa tay) → tour dự kiến ngay.
+    if (values.plan) await syncRoadmap(db, (card as { id: string }).id, values.plan);
     revalidatePath("/customers");
   });
 }
@@ -173,13 +175,15 @@ export async function createCardTours(cardId: string, input: z.input<typeof card
     const card = await openCard(db, cardId);
     if (!card) return t("error.cancelled");
     const ids = values.items.map((i) => i.card_item_id);
-    const [{ data: items, error }, { data: existing, error: toursErr }] = await Promise.all([
+    const [{ data: items, error }, { data: existing, error: toursErr }, { data: planned, error: plannedErr }] = await Promise.all([
       db.from("treatment_card_items").select("id,service_id,sessions,service:services(tourable)")
         .eq("card_id", cardId).is("refunded_at", null).in("id", ids),
       db.from("tours").select("card_item_id,tour_date,service_detail").in("card_item_id", ids).is("deleted_at", null).eq("planned", false),
+      db.from("tours").select("id,card_item_id").in("card_item_id", ids).is("deleted_at", null).eq("planned", true).order("tour_date"),
     ]);
     if (error) throw error;
     if (toursErr) throw toursErr;
+    if (plannedErr) throw plannedErr;
     // Join many-to-one trả object (kiểu suy ra của supabase-js là mảng).
     if (items.length !== values.items.length || !items.every((i) => isTourable(i as unknown as { service: { group_id: string; tourable: boolean } | null })))
       return t("error.itemUnavailable");
@@ -194,8 +198,15 @@ export async function createCardTours(cardId: string, input: z.input<typeof card
         ...tourKindDetail(kind, values.tour_date, (existing ?? []).filter((x) => x.card_item_id === card_item_id)),
       };
     });
-    const { error: insertErr } = await db.from("tours").insert(rows);
-    if (insertErr) throw insertErr;
+    // DV đã có tour dự kiến → dùng tour dự kiến sớm nhất làm tour thật (giữ id, không tạo trùng); còn lại tạo mới.
+    const reuse = (itemId: string) => planned?.find((p) => p.card_item_id === itemId)?.id;
+    const writes = rows.map((row) => {
+      const id = reuse(row.card_item_id);
+      return id
+        ? db.from("tours").update({ ...row, planned: false, date_pinned: false }).eq("id", id).eq("planned", true)
+        : db.from("tours").insert(row as Record<string, unknown>);
+    });
+    for (const { error: writeErr } of await Promise.all(writes)) if (writeErr) throw writeErr;
     await syncRoadmap(db, cardId);
   });
 }

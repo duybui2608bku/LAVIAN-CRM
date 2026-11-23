@@ -159,7 +159,8 @@ export const ROADMAP_AREAS = ["alis"];
 
 type PlanItem = { id: string; service_id: string; sessions: number; refunded_at: string | null } & ItemService;
 type PlanTour = KindTour & { card_item_id: string | null };
-export type RoadmapStep = { card_item_id: string; service_id: string; kind: TourKind; tour_date: string };
+/** `pinned` = ngày do người dùng sửa tay (giữ khi tính lại). */
+export type RoadmapStep = { card_item_id: string; service_id: string; kind: TourKind; tour_date: string; pinned: boolean };
 
 /**
  * Tour dự kiến còn lại của 1 thẻ chưa huỷ. `tours` = tour THẬT của thẻ (không dự kiến, chưa xoá).
@@ -167,8 +168,11 @@ export type RoadmapStep = { card_item_id: string; service_id: string; kind: Tour
  * = laser dự kiến), rồi Làm mới; sau đó Dặm tới hết buổi DV chính (Alis 2 buổi = Làm mới + Dặm 1).
  * Khoảng cách theo Loại bước trước: sau Laser 20 ngày (Laser tiếp hoặc Làm mới), sau Làm mới / Dặm 45 ngày.
  * `pinned(itemId, k)` = ngày người dùng đã sửa tay cho bước dự kiến thứ k của dòng DV → giữ ngày đó, các bước sau tính tiếp từ nó.
+ * `start` = ngày bước đầu khi vùng CHƯA có tour thật (lộ trình lập lúc bán thẻ); không có → không sinh.
  */
-export function planRoadmap(items: PlanItem[], tours: PlanTour[], pinned?: (itemId: string, k: number) => string | null): RoadmapStep[] {
+export function planRoadmap(
+  items: PlanItem[], tours: PlanTour[], pinned?: (itemId: string, k: number) => string | null, start?: string,
+): RoadmapStep[] {
   const out: RoadmapStep[] = [];
   for (const area of ROADMAP_AREAS) {
     const list = items.filter((i) => isTourable(i) && !i.refunded_at && areaOf(i.service?.group_id) === area);
@@ -176,13 +180,16 @@ export function planRoadmap(items: PlanItem[], tours: PlanTour[], pinned?: (item
     const main = list.find((i) => i.service?.group_id === area);
     const real = tours.filter((t) => list.some((i) => i.id === t.card_item_id)).sort(order);
     const anchor = real.at(-1);
-    if (!anchor) continue;
-    let { tour_date: date, service_detail: prev } = anchor;
+    if (!anchor && !start) continue;
+    let date = anchor?.tour_date ?? start!;
+    let prev = anchor?.service_detail ?? null;
+    let first = !anchor; // chưa có tour thật: bước đầu đúng ngày `start`, không cộng khoảng cách
     const push = (item: PlanItem, kind: TourKind) => {
-      const k = out.filter((s) => s.card_item_id === item.id).length;
-      date = pinned?.(item.id, k) ?? addDays(date, isRemoval(prev) ? LASER_CHECK_DAYS : RETOUCH_DAYS);
+      const pin = pinned?.(item.id, out.filter((s) => s.card_item_id === item.id).length) ?? null;
+      date = pin ?? (first ? date : addDays(date, isRemoval(prev) ? LASER_CHECK_DAYS : RETOUCH_DAYS));
+      first = false;
       prev = kind;
-      out.push({ card_item_id: item.id, service_id: item.service_id, kind, tour_date: date });
+      out.push({ card_item_id: item.id, service_id: item.service_id, kind, tour_date: date, pinned: pin != null });
     };
     const used = (item: PlanItem) => real.filter((t) => t.card_item_id === item.id).length;
     let mainLeft = main ? main.sessions - used(main) : 0;
@@ -204,11 +211,19 @@ export const cardItemInputSchema = z.object({
 }).strict();
 const items = z.array(cardItemInputSchema).min(1).max(30);
 
+/** Lộ trình lập lúc bán thẻ: ngày bước đầu + ngày sửa tay của bước thứ k từng DV (theo service_id vì dòng thẻ chưa có id). */
+export const cardPlanSchema = z.object({
+  start: z.iso.date(),
+  pins: z.array(z.object({ service_id: z.uuid(), k: z.number().int().min(0).max(100), date: z.iso.date() }).strict()).max(100),
+}).strict();
+export type CardPlan = z.infer<typeof cardPlanSchema>;
+
 export const cardCreateSchema = z.object({
   customer_id: z.uuid(),
   appointment_id: z.uuid().nullable(),
   items,
   note,
+  plan: cardPlanSchema.optional(),
 }).strict();
 
 export const cardItemsAddSchema = items;

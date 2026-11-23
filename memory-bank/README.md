@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-23 — Lộ trình dự kiến ngay lúc bán thẻ
+- **Thay đổi:** Drawer Bán thẻ (Sales Management, `CardItemsDrawer previewRoadmap`) hiện **Lộ trình dự kiến** từ DV đang chọn: bước đầu = ngày bắt đầu (mặc định hôm nay), mỗi bước sửa ngày được (bước đầu đổi ngày bắt đầu, bước khác ghim). `createCard` nhận `plan` (`cardPlanSchema`: start + pins theo service_id/k) → `syncRoadmap(db, cardId, plan)` tạo tour dự kiến ngay. `planRoadmap(items, tours, pinned, start)`: chưa có tour thật mà có `start` → bước đầu đúng ngày start; sync lấy `start` = tour dự kiến sớm nhất của thẻ (nên thẻ chỉ có tour dự kiến vẫn giữ chuỗi). `createCardTours`: DV có tour dự kiến → **update tour dự kiến sớm nhất thành tour thật** (không tạo trùng, giữ ghim của các bước sau). `RoadmapList` dùng chung cho bán thẻ + bán thêm.
+- **File ảnh hưởng:** `lib/{cards,cards.test,roadmap-sync}.ts`, `app/(app)/cards/actions.ts`, `components/cards/card-items-drawer.tsx`, `components/appointments/appointments-manager.tsx`, `messages/{vi,en}.json`, `openspec/changes/brow-tour-roadmap/`
+- **Còn dở / ghi chú:** Không đổi DB. tsc/eslint/test 112/112 sạch. Chưa xem trên trình duyệt. Dặm chỉ có khi số buổi Alis ≥ 2 (Shading 1 buổi → không có Dặm).
+
 ### 2026-11-23 — Drawer Thêm dịch vụ gọn + sửa ngày tour dự kiến
 - **Thay đổi:** `CardItemsDrawer` 1120 → 760px, bảng giá 1 cột `text-xs`, cột phải 320px (container `@xl`). Cột phải thêm mục **Lộ trình dự kiến** (khi bán thêm vào thẻ): mỗi tour dự kiến = Loại + DV + DatePicker; đổi ngày → `setPlannedTourDate` (lưu `tours.date_pinned = true`, sync). `planRoadmap(items, tours, pinned)` giữ ngày đã ghim của bước thứ k mỗi dòng DV, bước sau tính tiếp. `addCardItems` gọi `syncRoadmap`.
 - **File ảnh hưởng:** `supabase/migrations/20261123150000_tour_planned_date_pinned.sql`, `components/cards/{card-items-drawer,card-drawer}.tsx`, `lib/{cards,cards.test,roadmap-sync}.ts`, `app/(app)/{tour,cards}/actions.ts`, `messages/{vi,en}.json`, `openspec/changes/brow-tour-roadmap/`
