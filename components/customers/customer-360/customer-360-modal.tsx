@@ -11,7 +11,8 @@ import { getCustomer360 } from "@/app/(app)/customers/customer-360-actions";
 import { DASH, StatusTag } from "@/components/common/cells";
 import { useCan } from "@/components/common/permissions";
 import { Section } from "@/components/common/section";
-import type { StaffRef } from "@/components/common/user-avatar";
+import { SourceIcon } from "@/components/common/source-icon";
+import { staffName, type StaffRef } from "@/components/common/user-avatar";
 import { MessagesTab, PhotosTab, TimelineTab } from "@/components/customers/customer-360/activity-tabs";
 import { OverviewTab, PortraitTab, ServicesTab, SourceTag } from "@/components/customers/customer-360/profile-tabs";
 import { currentAppointment, latestPortrait, nextNeed, portraitText } from "@/lib/customer-360";
@@ -73,7 +74,7 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
   // Desktop: thanh tab đứng yên, nội dung mỗi tab cuộn trong cùng 1 vùng; điện thoại: cuộn cả thân.
   return <Modal open={!!customerId} onCancel={close} width="min(1360px, calc(100vw - 32px))" destroyOnHidden centered
     styles={{ body: { height: "min(720px, calc(100vh - 220px))", overflowY: "auto" } }}
-    title={<Header data={data} index={index} total={ids.length} onPrev={() => go(-1)} onNext={() => go(1)} />}
+    title={<Header data={data} staff={staff} index={index} total={ids.length} onPrev={() => go(-1)} onNext={() => go(1)} />}
     footer={<div className="flex flex-wrap justify-end gap-2">
       <Button icon={<NotebookPen className="size-4" />} onClick={() => { setTab("timeline"); setComposing(true); }}>{t("quickNote")}</Button>
       {editButton}
@@ -99,22 +100,39 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
   </Modal>;
 }
 
-function Header({ data, index, total, onPrev, onNext }: {
-  data: Customer360 | undefined; index: number; total: number; onPrev: () => void; onNext: () => void;
+/** Đầu popup: avatar + tên + trạng thái + SĐT, thông tin cơ bản (nguồn, liên hệ đầu, người phụ trách), nút Trước/Tiếp. */
+function Header({ data, staff, index, total, onPrev, onNext }: {
+  data: Customer360 | undefined; staff: StaffRef[]; index: number; total: number; onPrev: () => void; onNext: () => void;
 }) {
   const t = useTranslations("c360");
+  const ta = useTranslations("appointments");
   const locale = useLocale();
   const c = data?.customer;
   const stage = c && CUSTOMER_OPTIONS.find((o) => o.kind === "stage" && o.value === c.stage);
-  return <div className="flex flex-wrap items-center gap-3 pe-8">
-    <Avatar src={c?.picture || undefined} size={44} className="shrink-0">{c?.full_name.charAt(0)}</Avatar>
-    <div className="min-w-0 flex-1">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="truncate text-lg font-semibold">{c?.full_name ?? t("title")}</span>
-        {stage && <StatusTag label={optionLabel(stage, locale)} color={stage.color} className="font-normal" />}
+  const info: [string, React.ReactNode][] = c ? [
+    [t("source"), <span key="s" className="flex items-center gap-1.5"><SourceIcon source={c.source} />{c.source ?? DASH}</span>],
+    [t("firstContact"), c.first_contact ? dayjs(c.first_contact).format("DD/MM/YYYY") : DASH],
+    [ta("staff"), staffName(staff, c.staff_id)],
+    [ta("sales"), staffName(staff, c.sales_id)],
+    [ta("master"), staffName(staff, c.technician_id)],
+  ] : [];
+  return <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pe-8">
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar src={c?.picture || undefined} size={44} className="shrink-0">{c?.full_name.charAt(0)}</Avatar>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-lg font-semibold">{c?.full_name ?? t("title")}</span>
+          {stage && <StatusTag label={optionLabel(stage, locale)} color={stage.color} className="font-normal" />}
+        </div>
+        <div className="min-h-4 text-xs font-normal text-muted-foreground tabular-nums">{c?.phone}</div>
       </div>
-      <div className="min-h-4 text-xs font-normal text-muted-foreground tabular-nums">{c?.phone}</div>
     </div>
+    <dl className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-1.5 text-sm font-normal">
+      {info.map(([label, value]) => <div key={label} className="flex min-w-0 items-center gap-2">
+        <dt className="shrink-0 text-muted-foreground">{label}</dt>
+        <dd className="min-w-0 tabular-nums">{value}</dd>
+      </div>)}
+    </dl>
     {index >= 0 && <div className="flex items-center gap-1 font-normal">
       <Button size="small" aria-label={t("prev")} title={t("prev")} disabled={index <= 0} icon={<ChevronLeft className="size-4" />} onClick={onPrev} />
       <span className="min-w-12 text-center text-sm tabular-nums">{t("position", { index: index + 1, total })}</span>

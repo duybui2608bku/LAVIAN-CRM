@@ -10,8 +10,7 @@ import { VisitStatusTag } from "@/components/appointments/appointments-manager";
 import { CardStatusTag, DueText, usageOf } from "@/components/cards/card-drawer";
 import { DASH, StatusTag } from "@/components/common/cells";
 import { Section } from "@/components/common/section";
-import { SourceIcon } from "@/components/common/source-icon";
-import { staffName, type StaffRef } from "@/components/common/user-avatar";
+import type { StaffRef } from "@/components/common/user-avatar";
 import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
 import { kindText, TourStatusTag } from "@/components/tour/tour-drawer";
 import { cardMoney, customerCardMoney, isTourable } from "@/lib/cards";
@@ -52,19 +51,8 @@ export function OverviewTab({ data, staff }: { data: Customer360; staff: StaffRe
   const ta = useTranslations("appointments");
   const tt = useTranslations("tour");
   const services = useApptServices(data);
-  const c = data.customer;
+  // Thông tin cơ bản (nguồn, liên hệ đầu, người phụ trách) nằm ở đầu popup (Header).
   return <div className="flex flex-col gap-5">
-    <Section title={t("info")}>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm sm:grid-cols-[auto_1fr_auto_1fr]">
-        <dt className="text-muted-foreground">{t("source")}</dt>
-        <dd className="flex items-center gap-1.5"><SourceIcon source={c.source} />{c.source ?? DASH}</dd>
-        <dt className="text-muted-foreground">{t("firstContact")}</dt>
-        <dd className="tabular-nums">{c.first_contact ? dayjs(c.first_contact).format("DD/MM/YYYY") : DASH}</dd>
-        <dt className="text-muted-foreground">{ta("staff")}</dt><dd>{staffName(staff, c.staff_id)}</dd>
-        <dt className="text-muted-foreground">{ta("sales")}</dt><dd>{staffName(staff, c.sales_id)}</dd>
-        <dt className="text-muted-foreground">{ta("master")}</dt><dd>{staffName(staff, c.technician_id)}</dd>
-      </dl>
-    </Section>
     {data.can.finance && <FinanceTotal data={data} />}
     <Section title={t("appointments", { count: data.appointments.length })}>
       {data.appointments.length ? <ul className="flex flex-col gap-2">

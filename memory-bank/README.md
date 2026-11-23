@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-23 — Hồ sơ 360°: thông tin cơ bản khách lên đầu popup
+- **Thay đổi:** Sếp muốn gọn → khối "Thông tin khách" (Nguồn, Liên hệ đầu, Telesales, Sales, Master) bỏ khỏi tab Tổng quan, đưa lên `Header` của popup (cạnh tên + SĐT, trước nút Trước/Tiếp), 1 dòng tự xuống dòng khi hẹp. Xoá key i18n `c360.info` không còn dùng.
+- **File ảnh hưởng:** `components/customers/customer-360/{customer-360-modal,profile-tabs}.tsx`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** Chưa xem trên dev server; chưa commit.
+
 ### 2026-11-23 — Thêm DV vào thẻ: drawer mở cạnh drawer thẻ + mỗi nhóm 1 DV
 - **Thay đổi:**
   - Drawer "Thêm dịch vụ" không còn lồng trong drawer thẻ (antd đẩy drawer cha sang trái + đè lên) → render cạnh, `FormDrawer` có prop mới `beside` (px): màn hình ≥ xl mở bên trái drawer thẻ, rộng `calc(100vw − 600px)`, không mask; < xl mở đè như cũ. `CardItemsDrawer` đổi sang container query (`@container`, `@3xl:` 2 cột, `@md:` bảng giá 2 cột) vì bề rộng drawer giờ khác màn hình.
