@@ -19,11 +19,11 @@ test("appointment edits validate dates, IDs and whitelist; no tour fields", () =
   assert.equal(appointmentPatchSchema.safeParse({ staff_id: null, visit_status: "waiting" }).success, true);
 });
 
-test("Master + Giá trị DV: uuid/null, số nguyên >= 0", () => {
+test("Master: uuid/null; tiền không sửa ở lịch hẹn (chỉ ở thẻ)", () => {
   const id = "b102ac72-d890-479b-a51b-126494cf73ac";
-  assert.deepEqual(appointmentPatchSchema.parse({ technician_id: id, bill_amount: 3500000 }), { technician_id: id, bill_amount: 3500000 });
-  assert.deepEqual(appointmentPatchSchema.parse({ technician_id: null, bill_amount: null }), { technician_id: null, bill_amount: null });
-  for (const patch of [{ technician_id: "invalid" }, { bill_amount: -1 }, { bill_amount: 1.5 }, { bill_amount: "1000" }]) {
+  assert.deepEqual(appointmentPatchSchema.parse({ technician_id: id }), { technician_id: id });
+  assert.deepEqual(appointmentPatchSchema.parse({ technician_id: null }), { technician_id: null });
+  for (const patch of [{ technician_id: "invalid" }, { bill_amount: 3500000 }, { paid_amount: 0 }]) {
     assert.equal(appointmentPatchSchema.safeParse(patch).success, false);
   }
 });
@@ -114,18 +114,14 @@ test("Master chỉ được chọn Đã thực hiện; Sales/admin mọi trạng
   assert.equal(canSetVisitStatus({ role: "user", department: "telesales" }, "done"), false);
 });
 
-test("Quy tắc E3: giá trị DV, Master/Sales theo trạng thái", () => {
-  const cur = { visit_status: "arrived", technician_id: null, sales_id: null, bill_amount: null, paid_amount: 3_000_000 };
-  // Đã thu 3.500.000 (cọc 500.000 + thu thêm 3.000.000) mà nhập giá 3.000.000 → lỗi.
-  assert.deepEqual(validateVisitStatus({ bill_amount: 3_000_000 }, cur, 500_000), { code: "billBelowCollected", field: "bill_amount" });
-  assert.equal(validateVisitStatus({ bill_amount: 3_500_000 }, cur, 500_000), null);
-  assert.equal(validateVisitStatus({ bill_amount: 0 }, cur, 500_000), null); // 0 = chưa chốt giá
-  assert.deepEqual(validateVisitStatus({ visit_status: "done" }, cur, 0), { code: "doneNeedsMaster", field: "technician_id" });
-  assert.equal(validateVisitStatus({ visit_status: "done", technician_id: "m" }, cur, 0), null);
-  assert.deepEqual(validateVisitStatus({ visit_status: "in_progress" }, cur, 0), { code: "inProgressNeedsStaff", field: "technician_id" });
-  assert.equal(validateVisitStatus({ visit_status: "in_progress", sales_id: "s" }, cur, 0), null);
+test("Quy tắc E3: Master/Sales theo trạng thái", () => {
+  const cur = { visit_status: "arrived", technician_id: null, sales_id: null };
+  assert.deepEqual(validateVisitStatus({ visit_status: "done" }, cur), { code: "doneNeedsMaster", field: "technician_id" });
+  assert.equal(validateVisitStatus({ visit_status: "done", technician_id: "m" }, cur), null);
+  assert.deepEqual(validateVisitStatus({ visit_status: "in_progress" }, cur), { code: "inProgressNeedsStaff", field: "technician_id" });
+  assert.equal(validateVisitStatus({ visit_status: "in_progress", sales_id: "s" }, cur), null);
   // Lịch cũ vi phạm vẫn sửa được trường không liên quan.
-  assert.equal(validateVisitStatus({ scheduled_at: "x" } as never, { ...cur, visit_status: "done" }, 0), null);
+  assert.equal(validateVisitStatus({ scheduled_at: "x" } as never, { ...cur, visit_status: "done" }), null);
   // Gỡ Master khỏi lịch Đã thực hiện → lỗi.
-  assert.deepEqual(validateVisitStatus({ technician_id: null }, { ...cur, visit_status: "done", technician_id: "m" }, 0)?.code, "doneNeedsMaster");
+  assert.deepEqual(validateVisitStatus({ technician_id: null }, { ...cur, visit_status: "done", technician_id: "m" })?.code, "doneNeedsMaster");
 });

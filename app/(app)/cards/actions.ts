@@ -169,7 +169,7 @@ export async function createCardTours(cardId: string, input: z.input<typeof card
     if (!card) return t("error.cancelled");
     const ids = values.items.map((i) => i.card_item_id);
     const [{ data: items, error }, { data: existing, error: toursErr }] = await Promise.all([
-      db.from("treatment_card_items").select("id,service_id,price,sessions,service:services(tourable)")
+      db.from("treatment_card_items").select("id,service_id,sessions,service:services(tourable)")
         .eq("card_id", cardId).is("refunded_at", null).in("id", ids),
       db.from("tours").select("card_item_id,tour_date,service_detail").in("card_item_id", ids).is("deleted_at", null),
     ]);
@@ -185,7 +185,7 @@ export async function createCardTours(cardId: string, input: z.input<typeof card
       const item = items.find((i) => i.id === card_item_id)!;
       return {
         tour_date: values.tour_date, customer_id: card.customer_id, service_id: item.service_id, card_item_id,
-        bill_amount: item.price, notes, created_by: profile.id,
+        notes, created_by: profile.id,
         ...tourKindDetail(kind, values.tour_date, (existing ?? []).filter((x) => x.card_item_id === card_item_id)),
       };
     });

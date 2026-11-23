@@ -99,7 +99,6 @@
     "addNote": "Add note",
     "notesTitle": "Appointment notes · {name}",
     "rule": {
-      "billBelowCollected": "Service value is lower than the amount collected",
       "doneNeedsMaster": "Choose a Master before finishing",
       "inProgressNeedsStaff": "Choose a Master or Sales before starting"
     },
@@ -1143,7 +1142,6 @@
       "tourUnlinked": "Tour {service} on {date} unlinked from card",
       "tourDate": "Tour date {service}: {oldDate} → {date}",
       "tourKind": "Tour type {service} on {date}: {oldKind} → {kind}",
-      "tourBill": "Tour bill {service} on {date}: {oldAmount} → {amount}",
       "tourTech": "Tour Master {service} on {date}: {oldTech} → {tech}",
       "tourConfirmed": "Tour confirmed {service} on {date}",
       "tourUnconfirmed": "Tour unconfirmed {service} on {date}",

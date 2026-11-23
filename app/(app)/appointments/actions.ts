@@ -40,25 +40,21 @@ async function failure(error: unknown) {
 const onlySales = () =>
   new AppError("Chỉ Sales được đổi trạng thái lịch hẹn (Master chỉ chọn được Đã thực hiện).", { code: "FORBIDDEN", status: 403 });
 
-const RULE_FIELDS = ["visit_status", "technician_id", "sales_id", "bill_amount", "paid_amount"] as const;
+const RULE_FIELDS = ["visit_status", "technician_id", "sales_id"] as const;
 type RuleRow = Parameters<typeof validateVisitStatus>[1];
-const NEW_ROW: RuleRow = { visit_status: "waiting", technician_id: null, sales_id: null, bill_amount: null, paid_amount: null };
+const NEW_ROW: RuleRow = { visit_status: "waiting", technician_id: null, sales_id: null };
 
-/** Quy tắc E3 (giá trị DV ≥ đã thu, Master/Sales theo trạng thái) — báo lỗi dễ hiểu trước khi DB chặn. */
+/** Quy tắc E3 (Master/Sales theo trạng thái) — báo lỗi dễ hiểu trước khi DB chặn. */
 async function checkRules(db: Awaited<ReturnType<typeof client>>, id: string | null, patch: AppointmentPatch) {
   if (!RULE_FIELDS.some((f) => f in patch)) return;
   let current = NEW_ROW;
-  let deposit: number | null = null;
   if (id) {
     const { data, error } = await db.from("clinic_appointments")
-      .select("visit_status,technician_id,sales_id,bill_amount,paid_amount,customer:customers(deposit_amount)")
-      .eq("id", id).is("deleted_at", null).single();
+      .select("visit_status,technician_id,sales_id").eq("id", id).is("deleted_at", null).single();
     if (error) throw error;
-    const { customer, ...row } = data as unknown as RuleRow & { customer: { deposit_amount: number | null } | null };
-    current = row;
-    deposit = customer?.deposit_amount ?? null;
+    current = data;
   }
-  const rule = validateVisitStatus(patch, current, deposit);
+  const rule = validateVisitStatus(patch, current);
   if (rule) throw new AppError((await getTranslations("appointments.rule"))(rule.code), { code: "VALIDATION", status: 400 });
 }
 

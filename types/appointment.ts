@@ -38,8 +38,6 @@ export interface Appointment {
   staff_id: string | null; // chăm sóc khách hàng
   sales_id: string | null; // nhân viên bộ phận Sales phụ trách lịch
   technician_id: string | null; // Master / KTV làm lịch (bộ phận technician)
-  bill_amount: number | null; // giá trị dịch vụ (IDR) — cột Tài chính
-  paid_amount: number | null; // thu thêm sau Deposit (IDR) — Thực thu = Deposit + paid_amount
   notes: TimelineNote[]; // ghi chú lịch hẹn (Telesales) dạng timeline
   sales_notes: TimelineNote[]; // ghi chú Sales dạng timeline
   created_by: string | null; // người tạo lịch (lịch cũ không truy được → null)
@@ -59,7 +57,7 @@ export type AppointmentCustomer = {
   notes?: CustomerNote[] | null; // ghi chú Telesales của khách (customers.notes) — cột Note Telesales
 };
 
-/** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`). */
+/** Trường lịch hẹn được log (khớp trigger `log_clinic_appointment_change`; tiền + note/sales_note chỉ còn ở log cũ). */
 export type AppointmentLogField = "scheduled_at" | "booking_confirm" | "checked_in" | "visit_status" | "service_categories" | "service_ids"
   | "staff_id" | "sales_id" | "technician_id" | "bill_amount" | "paid_amount" | "note" | "sales_note";
 
@@ -76,5 +74,5 @@ export interface AppointmentLog {
 
 export type AppointmentPatch =Partial<Pick<Appointment,
   "scheduled_at" | "booking_confirm" | "visit_status" | "service_categories" | "service_ids" | "staff_id" | "sales_id"
-  | "technician_id" | "bill_amount" | "paid_amount"
+  | "technician_id"
 >>;

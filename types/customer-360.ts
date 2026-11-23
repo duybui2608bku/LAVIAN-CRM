@@ -70,7 +70,7 @@ export interface AppointmentPhoto {
 }
 
 /** Lịch hẹn trong hồ sơ: kèm người thực hiện thêm. Tiền đã chuyển sang thẻ liệu trình. */
-export type Customer360Appointment = Omit<Appointment, "bill_amount" | "paid_amount" | "created_by"> & {
+export type Customer360Appointment = Omit<Appointment, "created_by"> & {
   performers: AppointmentPerformer[];
 };
 
