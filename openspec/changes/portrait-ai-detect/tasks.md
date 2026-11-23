@@ -1,0 +1,9 @@
+- [x] Migration thêm danh mục ẩn `general` vào check constraint
+- [x] `detectPortrait` (Claude, song ngữ, gộp với chân dung hiện tại) — dùng chung phần gọi API với tóm tắt hội thoại
+- [x] Action `addPortraitNote`: lưu text thô → AI → lưu từng mục nhận ra; AI lỗi vẫn giữ text thô + cảnh báo
+- [x] `getCustomer360` bỏ dòng `general`
+- [x] Form tab Chân dung: chỉ Nguồn + Nội dung; toast theo kết quả
+- [x] i18n vi/en
+- [x] tsc + eslint + test
+- [x] Chạy migration trên Supabase Lavian
+- [ ] Xem trên trình duyệt (dev server)

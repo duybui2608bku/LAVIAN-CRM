@@ -63,49 +63,82 @@ const transcriptLine = (m: ChatMessage) => {
   return `[${dayjs(m.at).format("DD/MM/YYYY HH:mm")}] ${m.out ? "Lavian" : "Customer"}: ${[m.text, extra].filter(Boolean).join(" ")}`;
 };
 
-/** Gọi Claude tóm tắt `messages` (cũ → mới) → cột của `customer_chat_summaries` + chân dung (chỉ các mục có nội dung). */
-export async function summarizeMessages(messages: ChatMessage[]) {
+/** Gọi Claude trả JSON theo `schema` (lỗi API → AppError tiếng Việt). */
+async function askClaude<T>(system: string, content: string, schema: Record<string, unknown>, what: string): Promise<{ out: T; model: string }> {
   if (!process.env.ANTHROPIC_API_KEY) throw new AppError("Thiếu ANTHROPIC_API_KEY — điền vào biến môi trường của server.");
-  if (!messages.length) throw new AppError("Khách chưa có tin nhắn để tóm tắt.");
   try {
     const res = await new Anthropic().beta.messages.create({
       model: MODEL,
       max_tokens: 16000,
-      output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
+      output_config: { effort: "low", format: { type: "json_schema", schema } },
       // Model từ chối (an toàn) → API tự chạy lại trên model dự phòng trong cùng request.
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
-      system: SYSTEM,
-      messages: [{ role: "user", content: ["<chat>", ...messages.map(transcriptLine), "</chat>"].join("\n") }],
+      system,
+      messages: [{ role: "user", content }],
     });
-    if (res.stop_reason === "refusal") throw new AppError("AI từ chối tóm tắt hội thoại này.");
+    if (res.stop_reason === "refusal") throw new AppError(`AI từ chối ${what}.`);
     if (res.stop_reason === "max_tokens") throw new AppError("AI trả về quá dài — thử lại.");
     const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
-    const out = JSON.parse(text) as Output;
-    const summary = out.summary_vi.trim() || out.summary_en.trim();
-    if (!summary) throw new AppError("AI không trả về nội dung tóm tắt — thử lại.");
-    const portrait: Partial<Record<PortraitField, Bilingual>> = {};
-    for (const f of PORTRAIT_FIELDS) {
-      const vi = out.portrait[f]?.vi.trim().slice(0, 1000) ?? "";
-      const en = out.portrait[f]?.en.trim().slice(0, 1000) ?? "";
-      if (vi || en) portrait[f] = { vi: vi || en, en: en || vi };
-    }
-    return {
-      summary: {
-        summary: summary.slice(0, 8000),
-        summary_en: out.summary_en.trim().slice(0, 8000) || null,
-        last_message_at: messages.at(-1)!.at,
-        message_count: messages.length,
-        model: res.model,
-        created_at: new Date().toISOString(),
-      },
-      portrait,
-    };
+    return { out: JSON.parse(text) as T, model: res.model };
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) throw new AppError("ANTHROPIC_API_KEY sai hoặc đã bị thu hồi.");
     if (error instanceof Anthropic.RateLimitError) throw new AppError("AI đang quá tải — thử lại sau ít phút.");
     throw error;
   }
+}
+
+/** Chỉ giữ các mục AI có nội dung (thiếu 1 ngôn ngữ → lấy ngôn ngữ kia). */
+function filledPortrait(raw: Record<PortraitField, Bilingual>) {
+  const portrait: Partial<Record<PortraitField, Bilingual>> = {};
+  for (const f of PORTRAIT_FIELDS) {
+    const vi = raw[f]?.vi.trim().slice(0, 1000) ?? "";
+    const en = raw[f]?.en.trim().slice(0, 1000) ?? "";
+    if (vi || en) portrait[f] = { vi: vi || en, en: en || vi };
+  }
+  return portrait;
+}
+
+/** Gọi Claude tóm tắt `messages` (cũ → mới) → cột của `customer_chat_summaries` + chân dung (chỉ các mục có nội dung). */
+export async function summarizeMessages(messages: ChatMessage[]) {
+  if (!messages.length) throw new AppError("Khách chưa có tin nhắn để tóm tắt.");
+  const content = ["<chat>", ...messages.map(transcriptLine), "</chat>"].join("\n");
+  const { out, model } = await askClaude<Output>(SYSTEM, content, SCHEMA, "tóm tắt hội thoại này");
+  const summary = out.summary_vi.trim() || out.summary_en.trim();
+  if (!summary) throw new AppError("AI không trả về nội dung tóm tắt — thử lại.");
+  return {
+    summary: {
+      summary: summary.slice(0, 8000),
+      summary_en: out.summary_en.trim().slice(0, 8000) || null,
+      last_message_at: messages.at(-1)!.at,
+      message_count: messages.length,
+      model,
+      created_at: new Date().toISOString(),
+    },
+    portrait: filledPortrait(out.portrait),
+  };
+}
+
+const DETECT_SYSTEM = `You maintain a customer profile for Lavian Beauty Center, a beauty clinic in Indonesia (brow, lip and eyeliner embroidery and similar services). A staff member wrote a free-form note about the customer (in any language). Decide which profile fields the note gives information about:
+- wish: what the customer hopes to get (desired result, service, look)
+- pain: worries, fears or objections (price, pain, safety, past bad experience)
+- preference: preferences (style, timing, budget, staff, location)
+- behavior: how they decide (quick, compares prices, asks a partner, needs photos or reviews first)
+- communication: how best to talk to them (language, tone, short or detailed messages, best time)
+- personality: personality traits
+You also get the field's current value. For each field the note informs, write the new full value: keep current details that are still true, add what the note says, drop what it contradicts. One short phrase or sentence, under about 25 words. Write it twice: "vi" in Vietnamese, "en" in English, same meaning.
+Only state what the note supports. For a field the note says nothing about, set both "vi" and "en" to "".`;
+
+const DETECT_SCHEMA = SCHEMA.properties.portrait;
+
+/** AI đọc ghi chú thô của nhân viên → giá trị mới (đã gộp với `current`) cho các mục ghi chú nói tới. */
+export async function detectPortrait(note: string, current: Partial<Record<PortraitField, string>>) {
+  const content = [
+    "<current_profile>", ...PORTRAIT_FIELDS.map((f) => `${f}: ${current[f] ?? "(empty)"}`), "</current_profile>",
+    "<note>", note, "</note>",
+  ].join("\n");
+  const { out } = await askClaude<Record<PortraitField, Bilingual>>(DETECT_SYSTEM, content, DETECT_SCHEMA, "phân tích ghi chú này");
+  return filledPortrait(out);
 }
 
 /**

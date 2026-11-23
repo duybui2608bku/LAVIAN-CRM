@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAnyPermission, requirePermission } from "@/lib/auth";
 import { canSeeFinance, canSeePhotos, customerRole } from "@/lib/customer-360";
-import { SUMMARY_FIELDS, summarizeAndSave } from "@/lib/chat-summary";
+import { detectPortrait, SUMMARY_FIELDS, summarizeAndSave } from "@/lib/chat-summary";
 import { AppError, normalizeError } from "@/lib/errors";
 import { newNote } from "@/lib/notes";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { AppointmentLog } from "@/types/appointment";
 import {
   NEED_ORIGINS, NEED_STATUSES, PERFORMER_ROLES, PORTRAIT_FIELDS, PORTRAIT_SOURCES,
-  type AppointmentPhoto, type ChatSummary, type Customer360, type CustomerNeed, type NeedStatus,
+  type AppointmentPhoto, type ChatSummary, type Customer360, type CustomerNeed, type NeedStatus, type PortraitField,
 } from "@/types/customer-360";
 import type { NoteInput } from "@/types/note";
 
@@ -74,7 +74,7 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
         .select("id,appointment_id,action,changes,actor_id,created_at,appointment:clinic_appointments(scheduled_at)")
         .eq("customer_id", customerId).order("created_at", { ascending: false }).limit(200),
       db.from("customer_portrait_entries").select("id,field,text,text_en,source,message_ref,created_by,created_at")
-        .eq("customer_id", customerId).order("created_at", { ascending: false }),
+        .eq("customer_id", customerId).in("field", PORTRAIT_FIELDS).order("created_at", { ascending: false }),
       db.from("customer_needs").select("id,title,service_id,origin,status,history,created_by,created_at")
         .eq("customer_id", customerId).order("created_at", { ascending: false }),
       db.from("customer_reminders").select("id,remind_at,note")
@@ -115,23 +115,43 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
   }
 }
 
-const portraitSchema = z.object({
-  field: z.enum(PORTRAIT_FIELDS),
+const portraitNoteSchema = z.object({
   text: z.string().trim().min(1).max(1000),
   source: z.enum(PORTRAIT_SOURCES),
-  message_ref: z.object({ id: z.string().max(200), at: z.string().max(50), text: z.string().max(2000) }).strict().nullable(),
 }).strict();
 
-/** Thêm 1 bản chân dung (chỉ thêm — không sửa / xoá bản cũ). */
-export async function addPortraitEntry(customerId: string, input: z.input<typeof portraitSchema>): Promise<Result> {
+/**
+ * Nhân viên ghi chú thô → lưu vào mục ẩn `general`, rồi AI tách ra các mục chân dung (mỗi mục = 1 dòng mới, nguồn theo NV chọn).
+ * AI lỗi vẫn giữ ghi chú thô, trả `warning`. `fields` = các mục AI đã cập nhật.
+ */
+export async function addPortraitNote(customerId: string, input: z.input<typeof portraitNoteSchema>): Promise<Result & { warning?: string; fields?: PortraitField[] }> {
   try {
     const profile = await viewer();
     z.uuid().parse(customerId);
+    const { text, source } = portraitNoteSchema.parse(input);
     const db = await createClient();
-    const { error } = await db.from("customer_portrait_entries")
-      .insert({ customer_id: customerId, ...portraitSchema.parse(input), created_by: profile.id });
+    const row = { customer_id: customerId, source, message_ref: null, created_by: profile.id };
+    const { error } = await db.from("customer_portrait_entries").insert({ ...row, field: "general", text });
     if (error) throw error;
-    return {};
+
+    let detected;
+    try {
+      const { data: rows, error: readErr } = await db.from("customer_portrait_entries").select("field,text")
+        .eq("customer_id", customerId).in("field", PORTRAIT_FIELDS).order("created_at", { ascending: false });
+      if (readErr) throw readErr;
+      const current: Partial<Record<PortraitField, string>> = {};
+      for (const r of rows ?? []) current[r.field as PortraitField] ??= r.text;
+      detected = await detectPortrait(text, current);
+    } catch (error) {
+      return { warning: normalizeError(error).message };
+    }
+    const fields = Object.keys(detected) as PortraitField[];
+    if (fields.length) {
+      const { error: insErr } = await db.from("customer_portrait_entries")
+        .insert(fields.map((f) => ({ ...row, field: f, text: detected[f]!.vi, text_en: detected[f]!.en })));
+      if (insErr) throw insErr;
+    }
+    return { fields };
   } catch (error) {
     return { error: normalizeError(error).message };
   }

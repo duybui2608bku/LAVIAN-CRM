@@ -926,12 +926,14 @@
         "ai": "AI"
       },
       "add": "Cập nhật chân dung",
-      "field": "Mục",
       "text": "Nội dung",
+      "textPlaceholder": "Ghi lại những gì khách nói / bạn nhận thấy, vd: Khách muốn làm môi tự nhiên, sợ đau, hay hỏi giá trước…",
+      "textHint": "AI tự nhận ra thông tin thuộc mục nào (Mong muốn, Nỗi lo, Sở thích…) và cập nhật bên dưới.",
       "sourceLabel": "Nguồn",
-      "message": "Tin nhắn gốc",
-      "messagePlaceholder": "Gắn tin SMAX (không bắt buộc)",
-      "saved": "Đã lưu chân dung",
+      "analyzing": "AI đang phân tích…",
+      "saved": "Đã cập nhật: {fields}",
+      "aiNothing": "Đã lưu ghi chú — AI chưa nhận ra thông tin chân dung nào",
+      "aiFailed": "Đã lưu ghi chú nhưng AI chưa phân tích được: {reason}",
       "history": "Lịch sử ({count})",
       "empty": "Chưa có"
     },

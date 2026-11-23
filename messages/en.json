@@ -926,12 +926,14 @@
         "ai": "AI"
       },
       "add": "Update portrait",
-      "field": "Field",
       "text": "Content",
+      "textPlaceholder": "Write down what the customer said / what you noticed, e.g. Wants natural lips, afraid of pain, always asks the price first…",
+      "textHint": "AI works out which fields it belongs to (Wishes, Concerns, Preferences…) and updates them below.",
       "sourceLabel": "Source",
-      "message": "Original message",
-      "messagePlaceholder": "Attach a SMAX message (optional)",
-      "saved": "Portrait saved",
+      "analyzing": "AI is analysing…",
+      "saved": "Updated: {fields}",
+      "aiNothing": "Note saved — AI found no portrait information",
+      "aiFailed": "Note saved but AI could not analyse it: {reason}",
       "history": "History ({count})",
       "empty": "None yet"
     },

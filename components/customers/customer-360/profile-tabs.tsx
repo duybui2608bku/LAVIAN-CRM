@@ -5,13 +5,12 @@ import { Button, Collapse, Empty, Form, Image, Input, Radio, Select } from "antd
 import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
-import { addCustomerNeed, addPortraitEntry, setNeedStatus } from "@/app/(app)/customers/customer-360-actions";
+import { addCustomerNeed, addPortraitNote, setNeedStatus } from "@/app/(app)/customers/customer-360-actions";
 import { VisitStatusTag } from "@/components/appointments/appointments-manager";
 import { CardStatusTag, DueText, usageOf } from "@/components/cards/card-drawer";
 import { DASH, StatusTag } from "@/components/common/cells";
 import { Section } from "@/components/common/section";
 import type { StaffRef } from "@/components/common/user-avatar";
-import { useCustomerMessages } from "@/components/customers/customer-360/use-customer-messages";
 import { kindText, TourStatusTag } from "@/components/tour/tour-drawer";
 import { cardMoney, customerCardMoney, isTourable } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
@@ -20,7 +19,7 @@ import { toast } from "@/lib/toast";
 import { useServiceGroups } from "@/components/common/service-groups";
 import {
   NEED_ORIGINS, NEED_STATUSES, NEED_STATUS_COLORS, PORTRAIT_FIELDS, PORTRAIT_SOURCES,
-  type Customer360, type Customer360Appointment, type Customer360Card, type MessageRef, type NeedOrigin, type NeedStatus, type PortraitField, type PortraitSource,
+  type Customer360, type Customer360Appointment, type Customer360Card, type NeedOrigin, type NeedStatus, type PortraitSource,
 } from "@/types/customer-360";
 
 const fmt = (iso: string, f = "DD/MM/YYYY HH:mm") => dayjs(iso).format(f);
@@ -90,48 +89,38 @@ export function OverviewTab({ data, staff }: { data: Customer360; staff: StaffRe
 
 // ─────────────────────────── Chân dung ───────────────────────────
 
-type PortraitValues = { field: PortraitField; text: string; source: (typeof PORTRAIT_SOURCES)[number]; message?: string };
+type PortraitValues = { text: string; source: (typeof PORTRAIT_SOURCES)[number] };
 
 export function PortraitTab({ data, staff, onSaved }: { data: Customer360; staff: StaffRef[]; onSaved: () => void }) {
   const t = useTranslations("c360.portrait");
   const locale = useLocale();
   const [form] = Form.useForm<PortraitValues>();
   const [pending, start] = useTransition();
-  // Tin khách gửi (để gắn làm nguồn gốc) — chỉ tải khi khách có hội thoại SMAX.
-  const { data: messages } = useCustomerMessages(data.customer.thread_link ? data.customer.id : null);
-  const inbound = (messages ?? data.smax_messages ?? []).filter((m) => !m.out && m.text);
   const latest = latestPortrait(data.portrait);
 
+  // Nhân viên ghi chú thô — AI tự nhận ra thuộc mục chân dung nào.
   const save = (v: PortraitValues) => start(async () => {
-    const m = inbound.find((x) => x.id === v.message);
-    const message_ref: MessageRef | null = m ? { id: m.id, at: m.at, text: m.text.slice(0, 2000) } : null;
-    const res = await addPortraitEntry(data.customer.id, { field: v.field, text: v.text, source: v.source, message_ref });
+    const res = await addPortraitNote(data.customer.id, v);
     if (res.error) return void toast.error(res.error);
-    toast.success(t("saved"));
-    form.resetFields(["text", "message"]);
+    if (res.warning) toast.warning(t("aiFailed", { reason: res.warning }));
+    else if (!res.fields?.length) toast.warning(t("aiNothing"));
+    else toast.success(t("saved", { fields: res.fields.map((f) => t(`fields.${f}`)).join(", ") }));
+    form.resetFields(["text"]);
     onSaved();
   });
 
   return <div className="flex flex-col gap-5">
     <Form form={form} layout="vertical" requiredMark={false} disabled={pending} onFinish={save}
-      initialValues={{ field: "wish", source: "customer" }} className="rounded-lg border border-border bg-muted/40 p-4">
-      <div className="grid gap-x-4 sm:grid-cols-2">
-        <Form.Item name="field" label={t("field")}>
-          <Select options={PORTRAIT_FIELDS.map((f) => ({ value: f, label: t(`fields.${f}`) }))} />
-        </Form.Item>
-        <Form.Item name="source" label={t("sourceLabel")}>
-          <Radio.Group optionType="button" options={PORTRAIT_SOURCES.map((s) => ({ value: s, label: t(`source.${s}`) }))} />
-        </Form.Item>
-      </div>
-      <Form.Item name="text" label={t("text")} rules={[{ required: true, whitespace: true, message: t("text") }, { max: 1000 }]}>
-        <Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} maxLength={1000} showCount />
+      initialValues={{ source: "customer" }} className="rounded-lg border border-border bg-muted/40 p-4">
+      <Form.Item name="source" label={t("sourceLabel")}>
+        <Radio.Group optionType="button" options={PORTRAIT_SOURCES.map((s) => ({ value: s, label: t(`source.${s}`) }))} />
       </Form.Item>
-      {inbound.length > 0 && <Form.Item name="message" label={t("message")}>
-        <Select allowClear showSearch={{ optionFilterProp: "label" }} placeholder={t("messagePlaceholder")}
-          options={[...inbound].reverse().map((m) => ({ value: m.id, label: `${fmt(m.at, "DD/MM HH:mm")} · ${m.text.slice(0, 120)}` }))} />
-      </Form.Item>}
+      <Form.Item name="text" label={t("text")} extra={t("textHint")}
+        rules={[{ required: true, whitespace: true, message: t("text") }, { max: 1000 }]}>
+        <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} maxLength={1000} showCount placeholder={t("textPlaceholder")} />
+      </Form.Item>
       <div className="flex justify-end">
-        <Button type="primary" htmlType="submit" loading={pending}>{t("add")}</Button>
+        <Button type="primary" htmlType="submit" loading={pending}>{pending ? t("analyzing") : t("add")}</Button>
       </div>
     </Form>
 
