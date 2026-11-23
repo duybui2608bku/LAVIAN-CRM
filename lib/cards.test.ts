@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, customerCardMoney, cardPaymentSchema, cardTourSchema, groupTaken, journeyDue, paymentRange, planRoadmap, suggestRefund, suggestTourKind, tourKindDetail,
+  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, cardRefundRange, cardStatus, customerCardMoney, cardPaymentSchema, cardTourSchema, groupTaken, journeyDue, paymentRange, planRoadmap, suggestRefund, suggestTourKind, tourKindDetail,
 } from "./cards.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
@@ -215,4 +215,38 @@ test("đến hạn bỏ tour dự kiến", () => {
     { card_item_id: "B", tour_date: "2027-01-15", service_detail: "retouch", service_session: 1, planned: true },
   ];
   assert.deepEqual(journeyDue([card], tours).map((d) => `${d.task}:${d.due}`), ["retouch:2027-01-15"]);
+});
+
+test("hoàn cả thẻ: Đã thu trừ tiền hoàn, Giá trị = Đã thu, công nợ 0; gợi ý theo buổi chưa làm ≤ đã thu", () => {
+  const items = [
+    { id: "a", price: 4_000_000, sessions: 2, refunded_at: null, refund_amount: null, service: { group_id: "alis", tourable: true } },
+    { id: "b", price: 1_000_000, sessions: 1, refunded_at: null, refund_amount: null, service: { group_id: "ink", tourable: false } },
+  ];
+  const card = { deposit_used: 1_000_000, items, payments: [{ amount: 5_000_000 }] };
+  // Đã làm 1/2 buổi mày → gợi ý 2tr + mực 1tr.
+  assert.deepEqual(cardRefundRange(card, (i) => (i === "a" ? 1 : 0)), { max: 6_000_000, suggest: 3_000_000 });
+  assert.deepEqual(cardRefundRange({ ...card, payments: [] }, () => 0), { max: 1_000_000, suggest: 1_000_000 });
+  assert.deepEqual(cardMoney({ ...card, refund_amount: 3_000_000 }), { value: 3_000_000, collected: 3_000_000, due: 0 });
+  assert.deepEqual(cardMoney({ ...card, refund_amount: 0 }), { value: 6_000_000, collected: 6_000_000, due: 0 });
+});
+
+test("trạng thái thẻ: huỷ > đã hoàn > hoàn thành > đang dùng; thẻ đã hoàn không có Đến hạn", () => {
+  const items = [{ id: "a", service_id: "s", sessions: 1, refunded_at: null }];
+  assert.equal(cardStatus({ cancelled_at: null, refunded_at: "x", items }, () => 1), "refunded");
+  assert.equal(cardStatus({ cancelled_at: "x", refunded_at: "x", items }, () => 0), "cancelled");
+  assert.equal(cardStatus({ cancelled_at: null, items }, () => 1), "done");
+  assert.equal(cardStatus({ cancelled_at: null, refunded_at: null, items }, () => 0), "active");
+  const tours = [{ card_item_id: "a", tour_date: "2026-11-01", service_detail: "new", service_session: null }];
+  const card = { cancelled_at: null, items: [{ ...items[0], sessions: 3 }] };
+  assert.equal(journeyDue([card], tours).length, 1);
+  assert.equal(journeyDue([{ ...card, refunded_at: "x" }], tours).length, 0);
+});
+
+test("nhật ký: hoàn thẻ, xoá DV kèm buổi + giá", () => {
+  const card = { id: 1, actor: null, at: "", table_name: "treatment_cards", op: "UPDATE" as const };
+  assert.deepEqual(auditEntries({ ...card, old_row: { refunded_at: null, refund_amount: null },
+    new_row: { refunded_at: "x", refund_amount: 500, refund_note: "đổi ý", refunded_by: "u" } }).map((e) => [e.key, e.values.amount]),
+  [["cardRefunded", 500]]);
+  assert.deepEqual(auditEntries({ ...card, table_name: "treatment_card_items", op: "DELETE",
+    old_row: { service_id: "s", sessions: 2, price: 900 }, new_row: null })[0].values, { service: "s", n: 2, amount: 900 });
 });

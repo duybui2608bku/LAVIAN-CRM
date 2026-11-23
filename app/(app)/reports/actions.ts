@@ -37,7 +37,7 @@ export async function getReport(from: string, to: string): Promise<Report> {
   const supabase = await createClient();
   const range = supaRange(start, to);
 
-  const [fb, customers, booked, cards, payments] = await Promise.allSettled([
+  const [fb, customers, booked, cards, payments, refunds] = await Promise.allSettled([
     fetchFbAdsDaily(start, to),
     fetchAll<{ id: string; created_at: string; stage: string }>((a, b) =>
       supabase
@@ -79,19 +79,33 @@ export async function getReport(from: string, to: string): Promise<Report> {
         .order("id")
         .range(a, b),
     ),
+    // Hoàn cả thẻ: trừ doanh thu vào ngày hoàn.
+    fetchAll((a, b) =>
+      supabase
+        .from("treatment_cards")
+        .select("refunded_at, refund_amount, seller:profiles!created_by(user_name)")
+        .is("cancelled_at", null)
+        .gt("refund_amount", 0)
+        .gte("refunded_at", range.start)
+        .lt("refunded_at", range.end)
+        .order("id")
+        .range(a, b),
+    ),
   ]);
 
   if (fb.status === "fulfilled") report.currency = fb.value.currency;
   else report.errors.fb = normalizeError(fb.reason).message;
-  const dbError = [customers, booked, cards, payments].find((r) => r.status === "rejected");
+  const dbError = [customers, booked, cards, payments, refunds].find((r) => r.status === "rejected");
   if (dbError) report.errors.db = normalizeError(dbError.reason).message;
 
   // Join many-to-one trả object (kiểu suy ra của supabase-js là mảng).
-  const money = cards.status === "fulfilled" && payments.status === "fulfilled" ? [
+  const money = cards.status === "fulfilled" && payments.status === "fulfilled" && refunds.status === "fulfilled" ? [
     ...(cards.value as unknown as { created_at: string; deposit_used: number; seller: Seller }[])
       .map((c) => ({ at: c.created_at, amount: c.deposit_used, seller: c.seller?.user_name ?? "—" })),
     ...(payments.value as unknown as { paid_at: string; amount: number; card: { seller: Seller } }[])
       .map((p) => ({ at: p.paid_at, amount: p.amount, seller: p.card.seller?.user_name ?? "—" })),
+    ...(refunds.value as unknown as { refunded_at: string; refund_amount: number; seller: Seller }[])
+      .map((c) => ({ at: c.refunded_at, amount: -c.refund_amount, seller: c.seller?.user_name ?? "—" })),
   ] : null;
   report.rows = buildDays(start, to, {
     fb: fb.status === "fulfilled" ? fb.value.days : null,

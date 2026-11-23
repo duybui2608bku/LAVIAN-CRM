@@ -1033,12 +1033,14 @@
     "status": {
       "active": "In use",
       "done": "Completed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
     },
     "filter": {
       "active": "In use",
       "debt": "Balance due",
       "done": "Completed",
+      "refunded": "Refunded",
       "cancelled": "Cancelled"
     },
     "allStatuses": "All statuses",
@@ -1061,12 +1063,8 @@
     "sessions": "Sessions",
     "note": "Note",
     "usedSessions": "Used {used}/{total} sessions",
-    "refund": "Refund service",
-    "refundTitle": "Refund service",
-    "refundAmount": "Refund (IDR)",
-    "refundHint": "Suggested from unused sessions, max {max}",
-    "refundReason": "Reason",
-    "refundedToast": "Service refunded",
+    "refundAmount": "Refund to customer (IDR)",
+    "refundReason": "Refund reason",
     "refundedLine": "Refunded {amount} · {date}",
     "payments": "Payments",
     "addPayment": "Take payment",
@@ -1095,22 +1093,23 @@
     "saved": "Saved",
     "saveError": "Could not save",
     "error": {
-      "card_needs_items": "Pick at least 1 service.",
+      "card_needs_items": "A card must have at least 1 service.",
       "customer_not_found": "Customer not found.",
       "appointment_not_arrived": "Sell a card only after the customer has arrived.",
       "appointmentHasCard": "This appointment already has a card — add services to it instead.",
-      "cancelled": "The card is cancelled or the service was refunded.",
+      "cancelled": "The card is cancelled / refunded or the service no longer exists.",
       "forbidden": "You don't have permission for this.",
-      "refundTooHigh": "Refund can't exceed the sale price.",
       "paymentOverDue": "Amount exceeds the card's remaining balance.",
       "refundOverPaid": "Refund exceeds what has been paid on this card.",
       "sameGroup": "{group} already has a service — pick only one service per group.",
       "groupTaken": "Only one service per group on a card (except ink, Master fee, products).",
       "hasTours": "The card has tours — delete them before cancelling.",
-      "itemUnavailable": "Service is no longer on the card (refunded?). Reload the page.",
+      "itemUnavailable": "The service is no longer in the card. Reload the page.",
       "sessionsBelowUsed": "Sessions can't be fewer than those already done ({used}).",
-      "hasPayments": "This card has payments — record a refund (negative amount) before cancelling.",
-      "overSessions": "All sessions are used — only an admin can add more tours."
+      "hasPayments": "The card has payments — use Refund card instead of cancelling.",
+      "overSessions": "All sessions are used — only an admin can add more tours.",
+      "itemHasTours": "This service already has tours — delete them before removing the service.",
+      "lastItem": "Only 1 service left — cancel or refund the card instead."
     },
     "selected": "Selected ({count})",
     "sessionsShort": "sess.",
@@ -1130,7 +1129,6 @@
     "plannedTours": "Planned journey",
     "plannedToursHint": "Change a tour's date — later planned tours shift accordingly.",
     "plannedPreviewHint": "Starts from the first tour's date. Change a date and later tours shift. Creating the card adds these planned tours.",
-    "editSessions": "Edit sessions",
     "sessionsFull": "sessions used up (admin only)",
     "history": {
       "title": "Activity log",
@@ -1143,7 +1141,7 @@
       "cardRestored": "Card un-cancelled",
       "cardDeleted": "Card deleted",
       "itemAdded": "Added {service} · {n} sessions · {amount}",
-      "itemDeleted": "Removed {service}",
+      "itemDeleted": "Removed {service} · {n} sessions · {amount}",
       "sessions": "Sessions of {service}: {oldN} → {n}",
       "refunded": "Refunded {service}: {amount}",
       "refundUndone": "Refund undone for {service}",
@@ -1160,8 +1158,20 @@
       "tourTech": "Tour Master {service} on {date}: {oldTech} → {tech}",
       "tourConfirmed": "Tour confirmed {service} on {date}",
       "tourUnconfirmed": "Tour unconfirmed {service} on {date}",
-      "edited": "Edited {fields}"
-    }
+      "edited": "Edited {fields}",
+      "cardRefunded": "Card refunded: {amount}"
+    },
+    "refundCard": "Refund card",
+    "refundCardTitle": "Refund the whole card",
+    "refundCardBody": "The card will be locked: no more payments, adding / removing services or tours; planned tours are removed. Cannot be undone.",
+    "refundCardHint": "Suggested from unused sessions, max {max} (collected)",
+    "cardRefund": "Card refund",
+    "cardRefunded": "Card refunded",
+    "deleteItem": "Remove service",
+    "deleteItemTitle": "Remove {name} from the card?",
+    "deleteItemBody": "Card value drops by the service price. The action is recorded in the history.",
+    "itemDeleted": "Service removed",
+    "editSessionsHint": "Double-click to edit sessions"
   },
   "journey": {
     "title": "Treatment follow-ups",

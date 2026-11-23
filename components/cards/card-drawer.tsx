@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Checkbox, Divider, Empty, Image, Input, InputNumber, Modal, Popover, Radio, Select } from "antd";
-import { History as HistoryIcon, PencilLine, Plus, Printer, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
+import { History as HistoryIcon, Plus, Printer, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import {
-  addCardItems, addCardPayment, cancelCard, createCardTours, deleteCardPayment, getCardHistory, refundCardItem, updateCardItemSessions,
+  addCardItems, addCardPayment, cancelCard, createCardTours, deleteCardItem, deleteCardPayment, getCardHistory, refundCard, updateCardItemSessions,
 } from "@/app/(app)/cards/actions";
 import { CardItemsDrawer } from "@/components/cards/card-items-drawer";
 import { MoneyInput } from "@/components/common/money-input";
@@ -22,7 +22,7 @@ import { staffName, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
 import { runAction, kindText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import {
-  auditEntries, CARD_PAYMENT_METHODS, cardDone, cardMoney, isTourable, journeyDue, paymentRange, suggestRefund, suggestTourKind, TOUR_KINDS, tourKindDetail,
+  auditEntries, CARD_PAYMENT_METHODS, cardMoney, cardRefundRange, cardStatus, isTourable, journeyDue, paymentRange, suggestTourKind, TOUR_KINDS, tourKindDetail,
   type AuditEntry, type CardPaymentMethod, type TourKind,
 } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
@@ -40,11 +40,11 @@ export const usageOf = (tours: Pick<Tour, "card_item_id" | "planned">[]) => (ite
   tours.filter((t) => t.card_item_id === itemId && !t.planned).length;
 
 export function CardStatusTag({ card, tours }: {
-  card: { cancelled_at: string | null; items: Parameters<typeof cardDone>[0] }; tours: Pick<Tour, "card_item_id" | "planned">[];
+  card: Parameters<typeof cardStatus>[0]; tours: Pick<Tour, "card_item_id" | "planned">[];
 }) {
   const t = useTranslations("cards");
-  const status = card.cancelled_at ? "cancelled" : cardDone(card.items, usageOf(tours)) ? "done" : "active";
-  return <StatusTag color={{ cancelled: "red", done: "green", active: "blue" }[status]} label={t(`status.${status}`)} />;
+  const status = cardStatus(card, usageOf(tours));
+  return <StatusTag color={{ cancelled: "red", refunded: "orange", done: "green", active: "blue" }[status]} label={t(`status.${status}`)} />;
 }
 
 /** Công nợ: dương = còn phải thu (cam), âm = phải hoàn khách (đỏ), 0 = "—". */
@@ -78,7 +78,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
   const [tourId, setTourId] = useState<string | null>(null);
   const money = cardMoney(card);
   const used = usageOf(tours);
-  const active = !card.cancelled_at;
+  const active = !card.cancelled_at && !card.refunded_at; // thẻ huỷ / đã hoàn: chỉ xem
   const canEdit = me.canEdit && active;
   const serviceOf = (id: string) => services.find((s) => s.id === id);
   const itemOf = (id: string | null) => card.items.find((i) => i.id === id);
@@ -94,6 +94,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
 
   return <><FormDrawer open onClose={onClose} width={CARD_DRAWER_WIDTH}
     footerExtra={<>
+      {canEdit ? <RefundCardButton card={card} used={used} /> : null}
       {me.canCancel && active ? <ConfirmAction title={t("cancelTitle")} description={t("cancelBody")}
         okText={t("cancelCard")} cancelText={t("back")}
         onConfirm={async () => { if (await runAction(cancelCard(card.id), t("cancelled"), failed)) onClose(); }}>
@@ -134,15 +135,11 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
                 {item.refund_note ? ` · ${item.refund_note}` : ""}
               </div> : null}
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1">
               {/* Mực / phí Master: không tạo tour → không có buổi. */}
-              {isTourable(item) ? <span className={`text-sm tabular-nums ${n >= item.sessions ? "text-success" : "text-muted-foreground"}`}>
-                {t("usedSessions", { used: n, total: item.sessions })}
-              </span> : null}
-              {canEdit && !item.refunded_at ? <>
-                {isTourable(item) ? <SessionsButton item={item} used={n} /> : null}
-                <RefundButton item={item} used={n} />
-              </> : null}
+              {isTourable(item) ? <SessionsCell item={item} used={n} editable={canEdit && !item.refunded_at} /> : null}
+              {canEdit && !item.refunded_at ? <DeleteItemButton item={item} name={s?.name ?? ""} used={n}
+                last={card.items.length < 2} /> : null}
             </div>
           </li>;
         })}
@@ -150,7 +147,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
     </Section>
 
     <Section title={t("payments")} className="mb-4" extra={canEdit ? <PaymentButton card={card} /> : null}>
-      {card.deposit_used || card.payments.length ? <ul className="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
+      {card.deposit_used || card.payments.length || card.refunded_at ? <ul className="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
         {card.deposit_used ? <li className="flex justify-between gap-3 p-3">
           <span className="text-muted-foreground">{t("depositUsed")}</span>
           <span className="tabular-nums text-success">{formatRupiah(card.deposit_used)}</span>
@@ -175,6 +172,17 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
             </ConfirmAction> : null}
           </div>
         </li>)}
+        {/* Hoàn cả thẻ: dòng cuối, trừ vào Đã thu. */}
+        {card.refunded_at ? <li className="flex items-center justify-between gap-3 p-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 font-medium text-destructive">{t("cardRefund")} · {dayjs(card.refunded_at).format("DD/MM/YYYY")}
+              {card.refund_method ? ` · ${t(`method.${card.refund_method}`)}` : ""}
+              {card.refunded_by ? <span className="font-normal text-muted-foreground">{staffName(staff, card.refunded_by)}</span> : null}
+            </div>
+            {card.refund_note ? <div className="text-xs text-muted-foreground">{card.refund_note}</div> : null}
+          </div>
+          <span className="shrink-0 tabular-nums text-destructive">− {formatRupiah(card.refund_amount ?? 0)}</span>
+        </li> : null}
       </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noPayments")} />}
     </Section>
 
@@ -275,28 +283,37 @@ function CardHistory({ card, tours, services, staff }: { card: TreatmentCard; to
   </Section>;
 }
 
-/** Sửa số buổi 1 DV (không nhỏ hơn số tour đã có) — hết buổi = xong liệu trình, không còn nhắc dặm / kiểm tra laser. */
-function SessionsButton({ item, used }: { item: CardItem; used: number }) {
+/**
+ * Số buổi "Đã dùng x/y" — nhấp đúp (hoặc Enter khi đang chọn) để sửa tại chỗ: Enter / rời ô = lưu, Esc = huỷ.
+ * Không nhỏ hơn số tour đã có; hết buổi = xong liệu trình, không còn nhắc dặm / kiểm tra laser.
+ */
+function SessionsCell({ item, used, editable }: { item: CardItem; used: number; editable: boolean }) {
   const t = useTranslations("cards");
-  const [open, setOpen] = useState(false);
-  const [sessions, setSessions] = useState<number | null>(item.sessions);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState<number | null>(item.sessions);
   const [pending, start] = useTransition();
+  const closed = useRef(false); // Enter / Esc đóng ô → bỏ qua blur theo sau
   const min = Math.max(used, 1);
-  const save = () => start(async () => {
-    if (await runAction(updateCardItemSessions(item.id, sessions ?? min), t("saved"), t("saveError"))) setOpen(false);
-  });
-  return <Popover trigger="click" open={open} onOpenChange={(v) => { setOpen(v); if (v) setSessions(item.sessions); }}
-    title={t("editSessions")} content={<div className="flex w-56 flex-col gap-3">
-      <label className="flex flex-col gap-1 text-xs text-muted-foreground">{t("sessions")}
-        <InputNumber<number> className="w-full" min={min} max={100} precision={0} value={sessions} onChange={setSessions}
-          aria-label={t("sessions")} onPressEnter={save} />
-      </label>
-      <Button type="primary" loading={pending} disabled={sessions == null || sessions < min || sessions === item.sessions} onClick={save}>
-        {t("save")}
-      </Button>
-    </div>}>
-    <Button size="small" type="text" aria-label={t("editSessions")} title={t("editSessions")} icon={<PencilLine className="size-4" />} />
-  </Popover>;
+  const open = () => { closed.current = false; setValue(item.sessions); setEditing(true); };
+  const close = (save: boolean) => {
+    if (closed.current) return;
+    closed.current = true;
+    setEditing(false);
+    if (!save || value == null || value < min || value > 100 || value === item.sessions) return;
+    start(async () => { await runAction(updateCardItemSessions(item.id, value), t("saved"), t("saveError")); });
+  };
+  if (editing) return <InputNumber<number> size="small" autoFocus className="w-20" min={min} max={100} precision={0}
+    value={value} onChange={setValue} aria-label={t("sessions")} suffix={`/${item.sessions}`}
+    onPressEnter={() => close(true)} onBlur={() => close(true)}
+    onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(false); } }} />;
+  const text = t("usedSessions", { used, total: item.sessions });
+  const color = used >= item.sessions ? "text-success" : "text-muted-foreground";
+  if (!editable) return <span className={`text-sm tabular-nums ${color}`}>{text}</span>;
+  return <span role="button" tabIndex={0} title={t("editSessionsHint")} aria-label={`${text} — ${t("editSessionsHint")}`}
+    onDoubleClick={open} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); open(); } }}
+    className={`cursor-text rounded px-1 text-sm tabular-nums select-none hover:bg-muted ${color} ${pending ? "opacity-50" : ""}`}>
+    {text}
+  </span>;
 }
 
 /**
@@ -318,25 +335,47 @@ function LaserResult({ item, used }: { item: CardItem; used: number }) {
   </div>;
 }
 
-/** Hoàn 1 dịch vụ: gợi ý = giá × buổi chưa làm / tổng buổi. */
-function RefundButton({ item, used }: { item: CardItem; used: number }) {
+/** Xoá 1 DV khỏi thẻ (nhật ký ghi lại) — chỉ khi DV chưa có tour và thẻ còn DV khác. */
+function DeleteItemButton({ item, name, used, last }: { item: CardItem; name: string; used: number; last: boolean }) {
   const t = useTranslations("cards");
+  const blocked = used > 0 ? t("error.itemHasTours") : last ? t("error.lastItem") : null;
+  const button = <Button size="small" type="text" danger disabled={!!blocked} aria-label={t("deleteItem")}
+    icon={<Trash2 className="size-4" />} />;
+  if (blocked) return <span title={blocked}>{button}</span>;
+  return <ConfirmAction title={t("deleteItemTitle", { name })} description={t("deleteItemBody")} okText={t("delete")} cancelText={t("back")}
+    onConfirm={() => runAction(deleteCardItem(item.id), t("itemDeleted"), t("saveError"))}>
+    <span title={t("deleteItem")}>{button}</span>
+  </ConfirmAction>;
+}
+
+/** Hoàn cả thẻ: tiền hoàn ≤ Đã thu (gợi ý theo buổi chưa làm) → thẻ khoá, Công nợ 0, tour dự kiến bị xoá. */
+function RefundCardButton({ card, used }: { card: TreatmentCard; used: (itemId: string) => number }) {
+  const t = useTranslations("cards");
+  const range = cardRefundRange(card, used);
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState<number | null>(suggestRefund(item.price, item.sessions, used));
+  const [amount, setAmount] = useState<number | null>(range.suggest);
+  const [method, setMethod] = useState<CardPaymentMethod>("cash");
   const [note, setNote] = useState("");
   const [pending, start] = useTransition();
+  const over = amount != null && amount > range.max;
   const save = () => start(async () => {
-    if (await runAction(refundCardItem(item.id, { amount: amount ?? 0, note }), t("refundedToast"), t("saveError"))) setOpen(false);
+    if (await runAction(refundCard(card.id, { amount: amount ?? 0, method, note }), t("cardRefunded"), t("saveError"))) setOpen(false);
   });
-  return <Popover trigger="click" open={open} onOpenChange={setOpen} title={t("refundTitle")} content={<div className="flex w-64 flex-col gap-3">
-    <label className="flex flex-col gap-1 text-xs text-muted-foreground">{t("refundAmount")}
-      <MoneyInput value={amount} onChange={setAmount} ariaLabel={t("refundAmount")} />
-      <span>{t("refundHint", { max: formatRupiah(item.price) })}</span>
-    </label>
-    <Input.TextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("refundReason")} autoSize={{ minRows: 2 }} maxLength={2000} />
-    <Button danger type="primary" loading={pending} disabled={amount == null || amount > item.price} onClick={save}>{t("refund")}</Button>
-  </div>}>
-    <Button size="small" type="text" aria-label={t("refund")} title={t("refund")} icon={<RotateCcw className="size-4" />} />
+  return <Popover trigger="click" placement="topLeft" open={open} title={t("refundCardTitle")}
+    onOpenChange={(v) => { setOpen(v); if (v) setAmount(range.suggest); }}
+    content={<div className="flex w-72 flex-col gap-3">
+      <p className="text-xs text-muted-foreground">{t("refundCardBody")}</p>
+      <label className="flex flex-col gap-1 text-xs text-muted-foreground">{t("refundAmount")}
+        <MoneyInput value={amount} onChange={setAmount} ariaLabel={t("refundAmount")} />
+        {over ? <span className="text-destructive">{t("error.refundOverPaid")} ({formatRupiah(range.max)})</span>
+          : <span>{t("refundCardHint", { max: formatRupiah(range.max) })}</span>}
+      </label>
+      {amount ? <Radio.Group optionType="button" value={method} onChange={(e) => setMethod(e.target.value)} className="flex! w-full"
+        options={CARD_PAYMENT_METHODS.map((m) => ({ value: m, label: t(`method.${m}`), className: "flex-auto px-2! text-center whitespace-nowrap" }))} /> : null}
+      <Input.TextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("refundReason")} autoSize={{ minRows: 2 }} maxLength={2000} />
+      <Button danger type="primary" loading={pending} disabled={amount == null || over || !note.trim()} onClick={save}>{t("refundCard")}</Button>
+    </div>}>
+    <Button danger icon={<RotateCcw className="size-4" />}>{t("refundCard")}</Button>
   </Popover>;
 }
 

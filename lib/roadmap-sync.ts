@@ -12,13 +12,13 @@ type TourRow = {
 /**
  * Sinh lại tour dự kiến (`planned`) của 1 thẻ theo `planRoadmap` — gọi sau mọi thay đổi tour / dòng DV của thẻ.
  * Diff tại chỗ theo từng dòng DV (trigger tours_card_guard không cho đổi dòng DV của tour): sửa ngày / Loại nếu khác,
- * thêm phần thiếu, xoá mềm phần thừa. Tour thật không bao giờ bị đụng. Thẻ huỷ → xoá hết tour dự kiến.
+ * thêm phần thiếu, xoá mềm phần thừa. Tour thật không bao giờ bị đụng. Thẻ huỷ / đã hoàn → xoá hết tour dự kiến.
  * Chưa có tour thật: chuỗi tính từ tour dự kiến sớm nhất (lộ trình lập lúc bán thẻ) — `seed` = lộ trình gửi lên khi bán thẻ.
  * ponytail: không transaction — 2 người sửa cùng thẻ cùng lúc có thể lệch, lần sync sau tự sửa. 1 vùng (mày) → 1 `start` chung.
  */
 export async function syncRoadmap(db: Db, cardId: string, seed?: CardPlan) {
   const { data: card, error } = await db.from("treatment_cards")
-    .select("customer_id,cancelled_at,items:treatment_card_items(id,service_id,sessions,refunded_at,service:services(group_id,tourable))")
+    .select("customer_id,cancelled_at,refunded_at,items:treatment_card_items(id,service_id,sessions,refunded_at,service:services(group_id,tourable))")
     .eq("id", cardId).single();
   if (error) throw error;
   const items = card.items as unknown as PlanItem[];
@@ -44,7 +44,7 @@ export async function syncRoadmap(db: Db, cardId: string, seed?: CardPlan) {
 
   // Số lần (Laser n / Dặm n) đếm cả tour thật + bước dự kiến trước đó của cùng dòng.
   const seen: { card_item_id: string; tour_date: string; service_detail: string | null }[] = [...real];
-  const want = (card.cancelled_at ? [] : planRoadmap(items, real, pinned, start)).map((step) => {
+  const want = (card.cancelled_at || card.refunded_at ? [] : planRoadmap(items, real, pinned, start)).map((step) => {
     const detail = tourKindDetail(step.kind, step.tour_date, seen.filter((t) => t.card_item_id === step.card_item_id));
     seen.push({ card_item_id: step.card_item_id, tour_date: step.tour_date, service_detail: detail.service_detail });
     return { ...step, ...detail };

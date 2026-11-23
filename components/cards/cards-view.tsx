@@ -14,14 +14,14 @@ import { NamePhone } from "@/components/common/name-phone";
 import { StatCard } from "@/components/common/stat-card";
 import { staffLabel, staffName, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { cardDone, cardMoney, isTourable } from "@/lib/cards";
+import { cardMoney, cardStatus, isTourable } from "@/lib/cards";
 import { formatRupiah, formatRupiahCompact } from "@/lib/currency";
 import { matchesNameOrPhone } from "@/lib/customers";
 import type { CardItem, TreatmentCard } from "@/types/card";
 import type { Service } from "@/types/service";
 import type { Tour } from "@/types/tour";
 
-const STATUSES = ["active", "debt", "done", "cancelled"] as const;
+const STATUSES = ["active", "debt", "done", "refunded", "cancelled"] as const;
 const MAX_ITEMS = 2;
 
 /** Bảng thẻ liệu trình — lọc theo ngày bán (doanh số theo kỳ), trạng thái, tìm mã / tên / SĐT. */
@@ -51,9 +51,7 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
     if (status === "cancelled") return !!c.cancelled_at;
     if (c.cancelled_at) return false; // thẻ huỷ chỉ hiện khi lọc "Đã huỷ"
     if (status === "debt") return c.money.due > 0;
-    if (status === "done") return cardDone(c.items, used);
-    if (status === "active") return !cardDone(c.items, used);
-    return true;
+    return !status || cardStatus(c, used) === status;
   };
   const day = (iso: string) => dayjs(iso).format("YYYY-MM-DD");
   const q = search.trim().toLowerCase();

@@ -6,16 +6,31 @@ export type CardPaymentMethod = (typeof CARD_PAYMENT_METHODS)[number];
 export const MAX_TOUR_SESSION = 20; // khớp check tours.service_session
 
 type MoneyItem = { price: number; refund_amount: number | null };
-type MoneyCard = { deposit_used: number; items: MoneyItem[]; payments: { amount: number }[] };
+/** `refund_amount` của thẻ: hoàn cả thẻ (null = chưa hoàn). */
+type MoneyCard = { deposit_used: number; items: MoneyItem[]; payments: { amount: number }[]; refund_amount?: number | null };
 
 /**
- * Giá trị thẻ = Σ giá bán − Σ tiền hoàn; Đã thu = cọc trừ vào thẻ + Σ thanh toán (âm = đã hoàn khách);
- * Công nợ = Giá trị − Đã thu (âm = phải hoàn khách).
+ * Giá trị thẻ = Σ giá bán − Σ tiền hoàn DV (dữ liệu cũ); Đã thu = cọc trừ vào thẻ + Σ thanh toán (âm = đã hoàn khách)
+ * − tiền hoàn thẻ; Công nợ = Giá trị − Đã thu (âm = phải hoàn khách).
+ * Thẻ đã hoàn: Giá trị = Đã thu sau hoàn (phần cơ sở giữ lại) → Công nợ 0.
  */
 export function cardMoney(card: MoneyCard) {
+  const paid = card.deposit_used + card.payments.reduce((s, p) => s + p.amount, 0);
+  if (card.refund_amount != null) {
+    const collected = paid - card.refund_amount;
+    return { value: collected, collected, due: 0 };
+  }
   const value = card.items.reduce((s, i) => s + i.price - (i.refund_amount ?? 0), 0);
-  const collected = card.deposit_used + card.payments.reduce((s, p) => s + p.amount, 0);
-  return { value, collected, due: value - collected };
+  return { value, collected: paid, due: value - paid };
+}
+
+/** Hoàn cả thẻ: tối đa = Đã thu (cọc trừ + thanh toán); gợi ý = giá × buổi chưa làm / tổng buổi của từng DV, không quá tối đa. */
+type RefundItem = MoneyItem & { id: string; sessions: number; refunded_at: string | null } & ItemService;
+export function cardRefundRange(card: Omit<MoneyCard, "items"> & { items: RefundItem[] }, used: (itemId: string) => number) {
+  const max = Math.max(cardMoney(card).collected, 0);
+  const left = card.items.filter((i) => !i.refunded_at)
+    .reduce((s, i) => s + (isTourable(i) ? suggestRefund(i.price, i.sessions, used(i.id)) : i.price), 0);
+  return { max, suggest: Math.min(left, max) };
 }
 
 /**
@@ -56,6 +71,12 @@ export const groupTaken = (service: GroupService, taken: GroupService[]) =>
   service.tourable && taken.some((s) => s.tourable && s.group_id === service.group_id);
 
 /** Thẻ hoàn thành: mọi dịch vụ (tạo tour được) chưa hoàn đã dùng đủ số buổi. */
+/** Trạng thái thẻ: huỷ / đã hoàn (khoá) / hoàn thành (đủ buổi) / đang dùng. */
+export function cardStatus(card: { cancelled_at: string | null; refunded_at?: string | null; items: Parameters<typeof cardDone>[0] },
+  used: (itemId: string) => number) {
+  return card.cancelled_at ? "cancelled" : card.refunded_at ? "refunded" : cardDone(card.items, used) ? "done" : "active";
+}
+
 export function cardDone(items: ({ id: string; sessions: number; refunded_at: string | null } & ItemService)[], used: (itemId: string) => number) {
   const list = items.filter(isTourable);
   return list.some((i) => !i.refunded_at) && list.every((i) => i.refunded_at || used(i.id) >= i.sessions);
@@ -103,7 +124,7 @@ export function tourKindDetail(kind: TourKind, date: string, others: KindTour[])
 const addDays = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
 type DueItem = { id: string; service_id: string; sessions: number; refunded_at: string | null } & ItemService;
-type DueCard = { cancelled_at: string | null; items: DueItem[] };
+type DueCard = { cancelled_at: string | null; refunded_at?: string | null; items: DueItem[] };
 type DueTour = KindTour & { card_item_id: string | null; service_session: number | null; planned?: boolean };
 export type JourneyDue<C, T> = {
   card: C;
@@ -126,7 +147,7 @@ export function journeyDue<C extends DueCard, T extends DueTour>(cards: C[], tou
   const real = tours.filter((t) => !t.planned); // tour dự kiến chưa chốt với khách → vẫn nhắc
   const ofItem = (id: string) => real.filter((t) => t.card_item_id === id).sort(order);
   for (const card of cards) {
-    if (card.cancelled_at) continue;
+    if (card.cancelled_at || card.refunded_at) continue;
     const areas = new Map<string, DueItem[]>();
     for (const i of card.items.filter(isTourable)) {
       const key = areaOf(i.service?.group_id) || i.service_id;
@@ -228,7 +249,7 @@ export const cardCreateSchema = z.object({
 
 export const cardItemsAddSchema = items;
 
-export const cardRefundSchema = z.object({ amount: money, note }).strict();
+export const cardRefundSchema = z.object({ amount: money, method: z.enum(CARD_PAYMENT_METHODS), note }).strict();
 
 /** Sửa số buổi 1 DV trong thẻ (khớp check DB 1–100; server chặn thêm < số tour đã có). */
 export const cardItemSessionsSchema = cardItemInputSchema.shape.sessions;
@@ -277,11 +298,12 @@ export function auditEntries(a: CardAudit): AuditEntry[] {
       if (a.op === "INSERT") add("cardCreated");
       else if (a.op === "DELETE") add("cardDeleted");
       else if (changed("cancelled_at")) add(n.cancelled_at ? "cardCancelled" : "cardRestored");
-      handled.push("cancelled_at", "cancelled_by");
+      else if (changed("refunded_at") && n.refunded_at) add("cardRefunded", { amount: n.refund_amount });
+      handled.push("cancelled_at", "cancelled_by", "refunded_at", "refunded_by", "refund_amount", "refund_method", "refund_note");
       break;
     case "treatment_card_items":
       if (a.op === "INSERT") add("itemAdded", { n: r.sessions, amount: r.price });
-      else if (a.op === "DELETE") add("itemDeleted");
+      else if (a.op === "DELETE") add("itemDeleted", { n: r.sessions, amount: r.price });
       else {
         if (changed("sessions")) add("sessions", { oldN: o.sessions, n: n.sessions });
         if (changed("refunded_at")) add(n.refunded_at ? "refunded" : "refundUndone", { amount: n.refund_amount });
