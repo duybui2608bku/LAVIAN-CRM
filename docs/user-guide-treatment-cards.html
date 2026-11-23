@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lavian CRM User Guide — Treatment Cards</title>
+<style>
+  @page { size: A4; margin: 15mm 15mm 14mm 15mm; }
+  :root {
+    --primary: #684fd4; --primary-soft: #efecfb; --ink: #1f1f24; --muted: #6b6b76;
+    --line: #e4e4e8; --bg-soft: #f7f7f9;
+    --brand: #4b2669; --gold: #b08d2e;
+    --green: #389e0d; --green-bg: #f6ffed; --orange: #d46b08; --orange-bg: #fff7e6; --red: #cf1322;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; font-size: 10.3pt; line-height: 1.55; color: var(--ink); background: #fff; }
+  h1, h2, h3 { line-height: 1.25; margin: 0; }
+  h2 { font-size: 16pt; color: var(--primary); margin: 0 0 3.5mm; padding-bottom: 2mm; border-bottom: 2px solid var(--primary-soft); }
+  h3 { font-size: 11.5pt; margin: 4.5mm 0 2mm; }
+  p { margin: 0 0 2.4mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+  li { margin-bottom: 1.1mm; }
+  b { font-weight: 600; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.9pt; }
+  .avoid { break-inside: avoid; }
+  .ui { font-weight: 600; color: var(--primary); white-space: nowrap; }
+  svg { display: block; width: 100%; height: auto; font-family: "Segoe UI", Arial, sans-serif; }
+  figure { margin: 2mm 0 4mm; break-inside: avoid; }
+  figcaption { text-align: center; font-size: 8.4pt; color: var(--muted); margin-top: 1.5mm; }
+  .note { border-left: 3px solid var(--primary); background: var(--primary-soft); padding: 2.8mm 4mm; border-radius: 0 2mm 2mm 0; margin: 3mm 0; break-inside: avoid; }
+  .note p:last-child, .note ul:last-child { margin-bottom: 0; }
+  .ok { border-left-color: var(--green); background: var(--green-bg); }
+  .warn { border-left-color: var(--orange); background: var(--orange-bg); }
+  table { width: 100%; border-collapse: collapse; margin: 1mm 0 3.5mm; font-size: 9.4pt; break-inside: avoid; }
+  th, td { text-align: left; padding: 1.8mm 2.4mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 8.4pt; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 600; background: var(--bg-soft); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: start; }
+  .split { display: grid; grid-template-columns: 80mm 1fr; gap: 7mm; align-items: start; }
+
+  /* Steps */
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0 0 3mm; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2.2mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: .3mm; width: 6mm; height: 6mm; border-radius: 50%; background: var(--primary); color: #fff; font-size: 8.5pt; font-weight: 700; display: grid; place-items: center; }
+
+  /* Cover */
+  .cover { height: 266mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover-top { padding-top: 22mm; }
+  .cover-logo { width: 34mm; height: 34mm; }
+  .eyebrow { margin-top: 12mm; font-size: 10pt; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  .cover h1 { font-size: 34pt; margin: 3mm 0 5mm; color: var(--brand); letter-spacing: -.5px; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); max-width: 150mm; }
+  .meta { display: flex; gap: 8mm; margin-top: 8mm; font-size: 9.5pt; }
+  .meta div span { display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+  .toc { border-top: 1px solid var(--line); padding-top: 5mm; }
+  .toc-row { display: flex; gap: 4mm; padding: 2.2mm 0; border-bottom: 1px dashed var(--line); font-size: 10.5pt; }
+  .toc-num { width: 8mm; color: var(--primary); font-weight: 700; }
+  .toc-who { margin-left: auto; color: var(--muted); font-size: 9.5pt; }
+</style>
+</head>
+<body>
+
+<!-- ============================ COVER ============================ -->
+<section class="page cover">
+  <div class="cover-top">
+    <img class="cover-logo" src="../app/assets/logo.png" alt="Lavian Beauty Center">
+    <div class="eyebrow">Lavian CRM · Staff guide</div>
+    <h1>Treatment Cards</h1>
+    <p class="lead">How to sell a treatment card, take payments, refund services, create tours from the card and follow up customers for their next session.</p>
+    <div class="meta">
+      <div><span>Version</span>23 Nov 2026</div>
+      <div><span>Menu</span>Treatment cards</div>
+      <div><span>Card numbers</span>TLT00001, TLT00002…</div>
+    </div>
+  </div>
+  <div class="toc">
+    <div class="toc-row"><span class="toc-num">1</span>How it works — who does what<span class="toc-who">Everyone</span></div>
+    <div class="toc-row"><span class="toc-num">2</span>Selling a card in Sales Management<span class="toc-who">Sales</span></div>
+    <div class="toc-row"><span class="toc-num">3</span>Money on a card<span class="toc-who">Sales · Admin</span></div>
+    <div class="toc-row"><span class="toc-num">4</span>Card details: payments, refunds, sessions<span class="toc-who">Sales · Admin</span></div>
+    <div class="toc-row"><span class="toc-num">5</span>The Treatment cards page<span class="toc-who">Sales · Admin</span></div>
+    <div class="toc-row"><span class="toc-num">6</span>Creating tours from a card &amp; commission<span class="toc-who">Sales · Master · Admin</span></div>
+    <div class="toc-row"><span class="toc-num">7</span>Treatment follow-ups<span class="toc-who">Telesales</span></div>
+    <div class="toc-row"><span class="toc-num">8</span>Printing the card for the customer to sign<span class="toc-who">Sales</span></div>
+    <div class="toc-row"><span class="toc-num">9</span>Permissions, common messages &amp; FAQ<span class="toc-who">Everyone</span></div>
+  </div>
+</section>
+
+<!-- ============================ 1. WORKFLOW ============================ -->
+<section class="page">
+  <h2>1. How it works — who does what</h2>
+  <p>A <b>treatment card</b> belongs to one customer and holds one or more services from the price list. Each card has its own number (<b>TLT00001</b>…). All money is recorded on the card — the deposit, every payment and every refund. Tours (treatment sessions) are always created <b>from a card</b>, so the card shows the customer's whole treatment journey.</p>
+  <figure>
+    <svg viewBox="0 0 720 400" role="img" aria-label="Workflow: Sales sells the card and creates tours, Master takes the tour, Admin confirms, Telesales calls for the next session.">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#684fd4"/></marker>
+      </defs>
+      <rect x="0" y="10" width="720" height="120" rx="10" fill="#f6f4fd"/>
+      <rect x="0" y="140" width="720" height="120" rx="10" fill="#f7f7f9"/>
+      <rect x="0" y="270" width="720" height="120" rx="10" fill="#fff8ec"/>
+      <g font-size="13" font-weight="700">
+        <text x="18" y="62" fill="#684fd4">Sales</text>
+        <text x="18" y="192" fill="#595966">Master</text>
+        <text x="18" y="322" fill="#b4720f">Admin /</text>
+        <text x="18" y="338" fill="#b4720f">Telesales</text>
+      </g>
+      <g font-size="10" fill="#8a8a96">
+        <text x="18" y="80">Sales Management</text>
+        <text x="18" y="94">Treatment cards</text>
+        <text x="18" y="210">Tours menu</text>
+        <text x="18" y="356">Tours · Follow-ups</text>
+      </g>
+      <g font-size="12.5">
+        <rect x="122" y="38" width="128" height="64" rx="9" fill="#fff" stroke="#d9d2f7"/>
+        <circle cx="138" cy="54" r="9" fill="#684fd4"/><text x="138" y="58" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+        <text x="152" y="59" font-weight="600">Customer</text>
+        <text x="132" y="84" font-size="11" fill="#6b6b76">status: Arrived</text>
+
+        <rect x="268" y="38" width="128" height="64" rx="9" fill="#684fd4"/>
+        <circle cx="284" cy="54" r="9" fill="#fff"/><text x="284" y="58" font-size="11" font-weight="700" fill="#684fd4" text-anchor="middle">2</text>
+        <text x="298" y="59" font-weight="700" fill="#fff">Sell card</text>
+        <text x="278" y="84" font-size="11" fill="#e5e0fb">services · deposit</text>
+
+        <rect x="414" y="38" width="128" height="64" rx="9" fill="#fff" stroke="#d9d2f7"/>
+        <circle cx="430" cy="54" r="9" fill="#684fd4"/><text x="430" y="58" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+        <text x="444" y="59" font-weight="600">Payment</text>
+        <text x="424" y="84" font-size="11" fill="#6b6b76">Take payment</text>
+
+        <rect x="560" y="38" width="140" height="64" rx="9" fill="#fff" stroke="#d9d2f7"/>
+        <circle cx="576" cy="54" r="9" fill="#684fd4"/><text x="576" y="58" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+        <text x="590" y="59" font-weight="600">New tour</text>
+        <text x="570" y="84" font-size="11" fill="#6b6b76">service · type</text>
+
+        <rect x="560" y="168" width="140" height="64" rx="9" fill="#fff" stroke="#d9d9de"/>
+        <circle cx="576" cy="184" r="9" fill="#595966"/><text x="576" y="188" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+        <text x="590" y="189" font-weight="600">Take tour</text>
+        <text x="570" y="214" font-size="11" fill="#6b6b76">Waiting tab</text>
+
+        <rect x="414" y="168" width="128" height="64" rx="9" fill="#fff" stroke="#d9d9de"/>
+        <circle cx="430" cy="184" r="9" fill="#595966"/><text x="430" y="188" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">6</text>
+        <text x="444" y="189" font-weight="600">Treatment</text>
+        <text x="424" y="214" font-size="11" fill="#6b6b76">before/after photos</text>
+
+        <rect x="414" y="298" width="128" height="64" rx="9" fill="#fff" stroke="#f3d49a"/>
+        <circle cx="430" cy="314" r="9" fill="#d48806"/><text x="430" y="318" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">7</text>
+        <text x="444" y="319" font-weight="600">Confirm</text>
+        <text x="424" y="344" font-size="11" fill="#6b6b76">Admin · commission</text>
+
+        <rect x="268" y="298" width="128" height="64" rx="9" fill="#fff" stroke="#b7eb8f"/>
+        <circle cx="284" cy="314" r="9" fill="#389e0d"/><text x="284" y="318" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">8</text>
+        <text x="298" y="319" font-weight="600">Follow-up</text>
+        <text x="278" y="344" font-size="11" fill="#6b6b76">Telesales calls</text>
+      </g>
+      <g stroke="#684fd4" stroke-width="2" fill="none" marker-end="url(#a1)">
+        <path d="M250 70 L264 70"/><path d="M396 70 L410 70"/><path d="M542 70 L556 70"/>
+        <path d="M630 102 L630 164"/>
+        <path d="M560 200 L546 200"/>
+        <path d="M478 232 L478 294"/>
+        <path d="M414 330 L400 330"/>
+      </g>
+      <g stroke="#a99be8" stroke-width="1.6" stroke-dasharray="4 4" fill="none" marker-end="url(#a1)">
+        <path d="M290 298 L290 106"/>
+      </g>
+      <text x="282" y="196" font-size="10.5" fill="#8a7fc9" text-anchor="end">customer comes back:</text>
+      <text x="282" y="210" font-size="10.5" fill="#8a7fc9" text-anchor="end">next tour, same card</text>
+      <text x="300" y="122" font-size="10.5" fill="#684fd4">customer → Purchased</text>
+    </svg>
+    <figcaption>Figure 1 — The treatment card flow across departments</figcaption>
+  </figure>
+  <table>
+    <thead><tr><th style="width:12mm">Step</th><th style="width:40mm">What</th><th>Where / how</th></tr></thead>
+    <tbody>
+      <tr><td>1–2</td><td>Sell the card</td><td><b>Sales Management</b> → cart icon on an appointment whose status is <b>Arrived</b>, <b>In progress</b> or <b>Done</b>. The deposit is applied automatically. See section 2.</td></tr>
+      <tr><td>3</td><td>Take payment</td><td>Open the card → <span class="ui">Take payment</span>. Cash, bank transfer or card, with a photo of the bill / transfer. See section 4.</td></tr>
+      <tr><td>4</td><td>Create tours</td><td>Open the card → <span class="ui">New tour</span>. Pick the date, the services and the tour <b>Type</b>. See section 6.</td></tr>
+      <tr><td>5–7</td><td>Master &amp; Admin</td><td>Master takes the tour in <b>Tours → Waiting</b>, does the treatment and uploads photos. Admin confirms the tour.</td></tr>
+      <tr><td>8</td><td>Follow-up</td><td>Telesales calls customers who are due for a laser check or retouch: <b>Customers → Treatment follow-ups</b>. See section 7.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================ 2. SELLING ============================ -->
+<section class="page">
+  <h2>2. Selling a card in Sales Management</h2>
+  <p>The appointment table in <b>Sales Management</b> has a <b>Treatment card</b> column. Before a card exists you see a cart icon; after it is sold you see the card number.</p>
+  <figure>
+    <svg viewBox="0 0 720 166" role="img" aria-label="Sales Management table with the Treatment card column.">
+      <rect x="0.5" y="0.5" width="719" height="165" rx="10" fill="#fff" stroke="#e4e4e8"/>
+      <rect x="1" y="1" width="718" height="30" rx="10" fill="#f7f7f9"/>
+      <g font-size="10.5" font-weight="600" fill="#6b6b76" letter-spacing=".3">
+        <text x="16" y="20">TIME</text><text x="90" y="20">CUSTOMER</text><text x="300" y="20">STATUS</text><text x="440" y="20">TREATMENT CARD</text>
+      </g>
+      <g font-size="12">
+        <text x="16" y="52" font-weight="600">10:00</text><text x="16" y="67" font-size="10.5" fill="#8a8a96">23/11</text>
+        <text x="90" y="52" font-weight="600">Dewi Lestari</text><text x="90" y="67" font-size="10.5" fill="#8a8a96">0812 •••• 4521</text>
+        <rect x="300" y="40" width="62" height="20" rx="4" fill="#e6f4ff" stroke="#91caff"/><text x="331" y="54" font-size="11" fill="#0958d9" text-anchor="middle">Arrived</text>
+        <rect x="440" y="36" width="34" height="28" rx="6" fill="#efecfb" stroke="#684fd4" stroke-width="1.5"/>
+        <g transform="translate(448 43)" fill="none" stroke="#684fd4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M0 1h3l2 8h9l2-6H4.5"/><circle cx="7" cy="12.5" r="1.2" fill="#684fd4"/><circle cx="13" cy="12.5" r="1.2" fill="#684fd4"/></g>
+        <circle cx="486" cy="40" r="8" fill="#ff7a45"/><text x="486" y="44" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">A</text>
+        <text x="502" y="55" font-size="10.5" fill="#6b6b76">click to sell a card</text>
+        <line x1="1" y1="78" x2="719" y2="78" stroke="#eeeef1"/>
+
+        <text x="16" y="96" font-weight="600">14:30</text><text x="16" y="111" font-size="10.5" fill="#8a8a96">23/11</text>
+        <text x="90" y="96" font-weight="600">Rina Putri</text><text x="90" y="111" font-size="10.5" fill="#8a8a96">0857 •••• 1190</text>
+        <rect x="300" y="84" width="80" height="20" rx="4" fill="#fafafa" stroke="#d9d9d9"/><text x="340" y="98" font-size="11" fill="#555" text-anchor="middle">Not arrived</text>
+        <g transform="translate(448 88)" fill="none" stroke="#c4c4cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M0 1h3l2 8h9l2-6H4.5"/><circle cx="7" cy="12.5" r="1.2" fill="#c4c4cc"/><circle cx="13" cy="12.5" r="1.2" fill="#c4c4cc"/></g>
+        <text x="476" y="100" font-size="10.5" fill="#a0a0aa">disabled — customer hasn't arrived yet</text>
+        <line x1="1" y1="122" x2="719" y2="122" stroke="#eeeef1"/>
+
+        <text x="16" y="140" font-weight="600">09:00</text><text x="16" y="155" font-size="10.5" fill="#8a8a96">22/11</text>
+        <text x="90" y="140" font-weight="600">Ayu Kartika</text><text x="90" y="155" font-size="10.5" fill="#8a8a96">0813 •••• 7702</text>
+        <rect x="300" y="128" width="50" height="20" rx="4" fill="#f6ffed" stroke="#b7eb8f"/><text x="325" y="142" font-size="11" fill="#389e0d" text-anchor="middle">Done</text>
+        <rect x="440" y="128" width="72" height="20" rx="4" fill="#f9f0ff" stroke="#d3adf7"/><text x="476" y="142" font-size="11" fill="#722ed1" text-anchor="middle">TLT00012</text>
+        <circle cx="524" cy="132" r="8" fill="#ff7a45"/><text x="524" y="136" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">B</text>
+        <text x="540" y="143" font-size="10.5" fill="#6b6b76">click to open the card</text>
+      </g>
+    </svg>
+    <figcaption>Figure 2 — (A) Customer has arrived: click the cart to sell. (B) Card already sold: click the number to open it</figcaption>
+  </figure>
+
+  <h3>Steps</h3>
+  <ol class="steps">
+    <li>Set the appointment status to <b>Arrived</b> (or In progress / Done). The cart icon becomes active.</li>
+    <li>Click the cart. The drawer <span class="ui">Sell treatment card · &lt;name&gt;</span> opens.</li>
+    <li><b>Left side:</b> tick the services the customer buys — the whole price list is shown by group, like the paper price sheet.</li>
+    <li><b>Right side:</b> for each ticked service, check the <b>Sale price (IDR)</b> and the number of <b>Sessions</b> (e.g. a full laser treatment = 5 sessions).</li>
+    <li>Check the totals at the bottom, add a <b>Note</b> if needed, then click <span class="ui">Create card</span>.</li>
+  </ol>
+  <figure>
+    <svg viewBox="0 0 720 250" role="img" aria-label="Sell card drawer: price list on the left, selected services and totals on the right.">
+      <rect x="0.5" y="0.5" width="719" height="249" rx="10" fill="#fff" stroke="#e4e4e8"/>
+      <text x="18" y="27" font-size="14" font-weight="700">Sell treatment card · Dewi Lestari</text>
+      <line x1="1" y1="40" x2="719" y2="40" stroke="#eeeef1"/>
+      <g font-size="11.5">
+        <text x="18" y="62" font-size="10.5" font-weight="700" fill="#684fd4" letter-spacing=".6">ALIS</text>
+        <line x1="18" y1="68" x2="206" y2="68" stroke="#eeeef1"/>
+        <rect x="18" y="78" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="38" y="88">Shading</text><text x="206" y="88" text-anchor="end" fill="#8a8a96" font-size="10.5">4.000.000</text>
+        <rect x="14" y="97" width="196" height="20" rx="4" fill="#f4f1fd"/>
+        <rect x="18" y="101" width="12" height="12" rx="2.5" fill="#684fd4"/><path d="M21 107.3l2.3 2.3L27.5 104" stroke="#fff" stroke-width="1.6" fill="none"/><text x="38" y="111" font-weight="600">Ombre</text><text x="206" y="111" text-anchor="end" fill="#8a8a96" font-size="10.5">6.000.000</text>
+        <rect x="18" y="124" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="38" y="134">Hairstroke 6D</text><text x="206" y="134" text-anchor="end" fill="#8a8a96" font-size="10.5">5.000.000</text>
+        <text x="18" y="166" font-size="10.5" font-weight="700" fill="#684fd4" letter-spacing=".6">SULAM INK</text>
+        <line x1="18" y1="172" x2="206" y2="172" stroke="#eeeef1"/>
+        <rect x="18" y="182" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="38" y="192">USA Ink</text><text x="206" y="192" text-anchor="end" fill="#8a8a96" font-size="10.5">1.500.000</text>
+        <rect x="14" y="201" width="196" height="20" rx="4" fill="#f4f1fd"/>
+        <rect x="18" y="205" width="12" height="12" rx="2.5" fill="#684fd4"/><path d="M21 211.3l2.3 2.3L27.5 208" stroke="#fff" stroke-width="1.6" fill="none"/><text x="38" y="215" font-weight="600">Korea Ink</text><text x="206" y="215" text-anchor="end" fill="#8a8a96" font-size="10.5">2.500.000</text>
+        <text x="232" y="62" font-size="10.5" font-weight="700" fill="#684fd4" letter-spacing=".6">BIBIR</text>
+        <line x1="232" y1="68" x2="420" y2="68" stroke="#eeeef1"/>
+        <rect x="232" y="78" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="252" y="88">Collagen Lip</text><text x="420" y="88" text-anchor="end" fill="#8a8a96" font-size="10.5">5.000.000</text>
+        <rect x="232" y="101" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="252" y="111">Nano Lip</text><text x="420" y="111" text-anchor="end" fill="#8a8a96" font-size="10.5">9.000.000</text>
+        <text x="232" y="166" font-size="10.5" font-weight="700" fill="#684fd4" letter-spacing=".6">LASER</text>
+        <line x1="232" y1="172" x2="420" y2="172" stroke="#eeeef1"/>
+        <rect x="232" y="182" width="12" height="12" rx="2.5" fill="#fff" stroke="#c4c4cc"/><text x="252" y="192">Laser (full treatment)</text><text x="420" y="192" text-anchor="end" fill="#8a8a96" font-size="10.5">4.000.000</text>
+        <text x="18" y="240" font-size="10" fill="#a0a0aa">… the whole price list, grouped</text>
+      </g>
+      <g font-size="11.5">
+        <line x1="440" y1="52" x2="440" y2="238" stroke="#eeeef1"/>
+        <text x="456" y="62" font-weight="700">Selected (2)</text>
+        <rect x="456" y="70" width="248" height="34" rx="6" fill="#fff" stroke="#e4e4e8"/>
+        <text x="464" y="91" font-weight="600">Ombre</text>
+        <rect x="560" y="77" width="88" height="20" rx="4" fill="#fff" stroke="#684fd4"/><text x="566" y="91" font-size="10.5">5.500.000</text>
+        <rect x="654" y="77" width="44" height="20" rx="4" fill="#fff" stroke="#d9d9de"/><text x="660" y="91" font-size="10.5">1 sess.</text>
+        <rect x="456" y="108" width="248" height="34" rx="6" fill="#fff" stroke="#e4e4e8"/>
+        <text x="464" y="129" font-weight="600">Korea Ink</text>
+        <rect x="560" y="115" width="88" height="20" rx="4" fill="#fff" stroke="#d9d9de"/><text x="566" y="129" font-size="10.5">2.500.000</text>
+        <rect x="654" y="115" width="44" height="20" rx="4" fill="#fff" stroke="#d9d9de"/><text x="660" y="129" font-size="10.5">1 sess.</text>
+        <g font-size="10.5">
+          <text x="458" y="162" fill="#6b6b76">List price total</text><text x="702" y="162" text-anchor="end">Rp 8.500.000</text>
+          <text x="458" y="177" fill="#6b6b76">Discount / voucher</text><text x="702" y="177" text-anchor="end">− Rp 500.000</text>
+          <text x="458" y="192" fill="#6b6b76">Card value</text><text x="702" y="192" text-anchor="end" font-weight="700">Rp 8.000.000</text>
+          <text x="458" y="207" fill="#6b6b76">Deposit applied</text><text x="702" y="207" text-anchor="end" fill="#389e0d">− Rp 200.000</text>
+          <text x="458" y="223" font-weight="700">Balance due</text><text x="702" y="223" text-anchor="end" font-weight="700" fill="#d46b08">Rp 7.800.000</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption>Figure 3 — Tick services on the left; adjust price and sessions on the right; check the totals</figcaption>
+  </figure>
+  <ul class="small">
+    <li><b>Discounts:</b> type a lower sale price. The drawer then shows <i>List price total</i> and <i>Discount / voucher</i> automatically. The list price itself is not changed.</li>
+    <li><b>Deposit:</b> the customer's unused deposit is applied automatically (never more than the card value). A deposit is only used once — a second card gets only what is left.</li>
+    <li><b>One card per appointment.</b> If the customer buys more later, open the card and use <span class="ui">Add service</span> instead of selling a new card.</li>
+    <li>After the card is created the customer's status changes to <b>Purchased</b> automatically.</li>
+  </ul>
+</section>
+
+<!-- ============================ 3. MONEY ============================ -->
+<section class="page">
+  <h2>3. Money on a card</h2>
+  <p>Every card shows three numbers. They are calculated by the system — you never type them.</p>
+  <figure>
+    <svg viewBox="0 0 720 96" role="img" aria-label="Three formulas: Card value, Collected, Balance due.">
+      <g font-size="12.5" text-anchor="middle">
+        <rect x="0" y="6" width="222" height="84" rx="10" fill="#f6f4fd" stroke="#d9d2f7"/>
+        <text x="111" y="34" font-weight="700" fill="#684fd4">Card value</text>
+        <text x="111" y="56" font-size="11.5">Σ sale prices of services</text>
+        <text x="111" y="74" font-size="11.5" fill="#6b6b76">− Σ refunded services</text>
+        <rect x="249" y="6" width="222" height="84" rx="10" fill="#f6ffed" stroke="#b7eb8f"/>
+        <text x="360" y="34" font-weight="700" fill="#389e0d">Collected</text>
+        <text x="360" y="56" font-size="11.5">Deposit applied</text>
+        <text x="360" y="74" font-size="11.5" fill="#6b6b76">+ Σ payments</text>
+        <rect x="498" y="6" width="222" height="84" rx="10" fill="#fff7e6" stroke="#ffd591"/>
+        <text x="609" y="34" font-weight="700" fill="#d46b08">Balance due</text>
+        <text x="609" y="56" font-size="11.5">Card value − Collected</text>
+        <text x="609" y="74" font-size="11.5" fill="#6b6b76">negative = Owed to customer</text>
+      </g>
+    </svg>
+  </figure>
+
+  <h3>Worked example</h3>
+  <p>The customer buys Ombre (Rp 6.000.000) and Korea Ink (Rp 2.500.000) = Rp 8.500.000, gets a Rp 500.000 voucher, has already paid a Rp 200.000 deposit, then pays Rp 7.800.000 by card:</p>
+  <figure>
+    <svg viewBox="0 0 720 300" role="img" aria-label="Waterfall chart from 8.5 million list price to zero balance due.">
+      <g stroke="#eeeef1"><line x1="40" y1="250" x2="710" y2="250" stroke="#c4c4cc"/>
+        <line x1="40" y1="191" x2="710" y2="191"/><line x1="40" y1="132" x2="710" y2="132"/><line x1="40" y1="73" x2="710" y2="73"/></g>
+      <g font-size="10" fill="#a0a0aa" text-anchor="end">
+        <text x="34" y="254">0</text><text x="34" y="195">2.5 m</text><text x="34" y="136">5 m</text><text x="34" y="77">7.5 m</text>
+      </g>
+      <rect x="62" y="49.4" width="72" height="200.6" rx="4" fill="#c9c9d3"/>
+      <rect x="172" y="49.4" width="72" height="11.8" rx="2" fill="#ff7875"/>
+      <rect x="282" y="61.2" width="72" height="188.8" rx="4" fill="#684fd4"/>
+      <rect x="392" y="61.2" width="72" height="4.7" rx="1" fill="#73d13d"/>
+      <rect x="502" y="65.9" width="72" height="184.1" rx="4" fill="#389e0d"/>
+      <rect x="612" y="247" width="72" height="3" rx="1" fill="#d46b08"/>
+      <g stroke="#a0a0aa" stroke-dasharray="3 3"><line x1="134" y1="49.4" x2="172" y2="49.4"/><line x1="244" y1="61.2" x2="282" y2="61.2"/>
+        <line x1="354" y1="61.2" x2="392" y2="61.2"/><line x1="464" y1="65.9" x2="502" y2="65.9"/><line x1="574" y1="250" x2="612" y2="250"/></g>
+      <g font-size="11.5" font-weight="700" text-anchor="middle">
+        <text x="98" y="41">8.500.000</text>
+        <text x="208" y="41" fill="#cf1322">− 500.000</text>
+        <text x="318" y="53" fill="#684fd4">8.000.000</text>
+        <text x="428" y="53" fill="#389e0d">− 200.000</text>
+        <text x="538" y="58" fill="#389e0d">− 7.800.000</text>
+        <text x="648" y="238" fill="#d46b08">0</text>
+      </g>
+      <g font-size="11" fill="#4a4a55" text-anchor="middle">
+        <text x="98" y="270">List price</text><text x="208" y="270">Voucher</text><text x="318" y="270" font-weight="700">Card value</text>
+        <text x="428" y="270">Deposit</text><text x="538" y="270">Payment</text><text x="648" y="270" font-weight="700">Balance due</text>
+      </g>
+      <g font-size="10" fill="#8a8a96" text-anchor="middle">
+        <text x="98" y="285">Ombre + Korea Ink</text><text x="208" y="285">lower sale price</text><text x="318" y="285">= Sales</text>
+        <text x="428" y="285">applied automatically</text><text x="538" y="285">Take payment · Card</text><text x="648" y="285">fully paid</text>
+      </g>
+    </svg>
+    <figcaption>Figure 4 — Card value Rp 8.000.000; Collected 200.000 + 7.800.000 = 8.000.000; Balance due 0</figcaption>
+  </figure>
+
+  <div class="two">
+    <div>
+      <h3>Money rules</h3>
+      <ul class="small">
+        <li><b>The deposit is applied once.</b> It never exceeds the card value. If a card is cancelled, its deposit becomes available for another card.</li>
+        <li><b>Refunding a service</b> lowers the card value. The system suggests <i>price × unused sessions ÷ total sessions</i>; you can change it (up to the sale price).</li>
+        <li><b>Giving money back</b> to the customer = a payment with a <b>negative</b> amount.</li>
+        <li>Payments can't be edited. A wrong payment can only be deleted by an <b>Admin</b>.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>How reports read it</h3>
+      <table class="small">
+        <thead><tr><th>Figure</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><b>Sales</b></td><td>Σ card value, by the card's <b>sale date</b></td></tr>
+          <tr><td><b>Collected</b> (revenue)</td><td>Deposit applied + payments, by <b>payment date</b>. Refunds are subtracted.</td></tr>
+          <tr><td><b>Balance due</b></td><td>What customers still owe</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">Cancelled cards are not counted anywhere.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 4. CARD DETAILS ============================ -->
+<section class="page">
+  <h2>4. Card details: payments, refunds, sessions</h2>
+  <p>Open a card by clicking its number in <b>Sales Management</b> or any row on the <b>Treatment cards</b> page. Click the customer's name at the top to open the <b>customer profile (360°)</b>.</p>
+  <div class="split">
+    <figure>
+      <svg viewBox="0 0 300 560" role="img" aria-label="Card detail drawer.">
+        <rect x="0.5" y="0.5" width="299" height="559" rx="10" fill="#fff" stroke="#c9bff3" stroke-width="1.5"/>
+        <text x="16" y="28" font-size="14" font-weight="700">TLT00012</text>
+        <rect x="88" y="15" width="56" height="18" rx="4" fill="#e6f4ff" stroke="#91caff"/><text x="116" y="28" font-size="10" fill="#0958d9" text-anchor="middle">In use</text>
+        <text x="16" y="47" font-size="11" text-decoration="underline">Ayu Kartika</text>
+        <rect x="16" y="58" width="268" height="62" rx="7" fill="#fafafc" stroke="#e4e4e8"/>
+        <g font-size="10.5">
+          <text x="26" y="76" fill="#6b6b76">Card value</text><text x="274" y="76" text-anchor="end" font-weight="600">Rp 8.000.000</text>
+          <text x="26" y="93" fill="#6b6b76">Collected</text><text x="274" y="93" text-anchor="end" fill="#389e0d">Rp 3.200.000</text>
+          <text x="26" y="110" font-weight="600">Balance due</text><text x="274" y="110" text-anchor="end" fill="#d46b08" font-weight="600">Rp 4.800.000</text>
+        </g>
+        <text x="16" y="146" font-size="11.5" font-weight="700">Services</text>
+        <rect x="200" y="133" width="84" height="18" rx="4" fill="#fff" stroke="#d9d9de"/><text x="242" y="146" font-size="9.5" text-anchor="middle">+ Add service</text>
+        <g font-size="10.5">
+          <rect x="16" y="158" width="268" height="84" rx="7" fill="#fff" stroke="#e4e4e8"/>
+          <text x="26" y="176" font-weight="600">Ombre</text><text x="26" y="190" font-size="9.5" fill="#8a8a96">Alis · Rp 5.500.000</text>
+          <text x="196" y="184" font-size="9.5" fill="#6b6b76">Used 1/2</text>
+          <g transform="translate(240 174)" fill="none" stroke="#684fd4" stroke-width="1.4" stroke-linecap="round"><path d="M1 11l2-0.5 7-7-1.5-1.5-7 7z"/></g>
+          <g transform="translate(260 174)" fill="none" stroke="#cf1322" stroke-width="1.4" stroke-linecap="round"><path d="M2 4a5 5 0 1 1 0 4"/><path d="M1 1v3h3"/></g>
+          <line x1="17" y1="200" x2="283" y2="200" stroke="#eeeef1"/>
+          <text x="26" y="218" font-weight="600">Korea Ink</text><text x="26" y="232" font-size="9.5" fill="#8a8a96">Sulam Ink · Rp 2.500.000 · no sessions</text>
+        </g>
+        <text x="16" y="270" font-size="11.5" font-weight="700">Payments</text>
+        <rect x="192" y="257" width="92" height="18" rx="4" fill="#fff" stroke="#d9d9de"/><text x="238" y="270" font-size="9.5" text-anchor="middle">Take payment</text>
+        <g font-size="10">
+          <rect x="16" y="282" width="268" height="66" rx="7" fill="#fff" stroke="#e4e4e8"/>
+          <text x="26" y="300" fill="#6b6b76">Deposit applied</text><text x="274" y="300" text-anchor="end" fill="#389e0d">Rp 200.000</text>
+          <line x1="17" y1="307" x2="283" y2="307" stroke="#eeeef1"/>
+          <text x="26" y="323">23/11/2026 · Card · Sari</text><text x="274" y="323" text-anchor="end" fill="#389e0d">Rp 3.000.000</text>
+          <rect x="26" y="329" width="14" height="14" rx="2" fill="#d9d2f7"/><rect x="44" y="329" width="14" height="14" rx="2" fill="#d9d2f7"/>
+        </g>
+        <text x="16" y="376" font-size="11.5" font-weight="700">Tour journey</text>
+        <rect x="214" y="363" width="70" height="18" rx="4" fill="#684fd4"/><text x="249" y="376" font-size="9.5" fill="#fff" text-anchor="middle">New tour</text>
+        <line x1="24" y1="396" x2="24" y2="456" stroke="#d9d2f7" stroke-width="2"/>
+        <g font-size="10">
+          <circle cx="24" cy="398" r="5" fill="#684fd4"/>
+          <text x="36" y="402" font-weight="600">23/11/2026</text>
+          <rect x="210" y="390" width="74" height="16" rx="3" fill="#f6ffed" stroke="#b7eb8f"/><text x="247" y="402" font-size="9" fill="#389e0d" text-anchor="middle">Confirmed</text>
+          <text x="36" y="416" fill="#4a4a55">Ombre · New · Master Lina</text>
+          <circle cx="24" cy="440" r="5" fill="#684fd4"/>
+          <text x="36" y="444" font-weight="600">07/01/2027</text>
+          <rect x="210" y="432" width="74" height="16" rx="3" fill="#fffbe6" stroke="#ffe58f"/><text x="247" y="444" font-size="9" fill="#d48806" text-anchor="middle">Waiting</text>
+          <text x="36" y="458" fill="#4a4a55">Ombre · Retouch 1 · Waiting</text>
+        </g>
+        <text x="16" y="490" font-size="11.5" font-weight="700">Activity log</text>
+        <rect x="236" y="477" width="48" height="18" rx="4" fill="#fff" stroke="#d9d9de"/><text x="260" y="490" font-size="9.5" text-anchor="middle">Show</text>
+        <line x1="1" y1="512" x2="299" y2="512" stroke="#eeeef1"/>
+        <rect x="16" y="524" width="72" height="22" rx="5" fill="#fff" stroke="#ff7875"/><text x="52" y="539" font-size="10" fill="#cf1322" text-anchor="middle">Cancel card</text>
+        <rect x="170" y="524" width="114" height="22" rx="5" fill="#fff" stroke="#d9d9de"/><text x="227" y="539" font-size="10" text-anchor="middle">Print card (PDF)</text>
+      </svg>
+      <figcaption>Figure 5 — Card detail drawer (sample data)</figcaption>
+    </figure>
+    <div>
+      <h3 style="margin-top:0">Services</h3>
+      <ul class="small">
+        <li><b>Used x/y sessions</b> = tours created ÷ sessions bought. Ink, Grandmaster fees and products do not create tours, so they show no sessions.</li>
+        <li><b>Add service</b> — opens the same price-list drawer as selling; the new services are added to this card.</li>
+        <li><b>Edit sessions</b> (pencil) — change the number of sessions. It can't go below the sessions already used.</li>
+        <li><b>Refund service</b> (arrow) — enter the refund amount (suggested automatically) and a reason. The service is struck through and can't get new tours.</li>
+      </ul>
+      <h3>Payments</h3>
+      <ol class="steps small">
+        <li>Click <span class="ui">Take payment</span>.</li>
+        <li>Enter the <b>Amount (IDR)</b>. Use a negative amount to give money back.</li>
+        <li>Choose <b>Cash</b>, <b>Bank transfer</b> or <b>Card</b>, add a note.</li>
+        <li>Add <b>Photos (bill / transfer)</b> — always attach proof.</li>
+        <li>Click <span class="ui">Take payment</span> again to save. Date and staff name are recorded automatically.</li>
+      </ol>
+      <h3>Tour journey &amp; activity log</h3>
+      <ul class="small">
+        <li><b>Tour journey</b> lists every tour of the card by date with type, Master and status. Click a tour to open it (photos included).</li>
+        <li><b>Activity log → Show</b>: who did what and when — card created, services added, sessions changed, refunds, payments, tours created / changed / confirmed.</li>
+      </ul>
+      <div class="note warn small">
+        <p><b>Cancel card</b> is for Admin only, and only when the card has no tours and the payments add up to 0 (refund first with a negative payment). A cancelled card can't be restored.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 5. LIST PAGE ============================ -->
+<section class="page">
+  <h2>5. The Treatment cards page</h2>
+  <p>Menu <b>Treatment cards</b> lists every card sold. Click a row to open the card; click the customer's name to open their profile.</p>
+  <figure>
+    <svg viewBox="0 0 720 300" role="img" aria-label="Treatment cards page with summary figures, filters and table.">
+      <rect x="0.5" y="0.5" width="719" height="299" rx="10" fill="#fff" stroke="#e4e4e8"/>
+      <text x="16" y="28" font-size="14" font-weight="700">Treatment cards</text>
+      <g font-size="10.5">
+        <rect x="16" y="42" width="166" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/><text x="26" y="59" fill="#6b6b76">Cards</text><text x="26" y="82" font-size="16" font-weight="700">12</text>
+        <rect x="190" y="42" width="166" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/><text x="200" y="59" fill="#6b6b76">Sales</text><text x="200" y="82" font-size="16" font-weight="700">Rp 96,4 jt</text>
+        <rect x="364" y="42" width="166" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/><text x="374" y="59" fill="#6b6b76">Collected</text><text x="374" y="82" font-size="16" font-weight="700">Rp 81,2 jt</text>
+        <rect x="538" y="42" width="166" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/><text x="548" y="59" fill="#6b6b76">Balance due</text><text x="548" y="82" font-size="16" font-weight="700" fill="#d46b08">Rp 15,2 jt</text>
+      </g>
+      <g font-size="10" fill="#8a8a96">
+        <rect x="16" y="104" width="170" height="24" rx="5" fill="#fff" stroke="#d9d9de"/><text x="26" y="120">Search card, name, phone</text>
+        <rect x="194" y="104" width="120" height="24" rx="5" fill="#fff" stroke="#d9d9de"/><text x="204" y="120">Any sale date</text>
+        <rect x="322" y="104" width="110" height="24" rx="5" fill="#fff" stroke="#d9d9de"/><text x="332" y="120">All statuses</text>
+        <rect x="440" y="104" width="110" height="24" rx="5" fill="#fff" stroke="#d9d9de"/><text x="450" y="120">All creators</text>
+      </g>
+      <rect x="16" y="140" width="688" height="24" fill="#f7f7f9"/>
+      <g font-size="9" font-weight="600" fill="#6b6b76" letter-spacing=".3">
+        <text x="24" y="156">SOLD ON</text><text x="92" y="156">CARD</text><text x="160" y="156">CUSTOMER</text><text x="270" y="156">SERVICES</text>
+        <text x="460" y="156">CARD VALUE</text><text x="540" y="156">BALANCE DUE</text><text x="620" y="156">STATUS</text>
+      </g>
+      <g font-size="10.5">
+        <text x="24" y="184">23/11/2026</text><text x="92" y="184" font-weight="600" fill="#684fd4">TLT00012</text>
+        <text x="160" y="184" font-weight="600">Ayu Kartika</text><text x="270" y="184">Ombre <tspan fill="#8a8a96">1/2</tspan>, Korea Ink</text>
+        <text x="460" y="184">Rp 8.000.000</text><text x="540" y="184" fill="#d46b08">Rp 4.800.000</text>
+        <rect x="620" y="172" width="50" height="17" rx="3" fill="#e6f4ff" stroke="#91caff"/><text x="645" y="184" font-size="9.5" fill="#0958d9" text-anchor="middle">In use</text>
+        <line x1="16" y1="196" x2="704" y2="196" stroke="#eeeef1"/>
+        <text x="24" y="216">21/11/2026</text><text x="92" y="216" font-weight="600" fill="#684fd4">TLT00010</text>
+        <text x="160" y="216" font-weight="600">Maya Sari</text><text x="270" y="216">Laser (full treatment) <tspan fill="#8a8a96">5/5</tspan></text>
+        <text x="460" y="216">Rp 4.000.000</text><text x="540" y="216" fill="#a0a0aa">—</text>
+        <rect x="620" y="204" width="66" height="17" rx="3" fill="#f6ffed" stroke="#b7eb8f"/><text x="653" y="216" font-size="9.5" fill="#389e0d" text-anchor="middle">Completed</text>
+        <line x1="16" y1="228" x2="704" y2="228" stroke="#eeeef1"/>
+        <text x="24" y="248">20/11/2026</text><text x="92" y="248" font-weight="600" fill="#684fd4">TLT00009</text>
+        <text x="160" y="248" font-weight="600">Sinta Dewi</text><text x="270" y="248" text-decoration="line-through" fill="#a0a0aa">Nano Lip 0/1</text>
+        <text x="460" y="248">Rp 0</text><text x="540" y="248" fill="#a0a0aa">—</text>
+        <rect x="620" y="236" width="62" height="17" rx="3" fill="#fff1f0" stroke="#ffa39e"/><text x="651" y="248" font-size="9.5" fill="#cf1322" text-anchor="middle">Cancelled</text>
+      </g>
+      <text x="16" y="284" font-size="10" fill="#8a8a96">Columns also include Collected and Created by. Services show "used/total" sessions; refunded services are struck through.</text>
+    </svg>
+    <figcaption>Figure 6 — Summary figures, filters and the card list (sample data)</figcaption>
+  </figure>
+  <div class="two">
+    <div>
+      <h3>Card status</h3>
+      <table class="small">
+        <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><b>In use</b></td><td>Some sessions are still left</td></tr>
+          <tr><td><b>Completed</b></td><td>All sessions of all (non-refunded) services used</td></tr>
+          <tr><td><b>Cancelled</b></td><td>Cancelled by Admin — not counted in sales</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Useful filters</h3>
+      <ul class="small">
+        <li><b>Sale date</b> — the 4 figures at the top follow the filter, e.g. this month's sales.</li>
+        <li><b>Status → Balance due</b> — customers who still owe money.</li>
+        <li><b>Created by</b> — cards sold by one consultant.</li>
+        <li>Cancelled cards only appear when you filter <b>Cancelled</b>.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 6. TOURS ============================ -->
+<section class="page">
+  <h2>6. Creating tours from a card &amp; commission</h2>
+  <p>A tour is one treatment session done by a Master. Tours can <b>only</b> be created from a card — the customer, service and price come from the card, so nothing has to be typed twice.</p>
+  <div class="split">
+    <figure>
+      <svg viewBox="0 0 312 300" role="img" aria-label="New tour dialog.">
+        <rect x="0.5" y="0.5" width="311" height="299" rx="10" fill="#fff" stroke="#e4e4e8"/>
+        <text x="16" y="28" font-size="13" font-weight="700">New tour · card TLT00012</text>
+        <text x="16" y="54" font-size="10.5" fill="#6b6b76">Date</text>
+        <rect x="16" y="60" width="280" height="24" rx="5" fill="#fff" stroke="#d9d9de"/><text x="26" y="76" font-size="11">07/01/2027</text>
+        <g font-size="11">
+          <rect x="16" y="96" width="280" height="50" rx="7" fill="#f4f1fd" stroke="#c9bff3"/>
+          <rect x="26" y="114" width="13" height="13" rx="2.5" fill="#684fd4"/><path d="M29 120.8l2.4 2.4L36 117.5" stroke="#fff" stroke-width="1.6" fill="none"/>
+          <text x="48" y="117" font-weight="600">Ombre</text><text x="48" y="134" font-size="9.5" fill="#8a8a96">Used 1/2 sessions</text>
+          <rect x="206" y="110" width="80" height="22" rx="4" fill="#fff" stroke="#684fd4"/><text x="214" y="125">Retouch 1</text>
+          <rect x="16" y="154" width="280" height="50" rx="7" fill="#fff" stroke="#e4e4e8"/>
+          <rect x="26" y="172" width="13" height="13" rx="2.5" fill="#fff" stroke="#c4c4cc"/>
+          <text x="48" y="175" font-weight="600" fill="#8a8a96">Laser (full treatment)</text><text x="48" y="192" font-size="9.5" fill="#a0a0aa">Used 2/5 sessions</text>
+          <rect x="206" y="168" width="80" height="22" rx="4" fill="#f5f5f7" stroke="#e4e4e8"/><text x="214" y="183" fill="#a0a0aa">Laser 3</text>
+        </g>
+        <text x="16" y="226" font-size="10.5" fill="#6b6b76">Note</text>
+        <rect x="16" y="232" width="280" height="26" rx="5" fill="#fff" stroke="#d9d9de"/>
+        <rect x="216" y="268" width="80" height="22" rx="5" fill="#684fd4"/><text x="256" y="283" font-size="11" fill="#fff" text-anchor="middle" font-weight="600">New tour</text>
+        <rect x="150" y="268" width="58" height="22" rx="5" fill="#fff" stroke="#d9d9de"/><text x="179" y="283" font-size="11" text-anchor="middle">Back</text>
+      </svg>
+      <figcaption>Figure 7 — One tour is created per ticked service</figcaption>
+    </figure>
+    <div>
+      <h3 style="margin-top:0">Steps</h3>
+      <ol class="steps small">
+        <li>Open the card → <span class="ui">New tour</span>.</li>
+        <li>Pick the <b>Date</b> (today by default).</li>
+        <li>Tick the services done in this visit. Services due for a check / retouch are ticked for you.</li>
+        <li>Check the <b>Type</b> (suggested automatically) and add a note if needed.</li>
+        <li>Click <span class="ui">New tour</span>. The tours appear in <b>Tours → Waiting</b> for the Masters.</li>
+      </ol>
+      <h3>Tour types</h3>
+      <table class="small">
+        <thead><tr><th>Type</th><th>Use for</th></tr></thead>
+        <tbody>
+          <tr><td><b>New</b></td><td>First full treatment of the service</td></tr>
+          <tr><td><b>Retouch n</b></td><td>Touch-up after a New treatment</td></tr>
+          <tr><td><b>Laser n</b></td><td>Removal of old brow / eyeliner work</td></tr>
+          <tr><td><b>Plasma n</b></td><td>Removal of old lip colour</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">The number (Retouch 1, 2…) is counted automatically. When all sessions are used, only an Admin can add another tour.</p>
+    </div>
+  </div>
+
+  <figure style="margin-top:1mm">
+    <svg viewBox="0 0 720 60" role="img" aria-label="Tour status: Waiting, Unconfirmed, Confirmed.">
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a0a0aa"/></marker></defs>
+      <g font-size="11.5" text-anchor="middle">
+        <rect x="60" y="6" width="140" height="28" rx="6" fill="#fffbe6" stroke="#ffe58f"/><text x="130" y="24" fill="#d48806" font-weight="600">Waiting</text>
+        <rect x="290" y="6" width="140" height="28" rx="6" fill="#e6f4ff" stroke="#91caff"/><text x="360" y="24" fill="#0958d9" font-weight="600">Unconfirmed</text>
+        <rect x="520" y="6" width="140" height="28" rx="6" fill="#f6ffed" stroke="#b7eb8f"/><text x="590" y="24" fill="#389e0d" font-weight="600">Confirmed</text>
+        <text x="130" y="52" font-size="10" fill="#8a8a96">created from the card</text>
+        <text x="360" y="52" font-size="10" fill="#8a8a96">a Master clicked Take tour</text>
+        <text x="590" y="52" font-size="10" fill="#8a8a96">Admin confirmed · locked</text>
+      </g>
+      <g stroke="#a0a0aa" stroke-width="1.6" marker-end="url(#a3)"><path d="M204 20 L284 20"/><path d="M434 20 L514 20"/></g>
+    </svg>
+  </figure>
+
+  <h3>Commission</h3>
+  <div class="two">
+    <table class="small">
+      <thead><tr><th colspan="2">Master commission (per tour)</th></tr></thead>
+      <tbody>
+        <tr><td>Tour type <b>New</b></td><td><b>7%</b> of the service price on the card</td></tr>
+        <tr><td>Tour type <b>Retouch</b> (any number)</td><td><b>3%</b></td></tr>
+        <tr><td><b>Laser</b> / <b>Plasma</b>, ink</td><td>0%</td></tr>
+      </tbody>
+    </table>
+    <table class="small">
+      <thead><tr><th colspan="2">Sales commission (Reports)</th></tr></thead>
+      <tbody>
+        <tr><td>Rate</td><td><b>5%</b> of money collected</td></tr>
+        <tr><td>Counted for</td><td>The staff member who <b>created the card</b></td></tr>
+        <tr><td>Includes</td><td>Deposit applied + payments, by payment date; refunds are subtracted</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">The <b>Bill</b> shown on a tour is the service's sale price on the card. It is read-only — money is always handled on the card, never on the tour.</p>
+</section>
+
+<!-- ============================ 7. FOLLOW-UPS ============================ -->
+<section class="page">
+  <h2>7. Treatment follow-ups</h2>
+  <p>Menu <b>Customers → Treatment follow-ups</b> is the Telesales call list. The system works it out from each card's tours — nobody has to create reminders.</p>
+  <figure>
+    <svg viewBox="0 0 720 150" role="img" aria-label="Follow-up timeline: laser or plasma triggers a check after 20 days; new or retouch triggers a retouch after 45 days if sessions remain.">
+      <defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#684fd4"/></marker></defs>
+      <g font-size="11.5">
+        <rect x="0" y="8" width="720" height="62" rx="9" fill="#f6f4fd"/>
+        <rect x="16" y="22" width="120" height="34" rx="7" fill="#fff" stroke="#d9d2f7"/><text x="76" y="44" text-anchor="middle" font-weight="600">Laser / Plasma</text>
+        <path d="M140 39 L300 39" stroke="#684fd4" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="220" y="32" text-anchor="middle" font-size="11" fill="#684fd4" font-weight="700">+ 20 days</text>
+        <rect x="306" y="22" width="150" height="34" rx="7" fill="#684fd4"/><text x="381" y="44" text-anchor="middle" font-weight="700" fill="#fff">Check Laser</text>
+        <text x="474" y="36" font-size="10.5" fill="#4a4a55">Is the area ready for a New treatment?</text>
+        <text x="474" y="51" font-size="10" fill="#8a8a96">next tour Laser again = not yet · New = OK</text>
+
+        <rect x="0" y="80" width="720" height="62" rx="9" fill="#f6ffed"/>
+        <rect x="16" y="94" width="120" height="34" rx="7" fill="#fff" stroke="#b7eb8f"/><text x="76" y="116" text-anchor="middle" font-weight="600">New / Retouch</text>
+        <path d="M140 111 L300 111" stroke="#389e0d" stroke-width="2"/>
+        <path d="M296 106 L304 111 L296 116" fill="#389e0d"/>
+        <text x="220" y="104" text-anchor="middle" font-size="11" fill="#389e0d" font-weight="700">+ 45 days</text>
+        <rect x="306" y="94" width="150" height="34" rx="7" fill="#389e0d"/><text x="381" y="116" text-anchor="middle" font-weight="700" fill="#fff">Retouch n</text>
+        <text x="474" y="108" font-size="10.5" fill="#4a4a55">Only if the service still has sessions left</text>
+        <text x="474" y="123" font-size="10" fill="#8a8a96">all sessions used = treatment finished, no call</text>
+      </g>
+    </svg>
+    <figcaption>Figure 8 — When a customer appears on the follow-up list</figcaption>
+  </figure>
+  <div class="two">
+    <div>
+      <h3>Reading the list</h3>
+      <table class="small">
+        <thead><tr><th>Column</th><th>Shows</th></tr></thead>
+        <tbody>
+          <tr><td><b>Due</b></td><td>Due date + tag: <span style="color:#cf1322">n days overdue</span>, <span style="color:#d46b08">Today</span>, n days left</td></tr>
+          <tr><td><b>Task</b></td><td>Check Laser / Check Plasma, or Retouch n. "Booked …" if an appointment is already made</td></tr>
+          <tr><td><b>Last tour</b></td><td>Date and type of the last tour</td></tr>
+          <tr><td><b>Telesales</b></td><td>The Telesales in charge of the customer, or Unassigned</td></tr>
+          <tr><td><b>Contact</b></td><td>Call · SMAX chat (or WhatsApp)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Daily routine for Telesales</h3>
+      <ol class="steps small">
+        <li>Open <b>Treatment follow-ups</b>. The list shows <b>your</b> customers and the range <b>To call</b> (overdue + today).</li>
+        <li>Contact each customer with <b>Call</b> or <b>SMAX chat / WhatsApp</b>.</li>
+        <li>When the customer agrees, create the appointment as usual. The row moves to <b>Booked</b>.</li>
+        <li>Use <b>Next 7 days</b> to plan ahead, <b>All</b> to see everything.</li>
+      </ol>
+      <div class="note small">
+        <p>The list contains no prices or payments. Click a customer's name to open the profile and see their history.</p>
+      </div>
+    </div>
+  </div>
+  <div class="note ok small">
+    <p><b>Tip for Sales:</b> if a laser check is OK earlier than planned and the customer needs no more laser, reduce the laser sessions to the number already used (<b>Edit sessions</b>). The check then disappears from the list.</p>
+  </div>
+</section>
+
+<!-- ============================ 8. PRINT ============================ -->
+<section class="page">
+  <h2>8. Printing the card for the customer to sign</h2>
+  <div class="split">
+    <figure>
+      <svg viewBox="0 0 300 424" role="img" aria-label="A4 printed treatment card.">
+        <rect x="0.5" y="0.5" width="299" height="423" rx="3" fill="#fff" stroke="#d9d9de"/>
+        <circle cx="34" cy="38" r="17" fill="#4b2669"/><text x="34" y="42" font-size="9" fill="#c8a640" text-anchor="middle" font-family="Georgia, serif">Lavian</text>
+        <text x="58" y="36" font-size="13" font-weight="600" fill="#4b2669" letter-spacing="2.5" font-family="Georgia, serif">LAVIAN</text>
+        <text x="58" y="47" font-size="5.5" fill="#b08d2e" letter-spacing="2.2">BEAUTY CENTER</text>
+        <text x="284" y="32" font-size="11" font-weight="600" fill="#4b2669" text-anchor="end" letter-spacing="1" font-family="Georgia, serif">TREATMENT CARD</text>
+        <text x="284" y="44" font-size="6.5" fill="#6b5d7a" text-anchor="end">Card No. <tspan font-weight="700" fill="#4b2669">TLT00012</tspan></text>
+        <text x="284" y="53" font-size="6.5" fill="#6b5d7a" text-anchor="end">Date 23 Nov 2026</text>
+        <line x1="16" y1="62" x2="284" y2="62" stroke="#b08d2e" stroke-width="1.2"/>
+        <rect x="16" y="70" width="268" height="44" rx="3" fill="#f5f1fa"/>
+        <g font-size="5" fill="#6b5d7a" letter-spacing=".4"><text x="24" y="80">CUSTOMER NAME</text><text x="156" y="80">PHONE</text><text x="24" y="99">ADDRESS</text><text x="156" y="99">BEAUTY CONSULTANT</text></g>
+        <g font-size="7" font-weight="600" fill="#1d1626"><text x="24" y="89">Ayu Kartika</text><text x="156" y="89">0813 •••• 7702</text><text x="24" y="108">Denpasar</text><text x="156" y="108">Sari</text></g>
+        <rect x="16" y="122" width="268" height="14" fill="#4b2669"/>
+        <g font-size="5.8" font-weight="600" fill="#fff"><text x="22" y="131">No.</text><text x="40" y="131">Category</text><text x="96" y="131">Service</text><text x="196" y="131">Sessions</text><text x="278" y="131" text-anchor="end">Price (IDR)</text></g>
+        <g font-size="6.4" fill="#1d1626">
+          <text x="24" y="148">1</text><text x="40" y="148">Alis</text><text x="96" y="148">Ombre</text><text x="204" y="148">1 / 2</text><text x="278" y="148" text-anchor="end">5.500.000</text>
+          <line x1="16" y1="153" x2="284" y2="153" stroke="#d9d0e4" stroke-width=".6"/>
+          <text x="24" y="164">2</text><text x="40" y="164">Sulam Ink</text><text x="96" y="164">Korea Ink</text><text x="204" y="164">—</text><text x="278" y="164" text-anchor="end">2.500.000</text>
+          <line x1="16" y1="169" x2="284" y2="169" stroke="#d9d0e4" stroke-width=".6"/>
+        </g>
+        <text x="16" y="188" font-size="5.8" font-weight="700" fill="#4b2669" letter-spacing=".5">PAYMENTS</text>
+        <rect x="16" y="192" width="132" height="11" fill="#f5f1fa"/>
+        <g font-size="5.4"><text x="20" y="199" fill="#4b2669" font-weight="600">Date</text><text x="54" y="199" fill="#4b2669" font-weight="600">Method</text><text x="144" y="199" fill="#4b2669" font-weight="600" text-anchor="end">Amount</text>
+          <text x="20" y="211">23/11/2026</text><text x="54" y="211">Card</text><text x="144" y="211" text-anchor="end">3.000.000</text></g>
+        <g font-size="6.2">
+          <text x="166" y="190" fill="#4a3f57">Subtotal</text><text x="280" y="190" text-anchor="end">8.000.000</text>
+          <line x1="164" y1="196" x2="284" y2="196" stroke="#d9d0e4" stroke-width=".6"/>
+          <text x="166" y="205" font-weight="700">Total payment</text><text x="280" y="205" text-anchor="end" font-weight="700">8.000.000</text>
+          <text x="166" y="217" fill="#4a3f57">Deposit (DP)</text><text x="280" y="217" text-anchor="end">200.000</text>
+          <text x="166" y="229" fill="#4a3f57">Paid amount</text><text x="280" y="229" text-anchor="end">3.000.000</text>
+          <rect x="164" y="234" width="120" height="14" fill="#4b2669"/>
+          <text x="168" y="244" font-weight="700" fill="#fff">Balance due</text><text x="280" y="244" text-anchor="end" font-weight="700" fill="#fff">4.800.000</text>
+        </g>
+        <text x="16" y="278" font-size="6" font-style="italic" fill="#4a3f57">I confirm the services, sessions and prices listed above.</text>
+        <g font-size="6.2" text-anchor="middle">
+          <line x1="28" y1="330" x2="130" y2="330" stroke="#8a8094" stroke-width=".7"/>
+          <text x="79" y="340" font-weight="600" fill="#4b2669">Customer signature</text><text x="79" y="349" fill="#6b5d7a" font-size="5.6">Ayu Kartika</text>
+          <line x1="170" y1="330" x2="272" y2="330" stroke="#8a8094" stroke-width=".7"/>
+          <text x="221" y="340" font-weight="600" fill="#4b2669">Beauty consultant</text><text x="221" y="349" fill="#6b5d7a" font-size="5.6">Sari</text>
+        </g>
+        <line x1="16" y1="398" x2="284" y2="398" stroke="#d9d0e4" stroke-width=".6"/>
+        <text x="150" y="410" font-size="5.4" fill="#8a8094" text-anchor="middle">Lavian Beauty Center · TLT00012 · Printed 23/11/2026 10:30</text>
+      </svg>
+      <figcaption>Figure 9 — The printed A4 card (reduced)</figcaption>
+    </figure>
+    <div>
+      <ol class="steps">
+        <li>Open the card and check that services, sessions and payments are correct.</li>
+        <li>Click <span class="ui">Print card (PDF)</span> at the bottom of the drawer.</li>
+        <li>In the print window choose the printer — or <b>Save as PDF</b> to send the file to the customer via WhatsApp.</li>
+        <li>Ask the customer to sign; the Beauty consultant signs next to it.</li>
+      </ol>
+      <h3>What is on the printout</h3>
+      <ul class="small">
+        <li>Card number, date, customer name, phone, address and <b>Beauty consultant</b> (the staff member who created the card).</li>
+        <li>Services with category, sessions used / total and price. Refunded services are struck through with the refund amount.</li>
+        <li>All payments (date, method, amount) and the card note.</li>
+        <li>Totals: <b>Subtotal · Total payment · Deposit (DP) · Paid amount · Balance due</b> — the same lines as the paper price sheet.</li>
+      </ul>
+      <div class="note small">
+        <p>Print again after each new payment or added service so the customer always has the latest version.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 9. PERMISSIONS & FAQ ============================ -->
+<section class="page">
+  <h2>9. Permissions, common messages &amp; FAQ</h2>
+  <table class="small">
+    <thead><tr><th style="width:28mm">Department</th><th>What you can do with treatment cards</th></tr></thead>
+    <tbody>
+      <tr><td><b>Sales</b></td><td>View cards, sell cards, add services, edit sessions, refund services, take payments, create tours from a card</td></tr>
+      <tr><td><b>Master</b></td><td>No access to cards. Works in <b>Tours</b>: take tours, upload photos; sees the service and Bill on each tour</td></tr>
+      <tr><td><b>Telesales</b></td><td><b>Treatment follow-ups</b> list only (no money)</td></tr>
+      <tr><td><b>Admin</b></td><td>Everything above, plus: cancel a card, delete a wrong payment, add tours beyond the card's sessions, confirm tours</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">Admins adjust department permissions in <b>Users → Permissions</b> (section "Treatment cards").</p>
+
+  <h3>Messages you may see</h3>
+  <table class="small">
+    <thead><tr><th style="width:72mm">Message</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td>Customer hasn't arrived yet</td><td>Set the appointment status to Arrived / In progress / Done first.</td></tr>
+      <tr><td>This appointment already has a card — add services to it instead.</td><td>Open the existing card → <b>Add service</b>.</td></tr>
+      <tr><td>Pick at least 1 service</td><td>Tick at least one service in the price list.</td></tr>
+      <tr><td>Refund can't exceed the sale price.</td><td>Lower the refund amount.</td></tr>
+      <tr><td>Sessions can't be fewer than those already done (n).</td><td>Sessions already used can't be removed.</td></tr>
+      <tr><td>All sessions are used — only an admin can add more tours.</td><td>Sell more sessions (<b>Edit sessions</b> / <b>Add service</b>) or ask an Admin.</td></tr>
+      <tr><td>This card has payments — record a refund (negative amount) before cancelling.</td><td>Admin: take a negative payment so payments total 0, then cancel.</td></tr>
+      <tr><td>The card has tours — delete them before cancelling.</td><td>Admin: delete the card's tours first, or refund services instead of cancelling.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>FAQ</h3>
+  <div class="two small">
+    <div>
+      <p><b>The customer wants a discount.</b><br>Type a lower sale price when selling. The discount shows as "Discount / voucher".</p>
+      <p><b>The customer pays in instalments.</b><br>Take one payment each time. Balance due updates automatically.</p>
+      <p><b>I entered a payment by mistake.</b><br>You can't edit it. Ask an Admin to delete it, then enter the correct one.</p>
+    </div>
+    <div>
+      <p><b>The customer stops the treatment.</b><br>Refund the service (amount suggested from unused sessions), then take a negative payment for the money returned.</p>
+      <p><b>The customer buys another service on a later visit.</b><br>Open the same card → <b>Add service</b>, and take the payment.</p>
+      <p><b>Who changed this card?</b><br>Open the card → <b>Activity log → Show</b>.</p>
+    </div>
+  </div>
+  <p class="small muted" style="margin-top:3mm">Names and figures in this guide are examples only.</p>
+</section>
+
+</body>
+</html>
