@@ -28,7 +28,7 @@ export default async function TourPage({ searchParams }: { searchParams: Promise
     monthQuery,
     // Tour chờ nhận mọi ngày — chỉ KTV cần (người khác thấy trong bảng tháng).
     isTechnician
-      ? db.from("tours").select(TOUR_FIELDS).is("deleted_at", null).is("technician_id", null)
+      ? db.from("tours").select(TOUR_FIELDS).is("deleted_at", null).is("technician_id", null).eq("planned", false)
         .order("tour_date").order("created_at").limit(200)
       : null,
     db.from("services").select("*").order("sort_order"),
@@ -44,6 +44,7 @@ export default async function TourPage({ searchParams }: { searchParams: Promise
     me={{
       id: profile.id, isAdmin, isTechnician,
       canEdit: profile.permissions.includes("tour.edit"), canDelete: profile.permissions.includes("tour.delete"),
+      canPlan: profile.permissions.includes("tour.edit") || profile.permissions.includes("cards.edit"),
     }}
     month={month.format("YYYY-MM")}
     tours={(tours.data ?? []) as unknown as Tour[]}

@@ -35,12 +35,12 @@ export type CardMe = { id: string; isAdmin: boolean; canEdit: boolean; canCancel
 
 const CARD_DRAWER_WIDTH = 600;
 
-/** Số tour (buổi đã tạo, chưa xoá) theo dòng dịch vụ của thẻ. */
-export const usageOf = (tours: Pick<Tour, "card_item_id">[]) => (itemId: string) =>
-  tours.filter((t) => t.card_item_id === itemId).length;
+/** Số tour (buổi đã tạo, chưa xoá) theo dòng dịch vụ của thẻ — bỏ tour dự kiến (chưa chốt lịch). */
+export const usageOf = (tours: Pick<Tour, "card_item_id" | "planned">[]) => (itemId: string) =>
+  tours.filter((t) => t.card_item_id === itemId && !t.planned).length;
 
 export function CardStatusTag({ card, tours }: {
-  card: { cancelled_at: string | null; items: Parameters<typeof cardDone>[0] }; tours: Pick<Tour, "card_item_id">[];
+  card: { cancelled_at: string | null; items: Parameters<typeof cardDone>[0] }; tours: Pick<Tour, "card_item_id" | "planned">[];
 }) {
   const t = useTranslations("cards");
   const status = card.cancelled_at ? "cancelled" : cardDone(card.items, usageOf(tours)) ? "done" : "active";
@@ -86,6 +86,11 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
   const journey = [...tours].sort((a, b) => a.tour_date.localeCompare(b.tour_date));
   const openTour = tours.find((x) => x.id === tourId);
   const consultant = staff.find((s) => s.id === card.created_by)?.user_name ?? "";
+  // Laser mày đang làm dở: đã có tour Laser, DV mày chưa Làm mới → hỏi kết quả (sạch / còn mực) để lộ trình tính lại.
+  const browNew = tours.some((x) => !x.planned && x.service_detail === "new"
+    && serviceOf(itemOf(x.card_item_id)?.service_id ?? "")?.group_id === "alis");
+  const laserPending = (item: CardItem) => !item.refunded_at && !browNew && used(item.id) > 0
+    && serviceOf(item.service_id)?.group_id === "laser" && card.items.some((i) => !i.refunded_at && serviceOf(i.service_id)?.group_id === "alis");
 
   return <><FormDrawer open onClose={onClose} width={CARD_DRAWER_WIDTH}
     footerExtra={<>
@@ -123,6 +128,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
             <div className="min-w-0">
               <div className={item.refunded_at ? "font-medium line-through opacity-60" : "font-medium"}>{s?.name ?? "—"}</div>
               <div className="text-xs text-muted-foreground tabular-nums">{s ? `${groups.name(s.group_id)} · ` : ""}{formatRupiah(item.price)}</div>
+              {canEdit && laserPending(item) ? <LaserResult item={item} used={n} /> : null}
               {item.refunded_at ? <div className="mt-1 text-xs text-destructive">
                 {t("refundedLine", { amount: formatRupiah(item.refund_amount ?? 0), date: dayjs(item.refunded_at).format("DD/MM/YYYY") })}
                 {item.refund_note ? ` · ${item.refund_note}` : ""}
@@ -177,8 +183,9 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
       {journey.length ? <ol className="relative ms-2 border-s border-border">
         {journey.map((tour) => {
           const item = itemOf(tour.card_item_id);
-          return <li key={tour.id} className="ms-4 pb-3">
-            <span className="absolute -start-1.5 mt-2 size-3 rounded-full border-2 border-background bg-primary" />
+          return <li key={tour.id} className={tour.planned ? "ms-4 pb-3 opacity-70" : "ms-4 pb-3"}>
+            <span className={`absolute -start-1.5 mt-2 size-3 rounded-full border-2 ${tour.planned
+              ? "border-dashed border-muted-foreground bg-background" : "border-background bg-primary"}`} />
             <button type="button" onClick={() => setTourId(tour.id)}
               className="w-full cursor-pointer rounded-md p-2 text-left hover:bg-muted">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -187,7 +194,8 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
               </div>
               <div className="text-sm">{serviceOf(item?.service_id ?? tour.service_id)?.name ?? "—"}
                 {tour.service_detail ? <span className="text-muted-foreground"> · {kindText(tt, tour)}</span> : null}</div>
-              <div className="text-xs text-muted-foreground">{tour.technician_id ? staffName(staff, tour.technician_id) : tt("status_pending")}</div>
+              <div className="text-xs text-muted-foreground">{tour.planned ? tt("plannedShort")
+                : tour.technician_id ? staffName(staff, tour.technician_id) : tt("status_pending")}</div>
             </button>
           </li>;
         })}
@@ -290,6 +298,25 @@ function SessionsButton({ item, used }: { item: CardItem; used: number }) {
   </Popover>;
 }
 
+/**
+ * Kết quả laser (KTV báo sau buổi laser): Sạch → số buổi Laser = số đã làm (lên Làm mới luôn);
+ * Còn mực → +1 buổi Laser. Lộ trình dự kiến tự tính lại theo số buổi (server sync).
+ */
+function LaserResult({ item, used }: { item: CardItem; used: number }) {
+  const t = useTranslations("cards");
+  const [pending, start] = useTransition();
+  const set = (sessions: number) => start(async () => {
+    await runAction(updateCardItemSessions(item.id, sessions), t("saved"), t("saveError"));
+  });
+  return <div className="mt-2 flex flex-wrap gap-2">
+    <Button size="small" disabled={pending || item.sessions <= used} onClick={() => set(used)}>{t("laserClean")}</Button>
+    {/* Đã có Laser dự kiến tiếp theo (số buổi > đã làm) → còn mực thì cứ theo lộ trình, không cần thêm. */}
+    <Button size="small" disabled={pending || item.sessions > used || used >= 100} onClick={() => set(used + 1)}>
+      {t("laserMore")}
+    </Button>
+  </div>;
+}
+
 /** Hoàn 1 dịch vụ: gợi ý = giá × buổi chưa làm / tổng buổi. */
 function RefundButton({ item, used }: { item: CardItem; used: number }) {
   const t = useTranslations("cards");
@@ -362,7 +389,7 @@ function CreateCardTourModal({ card, services, tours, isAdmin, onClose }: {
   const t = useTranslations("cards");
   const tt = useTranslations("tour");
   const items = card.items.filter((i) => !i.refunded_at && isTourable(i));
-  const ofItem = (id: string) => tours.filter((x) => x.card_item_id === id);
+  const ofItem = (id: string) => tours.filter((x) => x.card_item_id === id && !x.planned); // tour dự kiến không tính buổi
   const suggest = (item: CardItem): TourKind => {
     const s = services.find((x) => x.id === item.service_id);
     return s ? suggestTourKind(s, ofItem(item.id)) : "new";

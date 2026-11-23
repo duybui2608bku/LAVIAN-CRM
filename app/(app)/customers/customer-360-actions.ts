@@ -38,7 +38,7 @@ const MONEY_LOG_FIELDS = ["bill_amount", "paid_amount"];
 const cardFields = (finance: boolean) => `id,code,cancelled_at,created_by,created_at${finance ? ",deposit_used" : ""},`
   + `items:treatment_card_items(id,service_id,sessions,refunded_at${finance ? ",price,refund_amount" : ""},service:services(group_id,tourable))`
   + (finance ? ",payments:treatment_card_payments(id,amount,method,paid_at,note,images,created_by)" : "");
-const tourFields = (photos: boolean) => "id,tour_date,service_id,card_item_id,service_detail,service_session,technician_id,confirmed_at"
+const tourFields = (photos: boolean) => "id,tour_date,service_id,card_item_id,service_detail,service_session,technician_id,confirmed_at,planned"
   + (photos ? ",before_images,after_images,extra_images" : "");
 
 type PhotoRow = Omit<AppointmentPhoto, "url"> & { path: string };

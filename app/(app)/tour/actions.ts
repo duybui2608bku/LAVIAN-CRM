@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
-import { requirePermission } from "@/lib/auth";
+import { requireAnyPermission, requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { Permission } from "@/lib/permissions";
 import { newNote, withoutNote } from "@/lib/notes";
 import { tourKindDetail } from "@/lib/cards";
+import { cardIdOfTour, syncRoadmap } from "@/lib/roadmap-sync";
 import { tourPatchSchema } from "@/lib/tours";
 import type { NoteInput, TimelineNote } from "@/types/note";
 
@@ -26,6 +27,7 @@ async function run(action: (t: Awaited<ReturnType<typeof getTranslations<"tour">
     const error = await action(t);
     if (error) return { error };
     revalidatePath("/tour");
+    revalidatePath("/cards"); // lộ trình trong drawer thẻ
     return {};
   } catch (error) {
     // 42501 = trigger tours_protect_confirmation (tour đã xác nhận).
@@ -42,7 +44,7 @@ export async function claimTour(id: string) {
     if (profile.department !== "technician") return t("onlyTechnician");
     const { data, error } = await db.from("tours")
       .update({ technician_id: profile.id })
-      .eq("id", id).is("technician_id", null).is("deleted_at", null).select("id");
+      .eq("id", id).is("technician_id", null).is("deleted_at", null).eq("planned", false).select("id");
     if (error) throw error;
     if (!data.length) return t("alreadyClaimed");
   });
@@ -75,7 +77,7 @@ export async function updateTour(id: string, input: z.input<typeof tourPatchSche
       const { data: tour, error } = await db.from("tours").select("card_item_id,tour_date").eq("id", id).single();
       if (error) throw error;
       const others = tour.card_item_id ? await db.from("tours").select("tour_date,service_detail")
-        .eq("card_item_id", tour.card_item_id).is("deleted_at", null).neq("id", id) : { data: [], error: null };
+        .eq("card_item_id", tour.card_item_id).is("deleted_at", null).eq("planned", false).neq("id", id) : { data: [], error: null };
       if (others.error) throw others.error;
       Object.assign(data, tourKindDetail(kind, patch.tour_date ?? tour.tour_date, others.data ?? []));
     }
@@ -87,7 +89,8 @@ export async function updateTour(id: string, input: z.input<typeof tourPatchSche
         if (error) throw error;
       }
     }
-    let query = db.from("tours").update(data).eq("id", id).is("deleted_at", null);
+    // Tour dự kiến do hệ thống tính → chỉ Chốt lịch (confirmPlannedTour), không sửa tay.
+    let query = db.from("tours").update(data).eq("id", id).is("deleted_at", null).eq("planned", false);
     if (!isAdmin) {
       query = query.is("confirmed_at", null);
       if (profile.department === "technician") query = query.eq("technician_id", profile.id);
@@ -95,6 +98,37 @@ export async function updateTour(id: string, input: z.input<typeof tourPatchSche
     const { data: rows, error } = await query.select("id");
     if (error) throw error;
     if (!rows.length) return t("forbidden");
+    if (patch.tour_date || kind) await syncCardOf(db, id);
+  });
+}
+
+/** Tour thẻ đổi ngày / Loại / bị xoá → tính lại tour dự kiến của thẻ. */
+async function syncCardOf(db: Awaited<ReturnType<typeof createClient>>, tourId: string) {
+  const cardId = await cardIdOfTour(db, tourId);
+  if (cardId) await syncRoadmap(db, cardId);
+}
+
+/**
+ * Chốt lịch tour dự kiến (CSKH / Sales gọi khách xong): thành tour thật ngày `date`, vào Chờ nhận; tour dự kiến sau dời theo.
+ * Chỉ tour dự kiến sớm nhất của thẻ — không nhảy bước.
+ */
+export async function confirmPlannedTour(id: string, date: string) {
+  return run(async (t) => {
+    z.uuid().parse(id);
+    const day = z.iso.date().parse(date);
+    await requireAnyPermission("tour.edit", "cards.edit");
+    const db = await createClient();
+    const cardId = await cardIdOfTour(db, id);
+    if (!cardId) return t("forbidden");
+    const { data: first, error: firstErr } = await db.from("tours").select("id,item:treatment_card_items!inner(card_id)")
+      .eq("item.card_id", cardId).eq("planned", true).is("deleted_at", null).order("tour_date").limit(1);
+    if (firstErr) throw firstErr;
+    if (first[0]?.id !== id) return t("plannedNotFirst");
+    const { data, error } = await db.from("tours").update({ planned: false, tour_date: day })
+      .eq("id", id).eq("planned", true).is("deleted_at", null).select("id");
+    if (error) throw error;
+    if (!data.length) return t("forbidden");
+    await syncRoadmap(db, cardId);
   });
 }
 
@@ -153,10 +187,12 @@ export async function deleteTour(id: string) {
   return run(async (t) => {
     z.uuid().parse(id);
     const { profile, isAdmin, db } = await context("tour.delete");
-    let query = db.from("tours").update({ deleted_at: new Date().toISOString() }).eq("id", id).is("deleted_at", null);
+    // Tour dự kiến không xoá tay (sync sẽ sinh lại) — bỏ bước thì giảm số buổi trong thẻ.
+    let query = db.from("tours").update({ deleted_at: new Date().toISOString() }).eq("id", id).is("deleted_at", null).eq("planned", false);
     if (!isAdmin) query = query.eq("created_by", profile.id).is("technician_id", null);
     const { data, error } = await query.select("id");
     if (error) throw error;
     if (!data.length) return t("forbidden");
+    await syncCardOf(db, id);
   });
 }

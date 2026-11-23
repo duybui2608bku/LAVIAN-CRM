@@ -18,12 +18,13 @@ export interface Tour {
   extra_images: string[];
   bill_amount: number | null; // Rupiah — giá dòng thẻ (`treatment_card_items.price`), tour không thẻ = null
   confirmed_at: string | null;
+  planned: boolean; // tour dự kiến do lộ trình tự sinh — chưa chốt lịch với khách (lib/roadmap-sync.ts)
   created_by: string | null;
   customer: { full_name: string; phone: string } | null;
 }
 
 export const TOUR_FIELDS = "id,tour_date,customer_id,service_id,card_item_id,service_detail,service_session,notes,technician_id,"
-  + "before_images,after_images,extra_images,confirmed_at,created_by,"
+  + "before_images,after_images,extra_images,confirmed_at,planned,created_by,"
   + "...treatment_card_items(bill_amount:price),customer:customers(full_name,phone)";
 
 /** Sửa tour: Loại (`kind`) gửi lên, server tự tính service_detail + số lần. */

@@ -27,7 +27,7 @@ export function cardMe(profile: CurrentProfile): CardMe {
     id: profile.id, isAdmin, canEdit: can("cards.edit"), canCancel: isAdmin && can("cards.delete"),
     tour: {
       id: profile.id, isAdmin, isTechnician: !isAdmin && profile.department === "technician",
-      canEdit: can("tour.edit"), canDelete: can("tour.delete"),
+      canEdit: can("tour.edit"), canDelete: can("tour.delete"), canPlan: can("tour.edit") || can("cards.edit"),
     },
   };
 }

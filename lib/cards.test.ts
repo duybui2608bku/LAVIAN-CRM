@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, customerCardMoney, cardPaymentSchema, cardTourSchema, groupTaken, journeyDue, paymentRange, suggestRefund, suggestTourKind, tourKindDetail,
+  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, customerCardMoney, cardPaymentSchema, cardTourSchema, groupTaken, journeyDue, paymentRange, planRoadmap, suggestRefund, suggestTourKind, tourKindDetail,
 } from "./cards.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
@@ -166,4 +166,42 @@ test("nhật ký thẻ → thao tác: sửa buổi, hoàn, thu / xoá tiền, to
     ["tourKind", "tourTech"]);
   assert.deepEqual(keys(row("tours", "UPDATE", tour, { ...tour, deleted_at: "x" })), ["tourDeleted"]);
   assert.deepEqual(row("tours", "INSERT", null, tour)[0].values.kind, { service_detail: "new", service_session: null });
+});
+
+test("lộ trình dự kiến mày: laser 20 ngày, làm mới 20 ngày, dặm 45 ngày; tính lại theo tour thật", () => {
+  const item = (id: string, group_id: string, sessions: number) =>
+    ({ id, service_id: `s-${id}`, sessions, refunded_at: null as string | null, service: { group_id, tourable: true } });
+  const laser = item("L", "laser", 2), brow = item("B", "alis", 2);
+  const tour = (card_item_id: string, tour_date: string, service_detail: string) => ({ card_item_id, tour_date, service_detail });
+  const plan = (items: ReturnType<typeof item>[], tours: ReturnType<typeof tour>[]) =>
+    planRoadmap(items, tours).map((s) => `${s.kind}:${s.card_item_id}:${s.tour_date}`);
+
+  assert.deepEqual(plan([laser, brow], []), []); // chưa có tour thật → chưa sinh
+  // Mày + laser 2 buổi: Laser 1 thật → Laser 2, Làm mới, Dặm.
+  const l1 = tour("L", "2026-12-01", "laser");
+  assert.deepEqual(plan([laser, brow], [l1]), ["laser:L:2026-12-21", "new:B:2027-01-10", "retouch:B:2027-02-24"]);
+  // Laser sạch sớm (số buổi laser = 1) → lên mới luôn.
+  assert.deepEqual(plan([{ ...laser, sessions: 1 }, brow], [l1]), ["new:B:2026-12-21", "retouch:B:2027-02-04"]);
+  // Laser 2 dời sang 23/12 (chốt lịch) → chuỗi sau dời theo.
+  assert.deepEqual(plan([laser, brow], [l1, tour("L", "2026-12-23", "laser")]), ["new:B:2027-01-12", "retouch:B:2027-02-26"]);
+  // Còn mực: laser 3 buổi, đã làm 2.
+  assert.deepEqual(plan([{ ...laser, sessions: 3 }, brow], [l1, tour("L", "2026-12-21", "laser")]),
+    ["laser:L:2027-01-10", "new:B:2027-01-30", "retouch:B:2027-03-16"]);
+  // Chỉ mày: Làm mới → Dặm 45 ngày; đã có Làm mới thì laser còn buổi bị bỏ qua.
+  assert.deepEqual(plan([brow], [tour("B", "2026-12-01", "new")]), ["retouch:B:2027-01-15"]);
+  assert.deepEqual(plan([laser, brow], [tour("B", "2026-12-01", "new")]), ["retouch:B:2027-01-15"]);
+  // Hết buổi / DV hoàn / vùng môi chưa có lộ trình → không sinh.
+  assert.deepEqual(plan([brow], [tour("B", "2026-12-01", "new"), tour("B", "2027-01-15", "retouch")]), []);
+  assert.deepEqual(plan([laser, { ...brow, refunded_at: "x" }], [l1]), ["laser:L:2026-12-21"]);
+  assert.deepEqual(plan([item("P", "bibir", 2)], [tour("P", "2026-12-01", "new")]), []);
+});
+
+test("đến hạn bỏ tour dự kiến", () => {
+  const brow = { id: "B", service_id: "s-B", sessions: 2, refunded_at: null, service: { group_id: "alis", tourable: true } };
+  const card = { id: "c", cancelled_at: null, items: [brow] };
+  const tours = [
+    { card_item_id: "B", tour_date: "2026-12-01", service_detail: "new", service_session: null },
+    { card_item_id: "B", tour_date: "2027-01-15", service_detail: "retouch", service_session: 1, planned: true },
+  ];
+  assert.deepEqual(journeyDue([card], tours).map((d) => `${d.task}:${d.due}`), ["retouch:2027-01-15"]);
 });

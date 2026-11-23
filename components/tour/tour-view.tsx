@@ -165,10 +165,12 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
   const items = all.filter((r) => (!status || tourStatus(r) === status)
     && (!technician || r.technician_id === technician)
     && matchesNameOrPhone(r.customer?.full_name ?? "", r.customer?.phone ?? "", search));
-  const groups = me.isAdmin ? groupByTechnician(items, staff) : [];
+  // Tour dự kiến (lộ trình tự sinh, chưa chốt lịch) không tính tiền / Excel / phiếu.
+  const real = items.filter((r) => !r.planned);
+  const groups = me.isAdmin ? groupByTechnician(real, staff) : [];
   const count = (s: TourStatus) => all.filter((r) => tourStatus(r) === s).length;
-  const total = items.reduce((n, r) => n + (r.bill_amount ?? 0), 0);
-  const commission = items.reduce((n, r) => n + tourCommission(r), 0);
+  const total = real.reduce((n, r) => n + (r.bill_amount ?? 0), 0);
+  const commission = real.reduce((n, r) => n + tourCommission(r), 0);
   const failed = t("saveError");
 
   const exportExcel = async () => {
@@ -197,14 +199,14 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
     { title: t("bill"), width: 140, align: "right", render: (_, r) =>
       r.bill_amount == null ? DASH : <span className="tabular-nums">{formatRupiah(r.bill_amount)}</span> },
     { title: t("commission"), width: 120, align: "right", render: (_, r) =>
-      <span className="tabular-nums">{formatRupiah(tourCommission(r))}</span> },
+      r.planned ? DASH : <span className="tabular-nums">{formatRupiah(tourCommission(r))}</span> },
     { title: t("status"), width: 140, render: (_, r) => <TourStatusTag tour={r} /> },
     { key: "actions", width: 56, align: "right", fixed: "right", render: (_, r) => <div onClick={(e) => e.stopPropagation()}>
       <RowActions label={t("actions")} items={[
         { icon: <PencilLine className="size-4" />, label: t("open"), onSelect: () => onOpen(r.id) },
         ...(me.isAdmin && tourStatus(r) === "claimed" ? [{ icon: <CheckCircle2 className="size-4" />, label: t("confirm"),
           onSelect: () => void runAction(confirmTour(r.id, true), t("confirmedToast"), failed) }] : []),
-        ...(me.canDelete && (me.isAdmin || (r.created_by === me.id && !r.technician_id)) ? [{
+        ...(me.canDelete && !r.planned && (me.isAdmin || (r.created_by === me.id && !r.technician_id)) ? [{
           icon: <Trash2 className="size-4" />, label: t("remove"), danger: true, onSelect: () => confirm({
             title: t("removeTitle"), content: t("removeBody", { name: r.customer?.full_name ?? "" }),
             okText: t("remove"), cancelText: t("cancel"),
@@ -226,8 +228,9 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
         </Button>
       </> : null}
     </>} />
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-      <StatCard label={t("count")} value={all.length} />
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+      <StatCard label={t("count")} value={all.length - count("planned")} />
+      <StatCard label={t("status_planned")} value={count("planned")} />
       <StatCard label={t("status_pending")} value={count("pending")} />
       <StatCard label={t("status_claimed")} value={count("claimed")} />
       <StatCard label={t("bill")} value={formatRupiah(total)} />
@@ -237,7 +240,7 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
       <MonthPicker month={month} goMonth={goMonth} />
       <SearchInput value={search} placeholder={t("search")} onChange={setSearch} />
       <ClearableSelect className="min-w-40" value={status} ariaLabel={t("status")} placeholder={t("allStatuses")} onChange={setStatus}
-        options={(["pending", "claimed", "confirmed"] as const).map((s) => ({ value: s, label: t(`status_${s}`) }))} />
+        options={(["planned", "pending", "claimed", "confirmed"] as const).map((s) => ({ value: s, label: t(`status_${s}`) }))} />
       {/* Select thường (không ClearableSelect): cần tìm theo tên (`title`) — label là avatar + tên. */}
       <Select allowClear className="min-w-52" value={technician || undefined} aria-label={t("technician")} placeholder={t("allTechnicians")}
         onChange={(v?: string) => setTechnician(v ?? "")} showSearch={{ optionFilterProp: "title" }}
