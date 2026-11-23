@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-23 — Thêm DV vào thẻ: khoá nhóm đã có DV + hiện DV cũ & giá trị sau cập nhật
+- **Thay đổi:** Drawer chọn DV (`CardItemsDrawer`): DV thuộc nhóm đã có DV (trong thẻ hoặc vừa chọn, theo `groupTaken`) → checkbox disable + mờ, tên nhóm có icon `!` đỏ (tooltip `error.sameGroup`); bỏ toast chặn cũ. Cột "Đã chọn" hiện khối "Đang có trong thẻ" (DV chưa hoàn, chỉ đọc: tên, nhóm, giá, buổi) + tổng: Giá trị thẻ hiện tại / Thêm mới / Giá trị thẻ sau cập nhật. Prop `existing` đổi từ `string[]` → item `{service_id, price, sessions}`, thêm `currentValue` (= `cardMoney(card).value`). Bán thẻ mới không đổi (không truyền 2 prop này).
+- **File ảnh hưởng:** `components/cards/{card-items-drawer,card-drawer}.tsx`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** Chưa xem trên dev server; chưa commit.
+
 ### 2026-11-23 — Hồ sơ 360°: bỏ 3 ô tóm tắt đầu popup
 - **Thay đổi:** Bỏ hàng 3 ô Mong muốn / Nỗi lo / Nhu cầu tiếp theo (`Summary`) dưới header — Mong muốn, Nỗi lo vẫn ở cột trái "Chân dung nhanh"; nhu cầu xem ở tab Dịch vụ & Upsell. Xoá luôn code chết: `nextNeed` (`lib/customer-360.ts` + test), key i18n `c360.summary.*`.
 - **File ảnh hưởng:** `components/customers/customer-360/customer-360-modal.tsx`, `lib/customer-360.ts`, `lib/customer-360.test.ts`, `messages/{vi,en}.json`.

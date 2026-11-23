@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button, Checkbox, Empty, Input, InputNumber } from "antd";
-import { X } from "lucide-react";
+import { Button, Checkbox, Empty, Input, InputNumber, Tooltip } from "antd";
+import { CircleAlert, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { MoneyInput } from "@/components/common/money-input";
@@ -11,6 +11,7 @@ import { useServiceGroups } from "@/components/common/service-groups";
 import { groupTaken } from "@/lib/cards";
 import { formatIdr, formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
+import type { CardItem } from "@/types/card";
 import type { Service } from "@/types/service";
 
 export type CardItemInput = { service_id: string; price: number; sessions: number };
@@ -20,15 +21,17 @@ export type CardItemInput = { service_id: string; price: number; sessions: numbe
  * và khi bán thêm dịch vụ vào thẻ. Trái: cả bảng giá dạng checkbox theo nhóm (như tờ bảng giá giấy, không cần cuộn);
  * phải: dịch vụ đã chọn — giá bán mặc định = bảng giá, sửa được (giảm giá / voucher), số buổi mặc định 1.
  */
-export function CardItemsDrawer({ open, title, submitText, services, deposit, existing = [], beside, onSubmit, onClose }: {
+export function CardItemsDrawer({ open, title, submitText, services, deposit, existing = [], currentValue, beside, onSubmit, onClose }: {
   open: boolean;
   title: React.ReactNode;
   submitText: string;
   services: Service[];
   /** Cọc chưa dùng của khách sẽ trừ vào thẻ (chỉ khi tạo thẻ). */
   deposit?: number;
-  /** service_id các DV chưa hoàn đang có trong thẻ (bán thêm) — chặn chọn trùng nhóm. */
-  existing?: string[];
+  /** DV chưa hoàn đang có trong thẻ (bán thêm) — hiện chỉ đọc ở "Đã chọn" + khoá nhóm đã có DV. */
+  existing?: Pick<CardItem, "service_id" | "price" | "sessions">[];
+  /** Giá trị thẻ hiện tại (bán thêm) → hiện giá trị thẻ sau cập nhật. */
+  currentValue?: number;
   /** Mở cạnh drawer thẻ (rộng `beside` px) thay vì đè lên. */
   beside?: number;
   onSubmit: (items: CardItemInput[], note: string) => Promise<boolean>;
@@ -46,17 +49,15 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
   const total = lines.reduce((s, l) => s + (l.price ?? 0), 0);
   const listTotal = lines.reduce((s, l) => s + (byId.get(l.service_id)?.price ?? 0), 0);
   const due = total - (deposit ?? 0);
+  // Nhóm đã có DV (trong thẻ hoặc vừa chọn) → khoá các DV khác cùng nhóm.
+  const taken = [...existing.map((i) => i.service_id), ...picked].flatMap((id) => byId.get(id) ?? []);
+  const locked = (s: Service) => !picked.has(s.id) && groupTaken(s, taken);
 
   const close = () => { setLines([]); setNote(""); onClose(); };
-  const toggle = (s: Service, on: boolean) => {
-    if (on) {
-      const taken = [...existing, ...lines.map((l) => l.service_id)].flatMap((id) => byId.get(id) ?? []);
-      if (groupTaken(s, taken)) return void toast.error(t("error.sameGroup", { group: groups.name(s.group_id) }));
-    }
+  const toggle = (s: Service, on: boolean) =>
     setLines((ls) => on
       ? [...ls, { service_id: s.id, price: s.price, sessions: 1 }]
       : ls.filter((l) => l.service_id !== s.id));
-  };
   const update = (id: string, patch: Partial<CardItemInput>) =>
     setLines((ls) => ls.map((l) => (l.service_id === id ? { ...l, ...patch } : l)));
   const submit = () => {
@@ -72,13 +73,19 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
       {/* Bảng giá: mỗi nhóm 1 khối, 2 cột khi đủ rộng. */}
       <div className="@container"><div className="columns-1 gap-6 @md:columns-2">
         {sections.map(({ group, items }) => <section key={group.id} className="mb-4 break-inside-avoid">
-          <h4 className="mb-1 border-b border-border pb-1 text-xs font-semibold tracking-wide text-primary uppercase">{group.name}</h4>
+          <h4 className="mb-1 flex items-center gap-1.5 border-b border-border pb-1 text-xs font-semibold tracking-wide text-primary uppercase">
+            {group.name}
+            {items.some(locked) ? <Tooltip title={t("error.sameGroup", { group: group.name })}>
+              <CircleAlert className="size-3.5 cursor-help text-destructive" aria-label={t("error.sameGroup", { group: group.name })} />
+            </Tooltip> : null}
+          </h4>
           <ul>
             {items.map((s) => {
               const on = picked.has(s.id);
+              const off = locked(s);
               return <li key={s.id}>
-                <label className={`flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-muted ${on ? "bg-primary/5 font-medium" : ""}`}>
-                  <Checkbox checked={on} disabled={pending} onChange={(e) => toggle(s, e.target.checked)} />
+                <label className={`flex items-center gap-2 rounded px-1.5 py-1 text-sm ${off ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted"} ${on ? "bg-primary/5 font-medium" : ""}`}>
+                  <Checkbox checked={on} disabled={pending || off} onChange={(e) => toggle(s, e.target.checked)} />
                   <span className="min-w-0 flex-1">{s.name}</span>
                   <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatIdr(s.price)}</span>
                 </label>
@@ -90,6 +97,24 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
 
       {/* Đã chọn + tạm tính — dính trên khi cuộn (khi 2 cột). */}
       <Section title={t("selected", { count: lines.length })} className="self-start @3xl:sticky @3xl:top-0">
+        {/* DV đang có trong thẻ — chỉ đọc, để thấy giá trị thẻ sau cập nhật. */}
+        {existing.length ? <ul className="flex flex-col gap-1 rounded-lg border border-dashed border-border bg-muted/40 p-2.5">
+          <li className="text-xs font-medium text-muted-foreground">{t("inCard")}</li>
+          {existing.map((i, k) => {
+            const s = byId.get(i.service_id);
+            return <li key={k} className="flex items-start justify-between gap-2 text-sm text-muted-foreground">
+              <div className="min-w-0">
+                <div>{s?.name}</div>
+                <div className="text-xs">{s ? groups.name(s.group_id) : ""}</div>
+              </div>
+              <div className="shrink-0 text-right text-xs tabular-nums">
+                <div>{formatRupiah(i.price)}</div>
+                <div>{i.sessions} {t("sessionsShort")}</div>
+              </div>
+            </li>;
+          })}
+        </ul> : null}
+
         {lines.length ? <ul className="flex flex-col gap-2">
           {lines.map((l) => {
             const s = byId.get(l.service_id);
@@ -116,7 +141,13 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
             <dt className="text-muted-foreground">{t("listTotal")}</dt><dd className="text-right">{formatRupiah(listTotal)}</dd>
             <dt className="text-muted-foreground">{t("discount")}</dt><dd className="text-right">− {formatRupiah(listTotal - total)}</dd>
           </> : null}
-          <dt className="text-muted-foreground">{t("value")}</dt><dd className="text-right font-medium">{formatRupiah(total)}</dd>
+          {currentValue !== undefined ? <>
+            <dt className="text-muted-foreground">{t("currentValue")}</dt><dd className="text-right">{formatRupiah(currentValue)}</dd>
+            <dt className="text-muted-foreground">{t("addedValue")}</dt><dd className="text-right">+ {formatRupiah(total)}</dd>
+            <dt className="font-medium">{t("valueAfter")}</dt><dd className="text-right font-semibold">{formatRupiah(currentValue + total)}</dd>
+          </> : <>
+            <dt className="text-muted-foreground">{t("value")}</dt><dd className="text-right font-medium">{formatRupiah(total)}</dd>
+          </>}
           {deposit !== undefined ? <>
             <dt className="text-muted-foreground">{t("depositUsed")}</dt><dd className="text-right text-success">− {formatRupiah(deposit)}</dd>
             <dt className="font-medium">{due < 0 ? t("refundOwed") : t("due")}</dt>
