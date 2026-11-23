@@ -889,12 +889,6 @@
     "prev": "Khách trước",
     "next": "Khách tiếp",
     "position": "{index}/{total}",
-    "summary": {
-      "wish": "Mong muốn",
-      "pain": "Nỗi lo",
-      "next": "Nhu cầu tiếp theo",
-      "empty": "Chưa có"
-    },
     "tabs": {
       "overview": "Tổng quan",
       "portrait": "Chân dung",

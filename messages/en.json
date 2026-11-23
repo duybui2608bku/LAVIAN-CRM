@@ -889,12 +889,6 @@
     "prev": "Previous customer",
     "next": "Next customer",
     "position": "{index}/{total}",
-    "summary": {
-      "wish": "Wishes",
-      "pain": "Concerns",
-      "next": "Next need",
-      "empty": "None yet"
-    },
     "tabs": {
       "overview": "Overview",
       "portrait": "Portrait",

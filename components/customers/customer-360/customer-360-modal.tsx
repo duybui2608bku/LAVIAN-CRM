@@ -15,7 +15,7 @@ import { SourceIcon } from "@/components/common/source-icon";
 import { staffName, type StaffRef } from "@/components/common/user-avatar";
 import { MessagesTab, PhotosTab, TimelineTab } from "@/components/customers/customer-360/activity-tabs";
 import { OverviewTab, PortraitTab, ServicesTab, SourceTag } from "@/components/customers/customer-360/profile-tabs";
-import { currentAppointment, latestPortrait, nextNeed, portraitText } from "@/lib/customer-360";
+import { currentAppointment, latestPortrait, portraitText } from "@/lib/customer-360";
 import { CUSTOMER_OPTIONS } from "@/lib/customer-options";
 import { optionLabel } from "@/lib/customers";
 import { PORTRAIT_FIELDS, type Customer360, type ViewerRole } from "@/types/customer-360";
@@ -82,7 +82,6 @@ export function Customer360Modal({ customerId, ids, staff, onNavigate, onEdit, o
     {isPending ? <Skeleton active paragraph={{ rows: 10 }} />
       : error ? <Alert type="error" showIcon title={error.message} />
       : <div className="flex flex-col gap-4 lg:h-full">
-        <Summary data={data} />
         <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[260px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
           <SideColumn data={data} />
           <Tabs activeKey={active} onChange={(k) => setTab(k as TabKey)}
@@ -138,23 +137,6 @@ function Header({ data, staff, index, total, onPrev, onNext }: {
       <span className="min-w-12 text-center text-sm tabular-nums">{t("position", { index: index + 1, total })}</span>
       <Button size="small" aria-label={t("next")} title={t("next")} disabled={index >= total - 1} icon={<ChevronRight className="size-4" />} onClick={onNext} />
     </div>}
-  </div>;
-}
-
-/** 3 ô tóm tắt đầu popup: Mong muốn / Nỗi lo / Nhu cầu tiếp theo. */
-function Summary({ data }: { data: Customer360 }) {
-  const t = useTranslations("c360");
-  const locale = useLocale();
-  const latest = latestPortrait(data.portrait);
-  const need = nextNeed(data.needs);
-  const cell = (label: string, body: React.ReactNode) => <div className="rounded-lg border border-border p-3">
-    <div className="text-xs text-muted-foreground">{label}</div>
-    <div className="mt-1 line-clamp-2 font-medium">{body ?? <span className="font-normal text-muted-foreground">{t("summary.empty")}</span>}</div>
-  </div>;
-  return <div className="grid gap-3 sm:grid-cols-3">
-    {cell(t("summary.wish"), latest.wish && portraitText(latest.wish, locale))}
-    {cell(t("summary.pain"), latest.pain && portraitText(latest.pain, locale))}
-    {cell(t("summary.next"), need && `${need.title} · ${t(`needs.status.${need.status}`)}`)}
   </div>;
 }
 

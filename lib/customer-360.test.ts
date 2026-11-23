@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canSeeFinance, canSeePhotos, currentAppointment, customerRole, latestPortrait, mergeTimeline, nextNeed, portraitText } from "./customer-360.ts";
+import { canSeeFinance, canSeePhotos, currentAppointment, customerRole, latestPortrait, mergeTimeline, portraitText } from "./customer-360.ts";
 
 const p = (department: string | null, role = "user") => ({ role, department });
 
@@ -33,10 +33,6 @@ test("chân dung mới nhất từng mục; nhu cầu tiếp theo; dòng thời 
   assert.equal(latest.pain?.id, "p2");
   assert.equal(latest.wish?.id, "w1");
   assert.equal(latest.behavior, undefined);
-
-  const n = (id: string, status: string, created_at: string) => ({ id, status: status as "need", created_at });
-  assert.equal(nextNeed([n("a", "consulting", "2026-11-01T00:00:00Z"), n("b", "won", "2026-11-05T00:00:00Z"), n("c", "need", "2026-11-03T00:00:00Z")])?.id, "c");
-  assert.equal(nextNeed([n("b", "lost", "2026-11-05T00:00:00Z")]), null);
 
   const merged = mergeTimeline([
     { kind: "sales", items: [{ at: "2026-11-02T00:00:00Z", id: "s" }] },

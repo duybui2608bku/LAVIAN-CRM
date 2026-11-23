@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-23 — Hồ sơ 360°: bỏ 3 ô tóm tắt đầu popup
+- **Thay đổi:** Bỏ hàng 3 ô Mong muốn / Nỗi lo / Nhu cầu tiếp theo (`Summary`) dưới header — Mong muốn, Nỗi lo vẫn ở cột trái "Chân dung nhanh"; nhu cầu xem ở tab Dịch vụ & Upsell. Xoá luôn code chết: `nextNeed` (`lib/customer-360.ts` + test), key i18n `c360.summary.*`.
+- **File ảnh hưởng:** `components/customers/customer-360/customer-360-modal.tsx`, `lib/customer-360.ts`, `lib/customer-360.test.ts`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** Chưa xem trên dev server; chưa commit.
+
 ### 2026-11-23 — Hồ sơ 360°: thông tin cơ bản khách lên đầu popup
 - **Thay đổi:** Sếp muốn gọn → khối "Thông tin khách" (Nguồn, Liên hệ đầu, Telesales, Sales, Master) bỏ khỏi tab Tổng quan, đưa lên `Header` của popup (cạnh tên + SĐT, trước nút Trước/Tiếp), 1 dòng tự xuống dòng khi hẹp. Xoá key i18n `c360.info` không còn dùng.
 - **File ảnh hưởng:** `components/customers/customer-360/{customer-360-modal,profile-tabs}.tsx`, `messages/{vi,en}.json`.
