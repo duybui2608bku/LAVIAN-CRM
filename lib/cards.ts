@@ -226,7 +226,6 @@ export function auditEntries(a: CardAudit): AuditEntry[] {
         if (changed("card_item_id")) add(n.card_item_id ? "tourLinked" : "tourUnlinked");
         if (changed("tour_date")) add("tourDate", { oldDate: o.tour_date });
         if (changed("service_detail") || changed("service_session")) add("tourKind", { oldKind: kind(o), kind: kind(n) });
-        if (changed("bill_amount")) add("tourBill", { oldAmount: o.bill_amount, amount: n.bill_amount });
         if (changed("technician_id")) add("tourTech", { oldTech: o.technician_id, tech: n.technician_id });
         if (changed("confirmed_at")) add(n.confirmed_at ? "tourConfirmed" : "tourUnconfirmed");
       }

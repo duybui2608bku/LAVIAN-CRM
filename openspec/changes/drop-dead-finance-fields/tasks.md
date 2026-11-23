@@ -1,0 +1,8 @@
+- [x] Tour: tiền đọc từ dòng thẻ (embed `...treatment_card_items(bill_amount:price)`), bỏ ghi `bill_amount` khi tạo tour, bỏ ghi `claimed_at`/`confirmed_by`
+- [x] Lịch hẹn: bỏ `bill_amount/paid_amount` khỏi schema, quy tắc E3 tiền (`billBelowCollected`), select, type
+- [x] Nhật ký thẻ: bỏ dòng "đổi tiền tour" (`tourBill`)
+- [x] RLS: người có quyền tour / báo cáo đọc được `treatment_card_items` (Master cần giá dòng thẻ để xem tiền + công tour)
+- [x] Migration drop cột + sửa trigger/function liên quan (đã chạy thử trong transaction + rollback trên DB thật: OK)
+- [x] tsc + eslint + test (108)
+- [ ] Deploy code rồi chạy migration `20261123100000_drop_dead_finance_fields.sql` trên Supabase
+- [ ] Xem trên trình duyệt: trang Tour (Bill, tổng, công Master) bằng tài khoản Master

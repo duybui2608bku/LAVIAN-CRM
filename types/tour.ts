@@ -2,7 +2,7 @@ import type { TourKind } from "@/lib/cards";
 import type { ServiceDetail } from "@/lib/tours";
 import type { TimelineNote } from "./note";
 
-/** Bảng `public.tours`. Hoá đơn = giá bán DV trong thẻ (gán khi tạo tour, chỉ xem); thanh toán thu ở thẻ. */
+/** Bảng `public.tours`. Tiền tour không lưu ở tour: `bill_amount` = giá DV của dòng thẻ (embed), thu tiền ở thẻ. */
 export interface Tour {
   id: string;
   tour_date: string; // YYYY-MM-DD
@@ -16,15 +16,15 @@ export interface Tour {
   before_images: string[];
   after_images: string[];
   extra_images: string[];
-  bill_amount: number | null; // Rupiah
+  bill_amount: number | null; // Rupiah — giá dòng thẻ (`treatment_card_items.price`), tour không thẻ = null
   confirmed_at: string | null;
   created_by: string | null;
   customer: { full_name: string; phone: string } | null;
 }
 
 export const TOUR_FIELDS = "id,tour_date,customer_id,service_id,card_item_id,service_detail,service_session,notes,technician_id,"
-  + "before_images,after_images,extra_images,bill_amount,confirmed_at,created_by,"
-  + "customer:customers(full_name,phone)";
+  + "before_images,after_images,extra_images,confirmed_at,created_by,"
+  + "...treatment_card_items(bill_amount:price),customer:customers(full_name,phone)";
 
 /** Sửa tour: Loại (`kind`) gửi lên, server tự tính service_detail + số lần. */
 export type TourPatch = Partial<Pick<Tour,

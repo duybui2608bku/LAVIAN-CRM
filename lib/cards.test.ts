@@ -137,11 +137,11 @@ test("nhật ký thẻ → thao tác: sửa buổi, hoàn, thu / xoá tiền, to
   assert.deepEqual(keys(row("treatment_cards", "UPDATE", { id: "c", cancelled_at: null, total: 1 }, { id: "c", cancelled_at: "x", total: 2 })),
     ["cardCancelled", "edited"]); // cột lạ vẫn hiện
 
-  const tour = { id: "t", card_item_id: "i", service_id: "s", tour_date: "2026-11-22", bill_amount: 100, service_detail: "new",
-    service_session: null, technician_id: null, confirmed_at: null, deleted_at: null, note: "a" };
-  assert.deepEqual(row("tours", "UPDATE", tour, { ...tour, note: "b" }), []); // lưu lại y nguyên / chỉ ghi chú
-  assert.deepEqual(keys(row("tours", "UPDATE", tour, { ...tour, bill_amount: 80, service_detail: "retouch", service_session: 1, technician_id: "m" })),
-    ["tourKind", "tourBill", "tourTech"]);
-  assert.deepEqual(keys(row("tours", "UPDATE", tour, { ...tour, deleted_at: "x", bill_amount: 0 })), ["tourDeleted"]);
+  const tour = { id: "t", card_item_id: "i", service_id: "s", tour_date: "2026-11-22", service_detail: "new",
+    service_session: null, technician_id: null, confirmed_at: null, deleted_at: null, notes: ["a"] };
+  assert.deepEqual(row("tours", "UPDATE", tour, { ...tour, notes: ["b"] }), []); // lưu lại y nguyên / chỉ ghi chú
+  assert.deepEqual(keys(row("tours", "UPDATE", tour, { ...tour, service_detail: "retouch", service_session: 1, technician_id: "m" })),
+    ["tourKind", "tourTech"]);
+  assert.deepEqual(keys(row("tours", "UPDATE", tour, { ...tour, deleted_at: "x" })), ["tourDeleted"]);
   assert.deepEqual(row("tours", "INSERT", null, tour)[0].values.kind, { service_detail: "new", service_session: null });
 });

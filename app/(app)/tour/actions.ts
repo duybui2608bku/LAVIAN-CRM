@@ -41,7 +41,7 @@ export async function claimTour(id: string) {
     const { profile, db } = await context("tour.edit");
     if (profile.department !== "technician") return t("onlyTechnician");
     const { data, error } = await db.from("tours")
-      .update({ technician_id: profile.id, claimed_at: new Date().toISOString() })
+      .update({ technician_id: profile.id })
       .eq("id", id).is("technician_id", null).is("deleted_at", null).select("id");
     if (error) throw error;
     if (!data.length) return t("alreadyClaimed");
@@ -53,7 +53,7 @@ export async function releaseTour(id: string) {
   return run(async (t) => {
     z.uuid().parse(id);
     const { profile, db } = await context("tour.edit");
-    const { data, error } = await db.from("tours").update({ technician_id: null, claimed_at: null })
+    const { data, error } = await db.from("tours").update({ technician_id: null })
       .eq("id", id).eq("technician_id", profile.id).is("confirmed_at", null).is("deleted_at", null).select("id");
     if (error) throw error;
     if (!data.length) return t("forbidden");
@@ -86,7 +86,6 @@ export async function updateTour(id: string, input: z.input<typeof tourPatchSche
           .eq("status", "active").eq("department", "technician").single();
         if (error) throw error;
       }
-      data.claimed_at = patch.technician_id ? new Date().toISOString() : null;
     }
     let query = db.from("tours").update(data).eq("id", id).is("deleted_at", null);
     if (!isAdmin) {
@@ -134,11 +133,11 @@ export async function deleteTourNote(id: string, noteId: string) {
 export async function confirmTour(id: string, confirmed: boolean) {
   return run(async (t) => {
     z.uuid().parse(id);
-    const { profile, isAdmin, db } = await context("tour.edit");
+    const { isAdmin, db } = await context("tour.edit");
     if (!isAdmin) return t("forbidden");
     let query = db.from("tours").update(confirmed
-      ? { confirmed_at: new Date().toISOString(), confirmed_by: profile.id }
-      : { confirmed_at: null, confirmed_by: null })
+      ? { confirmed_at: new Date().toISOString() }
+      : { confirmed_at: null })
       .eq("id", id).is("deleted_at", null);
     if (confirmed) {
       query = query.not("technician_id", "is", null).not("service_detail", "is", null);

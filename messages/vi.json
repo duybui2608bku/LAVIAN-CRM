@@ -99,7 +99,6 @@
     "addNote": "Thêm ghi chú",
     "notesTitle": "Ghi chú lịch hẹn · {name}",
     "rule": {
-      "billBelowCollected": "Giá trị dịch vụ nhỏ hơn số đã thu",
       "doneNeedsMaster": "Cần chọn Master trước khi kết thúc",
       "inProgressNeedsStaff": "Cần chọn Master hoặc Sales trước khi bắt đầu"
     },
@@ -1143,7 +1142,6 @@
       "tourUnlinked": "Gỡ tour {service} ngày {date} khỏi thẻ",
       "tourDate": "Đổi ngày tour {service}: {oldDate} → {date}",
       "tourKind": "Đổi loại tour {service} ngày {date}: {oldKind} → {kind}",
-      "tourBill": "Sửa bill tour {service} ngày {date}: {oldAmount} → {amount}",
       "tourTech": "Đổi Master tour {service} ngày {date}: {oldTech} → {tech}",
       "tourConfirmed": "Xác nhận tour {service} ngày {date}",
       "tourUnconfirmed": "Bỏ xác nhận tour {service} ngày {date}",
