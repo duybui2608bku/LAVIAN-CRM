@@ -141,7 +141,7 @@ export async function addPortraitNote(customerId: string, input: z.input<typeof 
       if (readErr) throw readErr;
       const current: Partial<Record<PortraitField, string>> = {};
       for (const r of rows ?? []) current[r.field as PortraitField] ??= r.text;
-      detected = await detectPortrait(text, current);
+      detected = await detectPortrait(text, source, current);
     } catch (error) {
       return { warning: normalizeError(error).message };
     }

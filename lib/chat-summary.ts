@@ -13,6 +13,8 @@ import { PORTRAIT_FIELDS, type ChatSummary, type PortraitField } from "@/types/c
  */
 
 const MODEL = "claude-opus-5-5";
+/** Tách chân dung từ ghi chú NV: việc ngắn, nhiều lần/ngày → Haiku. */
+const FAST_MODEL = "claude-haiku-5-5";
 export const SUMMARY_FIELDS = "summary,summary_en,last_message_at,message_count,created_by,created_at";
 
 const SYSTEM = `You summarize a customer's chat with Lavian Beauty Center, a beauty clinic in Indonesia (brow, lip and eyeliner embroidery and similar services), for the clinic's sales team. The team reads Vietnamese and English, so every text is written twice: "vi" in Vietnamese, "en" in English, with the same meaning.
@@ -63,20 +65,26 @@ const transcriptLine = (m: ChatMessage) => {
   return `[${dayjs(m.at).format("DD/MM/YYYY HH:mm")}] ${m.out ? "Lavian" : "Customer"}: ${[m.text, extra].filter(Boolean).join(" ")}`;
 };
 
-/** Gọi Claude trả JSON theo `schema` (lỗi API → AppError tiếng Việt). */
-async function askClaude<T>(system: string, content: string, schema: Record<string, unknown>, what: string): Promise<{ out: T; model: string }> {
+type Ask = { system: string; content: string; schema: Record<string, unknown>; what: string };
+type Response = Awaited<ReturnType<Anthropic["messages"]["create"]>> | Awaited<ReturnType<Anthropic["beta"]["messages"]["create"]>>;
+
+/** Gọi Claude trả JSON theo `schema` (lỗi API → AppError tiếng Việt). `fast` = Haiku (rẻ, nhanh — không có model dự phòng khi từ chối). */
+async function askClaude<T>({ system, content, schema, what }: Ask, fast = false): Promise<{ out: T; model: string }> {
   if (!process.env.ANTHROPIC_API_KEY) throw new AppError("Thiếu ANTHROPIC_API_KEY — điền vào biến môi trường của server.");
   try {
-    const res = await new Anthropic().beta.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      output_config: { effort: "low", format: { type: "json_schema", schema } },
-      // Model từ chối (an toàn) → API tự chạy lại trên model dự phòng trong cùng request.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      system,
-      messages: [{ role: "user", content }],
-    });
+    const client = new Anthropic();
+    const messages = [{ role: "user" as const, content }];
+    const format = { type: "json_schema" as const, schema };
+    const res: Response = fast
+      ? await client.messages.create({
+        model: FAST_MODEL, max_tokens: 8000, output_config: { effort: "medium", format }, system, messages,
+      })
+      : await client.beta.messages.create({
+        model: MODEL, max_tokens: 16000, output_config: { effort: "low", format }, system, messages,
+        // Model từ chối (an toàn) → API tự chạy lại trên model dự phòng trong cùng request.
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+      });
     if (res.stop_reason === "refusal") throw new AppError(`AI từ chối ${what}.`);
     if (res.stop_reason === "max_tokens") throw new AppError("AI trả về quá dài — thử lại.");
     const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
@@ -103,7 +111,7 @@ function filledPortrait(raw: Record<PortraitField, Bilingual>) {
 export async function summarizeMessages(messages: ChatMessage[]) {
   if (!messages.length) throw new AppError("Khách chưa có tin nhắn để tóm tắt.");
   const content = ["<chat>", ...messages.map(transcriptLine), "</chat>"].join("\n");
-  const { out, model } = await askClaude<Output>(SYSTEM, content, SCHEMA, "tóm tắt hội thoại này");
+  const { out, model } = await askClaude<Output>({ system: SYSTEM, content, schema: SCHEMA, what: "tóm tắt hội thoại này" });
   const summary = out.summary_vi.trim() || out.summary_en.trim();
   if (!summary) throw new AppError("AI không trả về nội dung tóm tắt — thử lại.");
   return {
@@ -119,25 +127,47 @@ export async function summarizeMessages(messages: ChatMessage[]) {
   };
 }
 
-const DETECT_SYSTEM = `You maintain a customer profile for Lavian Beauty Center, a beauty clinic in Indonesia (brow, lip and eyeliner embroidery and similar services). A staff member wrote a free-form note about the customer (in any language). Decide which profile fields the note gives information about:
-- wish: what the customer hopes to get (desired result, service, look)
-- pain: worries, fears or objections (price, pain, safety, past bad experience)
-- preference: preferences (style, timing, budget, staff, location)
-- behavior: how they decide (quick, compares prices, asks a partner, needs photos or reviews first)
-- communication: how best to talk to them (language, tone, short or detailed messages, best time)
-- personality: personality traits
-You also get the field's current value. For each field the note informs, write the new full value: keep current details that are still true, add what the note says, drop what it contradicts. One short phrase or sentence, under about 25 words. Write it twice: "vi" in Vietnamese, "en" in English, same meaning.
-Only state what the note supports. For a field the note says nothing about, set both "vi" and "en" to "".`;
+const DETECT_SYSTEM = `You keep the customer profile ("chân dung khách") for Lavian Beauty Center, a beauty clinic in Indonesia: brow, lip and eyeliner embroidery (Sulam Alis, Lip Blush, Eyeliner…), retouches, laser removal and similar services. The sales team is Vietnamese and Indonesian staff who read the profile in Vietnamese or English, so every value is stored in both languages.
+
+You get the current profile and one new free-form note a staff member typed. The note may be in Vietnamese, English or Indonesian, often mixed, with typos, missing diacritics and chat abbreviations (kh / khach = khách hàng, ib = nhắn tin, k / ko = không, dc = được, tv = tư vấn, bn = bao nhiêu). The note's source says whether these are the customer's own words or the staff member's own observation; treat both as facts about the customer.
+
+Fields — put each piece of information in the single field it fits best:
+- wish: the result, service or look the customer wants (e.g. natural brows, fuller lips, removing old tattoo).
+- pain: worries, fears, objections or bad past experiences (pain, price too high, safety, healing time, fear it looks fake).
+- preference: concrete preferences and constraints (style, colour, budget range, preferred days or times, preferred staff, branch).
+- behavior: how they make the decision (decides fast, compares prices, asks husband or family first, wants before/after photos or reviews, waits for promotions).
+- communication: how to talk to them (language, channel, tone, short or detailed replies, best time to contact).
+- personality: personality traits (careful, cheerful, demanding, shy, easy-going…).
+A price worry is "pain"; a stated budget is "preference". Skip greetings, scheduling logistics and anything that is not about the customer.
+
+For each field the note informs, write its new full value:
+- Start from the current value. Keep details that are still true, add the new ones, and drop only what the note contradicts (the note is newer and wins).
+- One short phrase or sentence, at most about 25 words, about the customer in the third person, with no lead-in such as "Khách nói rằng" or "The customer said that".
+- Keep service names, brand names and prices exactly as written (Sulam Alis, 9D Brows, Rp 1.500.000).
+- Only state what the note or the current value supports. Do not guess or add advice.
+
+Both languages, always together:
+- "vi": natural, fluent Vietnamese with full diacritics, as a Vietnamese salesperson would write it.
+- "en": natural English with the same meaning and the same details.
+- Translate whatever language the note is in; never leave one side in the note's language when that is not the target language, and never copy one side into the other.
+- A field the note says nothing about: both "vi" and "en" are "". A field is never filled in only one language.
+
+Example. Current wish: "Muốn làm lông mày tự nhiên". Note (customer's words): "mau bibir juga tp takut sakit, budget max 2jt".
+wish → vi "Muốn làm lông mày tự nhiên và làm môi", en "Wants natural brows and lip embroidery"
+pain → vi "Sợ đau", en "Afraid of pain"
+preference → vi "Ngân sách tối đa 2 triệu Rp", en "Budget up to Rp 2 million"
+All other fields → "".`;
 
 const DETECT_SCHEMA = SCHEMA.properties.portrait;
 
-/** AI đọc ghi chú thô của nhân viên → giá trị mới (đã gộp với `current`) cho các mục ghi chú nói tới. */
-export async function detectPortrait(note: string, current: Partial<Record<PortraitField, string>>) {
+/** AI đọc ghi chú thô của nhân viên → giá trị mới song ngữ (đã gộp với `current`) cho các mục ghi chú nói tới. */
+export async function detectPortrait(note: string, source: "customer" | "staff", current: Partial<Record<PortraitField, string>>) {
   const content = [
-    "<current_profile>", ...PORTRAIT_FIELDS.map((f) => `${f}: ${current[f] ?? "(empty)"}`), "</current_profile>",
-    "<note>", note, "</note>",
+    "<current_profile>", ...PORTRAIT_FIELDS.map((f) => `${f}: ${current[f] || "(empty)"}`), "</current_profile>",
+    `<note source="${source === "customer" ? "customer's own words" : "staff observation"}">`, note, "</note>",
   ].join("\n");
-  const { out } = await askClaude<Record<PortraitField, Bilingual>>(DETECT_SYSTEM, content, DETECT_SCHEMA, "phân tích ghi chú này");
+  const { out } = await askClaude<Record<PortraitField, Bilingual>>(
+    { system: DETECT_SYSTEM, content, schema: DETECT_SCHEMA, what: "phân tích ghi chú này" }, true);
   return filledPortrait(out);
 }
 
