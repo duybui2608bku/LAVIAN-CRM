@@ -56,6 +56,38 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-23 — Thêm DV vào thẻ: drawer mở cạnh drawer thẻ + mỗi nhóm 1 DV
+- **Thay đổi:**
+  - Drawer "Thêm dịch vụ" không còn lồng trong drawer thẻ (antd đẩy drawer cha sang trái + đè lên) → render cạnh, `FormDrawer` có prop mới `beside` (px): màn hình ≥ xl mở bên trái drawer thẻ, rộng `calc(100vw − 600px)`, không mask; < xl mở đè như cũ. `CardItemsDrawer` đổi sang container query (`@container`, `@3xl:` 2 cột, `@md:` bảng giá 2 cột) vì bề rộng drawer giờ khác màn hình.
+  - Mỗi nhóm chỉ 1 DV **tạo tour** / thẻ (`groupTaken` ở `lib/cards.ts`): tick trùng nhóm (với DV chưa hoàn trong thẻ hoặc đã chọn) → toast `cards.error.sameGroup`. Dòng phụ (`tourable = false`: mực, phí Master, Stem Cell Serum) không tính — laser + serum vẫn bán chung được. DB: trigger `treatment_card_items_group_guard` (before insert, khoá thẻ) raise `service_group_taken` → `cards.error.groupTaken`; áp cả lúc bán thẻ mới.
+- **File ảnh hưởng:** `components/common/form-drawer.tsx`, `components/cards/{card-drawer,card-items-drawer}.tsx`, `lib/cards.ts` (+test), `app/(app)/cards/actions.ts`, `messages/{vi,en}.json`, `supabase/migrations/20261123120000_card_item_one_per_group.sql`.
+- **Còn dở / ghi chú:** Migration **đã chạy** lên DB Lavian (2026-11-23; trước đó kiểm không thẻ nào trùng nhóm) + thử trong transaction rollback: trùng nhóm → `service_group_taken` (cả insert nhiều dòng 1 lệnh), laser + serum OK, hoàn DV rồi thêm DV cùng nhóm OK. Chưa xem trên dev server.
+
+### 2026-11-23 — Chặn thu tiền vượt giá trị thẻ liệu trình
+- **Thay đổi:** Trước đây "Thu tiền" nhập bao nhiêu cũng lưu. Quy tắc mới (`paymentRange` ở `lib/cards.ts`, trùng logic với trigger DB): thu (dương) ≤ Công nợ còn lại (giá trị − cọc trừ − Σ thanh toán); hoàn (âm) ≤ Σ thanh toán đã thu (cọc không hoàn qua đây; vẫn đủ để hoàn hết trước khi huỷ thẻ). UI: vượt → chữ đỏ kèm số tối đa + khoá nút. DB: trigger `treatment_card_payments_guard` khoá dòng thẻ `for update` rồi raise `payment_over_due` / `refund_over_paid` → action map sang `cards.error.paymentOverDue|refundOverPaid`.
+- **File ảnh hưởng:** `lib/cards.ts` (+test), `components/cards/card-drawer.tsx` (`PaymentButton` nhận `card`), `app/(app)/cards/actions.ts`, `messages/{vi,en}.json`, `supabase/migrations/20261123110000_card_payment_limits.sql`.
+- **Còn dở / ghi chú:** Migration **đã chạy** lên DB Lavian (2026-11-23) + thử trong transaction rollback: thu vượt → `payment_over_due`, hoàn vượt → `refund_over_paid`, thu đủ / hoàn hết vẫn OK. Chưa xem trên dev server.
+
+### 2026-11-23 — Fix UI nút phương thức trong popover "Thu tiền" (thẻ liệu trình)
+- **Thay đổi:** 3 nút Tiền mặt / Chuyển khoản / Thẻ chia đều (`flex-1`) trong popover rộng 288px → chữ dài xuống dòng, tràn khỏi nút. Đổi option sang `flex-auto px-2! whitespace-nowrap`: nút rộng theo chữ, không xuống dòng.
+- **File ảnh hưởng:** `components/cards/card-drawer.tsx` (`PaymentButton`).
+- **Còn dở / ghi chú:** Chưa xem trực tiếp trên dev server (máy ít RAM).
+
+### 2026-11-23 — Admin hiện "—": đặt tên + avatar Lavian cho admin
+- **Thay đổi:** `admin@lavian.com` có `user_name = ''` + `avatar_url = null` nên mọi chỗ `staffLabel` hiện "—". Update DB (đã chạy qua Supabase MCP): `user_name = 'Admin'`, `avatar_url = '/icons/icon-192.png'` (logo Lavian tròn sẵn trong `public/`, proxy bỏ qua `.png` nên tải được không cần đăng nhập). Chỉ ghi đè khi trống.
+- **File ảnh hưởng:** `supabase/migrations/20261123090000_admin_profile_name_avatar.sql` (đã áp dụng lên DB Lavian, không đổi code).
+- **Còn dở / ghi chú:** Muốn đổi tên/ảnh khác thì admin tự sửa ở "Hồ sơ".
+
+### 2026-11-23 — Xoá dữ liệu thẻ liệu trình test trên DB Lavian
+- **Thay đổi:** Sếp yêu cầu xoá hết thẻ test (qua Supabase MCP, 1 transaction): xoá 7 thẻ TLT00001–TLT00007 (đều do admin@lavian.com tạo, 0 khoản thu) + dòng DV (cascade) + 7 tour gắn thẻ + toàn bộ `card_audit` liên quan. 4 khách (Arsakha_ (fitri), Susi eel, Tini Suhartini, Widya) đổi Status `purchase` → `show_up` (Arrived) theo lựa chọn của sếp. DB giờ 0 thẻ, 0 tour gắn thẻ, `card_audit` trống.
+- **File ảnh hưởng:** chỉ dữ liệu DB (không đổi code/schema, không migration).
+- **Còn dở / ghi chú:** Mã thẻ tiếp theo vẫn chạy tiếp (không reset về TLT00001). Sau đó sếp bảo xoá luôn tour test → xoá cứng **toàn bộ 13 tour** (12 tour cũ đã xoá mềm + 1 tour của thẻ TLT00008 mới tạo lúc 11:03) + nhật ký `card_audit` của tour; bảng `tours` giờ trống. Cuối cùng xoá luôn thẻ **TLT00008** (+ dòng DV, nhật ký) và đưa Arsakha_ (fitri) `purchase` → `show_up`. DB giờ **sạch hoàn toàn**: 0 thẻ, 0 dòng DV, 0 khoản thu, 0 tour, `card_audit` trống.
+
+### 2026-11-23 — Hướng dẫn nhân viên Thẻ liệu trình bản tiếng Anh (PDF)
+- **Thay đổi:** Soạn `docs/user-guide-treatment-cards.{html,pdf}` (10 trang A4, tiếng Anh, nhãn UI đúng `messages/en.json`) theo **luồng hiện tại** (không dịch nguyên bản `the-lieu-trinh.html` cũ): bán thẻ ở Sales Management (giỏ hàng khi Arrived/In progress/Done, drawer checkbox, cọc tự trừ ≤ giá trị thẻ, khách → Purchased), công thức tiền + ví dụ thác nước, drawer thẻ (Take payment kèm ảnh, số âm = hoàn, Edit sessions, Refund service, Activity log, Cancel card chỉ admin khi chưa có tour + Σ thu = 0), trang Treatment cards (số liệu, lọc, trạng thái), New tour + Loại (New/Retouch/Laser/Plasma) + trạng thái tour, hoa hồng (Master 7%/3%/0%, Sales 5% tiền thực thu), Treatment follow-ups cho Telesales (20 ngày kiểm tra laser, 45 ngày dặm), in thẻ A4, phân quyền, thông báo lỗi thường gặp, FAQ. Hình vẽ SVG inline, dữ liệu giả. In bằng Chrome headless như các tài liệu khác.
+- **File ảnh hưởng:** `docs/user-guide-treatment-cards.html` (nguồn), `docs/user-guide-treatment-cards.pdf`.
+- **Còn dở / ghi chú:** Không đổi code/DB. Bản tiếng Việt `docs/the-lieu-trinh.{html,pdf}` vẫn là bản cũ 22/11 (còn % tour, chưa có Đến hạn / Loại tour / hoa hồng / nhật ký) — nên cập nhật theo bản tiếng Anh. Đổi quy trình thẻ thì sửa CẢ 2 bản rồi in lại. Chưa commit.
+
 ### 2026-11-23 — Drop cột tài chính / ghi chú cũ: tài chính chỉ còn ở thẻ liệu trình
 - **Thay đổi:** OpenSpec `drop-dead-finance-fields`. Drop `clinic_appointments.bill_amount/paid_amount/note/sales_note` và `tours.bill_amount/payment_method/note/claimed_at/confirmed_by`. Tiền tour (Bill, tổng, công Master, phiếu in, Excel) đọc giá dòng thẻ qua embed `...treatment_card_items(bill_amount:price)`; tạo tour từ thẻ không ghi bill nữa. Lịch hẹn bỏ tiền khỏi patch schema + quy tắc `billBelowCollected` (`validateVisitStatus(patch, current)` bỏ tham số deposit). Nhật ký thẻ bỏ dòng `tourBill`. RLS `treatment_card_items_read` thêm `tour.*` + `reports.view` (Master cần giá dòng thẻ). Trigger: `log_clinic_appointment_change`, `tours_card_guard`, `tours_protect_confirmation`, `tours_audit` bỏ cột đã drop. Tiền cọc **giữ ở khách** (sếp chốt).
 - **File ảnh hưởng:** `supabase/migrations/20261123100000_drop_dead_finance_fields.sql`, `types/{tour,appointment,customer-360}.ts`, `lib/{appointments,cards}.ts` (+test), `app/(app)/appointments/{actions.ts,page.tsx}`, `app/(app)/cards/actions.ts`, `app/(app)/tour/actions.ts`, `app/(app)/customers/customer-360-actions.ts`, `messages/{vi,en}.json`, `openspec/changes/drop-dead-finance-fields/`.

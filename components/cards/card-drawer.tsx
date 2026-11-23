@@ -22,7 +22,7 @@ import { staffName, type StaffRef } from "@/components/common/user-avatar";
 import { PhotoField } from "@/components/tour/photo-field";
 import { runAction, kindText, TourDrawer, TourStatusTag, type TourMe } from "@/components/tour/tour-drawer";
 import {
-  auditEntries, CARD_PAYMENT_METHODS, cardDone, cardMoney, isTourable, journeyDue, suggestRefund, suggestTourKind, TOUR_KINDS, tourKindDetail,
+  auditEntries, CARD_PAYMENT_METHODS, cardDone, cardMoney, isTourable, journeyDue, paymentRange, suggestRefund, suggestTourKind, TOUR_KINDS, tourKindDetail,
   type AuditEntry, type CardPaymentMethod, type TourKind,
 } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
@@ -32,6 +32,8 @@ import type { Tour } from "@/types/tour";
 
 /** canEdit = cards.edit; canCancel = cards.delete + admin; tour = quyền mở drawer tour (menu Tour). */
 export type CardMe = { id: string; isAdmin: boolean; canEdit: boolean; canCancel: boolean; tour: TourMe };
+
+const CARD_DRAWER_WIDTH = 600;
 
 /** Số tour (buổi đã tạo, chưa xoá) theo dòng dịch vụ của thẻ. */
 export const usageOf = (tours: Pick<Tour, "card_item_id">[]) => (itemId: string) =>
@@ -85,7 +87,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
   const openTour = tours.find((x) => x.id === tourId);
   const consultant = staff.find((s) => s.id === card.created_by)?.user_name ?? "";
 
-  return <FormDrawer open onClose={onClose} width={600}
+  return <><FormDrawer open onClose={onClose} width={CARD_DRAWER_WIDTH}
     footerExtra={<>
       {me.canCancel && active ? <ConfirmAction title={t("cancelTitle")} description={t("cancelBody")}
         okText={t("cancelCard")} cancelText={t("back")}
@@ -141,7 +143,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
       </ul>
     </Section>
 
-    <Section title={t("payments")} className="mb-4" extra={canEdit ? <PaymentButton cardId={card.id} /> : null}>
+    <Section title={t("payments")} className="mb-4" extra={canEdit ? <PaymentButton card={card} /> : null}>
       {card.deposit_used || card.payments.length ? <ul className="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
         {card.deposit_used ? <li className="flex justify-between gap-3 p-3">
           <span className="text-muted-foreground">{t("depositUsed")}</span>
@@ -193,14 +195,16 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
     </Section>
     <CardHistory card={card} tours={tours} services={services} staff={staff} />
 
-    <CardItemsDrawer open={adding} title={t("addServiceTitle", { code: card.code })} submitText={t("addService")}
-      services={services} onClose={() => setAdding(false)}
-      onSubmit={(items) => runAction(addCardItems(card.id, items), t("saved"), failed)} />
     {creatingTour ? <CreateCardTourModal card={card} services={services} tours={tours} isAdmin={me.isAdmin}
       onClose={() => setCreatingTour(false)} /> : null}
     {openTour ? <TourDrawer key={openTour.id} tour={openTour} me={me.tour} services={services} staff={staff}
       customers={[]} onClose={() => setTourId(null)} /> : null}
-  </FormDrawer>;
+  </FormDrawer>
+  {/* Ngoài drawer thẻ (không lồng) → mở bên cạnh, drawer thẻ giữ nguyên để xem thẻ đang có DV gì. */}
+  <CardItemsDrawer open={adding} title={t("addServiceTitle", { code: card.code })} submitText={t("addService")}
+    services={services} existing={card.items.filter((i) => !i.refunded_at).map((i) => i.service_id)} beside={CARD_DRAWER_WIDTH}
+    onClose={() => setAdding(false)} onSubmit={(items) => runAction(addCardItems(card.id, items), t("saved"), failed)} />
+  </>;
 }
 
 /** Lịch sử thao tác (nhật ký DB: ai sửa buổi, hoàn, thu / xoá tiền, tạo / sửa / xoá tour) — bấm Xem mới tải. */
@@ -309,7 +313,7 @@ function RefundButton({ item, used }: { item: CardItem; used: number }) {
 }
 
 /** Thu tiền (số âm = hoàn tiền khách), kèm 0..n ảnh bill / chuyển khoản. */
-function PaymentButton({ cardId }: { cardId: string }) {
+function PaymentButton({ card }: { card: TreatmentCard }) {
   const t = useTranslations("cards");
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number | null>(null);
@@ -317,21 +321,27 @@ function PaymentButton({ cardId }: { cardId: string }) {
   const [note, setNote] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [pending, start] = useTransition();
+  const range = paymentRange(card);
+  // Vượt khoảng → báo ngay + khoá nút (DB cũng chặn: trigger treatment_card_payments_guard).
+  const over = amount == null ? null
+    : amount > range.max ? `${t("error.paymentOverDue")} (${formatRupiah(range.max)})`
+    : amount < range.min ? `${t("error.refundOverPaid")} (${formatRupiah(-range.min)})`
+    : null;
   const save = () => start(async () => {
-    if (await runAction(addCardPayment(cardId, { amount: amount ?? 0, method, note, images }), t("saved"), t("saveError"))) {
+    if (await runAction(addCardPayment(card.id, { amount: amount ?? 0, method, note, images }), t("saved"), t("saveError"))) {
       setOpen(false); setAmount(null); setNote(""); setImages([]);
     }
   });
   return <Popover trigger="click" open={open} onOpenChange={setOpen} title={t("addPayment")} content={<div className="flex w-72 flex-col gap-3">
     <label className="flex flex-col gap-1 text-xs text-muted-foreground">{t("amount")}
       <MoneyInput value={amount} onChange={setAmount} min={-1e13} ariaLabel={t("amount")} />
-      <span>{t("amountHint")}</span>
+      {over ? <span className="text-destructive">{over}</span> : <span>{t("amountHint")}</span>}
     </label>
     <Radio.Group optionType="button" value={method} onChange={(e) => setMethod(e.target.value)} className="flex! w-full"
-      options={CARD_PAYMENT_METHODS.map((m) => ({ value: m, label: t(`method.${m}`), className: "flex-1 text-center" }))} />
+      options={CARD_PAYMENT_METHODS.map((m) => ({ value: m, label: t(`method.${m}`), className: "flex-auto px-2! text-center whitespace-nowrap" }))} />
     <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("note")} maxLength={2000} />
     <PhotoField label={t("paymentPhotos")} value={images} onChange={async (next) => setImages(next)} />
-    <Button type="primary" loading={pending} disabled={!amount} onClick={save}>{t("addPayment")}</Button>
+    <Button type="primary" loading={pending} disabled={!amount || !!over} onClick={save}>{t("addPayment")}</Button>
   </div>}>
     <Button size="small" icon={<Wallet className="size-4" />}>{t("addPayment")}</Button>
   </Popover>;

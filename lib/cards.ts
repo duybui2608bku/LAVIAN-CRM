@@ -19,6 +19,15 @@ export function cardMoney(card: MoneyCard) {
 }
 
 /**
+ * Khoảng tiền 1 lần thu được phép (khớp trigger DB treatment_card_payments_guard):
+ * thu (dương) ≤ Công nợ còn lại; hoàn (âm) ≤ Σ đã thu qua thanh toán (cọc không hoàn ở đây).
+ */
+export function paymentRange(card: MoneyCard) {
+  const paid = card.payments.reduce((s, p) => s + p.amount, 0);
+  return { min: paid > 0 ? -paid : 0, max: Math.max(cardMoney(card).due, 0) };
+}
+
+/**
  * Tiền của 1 khách qua mọi thẻ chưa huỷ (hồ sơ 360°). Cọc chưa trừ vào thẻ nào vẫn là tiền đã thu.
  * Chưa có thẻ mà có cọc → Công nợ null ("Chưa xác định").
  */
@@ -37,6 +46,14 @@ export const suggestRefund = (price: number, sessions: number, used: number) =>
 /** DV của dòng thẻ (join `services`): `tourable = false` = mực, phí Master, sản phẩm — không tạo tour, không tính buổi. */
 type ItemService = { service?: { group_id: string; tourable: boolean } | null };
 export const isTourable = (item: ItemService) => item.service?.tourable !== false;
+
+/**
+ * Mỗi nhóm chỉ 1 DV tạo tour / thẻ (không ai làm 2 kiểu mày): `service` trùng nhóm với DV tạo tour trong `taken`?
+ * Dòng phụ (mực, phí Master, sản phẩm) không tính. Khớp trigger DB treatment_card_items_group_guard.
+ */
+type GroupService = { group_id: string; tourable: boolean };
+export const groupTaken = (service: GroupService, taken: GroupService[]) =>
+  service.tourable && taken.some((s) => s.tourable && s.group_id === service.group_id);
 
 /** Thẻ hoàn thành: mọi dịch vụ (tạo tour được) chưa hoàn đã dùng đủ số buổi. */
 export function cardDone(items: ({ id: string; sessions: number; refunded_at: string | null } & ItemService)[], used: (itemId: string) => number) {

@@ -19,6 +19,7 @@ type T = Awaited<ReturnType<typeof getTranslations<"cards">>>;
 const DB_ERRORS: Record<string, string> = {
   card_needs_items: "card_needs_items", customer_not_found: "customer_not_found", appointment_not_arrived: "appointment_not_arrived",
   card_cancelled: "cancelled", item_refunded: "itemUnavailable", tour_card_mismatch: "itemUnavailable",
+  payment_over_due: "paymentOverDue", refund_over_paid: "refundOverPaid", service_group_taken: "groupTaken",
 };
 
 async function run(action: (t: T, db: Awaited<ReturnType<typeof createClient>>) => Promise<string | void>): Promise<Result> {

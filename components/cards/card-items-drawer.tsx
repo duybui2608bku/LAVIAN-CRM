@@ -8,6 +8,7 @@ import { FormDrawer } from "@/components/common/form-drawer";
 import { MoneyInput } from "@/components/common/money-input";
 import { Section } from "@/components/common/section";
 import { useServiceGroups } from "@/components/common/service-groups";
+import { groupTaken } from "@/lib/cards";
 import { formatIdr, formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import type { Service } from "@/types/service";
@@ -19,13 +20,17 @@ export type CardItemInput = { service_id: string; price: number; sessions: numbe
  * và khi bán thêm dịch vụ vào thẻ. Trái: cả bảng giá dạng checkbox theo nhóm (như tờ bảng giá giấy, không cần cuộn);
  * phải: dịch vụ đã chọn — giá bán mặc định = bảng giá, sửa được (giảm giá / voucher), số buổi mặc định 1.
  */
-export function CardItemsDrawer({ open, title, submitText, services, deposit, onSubmit, onClose }: {
+export function CardItemsDrawer({ open, title, submitText, services, deposit, existing = [], beside, onSubmit, onClose }: {
   open: boolean;
   title: React.ReactNode;
   submitText: string;
   services: Service[];
   /** Cọc chưa dùng của khách sẽ trừ vào thẻ (chỉ khi tạo thẻ). */
   deposit?: number;
+  /** service_id các DV chưa hoàn đang có trong thẻ (bán thêm) — chặn chọn trùng nhóm. */
+  existing?: string[];
+  /** Mở cạnh drawer thẻ (rộng `beside` px) thay vì đè lên. */
+  beside?: number;
   onSubmit: (items: CardItemInput[], note: string) => Promise<boolean>;
   onClose: () => void;
 }) {
@@ -43,9 +48,15 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, on
   const due = total - (deposit ?? 0);
 
   const close = () => { setLines([]); setNote(""); onClose(); };
-  const toggle = (s: Service, on: boolean) => setLines((ls) => on
-    ? [...ls, { service_id: s.id, price: s.price, sessions: 1 }]
-    : ls.filter((l) => l.service_id !== s.id));
+  const toggle = (s: Service, on: boolean) => {
+    if (on) {
+      const taken = [...existing, ...lines.map((l) => l.service_id)].flatMap((id) => byId.get(id) ?? []);
+      if (groupTaken(s, taken)) return void toast.error(t("error.sameGroup", { group: groups.name(s.group_id) }));
+    }
+    setLines((ls) => on
+      ? [...ls, { service_id: s.id, price: s.price, sessions: 1 }]
+      : ls.filter((l) => l.service_id !== s.id));
+  };
   const update = (id: string, patch: Partial<CardItemInput>) =>
     setLines((ls) => ls.map((l) => (l.service_id === id ? { ...l, ...patch } : l)));
   const submit = () => {
@@ -55,10 +66,11 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, on
     });
   };
 
-  return <FormDrawer open={open} onClose={close} title={title} submitText={submitText} pending={pending} width={1120} onSubmit={submit}>
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-      {/* Bảng giá: mỗi nhóm 1 khối, 2 cột (điện thoại 1 cột). */}
-      <div className="columns-1 gap-6 sm:columns-2">
+  // Bố cục theo bề rộng drawer (container query) — mở cạnh drawer thẻ thì hẹp hơn màn hình.
+  return <FormDrawer open={open} onClose={close} title={title} submitText={submitText} pending={pending} width={1120} beside={beside} onSubmit={submit}>
+    <div className="@container"><div className="grid gap-6 @3xl:grid-cols-[minmax(0,1fr)_360px]">
+      {/* Bảng giá: mỗi nhóm 1 khối, 2 cột khi đủ rộng. */}
+      <div className="@container"><div className="columns-1 gap-6 @md:columns-2">
         {sections.map(({ group, items }) => <section key={group.id} className="mb-4 break-inside-avoid">
           <h4 className="mb-1 border-b border-border pb-1 text-xs font-semibold tracking-wide text-primary uppercase">{group.name}</h4>
           <ul>
@@ -74,10 +86,10 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, on
             })}
           </ul>
         </section>)}
-      </div>
+      </div></div>
 
-      {/* Đã chọn + tạm tính — dính trên khi cuộn (desktop). */}
-      <Section title={t("selected", { count: lines.length })} className="self-start lg:sticky lg:top-0">
+      {/* Đã chọn + tạm tính — dính trên khi cuộn (khi 2 cột). */}
+      <Section title={t("selected", { count: lines.length })} className="self-start @3xl:sticky @3xl:top-0">
         {lines.length ? <ul className="flex flex-col gap-2">
           {lines.map((l) => {
             const s = byId.get(l.service_id);
@@ -115,6 +127,6 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, on
         <Input.TextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("note")} aria-label={t("note")}
           autoSize={{ minRows: 2, maxRows: 5 }} maxLength={2000} />
       </Section>
-    </div>
+    </div></div>
   </FormDrawer>;
 }
