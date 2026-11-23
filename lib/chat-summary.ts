@@ -9,30 +9,46 @@ import { PORTRAIT_FIELDS, type ChatSummary, type PortraitField } from "@/types/c
 
 /**
  * Tóm tắt AI (Claude) hội thoại SMAX — dùng chung nút "Tóm tắt bằng AI" (popup 360°) và lead-form (tự chạy khi tạo khách).
- * Trả song ngữ Việt + Anh và 6 mục Chân dung nhanh (AI điền, người dùng ghi đè được).
+ * Trả song ngữ Việt + Anh và 6 mục Chân dung nhanh (AI điền, người dùng ghi đè được). Cùng file: tách chân dung từ ghi chú NV.
  */
 
-const MODEL = "claude-opus-5-5";
+/** Haiku: rẻ + nhanh, đủ cho tóm tắt / tách chân dung (không có model dự phòng khi từ chối → báo lỗi, NV thử lại). */
+const MODEL = "claude-haiku-5-5";
 export const SUMMARY_FIELDS = "summary,summary_en,last_message_at,message_count,created_by,created_at";
 
-const SYSTEM = `You summarize a customer's chat with Lavian Beauty Center, a beauty clinic in Indonesia (brow, lip and eyeliner embroidery and similar services), for the clinic's sales team. The team reads Vietnamese and English, so every text is written twice: "vi" in Vietnamese, "en" in English, with the same meaning.
-Each message is labeled "Customer" or "Lavian" with its date and time.
+// Phần prompt dùng chung cho tóm tắt hội thoại + tách chân dung từ ghi chú.
+const CLINIC = `Lavian Beauty Center is a beauty clinic in Indonesia: brow, lip and eyeliner embroidery (Sulam Alis, Lip Blush, Eyeliner…), retouches, laser removal and similar services. Its sales team reads Vietnamese or English, so every text is written in both.`;
 
-summary_vi / summary_en: plain text in short sections, each a heading line followed by "- " bullets:
-1. What the customer wants (services, preferred dates)
-2. Concerns or objections
-3. What was agreed or quoted (prices, appointments, deposits)
-4. Suggested next step for the sales team
-Skip a section that has nothing. No markdown symbols such as # or **. Keep each under about 150 words.
+const FIELDS_GUIDE = `Portrait fields — put each piece of information in the single field it fits best:
+- wish: the result, service or look the customer wants.
+- pain: worries, fears, objections or bad past experiences (pain, price too high, safety, healing time, fear it looks fake).
+- preference: concrete preferences and constraints (style, colour, budget range, preferred days or times, staff, branch).
+- behavior: how they decide (fast, compares prices, asks husband or family, wants before/after photos or reviews, waits for promotions).
+- communication: how to talk to them (language, channel, tone, short or detailed replies, best time to contact).
+- personality: personality traits.
+A price worry is "pain"; a stated budget is "preference". Each value is one short phrase, at most about 25 words, about the customer in the third person, with no lead-in such as "Khách nói rằng". Only state what the input supports; never guess.`;
 
-portrait: a quick profile of the customer, one short phrase or sentence per field (under about 25 words):
-- wish: what the customer hopes to get (desired result, service, look)
-- pain: worries, fears or objections (price, pain, safety, past bad experience)
-- preference: preferences (style, timing, budget, staff, location)
-- behavior: how they decide (quick, compares prices, asks a partner, needs photos or reviews first)
-- communication: how best to talk to them (language, tone, short or detailed messages, best time)
-- personality: personality traits the chat shows
-Only state what the chat supports. When the chat says nothing about a field, set both its "vi" and "en" to "".`;
+const BILINGUAL = `Both languages, always together:
+- "vi": natural, fluent Vietnamese with full diacritics, as a Vietnamese salesperson would write it.
+- "en": natural English with the same meaning and details.
+- Translate from whatever language the input uses (often Indonesian or mixed); never copy one side into the other.
+- Keep service names, brand names and prices exactly as written (Sulam Alis, 9D Brows, Rp 1.500.000).
+- Nothing to say: both "vi" and "en" are "". Never fill only one language.`;
+
+const SYSTEM = `You summarize a customer's chat with Lavian for its sales team. ${CLINIC}
+The chat lists messages oldest first. A date line (DD/MM/YYYY) starts each day; each message is "HH:mm C: …" (C = customer) or "HH:mm L: …" (L = Lavian staff). [img×N] / [file×N] mark attachments.
+
+summary_vi / summary_en: plain text, only these headings, each followed by terse "- " bullets (fragments, not full sentences):
+1. Customer wants (services, dates)
+2. Concerns / objections
+3. Agreed or quoted (prices, appointments, deposits)
+4. Next step for sales
+Skip a heading with nothing under it. No markdown such as # or **. At most about 100 words per language.
+
+portrait: what the chat shows about the customer.
+${FIELDS_GUIDE}
+
+${BILINGUAL}`;
 
 const bilingual = {
   type: "object",
@@ -40,72 +56,119 @@ const bilingual = {
   required: ["vi", "en"],
   additionalProperties: false,
 };
+const PORTRAIT_SCHEMA = {
+  type: "object",
+  properties: Object.fromEntries(PORTRAIT_FIELDS.map((f) => [f, bilingual])),
+  required: [...PORTRAIT_FIELDS],
+  additionalProperties: false,
+};
 const SCHEMA = {
   type: "object",
-  properties: {
-    summary_vi: { type: "string" },
-    summary_en: { type: "string" },
-    portrait: {
-      type: "object",
-      properties: Object.fromEntries(PORTRAIT_FIELDS.map((f) => [f, bilingual])),
-      required: [...PORTRAIT_FIELDS],
-      additionalProperties: false,
-    },
-  },
+  properties: { summary_vi: { type: "string" }, summary_en: { type: "string" }, portrait: PORTRAIT_SCHEMA },
   required: ["summary_vi", "summary_en", "portrait"],
   additionalProperties: false,
 };
 type Bilingual = { vi: string; en: string };
 type Output = { summary_vi: string; summary_en: string; portrait: Record<PortraitField, Bilingual> };
 
-const transcriptLine = (m: ChatMessage) => {
-  const extra = [m.images.length && `[${m.images.length} image(s)]`, m.files && `[${m.files} attachment(s)]`].filter(Boolean).join(" ");
-  return `[${dayjs(m.at).format("DD/MM/YYYY HH:mm")}] ${m.out ? "Lavian" : "Customer"}: ${[m.text, extra].filter(Boolean).join(" ")}`;
-};
+/** Hội thoại gọn cho AI (tiết kiệm token): ngày ghi 1 lần/ngày, mỗi tin "HH:mm C|L: nội dung", bỏ tin rỗng, gộp khoảng trắng. */
+function transcript(messages: ChatMessage[]) {
+  const lines: string[] = [];
+  let day = "";
+  for (const m of messages) {
+    const text = m.text.replace(/\s+/g, " ").trim();
+    const extra = [m.images.length && `[img×${m.images.length}]`, m.files && `[file×${m.files}]`].filter(Boolean).join(" ");
+    if (!text && !extra) continue;
+    const at = dayjs(m.at);
+    if (at.format("DD/MM/YYYY") !== day) lines.push((day = at.format("DD/MM/YYYY")));
+    lines.push(`${at.format("HH:mm")} ${m.out ? "L" : "C"}: ${[text, extra].filter(Boolean).join(" ")}`);
+  }
+  return lines.join("\n");
+}
 
-/** Gọi Claude tóm tắt `messages` (cũ → mới) → cột của `customer_chat_summaries` + chân dung (chỉ các mục có nội dung). */
-export async function summarizeMessages(messages: ChatMessage[]) {
+type Ask = { system: string; content: string; schema: Record<string, unknown>; what: string };
+
+/** Gọi Claude trả JSON theo `schema` (lỗi API → AppError tiếng Việt). */
+async function askClaude<T>({ system, content, schema, what }: Ask): Promise<{ out: T; model: string }> {
   if (!process.env.ANTHROPIC_API_KEY) throw new AppError("Thiếu ANTHROPIC_API_KEY — điền vào biến môi trường của server.");
-  if (!messages.length) throw new AppError("Khách chưa có tin nhắn để tóm tắt.");
   try {
-    const res = await new Anthropic().beta.messages.create({
+    const res = await new Anthropic().messages.create({
       model: MODEL,
-      max_tokens: 16000,
-      output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
-      // Model từ chối (an toàn) → API tự chạy lại trên model dự phòng trong cùng request.
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      system: SYSTEM,
-      messages: [{ role: "user", content: ["<chat>", ...messages.map(transcriptLine), "</chat>"].join("\n") }],
+      max_tokens: 4000, // đầu ra JSON ngắn; chặn trường hợp sinh lan man
+      // Tắt thinking + effort thấp: việc tóm tắt / phân loại ngắn, không cần suy nghĩ dài → ít token đầu ra nhất.
+      thinking: { type: "disabled" },
+      output_config: { effort: "low", format: { type: "json_schema", schema } },
+      system,
+      messages: [{ role: "user", content }],
     });
-    if (res.stop_reason === "refusal") throw new AppError("AI từ chối tóm tắt hội thoại này.");
+    if (res.stop_reason === "refusal") throw new AppError(`AI từ chối ${what}.`);
     if (res.stop_reason === "max_tokens") throw new AppError("AI trả về quá dài — thử lại.");
     const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
-    const out = JSON.parse(text) as Output;
-    const summary = out.summary_vi.trim() || out.summary_en.trim();
-    if (!summary) throw new AppError("AI không trả về nội dung tóm tắt — thử lại.");
-    const portrait: Partial<Record<PortraitField, Bilingual>> = {};
-    for (const f of PORTRAIT_FIELDS) {
-      const vi = out.portrait[f]?.vi.trim().slice(0, 1000) ?? "";
-      const en = out.portrait[f]?.en.trim().slice(0, 1000) ?? "";
-      if (vi || en) portrait[f] = { vi: vi || en, en: en || vi };
-    }
-    return {
-      summary: {
-        summary: summary.slice(0, 8000),
-        summary_en: out.summary_en.trim().slice(0, 8000) || null,
-        last_message_at: messages.at(-1)!.at,
-        message_count: messages.length,
-        model: res.model,
-        created_at: new Date().toISOString(),
-      },
-      portrait,
-    };
+    return { out: JSON.parse(text) as T, model: res.model };
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) throw new AppError("ANTHROPIC_API_KEY sai hoặc đã bị thu hồi.");
     if (error instanceof Anthropic.RateLimitError) throw new AppError("AI đang quá tải — thử lại sau ít phút.");
     throw error;
   }
+}
+
+/** Chỉ giữ các mục AI có nội dung (thiếu 1 ngôn ngữ → lấy ngôn ngữ kia). */
+function filledPortrait(raw: Record<PortraitField, Bilingual>) {
+  const portrait: Partial<Record<PortraitField, Bilingual>> = {};
+  for (const f of PORTRAIT_FIELDS) {
+    const vi = raw[f]?.vi.trim().slice(0, 1000) ?? "";
+    const en = raw[f]?.en.trim().slice(0, 1000) ?? "";
+    if (vi || en) portrait[f] = { vi: vi || en, en: en || vi };
+  }
+  return portrait;
+}
+
+/** Gọi Claude tóm tắt `messages` (cũ → mới) → cột của `customer_chat_summaries` + chân dung (chỉ các mục có nội dung). */
+export async function summarizeMessages(messages: ChatMessage[]) {
+  const chat = transcript(messages);
+  if (!chat) throw new AppError("Khách chưa có tin nhắn để tóm tắt.");
+  const { out, model } = await askClaude<Output>({ system: SYSTEM, content: `<chat>\n${chat}\n</chat>`, schema: SCHEMA, what: "tóm tắt hội thoại này" });
+  const summary = out.summary_vi.trim() || out.summary_en.trim();
+  if (!summary) throw new AppError("AI không trả về nội dung tóm tắt — thử lại.");
+  return {
+    summary: {
+      summary: summary.slice(0, 8000),
+      summary_en: out.summary_en.trim().slice(0, 8000) || null,
+      last_message_at: messages.at(-1)!.at,
+      message_count: messages.length,
+      model,
+      created_at: new Date().toISOString(),
+    },
+    portrait: filledPortrait(out.portrait),
+  };
+}
+
+const DETECT_SYSTEM = `You keep the customer portrait ("chân dung khách") for Lavian's sales team. ${CLINIC}
+
+You get the current portrait and one new note a staff member typed. The note may be Vietnamese, English or Indonesian, often mixed, with typos, missing diacritics and chat abbreviations (kh = khách hàng, ib = nhắn tin, k / ko = không, dc = được, tv = tư vấn, bn = bao nhiêu). Its source says whether it is the customer's own words or the staff member's observation; treat both as facts about the customer. Ignore greetings, scheduling logistics and anything not about the customer.
+
+${FIELDS_GUIDE}
+
+For each field the note informs, write its new full value: start from the current value, keep details still true, add the new ones, and drop only what the note contradicts (the note is newer). Fields the note does not inform stay "".
+
+${BILINGUAL}
+
+Example. Current wish: "Muốn làm lông mày tự nhiên". Note (customer's words): "mau bibir juga tp takut sakit, budget max 2jt".
+wish: vi "Muốn làm lông mày tự nhiên và làm môi", en "Wants natural brows and lip embroidery"
+pain: vi "Sợ đau", en "Afraid of pain"
+preference: vi "Ngân sách tối đa 2 triệu Rp", en "Budget up to Rp 2 million"
+Other fields: "".`;
+
+/** AI đọc ghi chú thô của nhân viên → giá trị mới song ngữ (đã gộp với `current`) cho các mục ghi chú nói tới. */
+export async function detectPortrait(note: string, source: "customer" | "staff", current: Partial<Record<PortraitField, string>>) {
+  const known = PORTRAIT_FIELDS.filter((f) => current[f]).map((f) => `${f}: ${current[f]}`);
+  const content = [
+    `<current_portrait>${known.length ? `\n${known.join("\n")}\n` : "(empty)"}</current_portrait>`,
+    `<note source="${source === "customer" ? "customer's words" : "staff observation"}">\n${note}\n</note>`,
+  ].join("\n");
+  const { out } = await askClaude<Record<PortraitField, Bilingual>>(
+    { system: DETECT_SYSTEM, content, schema: PORTRAIT_SCHEMA, what: "phân tích ghi chú này" });
+  return filledPortrait(out);
 }
 
 /**

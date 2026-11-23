@@ -56,6 +56,21 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-23 — AI tóm tắt hội thoại cũng sang Haiku 5.5 + tối ưu token
+- **Thay đổi:** Mọi lời gọi Claude trong `lib/chat-summary.ts` (tóm tắt hội thoại SMAX + tách chân dung) chạy `claude-haiku-5-5`, `thinking: disabled`, effort `low`, `max_tokens` 4000, `messages.create` thường (bỏ beta fallback). Transcript gọn: ngày ghi 1 lần/ngày, mỗi tin `HH:mm C|L: …`, `[img×N]`/`[file×N]`, gộp khoảng trắng, bỏ tin rỗng. Tóm tắt: gạch đầu dòng dạng cụm từ, tối đa ~100 từ/ngôn ngữ (trước ~150). Prompt dùng chung 3 khối `CLINIC` / `FIELDS_GUIDE` / `BILINGUAL` cho cả 2 việc. Tách chân dung chỉ gửi các mục đang có giá trị.
+- **File ảnh hưởng:** `lib/chat-summary.ts`.
+- **Còn dở / ghi chú:** Chưa gọi thử AI thật (`ANTHROPIC_API_KEY` ở `.env.local` máy này trống). Haiku không có model dự phòng khi từ chối → báo lỗi, NV thử lại.
+
+### 2026-11-23 — Chân dung AI: đổi sang Haiku 5.5 + prompt song ngữ chuẩn hơn
+- **Thay đổi:** `detectPortrait` chạy `claude-haiku-5-5` (effort medium, `messages.create` thường — Haiku không có fallback phía server khi từ chối); tóm tắt hội thoại SMAX vẫn Opus 5.5. `askClaude` nhận object + cờ `fast`. Prompt mới: nhận ghi chú Việt/Anh/Indo lẫn lộn, viết tắt chat; hướng dẫn chọn mục (lo giá → Nỗi lo, ngân sách → Sở thích), gộp với giá trị cũ, giữ nguyên tên DV/giá; bắt buộc `vi` + `en` luôn đi cùng nhau, dịch tự nhiên, không copy; có ví dụ mẫu. Gửi thêm nguồn ghi chú (lời khách / NV nhận định) cho AI.
+- **File ảnh hưởng:** `lib/chat-summary.ts`, `app/(app)/customers/customer-360-actions.ts`.
+- **Còn dở / ghi chú:** **Chưa gọi thử AI thật** — `ANTHROPIC_API_KEY` trong `.env.local` máy này đang trống. Script thử nhanh ở scratchpad (không commit).
+
+### 2026-11-23 — Chân dung khách: nhập text thô, AI tự nhận ra mục
+- **Thay đổi:** OpenSpec `portrait-ai-detect`. Form tab Chân dung bỏ ô **Mục** + **Tin nhắn gốc**, chỉ còn Nguồn (Khách nói / NV nhận định) + Nội dung. Action `addPortraitNote` (thay `addPortraitEntry`): lưu text thô vào **mục ẩn `general`** → `detectPortrait` (Claude, song ngữ vi/en, nhận chân dung hiện tại để gộp, chỉ trả các mục ghi chú nói tới) → mỗi mục 1 dòng mới, `source` = nguồn NV chọn (tóm tắt AI hội thoại không đè). AI lỗi / không nhận ra gì → vẫn giữ text thô + toast cảnh báo. `getCustomer360` lọc bỏ `general`. `lib/chat-summary.ts` gom gọi Claude vào `askClaude` + `filledPortrait` dùng chung với tóm tắt hội thoại.
+- **File ảnh hưởng:** `lib/chat-summary.ts`, `app/(app)/customers/customer-360-actions.ts`, `components/customers/customer-360/profile-tabs.tsx`, `messages/{vi,en}.json`, `supabase/migrations/20261123130000_portrait_general_field.sql`, `openspec/changes/portrait-ai-detect/`.
+- **Còn dở / ghi chú:** Migration **đã chạy** lên DB Lavian (2026-11-23), constraint đã có `general`. tsc + eslint sạch; chưa xem trên dev server, chưa gọi thử AI thật; chưa commit.
+
 ### 2026-11-23 — Thêm DV vào thẻ: khoá nhóm đã có DV + hiện DV cũ & giá trị sau cập nhật
 - **Thay đổi:** Drawer chọn DV (`CardItemsDrawer`): DV thuộc nhóm đã có DV (trong thẻ hoặc vừa chọn, theo `groupTaken`) → checkbox disable + mờ, tên nhóm có icon `!` đỏ (tooltip `error.sameGroup`); bỏ toast chặn cũ. Cột "Đã chọn" hiện khối "Đang có trong thẻ" (DV chưa hoàn, chỉ đọc: tên, nhóm, giá, buổi) + tổng: Giá trị thẻ hiện tại / Thêm mới / Giá trị thẻ sau cập nhật. Prop `existing` đổi từ `string[]` → item `{service_id, price, sessions}`, thêm `currentValue` (= `cardMoney(card).value`). Bán thẻ mới không đổi (không truyền 2 prop này).
 - **File ảnh hưởng:** `components/cards/{card-items-drawer,card-drawer}.tsx`, `messages/{vi,en}.json`.
