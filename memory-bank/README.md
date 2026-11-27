@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-27 — Trang Tour của KTV: giao diện PC + bộ lọc
+- **Thay đổi:** `TechnicianTours` trước dùng giao diện thẻ mobile cho cả PC. Giờ PC (≥ 640px, `useIsMobile`) hiện **bảng** (`DataTable`): tab Chờ nhận = Ngày · Khách · Dịch vụ · Loại · Ghi chú · nút Nhận tour; tab Tour của tôi = Ngày · Khách · Dịch vụ · Loại · Ảnh · Công · Trạng thái (bấm dòng mở drawer). Segmented không còn kéo hết chiều ngang trên PC. Thêm thanh lọc cho cả 2 tab (PC + điện thoại): tìm khách / SĐT, dịch vụ (chỉ DV có trong tab), trạng thái (Tour của tôi: Chưa xác nhận / Đã xác nhận); đổi tab thì bỏ lọc DV / trạng thái. Điện thoại vẫn danh sách thẻ như cũ. i18n `tour.allServices`.
+- **File ảnh hưởng:** `components/tour/tour-view.tsx`, `messages/{vi,en}.json`
+- **Còn dở / ghi chú:** tsc (trừ `.next/` cũ) + eslint sạch. Chưa xem trên trình duyệt (cần đăng nhập tài khoản KTV), chưa commit.
+
 ### 2026-11-27 — Modal Tạo tour theo lộ trình dự kiến
 - **Thay đổi:** Modal Tạo tour (drawer thẻ) bám tour dự kiến: DV có lộ trình hiện tour dự kiến kế tiếp ("Laser 2 · Dự kiến 13/12/2026"), Loại lấy theo lộ trình (bỏ ô chọn Loại), tick sẵn tour dự kiến sớm nhất của thẻ; ngày mặc định = ngày dự kiến của tour đang chọn (đã qua thì hôm nay) cho tới khi tự sửa ngày. DV không có lộ trình (môi, mí...) vẫn chọn Loại tay như cũ. Server không đổi (`createCardTours` vẫn biến tour dự kiến sớm nhất của DV thành tour thật). i18n `cards.plannedOn`.
 - **File ảnh hưởng:** `components/cards/card-drawer.tsx`, `messages/{vi,en}.json`

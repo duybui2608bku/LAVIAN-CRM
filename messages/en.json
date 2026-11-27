@@ -185,6 +185,7 @@
     "status_confirmed": "Confirmed",
     "allStatuses": "All statuses",
     "allTechnicians": "All technicians",
+    "allServices": "All services",
     "unassigned": "No technician",
     "tabPending": "Waiting",
     "tabMine": "My tours",
