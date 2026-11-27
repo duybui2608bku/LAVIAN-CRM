@@ -1130,6 +1130,7 @@
     "plannedToursHint": "Sửa ngày 1 tour — các tour dự kiến sau tự dời theo.",
     "plannedPreviewHint": "Tính từ ngày tour đầu. Sửa ngày → các tour sau tự dời. Tạo thẻ xong sẽ có các tour Dự kiến này.",
     "sessionsFull": "đã đủ buổi (chỉ admin tạo thêm)",
+    "plannedOn": "Dự kiến {date}",
     "history": {
       "title": "Lịch sử thao tác",
       "show": "Xem",

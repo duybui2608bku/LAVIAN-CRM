@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-27 — Modal Tạo tour theo lộ trình dự kiến
+- **Thay đổi:** Modal Tạo tour (drawer thẻ) bám tour dự kiến: DV có lộ trình hiện tour dự kiến kế tiếp ("Laser 2 · Dự kiến 13/12/2026"), Loại lấy theo lộ trình (bỏ ô chọn Loại), tick sẵn tour dự kiến sớm nhất của thẻ; ngày mặc định = ngày dự kiến của tour đang chọn (đã qua thì hôm nay) cho tới khi tự sửa ngày. DV không có lộ trình (môi, mí...) vẫn chọn Loại tay như cũ. Server không đổi (`createCardTours` vẫn biến tour dự kiến sớm nhất của DV thành tour thật). i18n `cards.plannedOn`.
+- **File ảnh hưởng:** `components/cards/card-drawer.tsx`, `messages/{vi,en}.json`
+- **Còn dở / ghi chú:** eslint sạch, tsc chỉ báo lỗi type cũ trong `.next/` (route đã xoá). Chưa xem trên trình duyệt, chưa commit.
+
 ### 2026-11-27 — Thu tiền thẻ: bỏ popover, form hiện sẵn + Enter để lưu
 - **Thay đổi:** Theo yêu cầu sếp, `PaymentButton` (popover) → `PaymentForm` hiện sẵn ngay đầu mục Thanh toán của drawer thẻ (chỉ khi có quyền sửa): Số tiền + phương thức cùng hàng, Ghi chú, Ảnh bill + nút Thu tiền. Bọc `<form>` nên nhập xong Enter là lưu; vẫn chặn khi trống / vượt công nợ / hoàn quá đã thu. Lưu xong form tự xoá trắng.
 - **File ảnh hưởng:** `components/cards/card-drawer.tsx`

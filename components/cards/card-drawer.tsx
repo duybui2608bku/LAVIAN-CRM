@@ -422,9 +422,9 @@ function PaymentForm({ card }: { card: TreatmentCard }) {
 }
 
 /**
- * Tạo tour từ thẻ: chọn dịch vụ (mỗi DV 1 tour) + Loại — gợi ý Laser / Plasma theo DV, chưa Làm mới → Làm mới, còn lại Dặm.
- * Số lần server tự tính theo tour đã có; nhãn trong ô chọn là bản xem trước ("Dặm 1").
- * Chỉ DV tạo tour được (không mực / phí Master); vượt số buổi chỉ admin.
+ * Tạo tour từ thẻ: mỗi DV chọn = 1 tour. DV có lộ trình dự kiến → tạo đúng tour dự kiến kế tiếp (Loại theo lộ trình,
+ * ngày mặc định = ngày dự kiến, chưa tới thì hôm nay); DV không có lộ trình (vd. môi) → chọn Loại tay như cũ.
+ * Số lần server tự tính theo tour đã có; nhãn là bản xem trước ("Dặm 1"). Chỉ DV tạo tour được; vượt số buổi chỉ admin.
  */
 function CreateCardTourModal({ card, services, tours, isAdmin, onClose }: {
   card: TreatmentCard;
@@ -437,21 +437,32 @@ function CreateCardTourModal({ card, services, tours, isAdmin, onClose }: {
   const tt = useTranslations("tour");
   const items = card.items.filter((i) => !i.refunded_at && isTourable(i));
   const ofItem = (id: string) => tours.filter((x) => x.card_item_id === id && !x.planned); // tour dự kiến không tính buổi
+  // Tour dự kiến kế tiếp của DV — server cũng biến đúng tour dự kiến sớm nhất của DV thành tour thật.
+  const nextPlanned = (id: string) => tours.filter((x) => x.card_item_id === id && x.planned)
+    .sort((a, b) => a.tour_date.localeCompare(b.tour_date))[0];
   const suggest = (item: CardItem): TourKind => {
+    const plan = nextPlanned(item.id);
+    if (plan?.service_detail) return plan.service_detail as TourKind;
     const s = services.find((x) => x.id === item.service_id);
     return s ? suggestTourKind(s, ofItem(item.id)) : "new";
   };
-  const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
-  // Tick sẵn DV đang đến hạn (kiểm tra laser / dặm); không có thì chỉ khi thẻ còn đúng 1 DV còn buổi — tránh tạo nhầm tour.
+  const today = dayjs().format("YYYY-MM-DD");
+  // Tick sẵn tour dự kiến sớm nhất của thẻ; chưa có lộ trình thì DV đang đến hạn, không có nữa thì khi thẻ còn đúng 1 DV còn buổi.
   const [picked, setPicked] = useState<Record<string, TourKind | null>>(() => {
-    const due = new Set(journeyDue([card], tours).map((d) => d.item.id));
     const open = items.filter((i) => ofItem(i.id).length < i.sessions);
-    const pick = due.size ? open.filter((i) => due.has(i.id)) : open.length === 1 ? open : [];
+    const first = open.filter((i) => nextPlanned(i.id))
+      .sort((a, b) => nextPlanned(a.id).tour_date.localeCompare(nextPlanned(b.id).tour_date))[0];
+    const due = new Set(journeyDue([card], tours).map((d) => d.item.id));
+    const pick = first ? [first] : due.size ? open.filter((i) => due.has(i.id)) : open.length === 1 ? open : [];
     return Object.fromEntries(pick.map((i) => [i.id, suggest(i)]));
   });
+  const chosen = Object.entries(picked).filter((e): e is [string, TourKind] => e[1] != null);
+  // Ngày theo tour dự kiến đang chọn (sớm nhất, đã qua thì hôm nay) cho tới khi người dùng tự sửa ngày.
+  const [manualDate, setManualDate] = useState<string | null>(null);
+  const plannedDate = chosen.map(([id]) => nextPlanned(id)?.tour_date).filter((d): d is string => !!d).sort()[0];
+  const date = manualDate ?? (plannedDate && plannedDate > today ? plannedDate : today);
   const [note, setNote] = useState("");
   const [pending, start] = useTransition();
-  const chosen = Object.entries(picked).filter((e): e is [string, TourKind] => e[1] != null);
   const submit = () => start(async () => {
     const ok = await runAction(createCardTours(card.id, {
       tour_date: date, note, items: chosen.map(([card_item_id, kind]) => ({ card_item_id, kind })),
@@ -463,7 +474,7 @@ function CreateCardTourModal({ card, services, tours, isAdmin, onClose }: {
     okButtonProps={{ loading: pending, disabled: !chosen.length || !date }} cancelButtonProps={{ disabled: pending }} onOk={submit}>
     <div className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">{tt("date")}
-        <DatePicker value={date} onChange={(v) => setDate(v ?? "")} allowClear={false} />
+        <DatePicker value={date} onChange={(v) => setManualDate(v ?? null)} allowClear={false} />
       </label>
       <ul className="flex flex-col gap-2">
         {items.map((item) => {
@@ -472,19 +483,24 @@ function CreateCardTourModal({ card, services, tours, isAdmin, onClose }: {
           const on = kind != null;
           const done = ofItem(item.id).length;
           const full = done >= item.sessions;
-          return <li key={item.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-            <Checkbox checked={on} aria-label={s?.name} disabled={full && !isAdmin && !on}
-              onChange={(e) => setPicked((p) => ({ ...p, [item.id]: e.target.checked ? suggest(item) : null }))} />
-            <div className="min-w-0 flex-1">
-              <div className="font-medium">{s?.name ?? "—"}</div>
-              <div className="text-xs text-muted-foreground">
-                {t("usedSessions", { used: done, total: item.sessions })}
-                {full ? <span className="text-warning"> · {t(isAdmin ? "overSessions" : "sessionsFull")}</span> : null}
+          const plan = nextPlanned(item.id);
+          const planKind = (plan?.service_detail ?? null) as TourKind | null;
+          return <li key={item.id} className={`flex items-center gap-3 rounded-lg border p-3 ${on ? "border-primary bg-primary/5" : "border-border"}`}>
+              <Checkbox checked={on} aria-label={s?.name} disabled={full && !isAdmin && !on}
+                onChange={(e) => setPicked((p) => ({ ...p, [item.id]: e.target.checked ? suggest(item) : null }))} />
+              <div className="min-w-0 flex-1">
+                <div className="font-medium">{s?.name ?? "—"}
+                  {planKind ? <span className="text-muted-foreground"> · {kindText(tt, tourKindDetail(planKind, date, ofItem(item.id)))}</span> : null}</div>
+                <div className="text-xs text-muted-foreground">
+                  {plan ? <>{t("plannedOn", { date: dayjs(plan.tour_date).format("DD/MM/YYYY") })} · </> : null}
+                  {t("usedSessions", { used: done, total: item.sessions })}
+                  {full ? <span className="text-warning"> · {t(isAdmin ? "overSessions" : "sessionsFull")}</span> : null}
+                </div>
               </div>
-            </div>
-            <Select<TourKind> size="small" className="w-28" disabled={!on} value={kind ?? undefined} aria-label={tt("kind")}
-              onChange={(v) => setPicked((p) => ({ ...p, [item.id]: v }))}
-              options={TOUR_KINDS.map((k) => ({ value: k, label: kindText(tt, tourKindDetail(k, date, ofItem(item.id))) }))} />
+              {/* Có lộ trình → Loại theo lộ trình; không có → chọn tay. */}
+              {planKind ? null : <Select<TourKind> size="small" className="w-28" disabled={!on} value={kind ?? undefined} aria-label={tt("kind")}
+                onChange={(v) => setPicked((p) => ({ ...p, [item.id]: v }))}
+                options={TOUR_KINDS.map((k) => ({ value: k, label: kindText(tt, tourKindDetail(k, date, ofItem(item.id))) }))} />}
           </li>;
         })}
       </ul>
