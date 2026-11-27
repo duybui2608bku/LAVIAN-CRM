@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import type { TourGroup } from "@/components/tour/tour-data";
-import { tourCommission } from "@/lib/tours";
+import { tourBill, tourCommission } from "@/lib/tours";
 
 export type TourExcelLabels = {
   technician: string;
@@ -37,7 +37,7 @@ export async function downloadTourExcel(groups: TourGroup[], month: string, labe
         dayjs(row.tour_date).format("DD/MM/YYYY"),
         row.customer?.full_name ?? "",
         labels.detail(row),
-        row.bill_amount,
+        tourBill(row),
         tourCommission(row),
       ]);
     }

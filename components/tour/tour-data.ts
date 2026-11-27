@@ -1,9 +1,9 @@
 // Dữ liệu dùng chung cho Excel + phiếu tour PDF (admin).
 import type { StaffRef } from "@/components/common/user-avatar";
-import { tourCommission } from "@/lib/tours";
+import { tourBill, tourCommission } from "@/lib/tours";
 import type { Tour } from "@/types/tour";
 
-/** missing = số tour chưa nhập bill; commission = công Master (tourCommission). */
+/** bill = Σ Hoá đơn (tourBill: giá trọn gói ghi ở tour đầu của dòng thẻ); missing = tour không có giá; commission = công Master. */
 export type TourGroup = {
   technician: StaffRef;
   rows: Tour[];
@@ -25,7 +25,7 @@ export function groupByTechnician(items: Tour[], staff: StaffRef[]): TourGroup[]
       groups.set(item.technician_id, group);
     }
     group.rows.push(item);
-    group.bill += item.bill_amount ?? 0;
+    group.bill += tourBill(item) ?? 0;
     group.commission += tourCommission(item);
     if (item.bill_amount == null) group.missing += 1;
   }

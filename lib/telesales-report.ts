@@ -5,11 +5,13 @@
  * Định nghĩa (kỳ = [from, to]):
  *  - Booking       = lịch có NGÀY TẠO trong kỳ.
  *  - Booking mới   = booking mà khách được TẠO trong kỳ.
- *  - Đã xác nhận / Khách hủy / Đổi lịch = booking theo trạng thái `booking_confirm`.
- *  - Lịch hẹn      = lịch có NGÀY HẸN trong kỳ; Khách đến = trong số đó đã check-in.
+ *  - Đã xác nhận / Khách hủy / Đổi lịch = booking theo `confirmStatus` (Huỷ / Đổi lịch = visit_status) — lib/kpi.ts.
+ *  - Lịch hẹn      = lịch có NGÀY HẸN trong kỳ; Khách đến = trong số đó đã đến (`isArrived`).
  *  - Show-up       = Khách đến / Lịch hẹn.
  */
-import type { BookingStatus } from "@/types/appointment";
+import { confirmStatus, isArrived, vnDay } from "./kpi.ts";
+
+export { vnDay };
 
 /** KPI tỉ lệ booking / hội thoại của Telesales. */
 export const KPI_BOOKING_RATE = 0.12;
@@ -18,8 +20,8 @@ export type TelesalesAppointment = {
   id: string;
   created_at: string;
   scheduled_at: string;
-  booking_confirm: BookingStatus;
-  checked_in: boolean;
+  booking_confirm: string;
+  visit_status: string;
   staff_id: string | null;
   customer: { created_at: string; source: string | null };
 };
@@ -62,11 +64,6 @@ export type TelesalesReportData = {
   other: StaffCounts | null;
 };
 
-/** Timestamp ISO → ngày theo UTC+7. */
-export function vnDay(iso: string): string {
-  return new Date(Date.parse(iso) + 7 * 3_600_000).toISOString().slice(0, 10);
-}
-
 function addDays(ymd: string, n: number): string {
   const [y, m, d] = ymd.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
@@ -98,13 +95,14 @@ function periodStats(
     if (inPeriod(vnDay(a.created_at), from, to)) {
       s.bookings++;
       if (inPeriod(vnDay(a.customer.created_at), from, to)) s.newBookings++;
-      if (a.booking_confirm === "confirmed") s.confirmed++;
-      else if (a.booking_confirm === "cancelled") s.cancelled++;
-      else if (a.booking_confirm === "rescheduled") s.rescheduled++;
+      const confirm = confirmStatus(a);
+      if (confirm === "confirmed") s.confirmed++;
+      else if (confirm === "cancelled") s.cancelled++;
+      else if (confirm === "rescheduled") s.rescheduled++;
     }
     if (inPeriod(vnDay(a.scheduled_at), from, to)) {
       s.scheduled++;
-      if (a.checked_in) s.arrived++;
+      if (isArrived(a.visit_status)) s.arrived++;
     }
   }
   return s;
@@ -154,7 +152,7 @@ export function buildTelesalesReport(input: {
     if (inPeriod(scheduled, from, to)) {
       const b = bucket(a.staff_id);
       b.scheduled++;
-      if (a.checked_in) {
+      if (isArrived(a.visit_status)) {
         b.arrived++;
         dayIndex.get(scheduled)!.arrived++;
       }

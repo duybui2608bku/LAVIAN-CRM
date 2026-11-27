@@ -96,7 +96,7 @@ export interface Customer360 {
     stage: string;
     staff_id: string | null;
     sales_id: string | null;
-    technician_id: string | null;
+    technician_id: string | null; // suy ra: Master tour thật gần nhất (latestMaster) — không còn cột DB
     first_contact: string | null;
     created_at: string;
     thread_link: string | null;

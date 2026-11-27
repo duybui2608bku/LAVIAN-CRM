@@ -188,6 +188,16 @@ export function journeyDue<C extends DueCard, T extends DueTour>(cards: C[], tou
 /** Vùng có tour dự kiến tự sinh (= nhóm DV chính, xem AREA). Mí: thêm "eyeliner" khi sếp chốt. */
 export const ROADMAP_AREAS = ["alis", "bibir"];
 
+/**
+ * Vùng chính của thẻ (sếp chốt 2026-11-27): 1 thẻ là thẻ Mày (alis + laser) HOẶC thẻ Môi (bibir + lips_treatment).
+ * `service` (DV tạo tour) thuộc vùng chính khác vùng của DV tạo tour đã có trong `taken`? Khớp trigger DB card_area_taken.
+ */
+const mainArea = (s: GroupService) => (s.tourable && ROADMAP_AREAS.includes(areaOf(s.group_id)) ? areaOf(s.group_id) : null);
+export const areaTaken = (service: GroupService, taken: GroupService[]) => {
+  const area = mainArea(service);
+  return !!area && taken.some((s) => { const other = mainArea(s); return !!other && other !== area; });
+};
+
 type PlanItem = { id: string; service_id: string; sessions: number; refunded_at: string | null }
   & { service?: { group_id: string; tourable: boolean; name?: string } | null };
 type PlanTour = KindTour & { card_item_id: string | null };

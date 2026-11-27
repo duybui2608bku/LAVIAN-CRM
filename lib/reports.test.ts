@@ -20,16 +20,20 @@ test("vnDay đổi UTC sang ngày UTC+7", () => {
   assert.equal(vnDay("2026-11-08T17:00:00Z"), "2026-11-09");
 });
 
-test("buildDays đếm Data/Đặt cọc/Đặt lịch theo ngày tạo khách + doanh thu theo tiền thu ở thẻ", () => {
+test("buildDays: Data + Đặt cọc (tiền cọc > 0) theo ngày tạo khách, Đặt lịch theo ngày tạo lịch, doanh thu theo tiền thu ở thẻ", () => {
   const rows = buildDays("2026-11-01", "2026-11-02", {
     fb: new Map([["2026-11-01", { spend: 100, messages: 4 }]]),
     customers: [
-      { id: "a", created_at: "2026-11-01T02:00:00Z", stage: "consulting" },
-      { id: "b", created_at: "2026-11-01T03:00:00Z", stage: "deposited" },
-      { id: "c", created_at: "2026-11-01T18:00:00Z", stage: "show_up" }, // = 02/11 giờ VN
-      { id: "d", created_at: "2026-10-30T03:00:00Z", stage: "booked" }, // ngoài khoảng
+      { id: "a", created_at: "2026-11-01T02:00:00Z", deposit_amount: null },
+      { id: "b", created_at: "2026-11-01T03:00:00Z", deposit_amount: 500_000 },
+      { id: "c", created_at: "2026-11-01T18:00:00Z", deposit_amount: 200_000 }, // = 02/11 giờ VN
+      { id: "d", created_at: "2026-10-30T03:00:00Z", deposit_amount: 100 }, // ngoài khoảng
     ],
-    bookedIds: new Set(["a"]),
+    appointments: [
+      { created_at: "2026-11-01T05:00:00Z" },
+      { created_at: "2026-11-01T17:30:00Z" }, // = 02/11 giờ VN
+      { created_at: "2026-10-29T05:00:00Z" }, // ngoài khoảng
+    ],
     money: [
       { at: "2026-11-02T03:00:00Z", amount: 300 }, // cọc trừ vào thẻ
       { at: "2026-11-01T17:30:00Z", amount: 400 }, // = 02/11 giờ VN
@@ -51,7 +55,7 @@ test("nguồn lỗi → null, chia cho 0 → null", () => {
   const rows = buildDays("2026-11-01", "2026-11-01", {
     fb: null,
     customers: [],
-    bookedIds: null,
+    appointments: null,
     money: [],
   });
   const t = totals(rows);

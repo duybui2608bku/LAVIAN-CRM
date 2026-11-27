@@ -31,7 +31,8 @@ import { ClearableSelect } from "@/components/common/clearable-select";
 import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
 import { formatIdr, formatRupiahCompact } from "@/lib/currency";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
-import { ARRIVED_STATUSES, appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
+import { appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
+import { confirmStatus, isArrived, withPatch, type ConfirmStatus } from "@/lib/kpi";
 import { cardMoney } from "@/lib/cards";
 import { StatCard } from "@/components/common/stat-card";
 import { matchesNameOrPhone } from "@/lib/customers";
@@ -99,7 +100,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
   const [cardId, setCardId] = useState<string | null>(null);
   const [rows, patchOptimistic] = useOptimistic(appointments,
     (state: Appointment[], patch: AppointmentPatch & { id: string }) =>
-      state.map((row) => row.id === patch.id ? { ...row, ...patch } : row));
+      state.map((row) => row.id === patch.id ? withPatch(row, patch) : row));
 
   const save = (id: string, patch: AppointmentPatch) => start(async () => {
     patchOptimistic({ id, ...patch });
@@ -122,7 +123,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     return customer && (!customerFilter || row.customer_id === customerFilter)
       && inRange(dayjs(row.scheduled_at).format("YYYY-MM-DD"))
       && (!visit || row.visit_status === visit)
-      && (!booking || row.booking_confirm === booking)
+      && (!booking || confirmStatus(row) === booking)
       && matchesNameOrPhone(customer.full_name, customer.phone, search);
   });
   // Thẻ đang hiệu lực theo lịch bán; cọc chưa trừ vào thẻ nào của khách (thẻ mới sẽ trừ phần này).
@@ -203,10 +204,10 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
         : DASH;
     } },
     { title: t("bookingConfirm"), width: 160, render: (_, row) => <InlineSelect
-      value={row.booking_confirm} ariaLabel={t("bookingConfirm")} disabled={!canEdit}
-      display={<BookingStatusTag status={row.booking_confirm} />}
+      value={confirmStatus(row)} ariaLabel={t("bookingConfirm")} disabled={!canEdit}
+      display={<BookingStatusTag status={confirmStatus(row)} />}
       options={statusOptions}
-      onSave={(value) => save(row.id, { booking_confirm: value as Appointment["booking_confirm"] })} /> },
+      onSave={(value) => save(row.id, { booking_confirm: value as ConfirmStatus })} /> },
     // Status 5 bước (thay Clinic confirmation); Đã đến / Đang thực hiện / Đã thực hiện = khách đã đến (DB tự tính checked_in).
     { title: t("confirmation"), width: 170, render: (_, row) => <InlineSelect
       value={row.visit_status} ariaLabel={t("confirmation")} disabled={!canEdit || !visitChoices.length}
@@ -220,7 +221,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       if (card) return <button type="button" onClick={() => setCardId(card.id)}
         className="cursor-pointer font-medium text-primary hover:underline">{card.code}</button>;
       if (!cardMe.canEdit) return DASH;
-      const arrived = ARRIVED_STATUSES.includes(row.visit_status);
+      const arrived = isArrived(row.visit_status);
       return <Button type="text" aria-label={t("sellCard")} title={arrived ? t("sellCard") : t("sellCardNeedsArrival")} disabled={!arrived}
         icon={<ShoppingCart className="size-4" />} onClick={() => setSellFor(row)} />;
     } },
@@ -307,7 +308,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     </PageToolbar>
     {/* Nhóm theo Xác nhận lịch: mỗi nhóm 1 bảng (phân trang riêng), nhóm trống ẩn; Confirmed lên đầu. */}
     {grouped && filtered.length ? GROUP_ORDER.map((s) => {
-      const items = filtered.filter((row) => row.booking_confirm === s);
+      const items = filtered.filter((row) => confirmStatus(row) === s);
       return items.length ? <section key={s} className="flex flex-col gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
           {t(`bookingStatus.${s}`)}

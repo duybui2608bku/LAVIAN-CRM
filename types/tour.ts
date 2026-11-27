@@ -17,6 +17,7 @@ export interface Tour {
   after_images: string[];
   extra_images: string[];
   bill_amount: number | null; // Rupiah — giá dòng thẻ (`treatment_card_items.price`), tour không thẻ = null
+  billed?: boolean; // trang Tour: false = không phải tour đầu của dòng thẻ → Hoá đơn "—" (tourBill, lib/tours.ts)
   confirmed_at: string | null;
   planned: boolean; // tour dự kiến do lộ trình tự sinh — chưa chốt lịch với khách (lib/roadmap-sync.ts)
   created_by: string | null;

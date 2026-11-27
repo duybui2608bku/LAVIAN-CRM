@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { tourCommission, tourPatchSchema, tourStatus } from "./tours.ts";
+import { firstTourIds, tourBill, tourCommission, tourPatchSchema, tourStatus } from "./tours.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
 
@@ -34,4 +34,19 @@ test("công Master: Làm mới 7%, Dặm 3% mọi lần, Laser/Plasma 0%, Debt c
   assert.equal(c(null), 0);
   assert.equal(c("new", null), 0);
   assert.equal(c("retouch", 1_500_001), 45_000); // làm tròn
+});
+
+test("Hoá đơn = giá trọn gói chỉ ở tour thật đầu tiên của dòng thẻ", () => {
+  const first = firstTourIds([
+    { id: "dam", card_item_id: "i1", tour_date: "2026-12-20", created_at: "2026-11-01T00:00:00Z" },
+    { id: "moi-b", card_item_id: "i1", tour_date: "2026-11-05", created_at: "2026-11-02T00:00:00Z" },
+    { id: "moi-a", card_item_id: "i1", tour_date: "2026-11-05", created_at: "2026-11-01T00:00:00Z" }, // cùng ngày → tạo trước
+    { id: "khac", card_item_id: "i2", tour_date: "2026-11-09", created_at: "2026-11-01T00:00:00Z" },
+    { id: "cu", card_item_id: null, tour_date: "2026-11-01", created_at: "2026-11-01T00:00:00Z" },
+  ]);
+  assert.deepEqual([...first].sort(), ["khac", "moi-a"]);
+  assert.equal(tourBill({ bill_amount: 500, billed: true }), 500);
+  assert.equal(tourBill({ bill_amount: 500, billed: false }), null); // buổi sau: không cộng lại giá trọn gói
+  assert.equal(tourBill({ bill_amount: 500 }), 500); // không tính billed → như cũ
+  assert.equal(tourCommission({ bill_amount: 500_000, service_detail: "retouch" }), 15_000); // công vẫn trên giá cả dòng
 });

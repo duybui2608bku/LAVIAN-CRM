@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { requirePermission } from "@/lib/auth";
 import {
-  cardCreateSchema, cardItemSessionsSchema, cardItemsAddSchema, cardPaymentSchema, cardRefundSchema, cardTourSchema, isTourable, tourKindDetail,
+  areaTaken, cardCreateSchema, cardItemSessionsSchema, cardItemsAddSchema, cardPaymentSchema, cardRefundSchema, cardTourSchema, isTourable, tourKindDetail,
   type CardAudit,
 } from "@/lib/cards";
 import { normalizeError } from "@/lib/errors";
@@ -21,8 +21,15 @@ const DB_ERRORS: Record<string, string> = {
   card_needs_items: "card_needs_items", customer_not_found: "customer_not_found", appointment_not_arrived: "appointment_not_arrived",
   card_cancelled: "cancelled", item_refunded: "itemUnavailable", tour_card_mismatch: "itemUnavailable",
   payment_over_due: "paymentOverDue", refund_over_paid: "refundOverPaid", service_group_taken: "groupTaken",
-  item_has_tours: "itemHasTours",
+  item_has_tours: "itemHasTours", card_area_taken: "areaTaken",
 };
+
+/** Thẻ Mày hoặc thẻ Môi (`areaTaken`): kiểm ở server trước khi ghi — DB trigger card_area_taken là chốt chặn cuối. */
+async function areaMixed(db: Awaited<ReturnType<typeof createClient>>, serviceIds: string[]) {
+  const { data, error } = await db.from("services").select("group_id,tourable").in("id", [...new Set(serviceIds)]);
+  if (error) throw error;
+  return data.some((s) => areaTaken(s, data));
+}
 
 async function run(action: (t: T, db: Awaited<ReturnType<typeof createClient>>) => Promise<string | void>): Promise<Result> {
   const t = await getTranslations("cards");
@@ -52,9 +59,10 @@ async function openCard(db: Awaited<ReturnType<typeof createClient>>, id: string
 
 /** Bán thẻ (Sales Management): RPC tạo thẻ + DV, trừ cọc chưa dùng, khách → Đã mua. */
 export async function createCard(input: z.input<typeof cardCreateSchema>) {
-  return run(async (_, db) => {
+  return run(async (t, db) => {
     const values = cardCreateSchema.parse(input);
     await requirePermission("cards.edit");
+    if (await areaMixed(db, values.items.map((i) => i.service_id))) return t("error.areaTaken");
     const { data: card, error } = await db.rpc("create_treatment_card", {
       p_customer_id: values.customer_id, p_appointment_id: values.appointment_id, p_items: values.items, p_note: values.note,
     });
@@ -72,6 +80,10 @@ export async function addCardItems(cardId: string, input: z.input<typeof cardIte
     const items = cardItemsAddSchema.parse(input);
     const profile = await requirePermission("cards.edit");
     if (!(await openCard(db, cardId))) return t("error.cancelled");
+    const { data: have, error: haveErr } = await db.from("treatment_card_items").select("service_id")
+      .eq("card_id", cardId).is("refunded_at", null);
+    if (haveErr) throw haveErr;
+    if (await areaMixed(db, [...have.map((i) => i.service_id), ...items.map((i) => i.service_id)])) return t("error.areaTaken");
     const { error } = await db.from("treatment_card_items")
       .insert(items.map((i) => ({ ...i, card_id: cardId, created_by: profile.id })));
     if (error) throw error;
@@ -131,20 +143,30 @@ export async function deleteCardPayment(paymentId: string) {
   });
 }
 
-/** Huỷ thẻ tạo nhầm — chỉ admin, thẻ chưa có tour, chưa thu tiền (đã thu → ghi hoàn tiền trước). Cọc đã trừ được trả lại cho thẻ sau. */
+/**
+ * Huỷ thẻ tạo nhầm — chỉ admin, chưa thu tiền (đã thu → dùng Hoàn thẻ), chưa có tour nào có Master nhận.
+ * Tour chưa ai nhận (dự kiến + Chờ nhận) xoá mềm cùng thẻ. Cọc đã trừ được trả lại cho thẻ sau.
+ */
 export async function cancelCard(cardId: string) {
   return run(async (t, db) => {
     z.uuid().parse(cardId);
     const profile = await requirePermission("cards.delete");
     if (profile.role !== "admin") return t("error.forbidden");
-    const { count, error: countErr } = await db.from("tours").select("id, item:treatment_card_items!inner(card_id)", { count: "exact", head: true })
-      .eq("item.card_id", cardId).is("deleted_at", null);
-    if (countErr) throw countErr;
-    if (count) return t("error.hasTours");
     // Thẻ đã thu tiền: huỷ sẽ làm khoản thu biến khỏi báo cáo → phải ghi khoản hoàn (số âm) trước.
     const { data: paid, error: paidErr } = await db.from("treatment_card_payments").select("amount").eq("card_id", cardId);
     if (paidErr) throw paidErr;
     if (paid.reduce((s, p) => s + p.amount, 0) !== 0) return t("error.hasPayments");
+    const { data: tours, error: toursErr } = await db.from("tours").select("id,technician_id,item:treatment_card_items!inner(card_id)")
+      .eq("item.card_id", cardId).is("deleted_at", null);
+    if (toursErr) throw toursErr;
+    if (tours.some((x) => x.technician_id)) return t("error.hasTours");
+    if (tours.length) {
+      // Lọc lại technician_id null: Master vừa nhận giữa chừng thì tour đó không bị xoá → dừng huỷ.
+      const { data: removed, error: delErr } = await db.from("tours").update({ deleted_at: new Date().toISOString() })
+        .in("id", tours.map((x) => x.id)).is("technician_id", null).is("deleted_at", null).select("id");
+      if (delErr) throw delErr;
+      if (removed.length !== tours.length) return t("error.hasTours");
+    }
     const { data, error } = await db.from("treatment_cards")
       .update({ cancelled_at: new Date().toISOString(), cancelled_by: profile.id })
       .eq("id", cardId).is("cancelled_at", null).select("id");

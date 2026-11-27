@@ -25,7 +25,7 @@ function appt(p: Partial<TelesalesAppointment> & { created_at: string; scheduled
   return {
     id: `id-${++seq}`,
     booking_confirm: "pending",
-    checked_in: false,
+    visit_status: "waiting",
     staff_id: A,
     customer: { created_at: "2026-10-01T00:00:00Z", source: "instagrams" },
     ...p,
@@ -44,14 +44,14 @@ test("thẻ số liệu: booking theo ngày tạo, khách đến theo ngày hẹ
     appt({ created_at: "2026-11-12T17:00:00Z", scheduled_at: "2026-11-20T03:00:00Z", booking_confirm: "confirmed",
       customer: { created_at: "2026-11-12T18:00:00Z", source: "whatsapp" } }),
     // Tạo 23:59 VN ngày 12 → kỳ TRƯỚC; hẹn ngày 14, đã đến → Khách đến kỳ này.
-    appt({ created_at: "2026-11-12T16:59:00Z", scheduled_at: "2026-11-14T03:00:00Z", checked_in: true }),
+    appt({ created_at: "2026-11-12T16:59:00Z", scheduled_at: "2026-11-14T03:00:00Z", visit_status: "arrived" }),
     // Tạo trong kỳ, khách cũ, hủy.
-    appt({ created_at: "2026-11-14T02:00:00Z", scheduled_at: "2026-11-25T03:00:00Z", booking_confirm: "cancelled", staff_id: B }),
+    appt({ created_at: "2026-11-14T02:00:00Z", scheduled_at: "2026-11-25T03:00:00Z", visit_status: "cancelled", staff_id: B }),
     // Tạo trong kỳ, đổi lịch; hẹn trong kỳ nhưng chưa đến; người ngoài danh sách.
-    appt({ created_at: "2026-11-13T02:00:00Z", scheduled_at: "2026-11-14T08:00:00Z", booking_confirm: "rescheduled",
+    appt({ created_at: "2026-11-13T02:00:00Z", scheduled_at: "2026-11-14T08:00:00Z", visit_status: "rescheduled",
       staff_id: OUTSIDER, customer: { created_at: "2026-11-01T00:00:00Z", source: null } }),
     // Ngoài cả 2 kỳ.
-    appt({ created_at: "2026-11-15T02:00:00Z", scheduled_at: "2026-11-15T03:00:00Z", checked_in: true }),
+    appt({ created_at: "2026-11-15T02:00:00Z", scheduled_at: "2026-11-15T03:00:00Z", visit_status: "arrived" }),
   ];
   const fb = new Map([["2026-11-11", 5], ["2026-11-12", 7], ["2026-11-13", 10], ["2026-11-14", 20], ["2026-11-15", 99]]);
   const r = buildTelesalesReport({ ...RANGE, appointments, fb, handled: new Map(), staff: STAFF });
@@ -70,7 +70,7 @@ test("thẻ số liệu: booking theo ngày tạo, khách đến theo ngày hẹ
 });
 
 test("FB lỗi → tin nhắn null; lịch trùng id chỉ đếm 1 lần", () => {
-  const one = appt({ created_at: "2026-11-13T02:00:00Z", scheduled_at: "2026-11-13T05:00:00Z", checked_in: true });
+  const one = appt({ created_at: "2026-11-13T02:00:00Z", scheduled_at: "2026-11-13T05:00:00Z", visit_status: "arrived" });
   const r = buildTelesalesReport({ ...RANGE, appointments: [one, { ...one }], fb: null, handled: null, staff: STAFF });
   assert.equal(r.cur.messages, null);
   assert.equal(r.prev.messages, null);
@@ -81,10 +81,10 @@ test("FB lỗi → tin nhắn null; lịch trùng id chỉ đếm 1 lần", () =
 
 test("hiệu suất nhân viên: ghép SMAX, dòng Khác, tổng và KPI", () => {
   const appointments = [
-    appt({ created_at: "2026-11-13T02:00:00Z", scheduled_at: "2026-11-13T05:00:00Z", checked_in: true }),
+    appt({ created_at: "2026-11-13T02:00:00Z", scheduled_at: "2026-11-13T05:00:00Z", visit_status: "arrived" }),
     appt({ created_at: "2026-11-13T03:00:00Z", scheduled_at: "2026-11-20T05:00:00Z" }),
     appt({ created_at: "2026-11-14T03:00:00Z", scheduled_at: "2026-11-14T05:00:00Z", staff_id: B }),
-    appt({ created_at: "2026-11-14T04:00:00Z", scheduled_at: "2026-11-14T06:00:00Z", staff_id: null, checked_in: true }),
+    appt({ created_at: "2026-11-14T04:00:00Z", scheduled_at: "2026-11-14T06:00:00Z", staff_id: null, visit_status: "arrived" }),
     appt({ created_at: "2026-11-14T05:00:00Z", scheduled_at: "2026-11-30T06:00:00Z", staff_id: OUTSIDER }),
   ];
   const handled = new Map([["6a632201de8a302ce1dcec0f", 20], ["6a811194f1bc59f54aee4d14", 51]]);

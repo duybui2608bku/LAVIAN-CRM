@@ -311,7 +311,9 @@ function FinanceZones({ data, staff }: { data: Customer360; staff: StaffRef[] })
   // Thẻ đã huỷ không tính tiền (khớp Tổng tích luỹ + báo cáo doanh thu).
   const payments = cards.filter((c) => !c.cancelled_at).flatMap((c) => c.payments.map((p) => ({ ...p, code: c.code })))
     .sort((a, b) => b.paid_at.localeCompare(a.paid_at));
+  // Cọc: nguồn duy nhất = customers.deposit_amount; thẻ chỉ ghi phần đã trừ (deposit_used).
   const deposit = data.customer.deposit_amount ?? 0;
+  const depositUsed = cards.filter((c) => !c.cancelled_at).reduce((s, c) => s + c.deposit_used, 0);
   const proof = data.customer.payment_confirm_url;
   const amount = (v: number) => <span className={`shrink-0 tabular-nums ${v < 0 ? "text-destructive" : "text-success"}`}>
     {v < 0 ? `− ${formatRupiah(-v)}` : formatRupiah(v)}</span>;
@@ -339,7 +341,12 @@ function FinanceZones({ data, staff }: { data: Customer360; staff: StaffRef[] })
       {deposit > 0 || payments.length ? <Image.PreviewGroup>
         <ul className="divide-y divide-border rounded-lg border border-border text-sm">
           {deposit > 0 && <li className="flex items-center justify-between gap-3 px-3 py-2">
-            <div className="flex items-center gap-2">{proof && thumb(proof)}{t("deposit")}</div>
+            <div className="flex items-center gap-2">{proof && thumb(proof)}<div>
+              <div>{t("deposit")}</div>
+              {depositUsed > 0 && <div className="text-xs text-muted-foreground tabular-nums">
+                {t("depositSplit", { used: formatRupiah(depositUsed), left: formatRupiah(Math.max(deposit - depositUsed, 0)) })}
+              </div>}
+            </div></div>
             {amount(deposit)}
           </li>}
           {payments.map((p) => <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2">

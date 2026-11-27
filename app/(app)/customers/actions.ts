@@ -51,7 +51,7 @@ export async function getCustomerAppointments(
     const [appts, logs, services] = await Promise.all([
       supabase
         .from("clinic_appointments")
-        .select("id, customer_id, scheduled_at, booking_confirm, checked_in, service_categories, service_ids, staff_id, sales_id, created_by, notes")
+        .select("id, customer_id, scheduled_at, booking_confirm, checked_in, visit_status, service_categories, service_ids, staff_id, sales_id, created_by, notes")
         .eq("customer_id", customerId)
         .is("deleted_at", null)
         .order("scheduled_at", { ascending: false }),
@@ -124,7 +124,6 @@ function clean(input: CustomerInput, noPhoneOk = false) {
     rating: validRating(input.rating),
     staff_id: nz(input.staff_id),
     sales_id: nz(input.sales_id),
-    technician_id: nz(input.technician_id),
     first_contact: nz(input.first_contact),
     payment_confirm_url: nz(input.payment_confirm_url),
     region_code: nz(input.region_code),
@@ -172,7 +171,7 @@ export async function updateCustomer(
   }
 }
 
-/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/rating/staff_id/sales_id/technician_id. */
+/** Sửa nhanh từng trường từ bảng (inline edit) — whitelist stage/rating/staff_id/sales_id. Master lấy từ tour. */
 export async function patchCustomer(
   id: string,
   patch: {
@@ -180,7 +179,6 @@ export async function patchCustomer(
     rating?: string | null;
     staff_id?: string | null;
     sales_id?: string | null;
-    technician_id?: string | null;
     potential_status?: string | null;
     follow_up_at?: string | null;
   },
@@ -195,8 +193,6 @@ export async function patchCustomer(
     if (patch.rating !== undefined) data.rating = validRating(patch.rating);
     if (patch.staff_id !== undefined) data.staff_id = patch.staff_id || null;
     if (patch.sales_id !== undefined) data.sales_id = patch.sales_id || null;
-    if (patch.technician_id !== undefined)
-      data.technician_id = patch.technician_id || null;
     if (patch.potential_status !== undefined)
       data.potential_status = validPotentialStatus(patch.potential_status);
     if (patch.follow_up_at !== undefined) {

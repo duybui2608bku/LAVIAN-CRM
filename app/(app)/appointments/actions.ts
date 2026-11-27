@@ -5,6 +5,8 @@ import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { getCurrentProfile, requireAnyPermission, requirePermission } from "@/lib/auth";
 import { appointmentPatchSchema, canSetVisitStatus, validateVisitStatus } from "@/lib/appointments";
+import { confirmPatch } from "@/lib/kpi";
+import { latestMaster } from "@/lib/tours";
 import { CUSTOMER_LIST_FIELDS } from "@/app/(app)/customers/customers-view";
 import { BOOKED_STAGE, instagramUsername } from "@/lib/customer-options";
 import { phoneOwner } from "@/lib/customers";
@@ -43,6 +45,24 @@ const onlySales = () =>
 const RULE_FIELDS = ["visit_status", "technician_id", "sales_id"] as const;
 type RuleRow = Parameters<typeof validateVisitStatus>[1];
 const NEW_ROW: RuleRow = { visit_status: "waiting", technician_id: null, sales_id: null };
+
+/**
+ * Cột Xác nhận lịch (4 trạng thái) → giá trị DB: Huỷ / Đổi lịch ghi visit_status (nguồn duy nhất, `confirmPatch`) — Telesales
+ * được làm khi khách chưa đến; Chờ / Đã xác nhận ghi booking_confirm. visit_status gửi kèm (Sales) thắng.
+ */
+async function resolveConfirm(db: Awaited<ReturnType<typeof client>>, id: string | null, patch: AppointmentPatch) {
+  const { booking_confirm, ...rest } = patch;
+  if (!booking_confirm) return rest;
+  let visit = "waiting";
+  if (id) {
+    const { data, error } = await db.from("clinic_appointments").select("visit_status").eq("id", id).is("deleted_at", null).single();
+    if (error) throw error;
+    visit = data.visit_status;
+  }
+  const mapped = confirmPatch(booking_confirm, visit);
+  if (!mapped) throw new AppError("Khách đã đến — không huỷ / đổi lịch ở đây.", { code: "VALIDATION", status: 400 });
+  return { ...mapped, ...rest };
+}
 
 /** Quy tắc E3 (Master/Sales theo trạng thái) — báo lỗi dễ hiểu trước khi DB chặn. */
 async function checkRules(db: Awaited<ReturnType<typeof client>>, id: string | null, patch: AppointmentPatch) {
@@ -95,10 +115,11 @@ export async function createAppointment(
 ): Promise<{ error?: string }> {
   try {
     const profile = await requirePermission("appointments.edit");
-    const patch = appointmentPatchSchema.parse(input);
-    if (!patch.scheduled_at) throw new Error("Vui lòng chọn ngày.");
-    if (patch.visit_status && patch.visit_status !== "waiting" && !canSetVisitStatus(profile, patch.visit_status)) throw onlySales();
+    const parsed = appointmentPatchSchema.parse(input);
+    if (!parsed.scheduled_at) throw new Error("Vui lòng chọn ngày.");
+    if (parsed.visit_status && parsed.visit_status !== "waiting" && !canSetVisitStatus(profile, parsed.visit_status)) throw onlySales();
     const db = await client();
+    const patch = await resolveConfirm(db, null, parsed);
     await Promise.all([validateReferences(db, patch), checkRules(db, null, patch)]);
 
     // Khách có sẵn: Telesales mặc định = Telesales đang phụ trách khách.
@@ -148,9 +169,10 @@ export async function patchAppointment(id: string, input: AppointmentPatch): Pro
   try {
     const profile = await requirePermission("appointments.edit");
     z.uuid().parse(id);
-    const patch = appointmentPatchSchema.parse(input);
-    if (patch.visit_status !== undefined && !canSetVisitStatus(profile, patch.visit_status)) throw onlySales();
+    const parsed = appointmentPatchSchema.parse(input);
+    if (parsed.visit_status !== undefined && !canSetVisitStatus(profile, parsed.visit_status)) throw onlySales();
     const db = await client();
+    const patch = await resolveConfirm(db, id, parsed);
     await Promise.all([validateReferences(db, patch), checkRules(db, id, patch)]);
     const { error } = await db.from("clinic_appointments").update(patch)
       .eq("id", id).is("deleted_at", null).select("id").single();
@@ -243,13 +265,18 @@ export async function getCustomerDetail(customerId: string): Promise<{ customer?
     await requirePermission("appointments.view");
     z.uuid().parse(customerId);
     const db = await createClient();
-    const { data, error } = await db.from("customers").select(CUSTOMER_LIST_FIELDS)
-      .eq("id", customerId).is("deleted_at", null).single();
+    const [{ data, error }, tours] = await Promise.all([
+      db.from("customers").select(CUSTOMER_LIST_FIELDS).eq("id", customerId).is("deleted_at", null).single(),
+      // Master = tour thật gần nhất (nguồn duy nhất là tours).
+      db.from("tours").select("tour_date,technician_id,planned").eq("customer_id", customerId).is("deleted_at", null)
+        .not("technician_id", "is", null),
+    ]);
     if (error) throw error;
+    if (tours.error) throw tours.error;
     const customer = data as unknown as Customer;
     const region = regionNames(customer.region_code);
     return {
-      customer: { ...customer, instagram_username: instagramUsername(customer.instagram_username) },
+      customer: { ...customer, instagram_username: instagramUsername(customer.instagram_username), technician_id: latestMaster(tours.data) },
       region: region ? [region.city, region.province].filter(Boolean).join(", ") : null,
     };
   } catch (error) {

@@ -4,9 +4,13 @@ import type { TimelineNote } from "./note";
 
 // Lịch hẹn chỉ lưu lịch đến của khách (tính doanh số Telesales). Tour KTV ở bảng `tours` (types/tour.ts).
 
-/** Trạng thái xác nhận lịch (cột `booking_confirm`, check constraint ở DB). */
+/**
+ * Trạng thái cột "Xác nhận lịch" (4 giá trị hiển thị, `confirmStatus` ở lib/kpi.ts). Huỷ / Đổi lịch lưu ở `visit_status`
+ * (nguồn duy nhất, 2026-11-27); cột DB `booking_confirm` chỉ còn Chờ / Đã xác nhận (`BookingConfirm`).
+ */
 export const BOOKING_STATUSES = ["pending", "confirmed", "cancelled", "rescheduled"] as const;
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
+export type BookingConfirm = "pending" | "confirmed";
 export const BOOKING_STATUS_COLORS: Record<BookingStatus, string> = {
   pending: "orange",
   confirmed: "green",
@@ -30,7 +34,7 @@ export interface Appointment {
   id: string;
   customer_id: string;
   scheduled_at: string;
-  booking_confirm: BookingStatus; // Telesales gọi lại xác nhận lịch
+  booking_confirm: BookingConfirm; // Telesales gọi lại xác nhận lịch — Huỷ / Đổi lịch xem visit_status
   checked_in: boolean; // chỉ đọc — DB tính từ visit_status
   visit_status: VisitStatus;
   service_categories: string[]; // nhóm dịch vụ Telesales chọn khi tạo lịch
@@ -72,7 +76,7 @@ export interface AppointmentLog {
   appointment: { scheduled_at: string } | null;
 }
 
-export type AppointmentPatch =Partial<Pick<Appointment,
-  "scheduled_at" | "booking_confirm" | "visit_status" | "service_categories" | "service_ids" | "staff_id" | "sales_id"
-  | "technician_id"
->>;
+/** Patch gửi server: `booking_confirm` dạng 4 trạng thái của cột Xác nhận lịch — server tự ghi Huỷ / Đổi lịch vào visit_status. */
+export type AppointmentPatch = Partial<Pick<Appointment,
+  "scheduled_at" | "visit_status" | "service_categories" | "service_ids" | "staff_id" | "sales_id" | "technician_id"
+>> & { booking_confirm?: BookingStatus };

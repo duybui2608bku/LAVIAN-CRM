@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { TourView } from "@/components/tour/tour-view";
 import type { StaffRef } from "@/components/common/user-avatar";
 import { getCurrentProfile } from "@/lib/auth";
+import { firstTourIds } from "@/lib/tours";
 import { createClient } from "@/lib/supabase/server";
 import { TOUR_FIELDS, type Tour } from "@/types/tour";
 import type { AppointmentCustomer } from "@/types/appointment";
@@ -39,6 +40,16 @@ export default async function TourPage({ searchParams }: { searchParams: Promise
   for (const result of [tours, pending, services, staff, customers]) {
     if (result?.error) throw new Error(result.error.message);
   }
+  // Hoá đơn = giá trọn gói của dòng thẻ, chỉ ghi ở tour thật đầu tiên của dòng (mọi tháng) — tourBill.
+  const monthTours = (tours.data ?? []) as unknown as Tour[];
+  const itemIds = [...new Set(monthTours.flatMap((x) => x.card_item_id ?? []))];
+  if (!isTechnician && itemIds.length) {
+    const { data, error } = await db.from("tours").select("id,card_item_id,tour_date,created_at")
+      .in("card_item_id", itemIds).is("deleted_at", null).eq("planned", false);
+    if (error) throw new Error(error.message);
+    const first = firstTourIds(data);
+    for (const x of monthTours) if (x.card_item_id) x.billed = first.has(x.id);
+  }
 
   return <TourView
     me={{
@@ -47,7 +58,7 @@ export default async function TourPage({ searchParams }: { searchParams: Promise
       canPlan: profile.permissions.includes("tour.edit") || profile.permissions.includes("cards.edit"),
     }}
     month={month.format("YYYY-MM")}
-    tours={(tours.data ?? []) as unknown as Tour[]}
+    tours={monthTours}
     pending={(pending?.data ?? []) as unknown as Tour[]}
     services={(services.data ?? []) as Service[]}
     staff={(staff.data ?? []) as StaffRef[]}

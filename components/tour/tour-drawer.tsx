@@ -193,7 +193,7 @@ function WorkTourDrawer({ tour, me, services, staff, customers, onClose }: Drawe
               .map((k) => ({ value: k, label: t(`detail_${k}`), disabled: k === "debt" }))} />
         </Form.Item>
         {/* Hoá đơn chỉ xem (giá bán lấy từ thẻ khi tạo tour) — thanh toán thu ở thẻ liệu trình. */}
-        <Form.Item label={t("bill")}>
+        <Form.Item label={t("packagePrice")}>
           <span className="tabular-nums">{tour.bill_amount == null ? "—" : formatRupiah(tour.bill_amount)}</span>
           <div className="text-xs text-muted-foreground tabular-nums">{t("commission")}: {formatRupiah(tourCommission(tour))}</div>
         </Form.Item>

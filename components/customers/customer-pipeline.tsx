@@ -21,13 +21,14 @@ import { getAdMessages } from "@/app/(app)/customers/actions";
 import { DASH } from "@/components/common/cells";
 import { formatRupiah } from "@/lib/currency";
 import { matchesCustomerFilters } from "@/lib/customers";
-import { DEPOSITED_OR_LATER } from "@/lib/reports";
+import { bookedIn, hasDeposit, isArrived } from "@/lib/kpi";
 import { cn } from "@/lib/utils";
 import type { VisitStatus } from "@/types/appointment";
 import type { Customer } from "@/types/customer";
 
 export type PipelineAppointment = {
   customer_id: string;
+  created_at: string; // ngày tạo lịch — Đặt lịch (lib/kpi.ts)
   scheduled_at: string;
   checked_in: boolean;
   visit_status: VisitStatus; // cột Sales Status
@@ -54,8 +55,9 @@ type Card = {
 
 /**
  * Pipeline trên bảng /customers.
- * - Nhóm Data: theo khoảng ngày tạo đang lọc (chưa lọc → hôm nay).
- *   Đặt cọc/Lịch hẹn/Show-up đếm dồn trong số khách Data của khoảng đó.
+ * - Nhóm Data: theo khoảng đang lọc (chưa lọc → hôm nay), định nghĩa KPI chung (lib/kpi.ts) — khớp /reports + Báo cáo Telesales:
+ *   Data = khách tạo trong khoảng; Đặt lịch = lịch TẠO trong khoảng; Đặt cọc = khách Data có tiền cọc > 0;
+ *   Đến cơ sở = lịch HẸN trong khoảng đã đến.
  * - Nhóm Lịch hẹn: tổng theo khoảng đang lọc; hôm nay/ngày mai cố định theo giờ hiện tại.
  */
 export function CustomerPipeline({
@@ -90,8 +92,6 @@ export function CustomerPipeline({
   }, [rangeFrom, rangeTo]);
 
   const data = customers.filter((c) => matchesCustomerFilters(c, { from: rangeFrom, to: rangeTo }));
-  const booked = new Set(appointments.map((a) => a.customer_id));
-  const showUp = new Set(appointments.filter((a) => a.checked_in).map((a) => a.customer_id));
   const dayOf = (a: PipelineAppointment) => dayjs(a.scheduled_at).format("YYYY-MM-DD");
   const countDay = (from: string, to: string) =>
     appointments.filter((a) => {
@@ -99,7 +99,8 @@ export function CustomerPipeline({
       return d >= from && d <= to;
     }).length;
 
-  const deposited = data.filter((c) => DEPOSITED_OR_LATER.has(c.stage));
+  const deposited = data.filter((c) => hasDeposit(c.deposit_amount));
+  const inRange = (a: PipelineAppointment) => { const d = dayOf(a); return d >= rangeFrom && d <= rangeTo; };
 
   const dataCards: Card[] = [
     {
@@ -110,7 +111,7 @@ export function CustomerPipeline({
       error: loading ? undefined : messages?.error,
     },
     { key: "data", icon: Phone, tone: "info", value: data.length },
-    { key: "booked", icon: CalendarDays, tone: "primary", value: data.filter((c) => booked.has(c.id)).length },
+    { key: "booked", icon: CalendarDays, tone: "primary", value: appointments.filter((a) => bookedIn(a, rangeFrom, rangeTo)).length },
     {
       key: "deposited",
       icon: Wallet,
@@ -118,7 +119,7 @@ export function CustomerPipeline({
       value: deposited.length,
       extra: formatRupiah(deposited.reduce((s, c) => s + Number(c.deposit_amount ?? 0), 0)),
     },
-    { key: "showUp", icon: CircleCheck, tone: "success", value: data.filter((c) => showUp.has(c.id)).length },
+    { key: "showUp", icon: CircleCheck, tone: "success", value: appointments.filter((a) => inRange(a) && isArrived(a.visit_status)).length },
   ];
 
   const appointmentCards: Card[] = [
