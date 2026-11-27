@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-27 — Marketing: "Tin nhắn theo số WA" trên 1 hàng
+- **Thay đổi:** Màn `lg` trở lên các thẻ số WA (kể cả "Chưa gắn WA") chia đều 1 hàng (`lg:grid-flow-col lg:auto-cols-fr`); màn nhỏ vẫn 2–3 cột xuống dòng.
+- **File ảnh hưởng:** `components/marketing/ads-stats.tsx`.
+- **Còn dở / ghi chú:** chưa xem trên trình duyệt. Nhiều số WA (>10) sẽ hẹp — khi đó cân nhắc cuộn ngang.
+
 ### 2026-11-27 — Master nhận tour tự điền vào lịch hẹn (Quản lý bán hàng)
 - **Thay đổi:** Trigger `tours_fill_appointment_master` (security definer, giống `tours_fill_customer_technician`): tour (không phải dự kiến) có Master → `clinic_appointments.technician_id` tự điền cho **lịch đã bán thẻ chứa tour** (`treatment_cards.appointment_id`) + lịch cùng khách cùng ngày tour (giờ VN), chỉ khi lịch chưa có Master hoặc đang là Master cũ của tour (đổi người nhận). Trả tour → giữ nguyên Master ở lịch. Backfill lịch cũ. Cột Nhân sự + quy tắc "Đã thực hiện cần Master" dùng luôn giá trị này, không đổi code UI.
 - **File ảnh hưởng:** `supabase/migrations/20261127100000_tour_master_to_appointment.sql`.

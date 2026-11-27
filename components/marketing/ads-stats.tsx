@@ -420,7 +420,8 @@ export function AdsStatsView() {
         <Section title={t("byWa")}>
           <div
             className={cn(
-              "grid grid-cols-2 gap-3 transition-opacity duration-200 sm:grid-cols-3 lg:grid-cols-6",
+              // Màn lớn: mọi số WA (kể cả "Chưa gắn WA") chia đều trên 1 hàng.
+              "grid grid-cols-2 gap-3 transition-opacity duration-200 sm:grid-cols-3 lg:grid-flow-col lg:auto-cols-fr lg:grid-cols-none",
               pending && "opacity-60",
             )}
           >
