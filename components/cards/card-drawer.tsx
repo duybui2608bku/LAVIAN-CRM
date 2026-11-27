@@ -146,7 +146,8 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
       </ul>
     </Section>
 
-    <Section title={t("payments")} className="mb-4" extra={canEdit ? <PaymentButton card={card} /> : null}>
+    <Section title={t("payments")} className="mb-4">
+      {canEdit ? <PaymentForm card={card} /> : null}
       {card.deposit_used || card.payments.length || card.refunded_at ? <ul className="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
         {card.deposit_used ? <li className="flex justify-between gap-3 p-3">
           <span className="text-muted-foreground">{t("depositUsed")}</span>
@@ -379,10 +380,9 @@ function RefundCardButton({ card, used }: { card: TreatmentCard; used: (itemId: 
   </Popover>;
 }
 
-/** Thu tiền (số âm = hoàn tiền khách), kèm 0..n ảnh bill / chuyển khoản. */
-function PaymentButton({ card }: { card: TreatmentCard }) {
+/** Form thu tiền hiện sẵn (số âm = hoàn tiền khách), kèm 0..n ảnh bill / chuyển khoản; Enter để lưu. */
+function PaymentForm({ card }: { card: TreatmentCard }) {
   const t = useTranslations("cards");
-  const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number | null>(null);
   const [method, setMethod] = useState<CardPaymentMethod>("cash");
   const [note, setNote] = useState("");
@@ -394,24 +394,31 @@ function PaymentButton({ card }: { card: TreatmentCard }) {
     : amount > range.max ? `${t("error.paymentOverDue")} (${formatRupiah(range.max)})`
     : amount < range.min ? `${t("error.refundOverPaid")} (${formatRupiah(-range.min)})`
     : null;
-  const save = () => start(async () => {
-    if (await runAction(addCardPayment(card.id, { amount: amount ?? 0, method, note, images }), t("saved"), t("saveError"))) {
-      setOpen(false); setAmount(null); setNote(""); setImages([]);
-    }
-  });
-  return <Popover trigger="click" open={open} onOpenChange={setOpen} title={t("addPayment")} content={<div className="flex w-72 flex-col gap-3">
-    <label className="flex flex-col gap-1 text-xs text-muted-foreground">{t("amount")}
-      <MoneyInput value={amount} onChange={setAmount} min={-1e13} ariaLabel={t("amount")} />
-      {over ? <span className="text-destructive">{over}</span> : <span>{t("amountHint")}</span>}
-    </label>
-    <Radio.Group optionType="button" value={method} onChange={(e) => setMethod(e.target.value)} className="flex! w-full"
-      options={CARD_PAYMENT_METHODS.map((m) => ({ value: m, label: t(`method.${m}`), className: "flex-auto px-2! text-center whitespace-nowrap" }))} />
+  const canSave = !!amount && !over && !pending;
+  const save = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSave) return;
+    start(async () => {
+      if (await runAction(addCardPayment(card.id, { amount: amount ?? 0, method, note, images }), t("saved"), t("saveError"))) {
+        setAmount(null); setNote(""); setImages([]);
+      }
+    });
+  };
+  return <form onSubmit={save} className="mb-3 flex flex-col gap-3 rounded-lg border border-border p-3">
+    <div className="flex flex-wrap items-start gap-3">
+      <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs text-muted-foreground">{t("amount")}
+        <MoneyInput value={amount} onChange={setAmount} min={-1e13} ariaLabel={t("amount")} />
+        {over ? <span className="text-destructive">{over}</span> : <span>{t("amountHint")}</span>}
+      </label>
+      <Radio.Group optionType="button" value={method} onChange={(e) => setMethod(e.target.value)} className="mt-5"
+        options={CARD_PAYMENT_METHODS.map((m) => ({ value: m, label: t(`method.${m}`), className: "whitespace-nowrap" }))} />
+    </div>
     <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("note")} maxLength={2000} />
-    <PhotoField label={t("paymentPhotos")} value={images} onChange={async (next) => setImages(next)} />
-    <Button type="primary" loading={pending} disabled={!amount || !!over} onClick={save}>{t("addPayment")}</Button>
-  </div>}>
-    <Button size="small" icon={<Wallet className="size-4" />}>{t("addPayment")}</Button>
-  </Popover>;
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <PhotoField label={t("paymentPhotos")} value={images} onChange={async (next) => setImages(next)} />
+      <Button type="primary" htmlType="submit" loading={pending} disabled={!amount || !!over} icon={<Wallet className="size-4" />}>{t("addPayment")}</Button>
+    </div>
+  </form>;
 }
 
 /**
