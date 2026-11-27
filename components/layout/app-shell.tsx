@@ -234,11 +234,14 @@ export function AppShell({
             {logo}
             {!collapsed && brand}
           </Link>
+          {/* Thu gọn mà vẫn truyền defaultOpenKeys → antd bật sẵn popup menu con, che tiêu đề trang.
+              Đổi `key` theo trạng thái thu gọn để mở rộng lại thì menu con của trang hiện tại vẫn bung. */}
           <Menu
+            key={collapsed ? "collapsed" : "expanded"}
             mode="inline"
             inlineCollapsed={collapsed}
             selectedKeys={[selected]}
-            defaultOpenKeys={all
+            defaultOpenKeys={collapsed ? [] : all
               .filter((i) => "children" in i && (pathname === i.href || i.children.some((c) => pathname === c.href || pathname.startsWith(`${c.href}/`))))
               .map((i) => `${i.href}:sub`)}
             items={menuItems(collapsed)}

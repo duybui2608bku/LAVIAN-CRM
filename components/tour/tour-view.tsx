@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, DatePicker, Empty, Segmented, Select, type TableProps } from "antd";
-import { CheckCircle2, FileSpreadsheet, PencilLine, Printer, Trash2 } from "lucide-react";
+import {
+  CalendarClock, CheckCircle2, CircleDashed, ClipboardList, FileSpreadsheet, HandCoins, Hourglass, PencilLine, Printer, ReceiptText, Trash2,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { claimTour, confirmTour, deleteTour } from "@/app/(app)/tour/actions";
@@ -139,10 +141,10 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
     {tab === "mine" ? <>
       {/* Điện thoại: 2 thẻ đếm 1 hàng, "Đã nhận" cả hàng để không cắt số tiền. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-        <StatCard label={t("count")} value={items.length} />
-        <StatCard label={t("status_claimed")} value={unconfirmed} />
+        <StatCard label={t("count")} value={items.length} icon={ClipboardList} />
+        <StatCard label={t("status_claimed")} value={unconfirmed} icon={CircleDashed} iconTone="info" />
         <div className="col-span-2 sm:col-span-1">
-          <StatCard label={t("commission")} value={formatRupiah(total)}
+          <StatCard label={t("commission")} value={formatRupiah(total)} icon={HandCoins} iconTone="success"
             hint={t("confirmedAmount", { amount: formatRupiah(confirmedTotal) })} />
         </div>
       </div>
@@ -275,12 +277,12 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
       </> : null}
     </>} />
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-      <StatCard label={t("count")} value={all.length - count("planned")} />
-      <StatCard label={t("status_planned")} value={count("planned")} />
-      <StatCard label={t("status_pending")} value={count("pending")} />
-      <StatCard label={t("status_claimed")} value={count("claimed")} />
-      <StatCard label={t("bill")} value={formatRupiah(total)} />
-      <StatCard label={t("commission")} value={formatRupiah(commission)} />
+      <StatCard label={t("count")} value={all.length - count("planned")} icon={ClipboardList} />
+      <StatCard label={t("status_planned")} value={count("planned")} icon={CalendarClock} iconTone="info" />
+      <StatCard label={t("status_pending")} value={count("pending")} icon={Hourglass} iconTone="warning" />
+      <StatCard label={t("status_claimed")} value={count("claimed")} icon={CircleDashed} iconTone="info" />
+      <StatCard label={t("bill")} value={formatRupiah(total)} icon={ReceiptText} iconTone="primary" />
+      <StatCard label={t("commission")} value={formatRupiah(commission)} icon={HandCoins} iconTone="success" />
     </div>
     <PageToolbar>
       <MonthPicker month={month} goMonth={goMonth} />

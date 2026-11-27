@@ -175,7 +175,8 @@ export function CustomerPipeline({
   );
 
   return (
-    <div className="grid gap-4 rounded-xl border border-border bg-muted/60 p-3 sm:p-4 xl:grid-cols-[5fr_3fr]">
+    // 2 nhóm cạnh nhau chỉ khi đủ rộng (≥ 1536px) — hẹp hơn thì 8 thẻ chen 1 hàng, nhãn bị cắt.
+    <div className="grid gap-4 rounded-xl border border-border bg-muted/60 p-3 sm:p-4 2xl:grid-cols-[5fr_3fr]">
       {group(
         <>
           {t("dataGroup")}

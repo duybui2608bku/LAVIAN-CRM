@@ -3,14 +3,14 @@
 import * as React from "react";
 import { Alert, Button } from "antd";
 import { useTranslations } from "next-intl";
-import { RefreshCw } from "lucide-react";
+import { CalendarCheck, CalendarPlus, CircleCheck, RefreshCw, Repeat, UserPlus } from "lucide-react";
 
 import { getSmaxReport } from "@/app/(app)/customers/smax-report/actions";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { DateRangePicker } from "@/components/common/date-picker";
 import { initialRange } from "@/components/common/date-range-filter";
 import { Section } from "@/components/common/section";
-import { StatCard } from "@/components/common/stat-card";
+import { StatCard, type IconTone } from "@/components/common/stat-card";
 import {
   bookingNew,
   CHANNEL_LABEL,
@@ -29,6 +29,14 @@ type Result = Awaited<ReturnType<typeof getSmaxReport>>;
 
 // Cùng màu nguồn với donut trang Leader Telesales.
 const CHANNEL_COLOR: Record<InboxChannel, string> = { wa: "var(--chart-3)", ig: "var(--chart-5)" };
+// Icon + màu thẻ số liệu.
+const CARD_ICON: Record<string, [React.ElementType, IconTone]> = {
+  reEngaged: [Repeat, "info"],
+  newCustomers: [UserPlus, "primary"],
+  bookingTotal: [CalendarCheck, "primary"],
+  bookingNew: [CalendarPlus, "warning"],
+  showUp: [CircleCheck, "success"],
+};
 
 type Card = {
   key: string;
@@ -125,6 +133,8 @@ export function SmaxReportView() {
             <StatCard
               key={c.key}
               label={t(`card.${c.key}`)}
+              icon={CARD_ICON[c.key]?.[0]}
+              iconTone={CARD_ICON[c.key]?.[1]}
               loading={loading}
               value={
                 sum ? (

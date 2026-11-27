@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button, Collapse, Empty, Form, Image, Input, Radio, Select } from "antd";
-import { Plus } from "lucide-react";
+import { CalendarDays, CreditCard, Lightbulb, Plus, ReceiptText, Route, ShoppingBag, Wallet } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addCustomerNeed, addPortraitNote, setNeedStatus } from "@/app/(app)/customers/customer-360-actions";
@@ -10,7 +10,7 @@ import { VisitStatusTag } from "@/components/appointments/appointments-manager";
 import { CardStatusTag, DueText, usageOf } from "@/components/cards/card-drawer";
 import { DASH, StatusTag } from "@/components/common/cells";
 import { Section } from "@/components/common/section";
-import type { StaffRef } from "@/components/common/user-avatar";
+import { staffName, type StaffRef } from "@/components/common/user-avatar";
 import { kindText, TourStatusTag } from "@/components/tour/tour-drawer";
 import { cardMoney, customerCardMoney, isTourable } from "@/lib/cards";
 import { formatRupiah } from "@/lib/currency";
@@ -51,37 +51,54 @@ export function OverviewTab({ data, staff }: { data: Customer360; staff: StaffRe
   const tt = useTranslations("tour");
   const services = useApptServices(data);
   // Thông tin cơ bản (nguồn, liên hệ đầu, người phụ trách) nằm ở đầu popup (Header).
-  return <div className="flex flex-col gap-5">
+  return <div className="flex flex-col gap-6">
     {data.can.finance && <FinanceTotal data={data} />}
-    <Section title={t("appointments", { count: data.appointments.length })}>
-      {data.appointments.length ? <ul className="flex flex-col gap-2">
-        {data.appointments.map((a) => <li key={a.id} className="rounded-lg border border-border p-3 text-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium tabular-nums">{fmt(a.scheduled_at)}</span>
-            <VisitStatusTag status={a.visit_status} />
-            <span className="text-muted-foreground">{services(a)}</span>
-          </div>
-          {/* Người thực hiện: Telesales · Sales · Master + người thực hiện thêm kèm vai trò. */}
-          <p className="mt-1 text-muted-foreground">
-            {t("performers")}: {[
-              a.staff_id && `${nameOf(staff, a.staff_id)} · ${ta("staff")}`,
-              a.sales_id && `${nameOf(staff, a.sales_id)} · ${ta("sales")}`,
-              a.technician_id && `${nameOf(staff, a.technician_id)} · ${ta("master")}`,
-              ...a.performers.map((p) => `${nameOf(staff, p.profile_id)} · ${ta(`performerRoles.${p.role}`)}`),
-            ].filter(Boolean).join(", ") || "—"}
-          </p>
-        </li>)}
+    <Section title={t("appointments", { count: data.appointments.length })} icon={CalendarDays}>
+      {data.appointments.length ? <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+        {data.appointments.map((a) => {
+          const d = dayjs(a.scheduled_at);
+          return <li key={a.id} className="flex items-center gap-3 px-3 py-2.5">
+            {/* Ô ngày: ngày to + tháng/năm nhỏ — dò lịch theo mắt nhanh hơn chuỗi ngày giờ. */}
+            <div className="flex w-16 shrink-0 flex-col items-center rounded-md bg-accent py-1.5 text-primary tabular-nums">
+              <span className="text-base font-semibold leading-none">{d.format("DD")}</span>
+              <span className="mt-1 text-xs leading-none">{d.format("MM/YYYY")}</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="font-medium tabular-nums">{d.format("HH:mm")}</span>
+                <span className="min-w-0 truncate">{services(a) || DASH}</span>
+                <span className="ms-auto"><VisitStatusTag status={a.visit_status} /></span>
+              </div>
+              {/* Người thực hiện: Telesales · Sales · Master + người thực hiện thêm kèm vai trò. */}
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("performers")}: {[
+                  a.staff_id && `${nameOf(staff, a.staff_id)} · ${ta("staff")}`,
+                  a.sales_id && `${nameOf(staff, a.sales_id)} · ${ta("sales")}`,
+                  a.technician_id && `${nameOf(staff, a.technician_id)} · ${ta("master")}`,
+                  ...a.performers.map((p) => `${nameOf(staff, p.profile_id)} · ${ta(`performerRoles.${p.role}`)}`),
+                ].filter(Boolean).join(", ") || "—"}
+              </p>
+            </div>
+          </li>;
+        })}
       </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noAppointments")} />}
     </Section>
     {/* Tour (buổi làm) nối theo customer_id — chỉ hiện khi có (RLS lọc theo quyền tour / thẻ). */}
-    {data.tours.length > 0 && <Section title={t("tours", { count: data.tours.length })}>
+    {data.tours.length > 0 && <Section title={t("tours", { count: data.tours.length })} icon={Route}>
       <ul className="divide-y divide-border rounded-lg border border-border text-sm">
-        {data.tours.map((r) => <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
-          <span className="tabular-nums">{fmt(r.tour_date, "DD/MM/YYYY")}</span>
-          <span className="min-w-0 flex-1 truncate">{[serviceName(data, r.service_id), kindText(tt, r)].filter(Boolean).join(" · ")}</span>
-          <span className="text-muted-foreground">{nameOf(staff, r.technician_id)}</span>
-          <TourStatusTag tour={r} />
-        </li>)}
+        {/* Cột cố định: Ngày · DV · Loại · Master · Trạng thái — các dòng thẳng hàng. */}
+        {data.tours.map((r) => {
+          const kind = kindText(tt, r);
+          return <li key={r.id} className="grid grid-cols-[88px_minmax(0,1fr)_auto] items-center gap-x-3 px-3 py-2.5 sm:grid-cols-[88px_minmax(0,1fr)_160px_auto]">
+            <span className="text-muted-foreground tabular-nums">{fmt(r.tour_date, "DD/MM/YYYY")}</span>
+            <span className="truncate">
+              <span className="font-medium">{serviceName(data, r.service_id) || DASH}</span>
+              {kind && <span className="text-muted-foreground"> · {kind}</span>}
+            </span>
+            <span className="min-w-0 max-sm:hidden">{staffName(staff, r.technician_id)}</span>
+            <span className="justify-self-end"><TourStatusTag tour={r} /></span>
+          </li>;
+        })}
       </ul>
     </Section>}
   </div>;
@@ -141,7 +158,7 @@ export function PortraitTab({ data, staff, onSaved }: { data: Customer360; staff
                 <p className="whitespace-pre-wrap">{portraitText(e, locale)}</p>
               </li>)}</ul>,
             }]} />}
-          </> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("empty")} />}
+          </> : <p className="mt-1 text-muted-foreground">{t("empty")}</p>}
         </section>;
       })}
     </div>
@@ -175,7 +192,7 @@ export function ServicesTab({ data, staff, onSaved }: { data: Customer360; staff
 
   return <div className="flex flex-col gap-5">
     <PurchasedServices data={data} />
-    <Section title={t("title")}
+    <Section title={t("title")} icon={Lightbulb}
       extra={!adding && <Button size="small" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>{t("add")}</Button>}>
       {adding && <Form form={form} layout="vertical" requiredMark={false} disabled={pending} onFinish={add}
         initialValues={{ origin: "customer_asked" }} className="rounded-lg border border-border bg-muted/40 p-4">
@@ -226,7 +243,7 @@ function PurchasedServices({ data }: { data: Customer360 }) {
   const used = usageOf(data.tours);
   const rows = data.cards.filter((c) => !c.cancelled_at).flatMap((card) => card.items.map((item) => ({ card, item })));
   if (!rows.length) return null;
-  return <Section title={t("purchased")}>
+  return <Section title={t("purchased")} icon={ShoppingBag}>
     <ul className="divide-y divide-border rounded-lg border border-border text-sm">
       {rows.map(({ card, item }) => {
         const s = data.services.find((x) => x.id === item.service_id);
@@ -260,16 +277,26 @@ function FinanceTotal({ data }: { data: Customer360 }) {
   const tc = useTranslations("cards");
   const ta = useTranslations("appointments");
   const f = customerCardMoney(moneyCards(data), data.customer.deposit_amount);
-  const cells: [string, React.ReactNode][] = [
+  // % đã thu trên giá trị thẻ — thanh nhỏ dưới ô Đã thu.
+  const pct = f.value > 0 ? Math.min(100, Math.round((f.collected / f.value) * 100)) : null;
+  const owing = f.due !== null && f.due > 0;
+  const cells: [string, React.ReactNode, React.ReactNode?, string?][] = [
     [tc("value"), formatRupiah(f.value)],
-    [tc("collected"), formatRupiah(f.collected)],
-    [f.due !== null && f.due < 0 ? tc("refundOwed") : tc("due"), f.due === null ? ta("dueUnknown") : <DueText due={f.due} />],
+    [tc("collected"), formatRupiah(f.collected), pct !== null && <div className="mt-2 flex items-center gap-2">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-success" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-muted-foreground tabular-nums">{pct}%</span>
+    </div>],
+    [f.due !== null && f.due < 0 ? tc("refundOwed") : tc("due"), f.due === null ? ta("dueUnknown") : <DueText due={f.due} />,
+      null, owing ? "border-warning/40 bg-warning/5" : undefined],
   ];
-  return <Section title={t("total")}>
-    <div className="grid grid-cols-3 gap-3">
-      {cells.map(([label, v]) => <div key={label} className="rounded-lg border border-border p-3">
+  return <Section title={t("total")} icon={Wallet}>
+    <div className="grid gap-3 sm:grid-cols-3">
+      {cells.map(([label, v, footer, tone]) => <div key={label} className={`rounded-lg border border-border p-3 ${tone ?? ""}`}>
         <div className="text-xs text-muted-foreground">{label}</div>
-        <div className="mt-1 font-semibold tabular-nums">{v}</div>
+        <div className="mt-1 text-lg font-semibold leading-tight tabular-nums">{v}</div>
+        {footer}
       </div>)}
     </div>
     {f.depositLeft > 0 && <p className="mt-2 text-xs text-muted-foreground tabular-nums">{t("depositLeft", { amount: formatRupiah(f.depositLeft) })}</p>}
@@ -291,7 +318,7 @@ function FinanceZones({ data, staff }: { data: Customer360; staff: StaffRef[] })
   const thumb = (url: string) => <Image key={url} src={url} alt="" width={40} height={40} className="rounded object-cover" />;
   return <>
     <FinanceTotal data={data} />
-    <Section title={t("cards", { count: cards.length })}>
+    <Section title={t("cards", { count: cards.length })} icon={CreditCard}>
       {cards.length ? <ul className="divide-y divide-border rounded-lg border border-border text-sm">
         {cards.map((c) => {
           const m = cardMoney(c);
@@ -308,7 +335,7 @@ function FinanceZones({ data, staff }: { data: Customer360; staff: StaffRef[] })
         })}
       </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noCards")} />}
     </Section>
-    <Section title={t("payments")}>
+    <Section title={t("payments")} icon={ReceiptText}>
       {deposit > 0 || payments.length ? <Image.PreviewGroup>
         <ul className="divide-y divide-border rounded-lg border border-border text-sm">
           {deposit > 0 && <li className="flex items-center justify-between gap-3 px-3 py-2">

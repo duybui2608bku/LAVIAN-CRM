@@ -2,7 +2,9 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { Button, Form, Input, Popover, Select, type TableProps } from "antd";
-import { CalendarPlus, MessageCircleMore, Rows3, ShoppingCart, SquarePen } from "lucide-react";
+import {
+  CalendarPlus, CalendarX2, CircleCheck, Clock, HandCoins, MessageCircleMore, ReceiptText, Rows3, ShoppingCart, SquarePen, Users, Wallet,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { addAppointmentNote, createAppointment, deleteAppointmentNote, patchAppointment } from "@/app/(app)/appointments/actions";
@@ -279,13 +281,13 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <PageHeader title={t("title")} />
     {/* Số liệu theo bộ lọc đang áp (thứ tự khối: Thẻ số liệu → Thanh lọc, như Booking management). */}
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
-      <StatCard label={t("statTotal")} value={stats.total} />
-      <StatCard label={t("statArrived")} value={stats.arrived} />
-      <StatCard label={t("statCancelled")} value={stats.cancelled} />
-      <StatCard label={t("statWaiting")} value={stats.waiting} />
-      <StatCard label={t("statBill")} value={formatRupiahCompact(stats.bill)} />
-      <StatCard label={t("statCollected")} value={formatRupiahCompact(stats.collected)} />
-      <StatCard label={t("statDue")} value={formatRupiahCompact(stats.due)} />
+      <StatCard label={t("statTotal")} value={stats.total} icon={Users} />
+      <StatCard label={t("statArrived")} value={stats.arrived} icon={CircleCheck} iconTone="success" />
+      <StatCard label={t("statCancelled")} value={stats.cancelled} icon={CalendarX2} iconTone="destructive" />
+      <StatCard label={t("statWaiting")} value={stats.waiting} icon={Clock} iconTone="warning" />
+      <StatCard label={t("statBill")} value={formatRupiahCompact(stats.bill)} icon={ReceiptText} iconTone="info" />
+      <StatCard label={t("statCollected")} value={formatRupiahCompact(stats.collected)} icon={HandCoins} iconTone="success" />
+      <StatCard label={t("statDue")} value={formatRupiahCompact(stats.due)} icon={Wallet} iconTone="warning" />
     </div>
     <PageToolbar>
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
