@@ -56,6 +56,16 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-27 — Marketing: "Tin nhắn theo số WA" trên 1 hàng
+- **Thay đổi:** Màn `lg` trở lên các thẻ số WA (kể cả "Chưa gắn WA") chia đều 1 hàng (`lg:grid-flow-col lg:auto-cols-fr`); màn nhỏ vẫn 2–3 cột xuống dòng.
+- **File ảnh hưởng:** `components/marketing/ads-stats.tsx`.
+- **Còn dở / ghi chú:** chưa xem trên trình duyệt. Nhiều số WA (>10) sẽ hẹp — khi đó cân nhắc cuộn ngang.
+
+### 2026-11-27 — Master nhận tour tự điền vào lịch hẹn (Quản lý bán hàng)
+- **Thay đổi:** Trigger `tours_fill_appointment_master` (security definer, giống `tours_fill_customer_technician`): tour (không phải dự kiến) có Master → `clinic_appointments.technician_id` tự điền cho **lịch đã bán thẻ chứa tour** (`treatment_cards.appointment_id`) + lịch cùng khách cùng ngày tour (giờ VN), chỉ khi lịch chưa có Master hoặc đang là Master cũ của tour (đổi người nhận). Trả tour → giữ nguyên Master ở lịch. Backfill lịch cũ. Cột Nhân sự + quy tắc "Đã thực hiện cần Master" dùng luôn giá trị này, không đổi code UI.
+- **File ảnh hưởng:** `supabase/migrations/20261127100000_tour_master_to_appointment.sql`.
+- **Còn dở / ghi chú:** ĐÃ chạy trên DB (project `fghnzykhcbvkfyxqehcd`) qua Supabase MCP; backfill 1 lịch (Arsakha 18/11 → Lieu KTV). Chưa xem trên trình duyệt.
+
 ### 2026-11-27 — Rà soát UI toàn app (ui-ux-pro-max) trên trình duyệt
 - **Thay đổi:** Đã chụp 15 trang ở 1440×900. (1) **Lỗi sidebar:** thu gọn sidebar mà mở trang con "Khách hàng" thì antd tự bật popup menu con (do `defaultOpenKeys`) che tiêu đề trang → thu gọn truyền `[]` + `key` theo trạng thái thu gọn. (2) **Thẻ số liệu thống nhất có icon màu** như trang Báo cáo: Quản lý bán hàng, Đặt lịch, Khách hàng (potential), Thẻ liệu trình, Tour (admin + KTV), Marketing, Báo cáo SMAX. (3) `DataTable` trống: hình Empty nhỏ + chữ (trước chỉ 1 dòng chữ xám). (4) Dải pipeline `/customers`: 2 nhóm cạnh nhau chỉ từ `2xl` (hẹp hơn nhãn bị cắt "Lịch hẹn hô…"). (5) Báo cáo SMAX thêm tiêu đề trang (`nav.smaxReport`). (6) Popup 360°: ô chân dung trống thành 1 dòng chữ (bỏ hình hộp to), tiêu đề mục tab Dịch vụ & Upsell có icon. `.claude/launch.json` thêm cấu hình `dev-node` (chạy `node node_modules/next/dist/bin/next dev`) vì `npm` không khởi chạy được từ trình xem trước (lỗi shim Windows).
 - **File ảnh hưởng:** `components/layout/app-shell.tsx`, `components/common/data-table.tsx`, `components/customers/{customer-pipeline,potential-manager,smax-report-view}.tsx`, `components/customers/customer-360/profile-tabs.tsx`, `components/appointments/{appointments-manager,bookings-manager}.tsx`, `components/cards/cards-view.tsx`, `components/tour/tour-view.tsx`, `components/marketing/ads-stats.tsx`, `app/(app)/customers/smax-report/page.tsx`, `.claude/launch.json`
