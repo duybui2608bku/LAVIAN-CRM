@@ -302,7 +302,8 @@ export async function submitLead(
     if (followUp) revalidatePath("/customers/potential");
     return {};
   } catch (e) {
-    if (isDuplicate(e)) return { error: (await getTranslations("appointments"))("duplicate") };
+    const dup = duplicateKey(e);
+    if (dup) return { error: (await getTranslations("appointments"))(dup) };
     // Trigger DB: cọc (nguồn duy nhất customers.deposit_amount) không thấp hơn phần đã trừ vào thẻ.
     if (normalizeError(e).message.includes("deposit_below_used")) return { error: (await getTranslations("appointments"))("depositBelowUsed") };
     return { error: normalizeError(e).message };
@@ -318,5 +319,15 @@ async function autoSummarize(customerId: string, messages: ChatMessage[], staffI
   }
 }
 
-/** Trùng lịch hẹn (unique khách + giờ hẹn). */
-const isDuplicate = (e: unknown) => !!e && typeof e === "object" && "code" in e && e.code === "23505";
+// Lỗi 23505 → câu báo theo unique index bị trùng (Postgres ghi tên index trong message).
+const UNIQUE_MESSAGES = {
+  clinic_appointments_customer_time_idx: "duplicate",
+  customers_phone_active_uidx: "phoneTaken",
+  customers_smax_customer_id_uidx: "smaxTaken",
+} as const;
+function duplicateKey(e: unknown): (typeof UNIQUE_MESSAGES)[keyof typeof UNIQUE_MESSAGES] | "duplicateRecord" | null {
+  if (!e || typeof e !== "object" || !("code" in e) || e.code !== "23505") return null;
+  const text = `${"message" in e ? e.message : ""} ${"details" in e ? e.details : ""}`;
+  const hit = Object.entries(UNIQUE_MESSAGES).find(([name]) => text.includes(name));
+  return hit ? hit[1] : "duplicateRecord";
+}

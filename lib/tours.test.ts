@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { firstTourIds, tourBill, tourCommission, tourPatchSchema, tourStatus } from "./tours.ts";
+import { firstTourIds, plannedDateError, tourBill, tourCommission, tourPatchSchema, tourStatus } from "./tours.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
 
@@ -49,4 +49,21 @@ test("Hoá đơn = giá trọn gói chỉ ở tour thật đầu tiên của dò
   assert.equal(tourBill({ bill_amount: 500, billed: false }), null); // buổi sau: không cộng lại giá trọn gói
   assert.equal(tourBill({ bill_amount: 500 }), 500); // không tính billed → như cũ
   assert.equal(tourCommission({ bill_amount: 500_000, service_detail: "retouch" }), 15_000); // công vẫn trên giá cả dòng
+});
+
+test("pinning a planned date keeps the step order", () => {
+  const tours = [
+    { id: "real", tour_date: "2026-12-01", planned: false, date_pinned: false },
+    { id: "p1", tour_date: "2027-01-01", planned: true, date_pinned: false },
+    { id: "p2", tour_date: "2027-02-01", planned: true, date_pinned: false },
+    { id: "p3", tour_date: "2027-03-01", planned: true, date_pinned: true },
+  ];
+  const today = "2026-12-10";
+  assert.equal(plannedDateError("p2", "2027-02-15", today, tours), null);
+  assert.deepEqual(plannedDateError("p2", "2026-12-09", today, tours), { key: "plannedPast" });
+  assert.deepEqual(plannedDateError("p2", "2026-12-20", today, tours), { key: "plannedBeforePrev", date: "2027-01-01" }); // trước bước 1
+  assert.deepEqual(plannedDateError("p1", "2026-12-01", "2026-11-01", tours), { key: "plannedBeforePrev", date: "2026-12-01" }); // trùng tour thật
+  assert.deepEqual(plannedDateError("p2", "2027-03-05", today, tours), { key: "plannedAfterNext", date: "2027-03-01" }); // qua bước đã ghim
+  assert.equal(plannedDateError("p3", "2027-06-01", today, tours), null); // bước cuối: dời xa thoải mái
+  assert.equal(plannedDateError("real", "2027-06-01", today, tours), null); // không phải bước dự kiến
 });

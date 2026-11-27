@@ -10,7 +10,7 @@ import type { Permission } from "@/lib/permissions";
 import { newNote, withoutNote } from "@/lib/notes";
 import { tourKindDetail } from "@/lib/cards";
 import { cardIdOfTour, syncRoadmap } from "@/lib/roadmap-sync";
-import { tourPatchSchema } from "@/lib/tours";
+import { plannedDateError, tourPatchSchema } from "@/lib/tours";
 import type { NoteInput, TimelineNote } from "@/types/note";
 
 type Result = { error?: string };
@@ -32,7 +32,9 @@ async function run(action: (t: Awaited<ReturnType<typeof getTranslations<"tour">
   } catch (error) {
     // 42501 = trigger tours_protect_confirmation (tour đã xác nhận).
     const code = error && typeof error === "object" && "code" in error ? error.code : null;
-    return { error: code === "42501" ? t("locked") : normalizeError(error).message };
+    const message = normalizeError(error).message;
+    // card_cancelled = trigger tours_card_guard (nhận / gán Master cho tour của thẻ đã huỷ / hoàn).
+    return { error: code === "42501" ? t("locked") : message.includes("card_cancelled") ? t("cardClosed") : message };
   }
 }
 
@@ -115,6 +117,17 @@ export async function setPlannedTourDate(id: string, date: string) {
     const day = z.iso.date().parse(date);
     await requireAnyPermission("tour.edit", "cards.edit");
     const db = await createClient();
+    // Giữ thứ tự bước: ngày ghim nằm giữa bước trước và bước đã ghim kế sau, không vào quá khứ.
+    const { data: self, error: selfErr } = await db.from("tours").select("card_item_id").eq("id", id).single();
+    if (selfErr) throw selfErr;
+    if (self.card_item_id) {
+      const { data: siblings, error: sibErr } = await db.from("tours").select("id,tour_date,planned,date_pinned")
+        .eq("card_item_id", self.card_item_id).is("deleted_at", null);
+      if (sibErr) throw sibErr;
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+      const bad = plannedDateError(id, day, today, siblings);
+      if (bad) return t(bad.key, { date: bad.date ? bad.date.split("-").reverse().join("/") : "" });
+    }
     const { data, error } = await db.from("tours").update({ tour_date: day, date_pinned: true })
       .eq("id", id).eq("planned", true).is("deleted_at", null).select("id");
     if (error) throw error;
