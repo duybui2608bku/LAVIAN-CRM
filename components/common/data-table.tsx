@@ -42,7 +42,8 @@ export function DataTable<T extends object>({
         rowKey="id"
         size="middle"
         scroll={{ x: "max-content", ...scroll }}
-        locale={empty ? { emptyText: empty } : undefined}
+        // Trống: hình minh hoạ nhỏ + chữ, thay vì 1 dòng chữ xám dễ bị bỏ qua.
+        locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={empty} className="py-6" /> }}
         pagination={
           pageSize
             ? {

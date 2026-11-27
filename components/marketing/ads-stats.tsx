@@ -6,7 +6,19 @@ import { Alert, Button, Switch, Table, Tooltip, type TableColumnType } from "ant
 import { StatusTag } from "@/components/common/cells";
 import { Section } from "@/components/common/section";
 import { StatCard } from "@/components/common/stat-card";
-import { RefreshCw } from "lucide-react";
+import { Calculator, CalendarCheck, CircleCheck, MessageCircle, RefreshCw, Sparkles, Wallet } from "lucide-react";
+import type { IconTone } from "@/components/common/stat-card";
+
+// Icon + màu thẻ số liệu — cùng bộ với trang Báo cáo.
+const CARD_ICON: Record<string, [React.ElementType, IconTone]> = {
+  spend: [Wallet, "primary"],
+  messages: [MessageCircle, "info"],
+  costPerMessage: [Calculator, "info"],
+  leads: [Sparkles, "success"],
+  costPerLead: [Calculator, "success"],
+  colBooking: [CalendarCheck, "primary"],
+  colShowUp: [CircleCheck, "success"],
+};
 import { useLocale, useTranslations } from "next-intl";
 
 import {
@@ -396,6 +408,8 @@ export function AdsStatsView() {
           <StatCard
             key={card.key}
             label={t(card.key)}
+            icon={CARD_ICON[card.key]?.[0]}
+            iconTone={CARD_ICON[card.key]?.[1]}
             value={card.value ?? "—"}
             loading={!stats}
           />

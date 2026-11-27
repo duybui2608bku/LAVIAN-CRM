@@ -4,7 +4,7 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Button, Image, type TableProps } from "antd";
 import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
-import { CalendarPlus, MessageCircleMore } from "lucide-react";
+import { CalendarDays, CalendarPlus, CircleAlert, CircleCheck, Clock, MessageCircleMore } from "lucide-react";
 
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
@@ -320,10 +320,10 @@ export function BookingsManager({
       <PageHeader title={t("title")} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label={t("kpiToday")} value={counts.today} />
-        <StatCard label={t("kpiPending")} value={counts.pending} />
-        <StatCard label={t("kpiAction")} value={counts.action} tone={counts.action ? "destructive" : "muted"} />
-        <StatCard label={t("kpiShowUp")} value={counts.showUp} />
+        <StatCard label={t("kpiToday")} value={counts.today} icon={CalendarDays} />
+        <StatCard label={t("kpiPending")} value={counts.pending} icon={Clock} iconTone="warning" />
+        <StatCard label={t("kpiAction")} value={counts.action} tone={counts.action ? "destructive" : "muted"} icon={CircleAlert} iconTone="destructive" />
+        <StatCard label={t("kpiShowUp")} value={counts.showUp} icon={CircleCheck} iconTone="success" />
       </div>
 
       <PageToolbar>

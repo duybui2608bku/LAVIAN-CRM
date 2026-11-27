@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Alert, Avatar, Button, Empty, Modal, Skeleton, Tabs } from "antd";
+import { Alert, Avatar, Button, Modal, Skeleton, Tabs } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, NotebookPen, PanelRightOpen } from "lucide-react";
+import { BellRing, ChevronLeft, ChevronRight, NotebookPen, PanelRightOpen, Phone, UserRound } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import { getCustomer360 } from "@/app/(app)/customers/customer-360-actions";
@@ -115,28 +115,31 @@ function Header({ data, staff, index, total, onPrev, onNext }: {
     [ta("sales"), staffName(staff, c.sales_id)],
     [ta("master"), staffName(staff, c.technician_id)],
   ] : [];
-  return <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pe-8">
-    <div className="flex min-w-0 items-center gap-3">
-      <Avatar src={c?.picture || undefined} size={44} className="shrink-0">{c?.full_name.charAt(0)}</Avatar>
-      <div className="min-w-0">
+  // 2 tầng: danh tính (avatar · tên · trạng thái · SĐT) + Trước/Tiếp, rồi dải thông tin nhãn trên / giá trị dưới.
+  return <div className="flex flex-col gap-3 pe-8 font-normal">
+    <div className="flex items-center gap-3">
+      <Avatar src={c?.picture || undefined} size={48} className="shrink-0 bg-accent text-lg font-semibold text-primary">{c?.full_name.charAt(0)}</Avatar>
+      <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate text-lg font-semibold">{c?.full_name ?? t("title")}</span>
-          {stage && <StatusTag label={optionLabel(stage, locale)} color={stage.color} className="font-normal" />}
+          <span className="truncate text-lg font-semibold leading-tight">{c?.full_name ?? t("title")}</span>
+          {stage && <StatusTag label={optionLabel(stage, locale)} color={stage.color} />}
         </div>
-        <div className="min-h-4 text-xs font-normal text-muted-foreground tabular-nums">{c?.phone}</div>
+        <div className="mt-1 flex min-h-5 items-center gap-1.5 text-sm text-muted-foreground tabular-nums">
+          {c?.phone && <><Phone className="size-3.5 shrink-0" aria-hidden />{c.phone}</>}
+        </div>
       </div>
+      {index >= 0 && <div className="flex shrink-0 items-center gap-1">
+        <Button aria-label={t("prev")} title={t("prev")} disabled={index <= 0} icon={<ChevronLeft className="size-4" />} onClick={onPrev} />
+        <span className="min-w-12 text-center text-sm text-muted-foreground tabular-nums">{t("position", { index: index + 1, total })}</span>
+        <Button aria-label={t("next")} title={t("next")} disabled={index >= total - 1} icon={<ChevronRight className="size-4" />} onClick={onNext} />
+      </div>}
     </div>
-    <dl className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-1.5 text-sm font-normal">
-      {info.map(([label, value]) => <div key={label} className="flex min-w-0 items-center gap-2">
-        <dt className="shrink-0 text-muted-foreground">{label}</dt>
-        <dd className="min-w-0 tabular-nums">{value}</dd>
+    {info.length > 0 && <dl className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-lg bg-muted px-4 py-2.5 text-sm sm:grid-cols-3 lg:grid-cols-5">
+      {info.map(([label, value]) => <div key={label} className="min-w-0">
+        <dt className="text-xs text-muted-foreground">{label}</dt>
+        <dd className="mt-0.5 flex min-h-5 min-w-0 items-center tabular-nums">{value}</dd>
       </div>)}
-    </dl>
-    {index >= 0 && <div className="flex items-center gap-1 font-normal">
-      <Button size="small" aria-label={t("prev")} title={t("prev")} disabled={index <= 0} icon={<ChevronLeft className="size-4" />} onClick={onPrev} />
-      <span className="min-w-12 text-center text-sm tabular-nums">{t("position", { index: index + 1, total })}</span>
-      <Button size="small" aria-label={t("next")} title={t("next")} disabled={index >= total - 1} icon={<ChevronRight className="size-4" />} onClick={onNext} />
-    </div>}
+    </dl>}
   </div>;
 }
 
@@ -145,24 +148,26 @@ function SideColumn({ data }: { data: Customer360 }) {
   const t = useTranslations("c360");
   const locale = useLocale();
   const latest = latestPortrait(data.portrait);
-  return <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto max-lg:hidden">
-    <Section title={t("quickPortrait")}>
-      <dl className="flex flex-col gap-2 text-sm">
+  const filled = PORTRAIT_FIELDS.filter((f) => latest[f]).length;
+  return <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-muted/40 p-4 max-lg:hidden">
+    <Section title={t("quickPortrait")} icon={UserRound}
+      extra={<span className="text-xs text-muted-foreground tabular-nums">{filled}/{PORTRAIT_FIELDS.length}</span>}>
+      <dl className="flex flex-col gap-3 text-sm">
         {PORTRAIT_FIELDS.map((f) => <div key={f}>
           <dt className="text-xs text-muted-foreground">{t(`portrait.fields.${f}`)}</dt>
-          <dd className="line-clamp-2">{latest[f]
+          <dd className="mt-0.5 line-clamp-3">{latest[f]
             ? <>{portraitText(latest[f]!, locale)} <SourceTag source={latest[f]!.source} /></>
             : DASH}</dd>
         </div>)}
       </dl>
     </Section>
-    <Section title={t("nextTasks")}>
+    <Section title={t("nextTasks")} icon={BellRing} className="border-t border-border pt-4">
       {data.reminders.length ? <ul className="flex flex-col gap-2 text-sm">
-        {data.reminders.map((r) => <li key={r.id}>
-          <span className={Date.parse(r.remind_at) < data.now ? "text-destructive tabular-nums" : "tabular-nums"}>{dayjs(r.remind_at).format("DD/MM HH:mm")}</span>
+        {data.reminders.map((r) => <li key={r.id} className="rounded-md border border-border bg-card px-3 py-2">
+          <span className={`text-xs font-medium tabular-nums ${Date.parse(r.remind_at) < data.now ? "text-destructive" : "text-muted-foreground"}`}>{dayjs(r.remind_at).format("DD/MM HH:mm")}</span>
           <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap">{r.note}</p>
         </li>)}
-      </ul> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("noTasks")} />}
+      </ul> : <p className="text-sm text-muted-foreground">{t("noTasks")}</p>}
     </Section>
   </aside>;
 }

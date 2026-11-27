@@ -3,7 +3,7 @@
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Badge, Button, type TableProps } from "antd";
 import { useLocale, useTranslations } from "next-intl";
-import { MessageCircleMore, MessageSquareText } from "lucide-react";
+import { CalendarCheck, CircleAlert, MessageCircleMore, MessageSquareText, PhoneCall, Users } from "lucide-react";
 
 import { convertPotentialCustomer, patchCustomer } from "@/app/(app)/customers/actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
@@ -292,10 +292,10 @@ export function PotentialManager({
       <PageHeader title={t("title")} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label={t("kpiTotal")} value={rows.length} />
-        <StatCard label={t("kpiOverdue")} value={counts.overdue} tone={counts.overdue ? "destructive" : "muted"} />
-        <StatCard label={t("kpiToday")} value={counts.today} />
-        <StatCard label={t("kpiConverted")} value={convertedToday} />
+        <StatCard label={t("kpiTotal")} value={rows.length} icon={Users} />
+        <StatCard label={t("kpiOverdue")} value={counts.overdue} tone={counts.overdue ? "destructive" : "muted"} icon={CircleAlert} iconTone="destructive" />
+        <StatCard label={t("kpiToday")} value={counts.today} icon={PhoneCall} iconTone="info" />
+        <StatCard label={t("kpiConverted")} value={convertedToday} icon={CalendarCheck} iconTone="success" />
       </div>
 
       <PageToolbar>

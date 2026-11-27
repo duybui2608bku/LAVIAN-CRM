@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import { Popover, Select, type TableProps } from "antd";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
+import { CreditCard, HandCoins, ReceiptText, Wallet } from "lucide-react";
 import { CardDrawer, CardStatusTag, DueText, toursOfCard, usageOf, type CardMe } from "@/components/cards/card-drawer";
 import { useCustomer360 } from "@/components/customers/customer-360/customer-360-modal";
 import { ClearableSelect } from "@/components/common/clearable-select";
@@ -103,10 +104,10 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
   return <Page>
     <PageHeader title={t("title")} />
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <StatCard label={t("statCount")} value={filtered.filter((c) => !c.cancelled_at).length} />
-      <StatCard label={t("statValue")} value={formatRupiahCompact(sum((c) => c.money.value))} />
-      <StatCard label={t("statCollected")} value={formatRupiahCompact(sum((c) => c.money.collected))} />
-      <StatCard label={t("statDue")} value={formatRupiahCompact(sum((c) => Math.max(c.money.due, 0)))} />
+      <StatCard label={t("statCount")} value={filtered.filter((c) => !c.cancelled_at).length} icon={CreditCard} />
+      <StatCard label={t("statValue")} value={formatRupiahCompact(sum((c) => c.money.value))} icon={ReceiptText} iconTone="info" />
+      <StatCard label={t("statCollected")} value={formatRupiahCompact(sum((c) => c.money.collected))} icon={HandCoins} iconTone="success" />
+      <StatCard label={t("statDue")} value={formatRupiahCompact(sum((c) => Math.max(c.money.due, 0)))} icon={Wallet} iconTone="warning" />
     </div>
     <PageToolbar>
       <SearchInput value={search} placeholder={t("search")} onChange={(v) => { setSearch(v); reset(); }} />
