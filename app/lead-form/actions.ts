@@ -303,6 +303,8 @@ export async function submitLead(
     return {};
   } catch (e) {
     if (isDuplicate(e)) return { error: (await getTranslations("appointments"))("duplicate") };
+    // Trigger DB: cọc (nguồn duy nhất customers.deposit_amount) không thấp hơn phần đã trừ vào thẻ.
+    if (normalizeError(e).message.includes("deposit_below_used")) return { error: (await getTranslations("appointments"))("depositBelowUsed") };
     return { error: normalizeError(e).message };
   }
 }

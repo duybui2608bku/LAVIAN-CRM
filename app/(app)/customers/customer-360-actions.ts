@@ -7,6 +7,7 @@ import { canSeeFinance, canSeePhotos, customerRole } from "@/lib/customer-360";
 import { detectPortrait, SUMMARY_FIELDS, summarizeAndSave } from "@/lib/chat-summary";
 import { AppError, normalizeError } from "@/lib/errors";
 import { newNote } from "@/lib/notes";
+import { latestMaster } from "@/lib/tours";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
 import { createClient } from "@/lib/supabase/server";
 import type { AppointmentLog } from "@/types/appointment";
@@ -64,7 +65,7 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
     const photos = canSeePhotos(profile);
     const db = await createClient();
     const [customer, appts, cards, tours, logs, portrait, needs, reminders, services, photoRows, summary] = await Promise.all([
-      db.from("customers").select(`id,full_name,phone,picture,source,stage,staff_id,sales_id,technician_id,first_contact,created_at,thread_link:thread->>link,notes,smax_messages,smax_messages_at${finance ? ",deposit_amount,payment_confirm_url" : ""}`)
+      db.from("customers").select(`id,full_name,phone,picture,source,stage,staff_id,sales_id,first_contact,created_at,thread_link:thread->>link,notes,smax_messages,smax_messages_at${finance ? ",deposit_amount,payment_confirm_url" : ""}`)
         .eq("id", customerId).is("deleted_at", null).single(),
       db.from("clinic_appointments").select(APPT_FIELDS)
         .eq("customer_id", customerId).is("deleted_at", null).order("scheduled_at", { ascending: false }),
@@ -90,7 +91,8 @@ export async function getCustomer360(customerId: string): Promise<{ data?: Custo
     const { smax_messages, ...info } = customer.data as unknown as Customer360["customer"] & { smax_messages: Customer360["smax_messages"] };
     return {
       data: {
-        customer: { ...info, notes: info.notes ?? [] },
+        // Master = tour thật gần nhất (nguồn duy nhất là tours).
+        customer: { ...info, notes: info.notes ?? [], technician_id: latestMaster((tours.data ?? []) as unknown as Customer360["tours"]) },
         appointments: (appts.data ?? []) as unknown as Customer360["appointments"],
         cards: (cards.data ?? []) as unknown as Customer360["cards"],
         tours: (tours.data ?? []) as unknown as Customer360["tours"],

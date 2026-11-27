@@ -27,7 +27,7 @@ import { formatRupiah } from "@/lib/currency";
 import { matchesNameOrPhone } from "@/lib/customers";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { toast } from "@/lib/toast";
-import { tourCommission, tourStatus, type TourStatus } from "@/lib/tours";
+import { tourBill, tourCommission, tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
 import type { Service } from "@/types/service";
 import type { Tour } from "@/types/tour";
@@ -217,7 +217,7 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
   const real = items.filter((r) => !r.planned);
   const groups = me.isAdmin ? groupByTechnician(real, staff) : [];
   const count = (s: TourStatus) => all.filter((r) => tourStatus(r) === s).length;
-  const total = real.reduce((n, r) => n + (r.bill_amount ?? 0), 0);
+  const total = real.reduce((n, r) => n + (tourBill(r) ?? 0), 0);
   const commission = real.reduce((n, r) => n + tourCommission(r), 0);
   const failed = t("saveError");
 
@@ -245,7 +245,7 @@ function TourTable({ me, month, tours, services, staff, onOpen, onPhotos, goMont
     { title: t("technician"), width: 170, render: (_, r) => staffName(staff, r.technician_id) },
     { title: t("photos"), width: 90, render: (_, r) => <PhotoCountButton tour={r} onOpen={onPhotos} /> },
     { title: t("bill"), width: 140, align: "right", render: (_, r) =>
-      r.bill_amount == null ? DASH : <span className="tabular-nums">{formatRupiah(r.bill_amount)}</span> },
+      tourBill(r) == null ? DASH : <span className="tabular-nums">{formatRupiah(tourBill(r)!)}</span> },
     { title: t("commission"), width: 120, align: "right", render: (_, r) =>
       r.planned ? DASH : <span className="tabular-nums">{formatRupiah(tourCommission(r))}</span> },
     { title: t("status"), width: 140, render: (_, r) => <TourStatusTag tour={r} /> },

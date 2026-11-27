@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { BookingStatus, VisitStatus } from "@/types/appointment";
+import { ARRIVED_STATUSES } from "./kpi.ts";
 
 // Literal (không import giá trị từ types/ — node --test không hiểu alias "@/"); test đối chiếu BOOKING_STATUSES.
 export const BOOKING_STATUS_VALUES = ["pending", "confirmed", "cancelled", "rescheduled"] as const satisfies readonly BookingStatus[];
@@ -68,8 +69,8 @@ export function nearestByCustomer<T extends { customer_id: string; scheduled_at:
   return map;
 }
 
-/** Status tính là khách đã đến — khớp trigger DB `sync_appointment_checked_in` (checked_in). */
-export const ARRIVED_STATUSES: readonly string[] = ["arrived", "in_progress", "done"];
+// Khách đã đến = định nghĩa KPI chung (lib/kpi.ts).
+export { ARRIVED_STATUSES } from "./kpi.ts";
 
 /**
  * Id các lịch của KHÁCH MỚI (chấm xanh ở Sales Management): khách chưa có lịch nào đã đến xếp sớm hơn lịch này.

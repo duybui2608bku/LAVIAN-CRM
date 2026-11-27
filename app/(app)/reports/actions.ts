@@ -39,21 +39,24 @@ export async function getReport(from: string, to: string): Promise<Report> {
 
   const [fb, customers, booked, cards, payments, refunds] = await Promise.allSettled([
     fetchFbAdsDaily(start, to),
-    fetchAll<{ id: string; created_at: string; stage: string }>((a, b) =>
+    fetchAll<{ id: string; created_at: string; deposit_amount: number | null }>((a, b) =>
       supabase
         .from("customers")
-        .select("id, created_at, stage")
+        .select("id, created_at, deposit_amount")
         .is("deleted_at", null)
         .gte("created_at", range.start)
         .lt("created_at", range.end)
         .order("created_at")
         .range(a, b),
     ),
-    fetchAll<{ customer_id: string }>((a, b) =>
+    // Đặt lịch = lịch hẹn tạo trong kỳ (lib/kpi.ts).
+    fetchAll<{ created_at: string }>((a, b) =>
       supabase
         .from("clinic_appointments")
-        .select("customer_id")
+        .select("created_at")
         .is("deleted_at", null)
+        .gte("created_at", range.start)
+        .lt("created_at", range.end)
         .order("id")
         .range(a, b),
     ),
@@ -110,7 +113,7 @@ export async function getReport(from: string, to: string): Promise<Report> {
   report.rows = buildDays(start, to, {
     fb: fb.status === "fulfilled" ? fb.value.days : null,
     customers: customers.status === "fulfilled" ? customers.value : null,
-    bookedIds: booked.status === "fulfilled" ? new Set(booked.value.map((r) => r.customer_id)) : null,
+    appointments: booked.status === "fulfilled" ? booked.value : null,
     money,
   });
   report.sales = money && salesCommission(money, from, to);

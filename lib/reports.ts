@@ -1,12 +1,11 @@
 /**
  * Báo cáo /reports — hàm thuần (dùng được cả server lẫn client, có test).
  * Ngày là chuỗi `YYYY-MM-DD` theo giờ VN/WIB (UTC+7), số học Date.UTC — không dính timezone máy.
+ * Định nghĩa Đặt cọc / Đặt lịch: lib/kpi.ts (dùng chung với Báo cáo Telesales + pipeline /customers).
  */
+import { hasDeposit, vnDay } from "./kpi.ts";
 
-/** Từ "Đã đặt cọc" trở về sau trong phễu (dùng chung với pipeline /customers). */
-export const DEPOSITED_OR_LATER = new Set(["deposited", "booked", "show_up", "purchase"]);
-/** Giai đoạn chắc chắn đã đặt lịch (kể cả khi chưa nhập lịch hẹn vào hệ thống). */
-const BOOKED_OR_LATER = new Set(["booked", "show_up", "purchase"]);
+export { vnDay };
 
 export const METRICS = [
   "spend",
@@ -57,23 +56,18 @@ export function previousRange(from: string, to: string) {
   return { from: addDays(from, -n), to: addDays(from, -1) };
 }
 
-/** Timestamp ISO → ngày theo UTC+7. */
-export function vnDay(iso: string): string {
-  return new Date(Date.parse(iso) + 7 * 3_600_000).toISOString().slice(0, 10);
-}
-
 export type ReportSources = {
   /** null = FB lỗi. Ngày không có trong map = 0. */
   fb: Map<string, { spend: number; messages: number }> | null;
-  /** null = DB lỗi. */
-  customers: { id: string; created_at: string; stage: string }[] | null;
-  /** Khách có ≥ 1 lịch hẹn. */
-  bookedIds: Set<string> | null;
+  /** Khách tạo trong khoảng (Data); Đặt cọc = trong số đó có tiền cọc > 0. null = DB lỗi. */
+  customers: { id: string; created_at: string; deposit_amount: number | null }[] | null;
+  /** Lịch hẹn (ngày tạo) — Đặt lịch = số lịch TẠO trong ngày. null = DB lỗi. */
+  appointments: { created_at: string }[] | null;
   /** Tiền thu ở thẻ liệu trình (thẻ chưa huỷ): cọc trừ vào thẻ theo giờ bán thẻ + từng lần thu (âm = hoàn) theo giờ thu. */
   money: { at: string; amount: number }[] | null;
 };
 
-/** Dựng dòng theo ngày cho khoảng [from, to] (tăng dần). Đặt cọc/Đặt lịch tính dồn trong số Data của ngày đó. */
+/** Dựng dòng theo ngày cho khoảng [from, to] (tăng dần). Đặt cọc tính trong số Data của ngày; Đặt lịch = lịch tạo trong ngày. */
 export function buildDays(from: string, to: string, src: ReportSources): DayRow[] {
   const rows = new Map<string, DayRow>();
   for (let d = from; d <= to; d = addDays(d, 1)) {
@@ -84,7 +78,7 @@ export function buildDays(from: string, to: string, src: ReportSources): DayRow[
       messages: src.fb ? (fb?.messages ?? 0) : null,
       data: src.customers ? 0 : null,
       deposits: src.customers ? 0 : null,
-      bookings: src.customers && src.bookedIds ? 0 : null,
+      bookings: src.appointments ? 0 : null,
       revenue: src.money ? 0 : null,
     });
   }
@@ -92,9 +86,11 @@ export function buildDays(from: string, to: string, src: ReportSources): DayRow[
     const row = rows.get(vnDay(c.created_at));
     if (!row) continue;
     row.data! += 1;
-    if (DEPOSITED_OR_LATER.has(c.stage)) row.deposits! += 1;
-    if (row.bookings != null && (src.bookedIds!.has(c.id) || BOOKED_OR_LATER.has(c.stage)))
-      row.bookings += 1;
+    if (hasDeposit(c.deposit_amount)) row.deposits! += 1;
+  }
+  for (const a of src.appointments ?? []) {
+    const row = rows.get(vnDay(a.created_at));
+    if (row) row.bookings! += 1;
   }
   for (const m of src.money ?? []) {
     const row = rows.get(vnDay(m.at));

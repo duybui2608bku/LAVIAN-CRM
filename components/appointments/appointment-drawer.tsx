@@ -10,6 +10,7 @@ import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { type AppointmentStaff } from "@/components/appointments/appointments-manager";
 import { DueText } from "@/components/cards/card-drawer";
 import { cardMoney } from "@/lib/cards";
+import { confirmStatus } from "@/lib/kpi";
 import { formatRupiah } from "@/lib/currency";
 import { StatusTag } from "@/components/common/cells";
 import { NoteItem } from "@/components/common/notes";
@@ -90,7 +91,7 @@ function AppointmentDrawerBody({
     title={<div className="flex items-center justify-between gap-2">
       <span className="flex min-w-0 items-center gap-2">
         <span className="truncate">{customer?.full_name}</span>
-        <StatusTag color={BOOKING_STATUS_COLORS[a.booking_confirm]} label={t(`bookingStatus.${a.booking_confirm}`)} className="font-normal" />
+        <StatusTag color={BOOKING_STATUS_COLORS[confirmStatus(a)]} label={t(`bookingStatus.${confirmStatus(a)}`)} className="font-normal" />
       </span>
       {customer && <Button type="text" size="small" aria-label={t("viewInfo")} title={t("viewInfo")}
         icon={<PanelRightOpen className="size-4" />} onClick={() => onViewInfo(customer)} />}

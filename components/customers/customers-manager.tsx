@@ -102,7 +102,6 @@ type Patch = {
   rating?: string | null;
   staff_id?: string | null;
   sales_id?: string | null;
-  technician_id?: string | null;
   follow_up_at?: string | null;
 };
 
@@ -734,9 +733,8 @@ function CustomerDialog({
         stage: lockStage && editing ? editing.stage : v.stage,
         rating: v.rating || null,
         staff_id: v.staff_id || null,
-        // Sales/KTV đã ẩn khỏi form → giữ nguyên giá trị đang có.
+        // Sales đã ẩn khỏi form → giữ nguyên giá trị đang có. Master lấy từ tour.
         sales_id: editing?.sales_id ?? null,
-        technician_id: editing?.technician_id ?? null,
         first_contact: v.first_contact || null,
         payment_confirm_url: v.payment_confirm_url || null,
         region_code: v.region_code || null,

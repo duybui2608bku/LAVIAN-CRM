@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, cardRefundRange, cardStatus, customerCardMoney, cardPaymentSchema, cardTourSchema, groupTaken, journeyDue, paymentRange, planRoadmap, suggestRefund, suggestTourKind, tourKindDetail,
+  auditEntries, cardDone, cardItemSessionsSchema, cardMoney, cardRefundRange, cardStatus, customerCardMoney, cardPaymentSchema, cardTourSchema, areaTaken, groupTaken, journeyDue, paymentRange, planRoadmap, suggestRefund, suggestTourKind, tourKindDetail,
 } from "./cards.ts";
 
 const id = "b102ac72-d890-479b-a51b-126494cf73ac";
@@ -27,6 +27,21 @@ test("mỗi nhóm 1 DV tạo tour: trùng nhóm bị chặn, dòng phụ (mực 
   assert.equal(groupTaken(laser, [ombre]), false);
   assert.equal(groupTaken(laser, [serum]), false); // laser + serum cùng nhóm vẫn được
   assert.equal(groupTaken(serum, [laser]), false);
+});
+
+test("thẻ Mày hoặc thẻ Môi: DV tạo tour khác vùng chính bị chặn, mí / dòng phụ không tính", () => {
+  const ombre = { group_id: "alis", tourable: true };
+  const laser = { group_id: "laser", tourable: true };
+  const nanoLip = { group_id: "bibir", tourable: true };
+  const plasma = { group_id: "lips_treatment", tourable: true };
+  const lipInk = { group_id: "bibir", tourable: false };
+  const eyeliner = { group_id: "eyeliner", tourable: true };
+  assert.equal(areaTaken(nanoLip, [ombre]), true);
+  assert.equal(areaTaken(plasma, [laser]), true); // laser mày + plasma môi
+  assert.equal(areaTaken(laser, [ombre]), false); // cùng vùng mày
+  assert.equal(areaTaken(plasma, [nanoLip]), false); // cùng vùng môi
+  assert.equal(areaTaken(lipInk, [ombre]), false); // mực không tạo tour
+  assert.equal(areaTaken(eyeliner, [ombre]), false); // mí không thuộc vùng chính
 });
 
 test("khoảng thu: thu ≤ công nợ, hoàn ≤ Σ đã thu qua thanh toán (không tính cọc)", () => {

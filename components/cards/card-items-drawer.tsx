@@ -12,7 +12,7 @@ import { MoneyInput } from "@/components/common/money-input";
 import { Section } from "@/components/common/section";
 import { useServiceGroups } from "@/components/common/service-groups";
 import { kindText, runAction } from "@/components/tour/tour-drawer";
-import { groupTaken, planRoadmap, tourKindDetail, type CardPlan } from "@/lib/cards";
+import { areaTaken, groupTaken, planRoadmap, tourKindDetail, type CardPlan } from "@/lib/cards";
 import { formatIdr, formatRupiah } from "@/lib/currency";
 import { toast } from "@/lib/toast";
 import type { CardItem } from "@/types/card";
@@ -58,9 +58,10 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
   const total = lines.reduce((s, l) => s + (l.price ?? 0), 0);
   const listTotal = lines.reduce((s, l) => s + (byId.get(l.service_id)?.price ?? 0), 0);
   const due = total - (deposit ?? 0);
-  // Nhóm đã có DV (trong thẻ hoặc vừa chọn) → khoá các DV khác cùng nhóm.
+  // Nhóm đã có DV (trong thẻ hoặc vừa chọn) → khoá các DV khác cùng nhóm; thẻ Mày khoá DV Môi và ngược lại.
   const taken = [...existing.map((i) => i.service_id), ...picked].flatMap((id) => byId.get(id) ?? []);
-  const locked = (s: Service) => !picked.has(s.id) && groupTaken(s, taken);
+  const lockReason = (s: Service, group: string) => picked.has(s.id) ? null
+    : groupTaken(s, taken) ? t("error.sameGroup", { group }) : areaTaken(s, taken) ? t("error.areaTaken") : null;
 
   // Lộ trình xem trước khi bán thẻ: bước đầu = `start`, ngày sửa tay theo `${service_id}:${k}` (bước thứ k của DV).
   const [planStart, setPlanStart] = useState(() => dayjs().format("YYYY-MM-DD"));
@@ -94,17 +95,19 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
     <div className="@container"><div className="grid gap-5 @xl:grid-cols-[minmax(0,1fr)_320px]">
       {/* Bảng giá: 1 cột chữ nhỏ, mỗi nhóm 1 khối. */}
       <div>
-        {sections.map(({ group, items }) => <section key={group.id} className="mb-3">
+        {sections.map(({ group, items }) => {
+          const reason = items.map((s) => lockReason(s, group.name)).find(Boolean);
+          return <section key={group.id} className="mb-3">
           <h4 className="mb-1 flex items-center gap-1.5 border-b border-border pb-1 text-xs font-semibold tracking-wide text-primary uppercase">
             {group.name}
-            {items.some(locked) ? <Tooltip title={t("error.sameGroup", { group: group.name })}>
-              <CircleAlert className="size-3.5 cursor-help text-destructive" aria-label={t("error.sameGroup", { group: group.name })} />
+            {reason ? <Tooltip title={reason}>
+              <CircleAlert className="size-3.5 cursor-help text-destructive" aria-label={reason} />
             </Tooltip> : null}
           </h4>
           <ul>
             {items.map((s) => {
               const on = picked.has(s.id);
-              const off = locked(s);
+              const off = !!lockReason(s, group.name);
               return <li key={s.id}>
                 <label className={`flex items-center gap-2 rounded px-1.5 py-0.5 text-xs ${off ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted"} ${on ? "bg-primary/5 font-medium" : ""}`}>
                   <Checkbox checked={on} disabled={pending || off} onChange={(e) => toggle(s, e.target.checked)} />
@@ -114,7 +117,8 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
               </li>;
             })}
           </ul>
-        </section>)}
+        </section>;
+        })}
       </div>
 
       {/* Đã chọn + tạm tính — dính trên khi cuộn (khi 2 cột). */}

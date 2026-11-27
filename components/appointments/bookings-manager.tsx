@@ -30,6 +30,7 @@ import { SourceCell } from "@/components/customers/customers-manager";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { formatRupiah } from "@/lib/currency";
 import { matchesNameOrPhone } from "@/lib/customers";
+import { confirmStatus, isArrived, withPatch, type ConfirmStatus } from "@/lib/kpi";
 import { toast } from "@/lib/toast";
 import {
   BOOKING_STATUSES,
@@ -51,12 +52,12 @@ export type BookingCustomer = AppointmentCustomer & {
 type Tab = "today" | "tomorrow" | "action" | "all";
 type Status = (typeof BOOKING_STATUSES)[number] | "show_up";
 
-/** Trạng thái hiển thị: đã check-in → Đã đến, còn lại theo xác nhận lịch. */
-const statusOf = (a: Appointment): Status => (a.checked_in ? "show_up" : a.booking_confirm);
+/** Trạng thái hiển thị: đã check-in → Đã đến, còn lại theo xác nhận lịch (Huỷ / Đổi lịch đọc từ visit_status). */
+const statusOf = (a: Appointment): Status => (isArrived(a.visit_status) ? "show_up" : confirmStatus(a));
 /** Cần xử lý: lịch từ hôm nay trở đi, chưa đến, còn chờ xác nhận hoặc cần đổi lịch. */
 const needsAction = (a: Appointment, today: string) =>
-  !a.checked_in &&
-  (a.booking_confirm === "pending" || a.booking_confirm === "rescheduled") &&
+  !isArrived(a.visit_status) &&
+  (confirmStatus(a) === "pending" || confirmStatus(a) === "rescheduled") &&
   dayjs(a.scheduled_at).format("YYYY-MM-DD") >= today;
 
 export function BookingsManager({
@@ -89,7 +90,7 @@ export function BookingsManager({
   const tomorrow = dayjs(today).add(1, "day").format("YYYY-MM-DD");
 
   const [rows, patchOptimistic] = useOptimistic(appointments, (state: Appointment[], p: AppointmentPatch & { id: string }) =>
-    state.map((a) => (a.id === p.id ? { ...a, ...p } : a)),
+    state.map((a) => (a.id === p.id ? withPatch(a, p) : a)),
   );
 
   const save = (id: string, patch: AppointmentPatch) =>
@@ -130,8 +131,8 @@ export function BookingsManager({
       const isToday = dayjs(a.scheduled_at).format("YYYY-MM-DD") === today;
       if (isToday) {
         c.today++;
-        if (a.checked_in) c.showUp++;
-        else if (a.booking_confirm === "pending") c.pending++;
+        if (isArrived(a.visit_status)) c.showUp++;
+        else if (confirmStatus(a) === "pending") c.pending++;
       }
       if (needsAction(a, today)) c.action++;
     }
@@ -289,16 +290,16 @@ export function BookingsManager({
       width: 160,
       // Đã đến do Sales xác nhận ở trang Lịch hẹn — ở đây chỉ hiển thị.
       render: (_, a) =>
-        a.checked_in ? (
+        isArrived(a.visit_status) ? (
           statusTag("show_up")
         ) : (
           <InlineSelect
-            value={a.booking_confirm}
-            display={statusTag(a.booking_confirm)}
+            value={confirmStatus(a)}
+            display={statusTag(confirmStatus(a))}
             options={statusOptions}
             ariaLabel={t("colStatus")}
             disabled={!canEdit}
-            onSave={(v) => save(a.id, { booking_confirm: v as Appointment["booking_confirm"] })}
+            onSave={(v) => save(a.id, { booking_confirm: v as ConfirmStatus })}
           />
         ),
     },

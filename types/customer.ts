@@ -60,7 +60,6 @@ export interface CustomerInput {
   rating?: string | null; // đánh giá khách (CUSTOMER_OPTIONS kind "rating")
   staff_id?: string | null;
   sales_id?: string | null;
-  technician_id?: string | null;
   first_contact?: string | null; // "YYYY-MM-DD"
   payment_confirm_url?: string | null; // ảnh xác nhận thanh toán
   region_code?: string | null; // mã vùng Kemendagri: "31" | "31.71"
@@ -91,7 +90,8 @@ export interface Customer {
   rating: string | null; // đánh giá khách: potential | price_only | far | spam
   staff_id: string | null;
   sales_id: string | null; // nhân viên Sales phụ trách (profiles)
-  technician_id: string | null; // kỹ thuật viên làm dịch vụ (profiles)
+  /** Suy ra lúc nạp (không còn cột DB): Master của tour thật gần nhất — chỉ drawer thông tin khách có. */
+  technician_id?: string | null;
   first_contact: string | null;
   deposit_amount: number | null; // tiền cọc (IDR)
   payment_confirm_url: string | null; // ảnh xác nhận thanh toán

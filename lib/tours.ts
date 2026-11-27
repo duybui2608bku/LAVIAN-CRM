@@ -12,6 +12,33 @@ export const TOUR_RATES: Partial<Record<ServiceDetail, number>> = { new: 0.07, d
 export const tourCommission = (t: { bill_amount: number | null; service_detail: string | null }) =>
   Math.round((t.bill_amount ?? 0) * (TOUR_RATES[t.service_detail as ServiceDetail] ?? 0));
 
+/**
+ * Hoá đơn của tour ở trang Tour (sếp chốt 2026-11-27): giá dòng thẻ là giá TRỌN GÓI (mày 500 làm mấy buổi cũng 500)
+ * → chỉ tour thật ĐẦU TIÊN của dòng thẻ ghi giá (`billed`), các buổi sau null. Tổng / Excel / phiếu cộng theo hàm này.
+ * Công Master vẫn tính trên giá cả dòng (`tourCommission`). `billed` undefined (không tính) = giữ giá như cũ.
+ */
+export const tourBill = (t: { bill_amount: number | null; billed?: boolean }) => (t.billed === false ? null : t.bill_amount);
+
+/** Id tour thật đầu tiên của mỗi dòng thẻ (sớm nhất theo ngày, cùng ngày → tạo trước). Tour không thẻ = luôn là đầu. */
+export function firstTourIds(tours: { id: string; card_item_id: string | null; tour_date: string; created_at: string }[]) {
+  const first = new Map<string, (typeof tours)[number]>();
+  for (const t of tours) {
+    if (!t.card_item_id) continue;
+    const cur = first.get(t.card_item_id);
+    if (!cur || t.tour_date < cur.tour_date || (t.tour_date === cur.tour_date && t.created_at < cur.created_at)) first.set(t.card_item_id, t);
+  }
+  return new Set([...first.values()].map((t) => t.id));
+}
+
+/**
+ * Master của khách = Master của tour thật gần nhất (ngày lớn nhất) đã có người nhận — nguồn duy nhất là `tours`
+ * (bỏ cột customers.technician_id 2026-11-27). Không có → null.
+ */
+export function latestMaster(tours: { tour_date: string; technician_id: string | null; planned?: boolean }[]) {
+  return tours.filter((t) => t.technician_id && !t.planned)
+    .reduce<(typeof tours)[number] | null>((a, t) => (!a || t.tour_date > a.tour_date ? t : a), null)?.technician_id ?? null;
+}
+
 export type TourStatus = "planned" | "pending" | "claimed" | "confirmed";
 
 /** Trạng thái suy ra: dự kiến (lộ trình tự sinh, chưa chốt lịch); chưa có KTV = chờ nhận; có KTV = chưa xác nhận; admin xác nhận = đã xác nhận. */

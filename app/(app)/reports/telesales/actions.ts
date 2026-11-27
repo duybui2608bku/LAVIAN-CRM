@@ -17,7 +17,7 @@ import { TELESALES_DEPARTMENTS } from "@/types/user";
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 366;
 const APPT_COLUMNS =
-  "id, created_at, scheduled_at, booking_confirm, checked_in, staff_id, customer:customers!inner(created_at, source)";
+  "id, created_at, scheduled_at, booking_confirm, visit_status, staff_id, customer:customers!inner(created_at, source)";
 
 export interface TelesalesReport {
   data: TelesalesReportData | null;
