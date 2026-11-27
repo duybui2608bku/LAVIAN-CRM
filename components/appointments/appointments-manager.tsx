@@ -29,7 +29,7 @@ import { staffName, staffOptions, type StaffRef } from "@/components/common/user
 import { DASH, StatusTag } from "@/components/common/cells";
 import { ClearableSelect } from "@/components/common/clearable-select";
 import { ClearFilters, SearchInput } from "@/components/common/filter-controls";
-import { formatIdr, formatRupiahCompact } from "@/lib/currency";
+import { formatIdr, formatRupiah } from "@/lib/currency";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { appointmentStats, newCustomerAppointmentIds } from "@/lib/appointments";
 import { confirmStatus, isArrived, withPatch, type ConfirmStatus } from "@/lib/kpi";
@@ -286,9 +286,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
       <StatCard label={t("statArrived")} value={stats.arrived} icon={CircleCheck} iconTone="success" />
       <StatCard label={t("statCancelled")} value={stats.cancelled} icon={CalendarX2} iconTone="destructive" />
       <StatCard label={t("statWaiting")} value={stats.waiting} icon={Clock} iconTone="warning" />
-      <StatCard label={t("statBill")} value={formatRupiahCompact(stats.bill)} icon={ReceiptText} iconTone="info" />
-      <StatCard label={t("statCollected")} value={formatRupiahCompact(stats.collected)} icon={HandCoins} iconTone="success" />
-      <StatCard label={t("statDue")} value={formatRupiahCompact(stats.due)} icon={Wallet} iconTone="warning" />
+      <StatCard label={t("statBill")} value={formatRupiah(stats.bill)} icon={ReceiptText} iconTone="info" />
+      <StatCard label={t("statCollected")} value={formatRupiah(stats.collected)} icon={HandCoins} iconTone="success" />
+      <StatCard label={t("statDue")} value={formatRupiah(stats.due)} icon={Wallet} iconTone="warning" />
     </div>
     <PageToolbar>
       {canEdit && <Button type="primary" icon={<CalendarPlus className="size-4" />}
