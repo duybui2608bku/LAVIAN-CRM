@@ -23,6 +23,7 @@ import { PhotoCountButton, TourPhotosModal } from "@/components/tour/tour-photos
 import { TourSlips } from "@/components/tour/tour-slips";
 import { formatRupiah } from "@/lib/currency";
 import { matchesNameOrPhone } from "@/lib/customers";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { toast } from "@/lib/toast";
 import { tourCommission, tourStatus, type TourStatus } from "@/lib/tours";
 import type { AppointmentCustomer } from "@/types/appointment";
@@ -74,17 +75,28 @@ function useServiceLabel(services: Service[]) {
 
 // ───────────────────────── KTV ─────────────────────────
 
+/** KTV: điện thoại → danh sách thẻ, PC (≥ sm) → bảng. Lọc khách / dịch vụ (+ trạng thái ở Tour của tôi) dùng chung 2 tab. */
 function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos, goMonth }: ViewProps) {
   const t = useTranslations("tour");
+  const mobile = useIsMobile();
   const serviceLabel = useServiceLabel(services);
   const [tab, setTab] = useState<"pending" | "mine">(pending.length ? "pending" : "mine");
   const [claiming, setClaiming] = useState<string | null>(null);
   const [, start] = useTransition();
+  const [search, setSearch] = useState("");
+  const [service, setService] = useState("");
+  const [status, setStatus] = useState("");
+  const source = tab === "pending" ? pending : tours;
+  const serviceOptions = [...new Set(source.map((r) => r.service_id))].map((id) => ({ value: id, label: serviceLabel(id) }));
+  const shown = source.filter((r) => (!service || r.service_id === service)
+    && (tab === "pending" || !status || tourStatus(r) === status)
+    && matchesNameOrPhone(r.customer?.full_name ?? "", r.customer?.phone ?? "", search));
   const items = tours;
   const unconfirmed = items.filter((r) => !r.confirmed_at).length;
   // Công Master (Làm mới 7%, Dặm 3%) — phần đã xác nhận là phần được tính lương.
   const total = items.reduce((n, r) => n + tourCommission(r), 0);
   const confirmedTotal = items.reduce((n, r) => n + (r.confirmed_at ? tourCommission(r) : 0), 0);
+  const kindCell = (r: Tour) => r.service_detail ? kindText(t, r) : <span className="text-warning">{t("needDetail")}</span>;
 
   const claim = (id: string) => {
     setClaiming(id);
@@ -94,21 +106,37 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
     });
   };
 
+  const claimButton = (tour: Tour, size: "small" | "large") => me.canEdit
+    ? <Button type="primary" size={size} block={size === "large"} loading={claiming === tour.id} disabled={!!claiming}
+      onClick={(e) => { e.stopPropagation(); claim(tour.id); }}>{t("claim")}</Button> : null;
+
+  const baseColumns: TableProps<Tour>["columns"] = [
+    { title: t("date"), width: 110, render: (_, r) => dayjs(r.tour_date).format("DD/MM/YYYY") },
+    { title: t("customer"), width: 200, render: (_, r) => <NamePhone name={r.customer?.full_name ?? "—"} phone={r.customer?.phone} /> },
+    { title: t("service"), width: 180, render: (_, r) => serviceLabel(r.service_id) },
+    { title: t("kind"), width: 110, render: (_, r) => kindCell(r) },
+  ];
+  const pendingColumns: TableProps<Tour>["columns"] = [
+    ...baseColumns,
+    { title: t("note"), render: (_, r) => r.notes.length
+      ? <span className="line-clamp-2 whitespace-pre-wrap text-muted-foreground">{r.notes.at(-1)!.text}</span> : DASH },
+    ...(me.canEdit ? [{ key: "claim", width: 120, align: "right" as const, render: (_: unknown, r: Tour) => claimButton(r, "small") }] : []),
+  ];
+  const mineColumns: TableProps<Tour>["columns"] = [
+    ...baseColumns,
+    { title: t("photos"), width: 90, render: (_, r) => <PhotoCountButton tour={r} onOpen={onPhotos} /> },
+    { title: t("commission"), width: 140, align: "right", render: (_, r) => <span className="tabular-nums">{formatRupiah(tourCommission(r))}</span> },
+    { title: t("status"), width: 140, render: (_, r) => <TourStatusTag tour={r} /> },
+  ];
+
   return <>
     <PageHeader title={t("title")} />
-    <Segmented block value={tab} onChange={(v) => setTab(v as typeof tab)} options={[
+    {/* Đổi tab → bỏ lọc dịch vụ / trạng thái (DV của tab kia có thể không có ở tab này). */}
+    <Segmented block={mobile} value={tab} onChange={(v) => { setTab(v as typeof tab); setService(""); setStatus(""); }} options={[
       { value: "pending", label: `${t("tabPending")} (${pending.length})` },
       { value: "mine", label: t("tabMine") },
     ]} />
-    {tab === "pending" ? <div className="flex flex-col gap-2">
-      {pending.length ? pending.map((tour) => <div key={tour.id} className="surface flex flex-col gap-2 p-3">
-        <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
-        {tour.notes.length ? <p className="line-clamp-3 text-sm whitespace-pre-wrap text-muted-foreground">{tour.notes.at(-1)!.text}</p> : null}
-        {me.canEdit ? <Button type="primary" size="large" block loading={claiming === tour.id} disabled={!!claiming}
-          onClick={() => claim(tour.id)}>{t("claim")}</Button> : null}
-      </div>) : <div className="surface py-10"><Empty description={t("noPending")} /></div>}
-    </div> : <>
-      <PageToolbar><MonthPicker month={month} goMonth={goMonth} /></PageToolbar>
+    {tab === "mine" ? <>
       {/* Điện thoại: 2 thẻ đếm 1 hàng, "Đã nhận" cả hàng để không cắt số tiền. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
         <StatCard label={t("count")} value={items.length} />
@@ -118,22 +146,40 @@ function TechnicianTours({ me, month, tours, pending, services, onOpen, onPhotos
             hint={t("confirmedAmount", { amount: formatRupiah(confirmedTotal) })} />
         </div>
       </div>
-      <div className="flex flex-col gap-2">
-        {/* div role=button: thẻ chứa nút ảnh bên trong, không lồng <button>. */}
-        {items.length ? items.map((tour) => <div key={tour.id} role="button" tabIndex={0} onClick={() => onOpen(tour.id)}
-          onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onOpen(tour.id); } }}
-          className="surface flex cursor-pointer flex-col gap-2 p-3 text-left transition-colors hover:border-primary active:bg-muted">
-          <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
-          <div className="flex items-center justify-between gap-2 text-sm">
-            <span className="flex items-center gap-2">
-              {tour.service_detail ? kindText(t, tour) : <span className="text-warning">{t("needDetail")}</span>}
-              <PhotoCountButton tour={tour} onOpen={onPhotos} />
-            </span>
-            <span className="font-semibold tabular-nums" title={t("commission")}>{formatRupiah(tourCommission(tour))}</span>
-          </div>
-        </div>) : <div className="surface py-10"><Empty description={t("empty")} /></div>}
-      </div>
-    </>}
+    </> : null}
+    <PageToolbar>
+      {tab === "mine" ? <MonthPicker month={month} goMonth={goMonth} /> : null}
+      <SearchInput value={search} placeholder={t("search")} onChange={setSearch} />
+      <ClearableSelect className="min-w-44" value={service} ariaLabel={t("service")} placeholder={t("allServices")}
+        onChange={setService} options={serviceOptions} />
+      {tab === "mine" ? <ClearableSelect className="min-w-40" value={status} ariaLabel={t("status")} placeholder={t("allStatuses")}
+        onChange={setStatus} options={(["claimed", "confirmed"] as const).map((s) => ({ value: s, label: t(`status_${s}`) }))} /> : null}
+      <ClearFilters show={!!(search || service || status)} onClick={() => { setSearch(""); setService(""); setStatus(""); }} />
+    </PageToolbar>
+    {!mobile ? <DataTable<Tour> columns={tab === "pending" ? pendingColumns : mineColumns} dataSource={shown} pageSize={50}
+      empty={t(tab === "pending" ? "noPending" : "empty")}
+      onRow={tab === "mine" ? (r) => ({ onClick: () => onOpen(r.id), className: "cursor-pointer" }) : undefined} />
+    : tab === "pending" ? <div className="flex flex-col gap-2">
+      {shown.length ? shown.map((tour) => <div key={tour.id} className="surface flex flex-col gap-2 p-3">
+        <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
+        {tour.notes.length ? <p className="line-clamp-3 text-sm whitespace-pre-wrap text-muted-foreground">{tour.notes.at(-1)!.text}</p> : null}
+        {claimButton(tour, "large")}
+      </div>) : <div className="surface py-10"><Empty description={t("noPending")} /></div>}
+    </div> : <div className="flex flex-col gap-2">
+      {/* div role=button: thẻ chứa nút ảnh bên trong, không lồng <button>. */}
+      {shown.length ? shown.map((tour) => <div key={tour.id} role="button" tabIndex={0} onClick={() => onOpen(tour.id)}
+        onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onOpen(tour.id); } }}
+        className="surface flex cursor-pointer flex-col gap-2 p-3 text-left transition-colors hover:border-primary active:bg-muted">
+        <TourCardBody tour={tour} service={serviceLabel(tour.service_id)} />
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <span className="flex items-center gap-2">
+            {kindCell(tour)}
+            <PhotoCountButton tour={tour} onOpen={onPhotos} />
+          </span>
+          <span className="font-semibold tabular-nums" title={t("commission")}>{formatRupiah(tourCommission(tour))}</span>
+        </div>
+      </div>) : <div className="surface py-10"><Empty description={t("empty")} /></div>}
+    </div>}
   </>;
 }
 

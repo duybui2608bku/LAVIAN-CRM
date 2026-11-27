@@ -185,6 +185,7 @@
     "status_confirmed": "Confirmed",
     "allStatuses": "All statuses",
     "allTechnicians": "All technicians",
+    "allServices": "All services",
     "unassigned": "No technician",
     "tabPending": "Waiting",
     "tabMine": "My tours",
@@ -1130,6 +1131,7 @@
     "plannedToursHint": "Change a tour's date — later planned tours shift accordingly.",
     "plannedPreviewHint": "Starts from the first tour's date. Change a date and later tours shift. Creating the card adds these planned tours.",
     "sessionsFull": "sessions used up (admin only)",
+    "plannedOn": "Planned {date}",
     "history": {
       "title": "Activity log",
       "show": "Show",

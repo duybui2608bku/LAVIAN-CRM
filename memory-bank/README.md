@@ -56,6 +56,21 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-27 — Trang Tour của KTV: giao diện PC + bộ lọc
+- **Thay đổi:** `TechnicianTours` trước dùng giao diện thẻ mobile cho cả PC. Giờ PC (≥ 640px, `useIsMobile`) hiện **bảng** (`DataTable`): tab Chờ nhận = Ngày · Khách · Dịch vụ · Loại · Ghi chú · nút Nhận tour; tab Tour của tôi = Ngày · Khách · Dịch vụ · Loại · Ảnh · Công · Trạng thái (bấm dòng mở drawer). Segmented không còn kéo hết chiều ngang trên PC. Thêm thanh lọc cho cả 2 tab (PC + điện thoại): tìm khách / SĐT, dịch vụ (chỉ DV có trong tab), trạng thái (Tour của tôi: Chưa xác nhận / Đã xác nhận); đổi tab thì bỏ lọc DV / trạng thái. Điện thoại vẫn danh sách thẻ như cũ. i18n `tour.allServices`.
+- **File ảnh hưởng:** `components/tour/tour-view.tsx`, `messages/{vi,en}.json`
+- **Còn dở / ghi chú:** tsc (trừ `.next/` cũ) + eslint sạch. Chưa xem trên trình duyệt (cần đăng nhập tài khoản KTV), chưa commit.
+
+### 2026-11-27 — Modal Tạo tour theo lộ trình dự kiến
+- **Thay đổi:** Modal Tạo tour (drawer thẻ) bám tour dự kiến: DV có lộ trình hiện tour dự kiến kế tiếp ("Laser 2 · Dự kiến 13/12/2026"), Loại lấy theo lộ trình (bỏ ô chọn Loại), tick sẵn tour dự kiến sớm nhất của thẻ; ngày mặc định = ngày dự kiến của tour đang chọn (đã qua thì hôm nay) cho tới khi tự sửa ngày. DV không có lộ trình (môi, mí...) vẫn chọn Loại tay như cũ. Server không đổi (`createCardTours` vẫn biến tour dự kiến sớm nhất của DV thành tour thật). i18n `cards.plannedOn`.
+- **File ảnh hưởng:** `components/cards/card-drawer.tsx`, `messages/{vi,en}.json`
+- **Còn dở / ghi chú:** eslint sạch, tsc chỉ báo lỗi type cũ trong `.next/` (route đã xoá). Chưa xem trên trình duyệt, chưa commit.
+
+### 2026-11-27 — Thu tiền thẻ: bỏ popover, form hiện sẵn + Enter để lưu
+- **Thay đổi:** Theo yêu cầu sếp, `PaymentButton` (popover) → `PaymentForm` hiện sẵn ngay đầu mục Thanh toán của drawer thẻ (chỉ khi có quyền sửa): Số tiền + phương thức cùng hàng, Ghi chú, Ảnh bill + nút Thu tiền. Bọc `<form>` nên nhập xong Enter là lưu; vẫn chặn khi trống / vượt công nợ / hoàn quá đã thu. Lưu xong form tự xoá trắng.
+- **File ảnh hưởng:** `components/cards/card-drawer.tsx`
+- **Còn dở / ghi chú:** tsc/eslint sạch. Chưa xem trên trình duyệt.
+
 ### 2026-11-23 — Mã thẻ theo DV chính + Hoàn cả thẻ + Xoá DV + sửa số buổi nhấp đúp
 - **Thay đổi:** OpenSpec `card-code-refund-delete`. (1) **Mã thẻ** = tiền tố DV chính + số thứ tự chung ≥ 4 chữ số (`ALIS0013`, `BIBIR0014`) — bỏ `TLT` (tiếng Việt, NV Indo không hiểu). DV chính = dòng tạo tour giá cao nhất; `card_code_prefix`: laser → ALIS, lips_treatment → BIBIR, eyeliner_treatment → EYELINER, khác = id nhóm viết hoa. Đặt 1 lần trong RPC `create_treatment_card`, không đổi khi thêm / xoá DV; thẻ cũ TLT000nn đổi mã giữ số. (2) **Bỏ Hoàn DV** → nút **Xoá DV** (RPC `delete_treatment_card_item`: chặn DV đã có tour thật `item_has_tours`, thẻ chỉ còn 1 DV `card_needs_items`; xoá kèm tour dự kiến / tour xoá mềm của DV; `card_audit` ghi DELETE → lịch sử "Xoá DV · buổi · giá"). (3) **Hoàn cả thẻ** (nút ở footer drawer thẻ, RPC `refund_treatment_card`): tiền hoàn ≤ Đã thu (cọc trừ + thanh toán), gợi ý theo buổi chưa làm (`cardRefundRange`), bắt buộc lý do; cột mới `treatment_cards.refunded_at/by, refund_amount/method/note`. Thẻ đã hoàn: trạng thái "Đã hoàn" (cam, có lọc), `cardMoney` → Đã thu = cọc + thu − hoàn, Giá trị = Đã thu, Công nợ 0; khoá mọi thao tác (guard thẻ / DV / thanh toán / tour + `openCard`), xoá tour dự kiến, không vào Đến hạn (`journeyDue` + RPC). Báo cáo doanh thu trừ tiền hoàn vào ngày hoàn. (4) **Sửa số buổi**: nhấp đúp (hoặc Enter/F2) vào "Đã dùng x/y buổi" → ô số tại chỗ, Enter / rời ô lưu, Esc huỷ; bỏ popover.
 - **File ảnh hưởng:** `supabase/migrations/20261123160000_card_code_refund_delete.sql`, `lib/{cards,cards.test,roadmap-sync}.ts`, `types/{card,customer-360}.ts`, `app/(app)/cards/actions.ts`, `app/(app)/reports/actions.ts`, `app/(app)/customers/customer-360-actions.ts`, `components/cards/{card-drawer,cards-view,card-print}.tsx`, `messages/{vi,en}.json`, `openspec/changes/card-code-refund-delete/`
