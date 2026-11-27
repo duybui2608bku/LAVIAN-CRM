@@ -16,5 +16,5 @@
 
 - [x] 3.1 tsc + eslint + `node --test`
 - [x] 3.2 Rà ponytail
-- [ ] 3.3 Chạy migration trên DB (người dùng cho phép) và kiểm tra
+- [x] 3.3 Chạy migration trên DB (người dùng cho phép) và kiểm tra
 - [ ] 3.4 Xem trên trình duyệt
