@@ -142,7 +142,7 @@ export function PotentialManager({
       render: (_, c) => {
         const last = c.notes?.at(-1)?.text;
         return (
-          <div className="flex items-start gap-1">
+          <div className="flex items-center gap-1">
             <div className="min-w-0 flex-1 leading-tight">
               {/* Bấm tên → popup hồ sơ 360° (hội thoại SMAX mở bằng icon tin nhắn). */}
               <NamePhone
@@ -222,23 +222,28 @@ export function PotentialManager({
       key: "status",
       width: 190,
       render: (_, c) => (
-        <div className="leading-tight">
-          <InlineSelect
-            value={c.potential_status ?? ""}
-            display={statusTag(c.potential_status)}
-            // "Chuyển đổi đặt lịch" chỉ hiện khi được tạo lịch hẹn — chọn thì mở form, không lưu ngay.
-            options={statusOptions.filter((o) => o.value !== CONVERTED_STATUS || canBook)}
-            noneLabel={tc("noneOption")}
-            ariaLabel={t("colStatus")}
-            disabled={!canEdit}
-            onSave={(v) =>
-              v === CONVERTED_STATUS ? setConvertFor(c.id) : patchField(c.id, { potential_status: v || null })
-            }
-          />
-          {c.stage === "consider" && considerOpt ? (
-            <div className="mt-0.5 text-xs text-muted-foreground">{optionLabel(considerOpt, locale)}</div>
-          ) : null}
-        </div>
+        <InlineSelect
+          value={c.potential_status ?? ""}
+          // Khách Cân nhắc: thêm tag Cân nhắc; chưa chọn Trạng thái thì chỉ hiện tag này, không hiện "—".
+          display={
+            c.stage === "consider" && considerOpt ? (
+              <span className="inline-flex items-center gap-1">
+                {c.potential_status ? statusTag(c.potential_status) : null}
+                <StatusTag label={optionLabel(considerOpt, locale)} color={considerOpt.color} />
+              </span>
+            ) : (
+              statusTag(c.potential_status)
+            )
+          }
+          // "Chuyển đổi đặt lịch" chỉ hiện khi được tạo lịch hẹn — chọn thì mở form, không lưu ngay.
+          options={statusOptions.filter((o) => o.value !== CONVERTED_STATUS || canBook)}
+          noneLabel={tc("noneOption")}
+          ariaLabel={t("colStatus")}
+          disabled={!canEdit}
+          onSave={(v) =>
+            v === CONVERTED_STATUS ? setConvertFor(c.id) : patchField(c.id, { potential_status: v || null })
+          }
+        />
       ),
     },
     // Nhóm dịch vụ: của lịch gần nhất, chưa có thì của khách; không có → để trống.

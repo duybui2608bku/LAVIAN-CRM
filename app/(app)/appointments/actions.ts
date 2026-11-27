@@ -15,6 +15,8 @@ import { regionNames } from "@/lib/id-regions";
 import { formatPhone, isValidPhone } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/server";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
+import { SUMMARY_FIELDS } from "@/lib/chat-summary";
+import type { ChatSummary } from "@/types/customer-360";
 import { newNote, initialNotes, withoutNote } from "@/lib/notes";
 import type { AppointmentPatch } from "@/types/appointment";
 import type { NoteInput, TimelineNote } from "@/types/note";
@@ -254,6 +256,21 @@ export async function getCustomerMessages(customerId: string): Promise<{ message
     const { data, error } = await db.from("customers").select("link:thread->>link").eq("id", customerId).single();
     if (error) throw error;
     return { messages: await fetchThreadMessages(data.link as string | null) };
+  } catch (error) {
+    return { error: normalizeError(error).message };
+  }
+}
+
+/** Bản tóm tắt AI đã lưu của khách (cột phải modal Tin nhắn) — chỉ đọc, chưa có → null. */
+export async function getChatSummary(customerId: string): Promise<{ summary?: ChatSummary | null; error?: string }> {
+  try {
+    await requireAnyPermission("appointments.view", "customers.view");
+    z.uuid().parse(customerId);
+    const db = await createClient();
+    const { data, error } = await db.from("customer_chat_summaries").select(SUMMARY_FIELDS)
+      .eq("customer_id", customerId).maybeSingle();
+    if (error) throw error;
+    return { summary: (data ?? null) as ChatSummary | null };
   } catch (error) {
     return { error: normalizeError(error).message };
   }

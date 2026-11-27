@@ -56,6 +56,8 @@
     "messagesTitle": "Messages with {name}",
     "openSmax": "Open in SMAX",
     "noMessages": "No messages yet",
+    "summaryEmpty": "No AI summary yet. Open the 360° profile → Conversation to create one.",
+    "summaryMeta": "Summarized {at} · {count} messages",
     "attachment": "Attachment",
     "sales": "Sales",
     "finance": "Finance (IDR)",
