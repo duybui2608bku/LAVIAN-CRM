@@ -39,6 +39,27 @@ export function latestMaster(tours: { tour_date: string; technician_id: string |
     .reduce<(typeof tours)[number] | null>((a, t) => (!a || t.tour_date > a.tour_date ? t : a), null)?.technician_id ?? null;
 }
 
+/**
+ * Ghim ngày bước dự kiến `id` = `day` (tours = mọi tour chưa xoá của cùng dòng thẻ). Thứ tự bước theo ngày, nên ngày mới phải
+ * nằm sau mọi tour thật + bước dự kiến trước nó và trước bước dự kiến đã ghim kế sau — không thì cờ ghim nhảy sang bước khác.
+ * Không ghim vào quá khứ. Hợp lệ → null.
+ */
+export function plannedDateError(
+  id: string, day: string, today: string,
+  tours: { id: string; tour_date: string; planned: boolean; date_pinned: boolean }[],
+): { key: "plannedPast" | "plannedBeforePrev" | "plannedAfterNext"; date?: string } | null {
+  if (day < today) return { key: "plannedPast" };
+  const planned = tours.filter((t) => t.planned).sort((a, b) => a.tour_date.localeCompare(b.tour_date) || a.id.localeCompare(b.id));
+  const k = planned.findIndex((t) => t.id === id);
+  if (k < 0) return null; // không phải bước dự kiến → server báo forbidden
+  const prev = [...tours.filter((t) => !t.planned), ...planned.slice(0, k)].reduce<string | null>(
+    (max, t) => (!max || t.tour_date > max ? t.tour_date : max), null);
+  if (prev && day <= prev) return { key: "plannedBeforePrev", date: prev };
+  const next = planned.slice(k + 1).find((t) => t.date_pinned)?.tour_date;
+  if (next && day >= next) return { key: "plannedAfterNext", date: next };
+  return null;
+}
+
 export type TourStatus = "planned" | "pending" | "claimed" | "confirmed";
 
 /** Trạng thái suy ra: dự kiến (lộ trình tự sinh, chưa chốt lịch); chưa có KTV = chờ nhận; có KTV = chưa xác nhận; admin xác nhận = đã xác nhận. */

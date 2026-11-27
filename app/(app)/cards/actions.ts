@@ -117,6 +117,7 @@ export async function refundCard(cardId: string, input: z.input<typeof cardRefun
     const { error } = await db.rpc("refund_treatment_card", { p_card_id: cardId, p_amount: amount, p_method: method, p_note: note });
     if (error) throw error;
     revalidatePath("/customers");
+    revalidatePath("/tour"); // tour Chờ nhận của thẻ bị xoá
   });
 }
 
