@@ -86,8 +86,10 @@ export function cardDone(items: ({ id: string; sessions: number; refunded_at: st
 // Laser (mày) / Plasma (môi) xoá cũ → kiểm tra sau 20 ngày: tour kế tiếp lại Laser = chưa OK, Làm mới = OK.
 // Lộ trình dự kiến dùng cùng khoảng: Laser → Laser / Làm mới 20 ngày.
 // Làm mới / Dặm xong → dặm sau 45 ngày nếu DV còn buổi.
+// Môi (sếp chốt 2026-11-27): Plasma (hút dung dịch / CO2) → Làm mới → Dặm, mỗi bước 2 tháng = 60 ngày.
 export const LASER_CHECK_DAYS = 20;
 export const RETOUCH_DAYS = 45;
+export const LIP_STEP_DAYS = 60;
 /** Loại tour chọn được = tours.service_detail (debt chỉ còn ở dữ liệu cũ). Khớp tourPatchSchema.kind (lib/tours.ts). */
 export const TOUR_KINDS = ["laser", "plasma", "new", "retouch"] as const;
 export type TourKind = (typeof TOUR_KINDS)[number];
@@ -97,6 +99,12 @@ const isRemoval = (detail: string | null) => detail === "laser" || detail === "p
 /** Vùng làm (mày / môi / mí): nhóm xoá cũ cùng vùng với nhóm phun — laser mày chỉ chặn dặm mày, không chặn môi. */
 const AREA: Record<string, string> = { laser: "alis", lips_treatment: "bibir", eyeliner_treatment: "eyeliner" };
 const areaOf = (groupId: string | undefined) => (groupId ? AREA[groupId] ?? groupId : "");
+/** Khoảng cách (ngày) tới bước kế theo vùng: sau xoá cũ (laser / plasma) và sau Làm mới / Dặm. Vùng chưa chốt = như mày. */
+const GAPS: Record<string, { removal: number; care: number }> = {
+  alis: { removal: LASER_CHECK_DAYS, care: RETOUCH_DAYS },
+  bibir: { removal: LIP_STEP_DAYS, care: LIP_STEP_DAYS },
+};
+const gapOf = (area: string) => GAPS[area] ?? GAPS.alis;
 
 type KindTour = { tour_date: string; service_detail: string | null };
 // Cùng ngày: tour xoá cũ (laser/plasma) xếp trước → tour Làm mới cùng ngày mới là "tour cuối".
@@ -137,9 +145,10 @@ export type JourneyDue<C, T> = {
 };
 
 /**
- * Việc đến hạn của khách đang có liệu trình — tự tính từ thẻ + tour, không lưu. Tính riêng từng vùng (mày / môi / mí):
- * - Tour cuối của vùng là Laser/Plasma + vùng còn buổi → Kiểm tra laser (ngày tour + 20): đủ điều kiện phun mới chưa.
- * - Ngược lại, mỗi DV chưa hoàn còn buổi có tour cuối Làm mới / Dặm → Dặm (ngày tour + 45).
+ * Việc đến hạn của khách đang có liệu trình — tự tính từ thẻ + tour, không lưu. Tính riêng từng vùng (mày / môi / mí),
+ * khoảng cách theo vùng (`GAPS`: mày 20 / 45, môi 60 / 60):
+ * - Tour cuối của vùng là Laser/Plasma + vùng còn buổi → Kiểm tra laser (ngày tour + removal): đủ điều kiện phun mới chưa.
+ * - Ngược lại, mỗi DV chưa hoàn còn buổi có tour cuối Làm mới / Dặm → Dặm (ngày tour + care).
  * Bỏ qua DV không tạo tour (mực, phí Master). Tour ngày tương lai cũng tính là "tour kế tiếp" (đã hẹn thì không nhắc lại).
  */
 export function journeyDue<C extends DueCard, T extends DueTour>(cards: C[], tours: T[]): JourneyDue<C, T>[] {
@@ -153,13 +162,14 @@ export function journeyDue<C extends DueCard, T extends DueTour>(cards: C[], tou
       const key = areaOf(i.service?.group_id) || i.service_id;
       areas.set(key, [...(areas.get(key) ?? []), i]);
     }
-    for (const items of areas.values()) {
+    for (const [area, items] of areas) {
+      const gap = gapOf(area);
       const open = items.filter((i) => !i.refunded_at && ofItem(i.id).length < i.sessions);
       const last = items.flatMap((item) => ofItem(item.id).map((tour) => ({ tour, item })))
         .sort((a, b) => order(a.tour, b.tour)).at(-1);
       if (last && isRemoval(last.tour.service_detail)) {
         if (open.length) out.push({ card, item: last.item, task: "laser_check", n: last.tour.service_session ?? 1,
-          due: addDays(last.tour.tour_date, LASER_CHECK_DAYS), last: last.tour });
+          due: addDays(last.tour.tour_date, gap.removal), last: last.tour });
         continue;
       }
       for (const item of open) {
@@ -167,47 +177,59 @@ export function journeyDue<C extends DueCard, T extends DueTour>(cards: C[], tou
         const end = list.at(-1);
         if (!end || (end.service_detail !== "new" && end.service_detail !== "retouch")) continue;
         out.push({ card, item, task: "retouch", n: list.filter((t) => t.service_detail === "retouch").length + 1,
-          due: addDays(end.tour_date, RETOUCH_DAYS), last: end });
+          due: addDays(end.tour_date, gap.care), last: end });
       }
     }
   }
   return out.sort((a, b) => a.due.localeCompare(b.due));
 }
 
-// ───────── Lộ trình tour dự kiến (sếp chốt 2026-11-23: làm mày trước) ─────────
-/** Vùng có tour dự kiến tự sinh (= nhóm DV chính, xem AREA). Môi / mí: thêm "bibir" / "eyeliner" khi sếp chốt. */
-export const ROADMAP_AREAS = ["alis"];
+// ───────── Lộ trình tour dự kiến (sếp chốt 2026-11-23: mày; 2026-11-27: môi) ─────────
+/** Vùng có tour dự kiến tự sinh (= nhóm DV chính, xem AREA). Mí: thêm "eyeliner" khi sếp chốt. */
+export const ROADMAP_AREAS = ["alis", "bibir"];
 
-type PlanItem = { id: string; service_id: string; sessions: number; refunded_at: string | null } & ItemService;
+type PlanItem = { id: string; service_id: string; sessions: number; refunded_at: string | null }
+  & { service?: { group_id: string; tourable: boolean; name?: string } | null };
 type PlanTour = KindTour & { card_item_id: string | null };
 /** `pinned` = ngày do người dùng sửa tay (giữ khi tính lại). */
 export type RoadmapStep = { card_item_id: string; service_id: string; kind: TourKind; tour_date: string; pinned: boolean };
 
+/** Loại của DV xoá cũ (nhóm Laser → Laser, tên "plasma" → Plasma); DV khác → null. */
+const removalKind = (s: PlanItem["service"]) => {
+  const kind = s ? suggestTourKind({ group_id: s.group_id, name: s.name ?? "" }, []) : null;
+  return kind === "laser" || kind === "plasma" ? kind : null;
+};
+
 /**
  * Tour dự kiến còn lại của 1 thẻ chưa huỷ. `tours` = tour THẬT của thẻ (không dự kiến, chưa xoá).
- * Mỗi vùng: neo = tour thật cuối (chưa có → không sinh). Chưa Làm mới → các buổi Laser còn lại (số buổi dòng Laser
- * = laser dự kiến), rồi Làm mới; sau đó Dặm tới hết buổi DV chính (Alis 2 buổi = Làm mới + Dặm 1).
- * Khoảng cách theo Loại bước trước: sau Laser 20 ngày (Laser tiếp hoặc Làm mới), sau Làm mới / Dặm 45 ngày.
+ * Mỗi vùng (mày / môi): DV chính = nhóm của vùng, bước xoá = DV xoá cũ cùng vùng (Laser mày / Plasma môi); DV khác
+ * của vùng (Dark Lip, Collagen…) không thuộc lộ trình. Neo = tour thật cuối (chưa có → không sinh). Chưa Làm mới → các
+ * buổi xoá còn lại (số buổi dòng xoá = số tour xoá dự kiến), rồi Làm mới; sau đó Dặm tới hết buổi DV chính.
+ * Khoảng cách theo vùng + Loại bước trước (`GAPS`): mày sau Laser 20 ngày, sau Làm mới / Dặm 45; môi mọi bước 60.
  * `pinned(itemId, k)` = ngày người dùng đã sửa tay cho bước dự kiến thứ k của dòng DV → giữ ngày đó, các bước sau tính tiếp từ nó.
- * `start` = ngày bước đầu khi vùng CHƯA có tour thật (lộ trình lập lúc bán thẻ); không có → không sinh.
+ * `start` = ngày bước đầu khi vùng CHƯA có tour thật (lộ trình lập lúc bán thẻ); hàm = theo dòng DV của vùng; không có → không sinh.
  */
 export function planRoadmap(
-  items: PlanItem[], tours: PlanTour[], pinned?: (itemId: string, k: number) => string | null, start?: string,
+  items: PlanItem[], tours: PlanTour[], pinned?: (itemId: string, k: number) => string | null,
+  start?: string | ((itemIds: string[]) => string | undefined),
 ): RoadmapStep[] {
   const out: RoadmapStep[] = [];
   for (const area of ROADMAP_AREAS) {
     const list = items.filter((i) => isTourable(i) && !i.refunded_at && areaOf(i.service?.group_id) === area);
-    const removal = list.find((i) => LASER_GROUPS.includes(i.service?.group_id ?? ""));
     const main = list.find((i) => i.service?.group_id === area);
-    const real = tours.filter((t) => list.some((i) => i.id === t.card_item_id)).sort(order);
+    const removal = list.find((i) => i !== main && removalKind(i.service));
+    const own = [main, removal].filter((i): i is PlanItem => !!i);
+    const real = tours.filter((t) => own.some((i) => i.id === t.card_item_id)).sort(order);
     const anchor = real.at(-1);
-    if (!anchor && !start) continue;
-    let date = anchor?.tour_date ?? start!;
+    const begin = typeof start === "function" ? start(own.map((i) => i.id)) : start;
+    if (!own.length || (!anchor && !begin)) continue;
+    const gap = gapOf(area);
+    let date = anchor?.tour_date ?? begin!;
     let prev = anchor?.service_detail ?? null;
     let first = !anchor; // chưa có tour thật: bước đầu đúng ngày `start`, không cộng khoảng cách
     const push = (item: PlanItem, kind: TourKind) => {
       const pin = pinned?.(item.id, out.filter((s) => s.card_item_id === item.id).length) ?? null;
-      date = pin ?? (first ? date : addDays(date, isRemoval(prev) ? LASER_CHECK_DAYS : RETOUCH_DAYS));
+      date = pin ?? (first ? date : addDays(date, isRemoval(prev) ? gap.removal : gap.care));
       first = false;
       prev = kind;
       out.push({ card_item_id: item.id, service_id: item.service_id, kind, tour_date: date, pinned: pin != null });
@@ -215,7 +237,7 @@ export function planRoadmap(
     const used = (item: PlanItem) => real.filter((t) => t.card_item_id === item.id).length;
     let mainLeft = main ? main.sessions - used(main) : 0;
     if (!real.some((t) => t.card_item_id === main?.id && t.service_detail === "new")) {
-      for (let n = removal ? removal.sessions - used(removal) : 0; n > 0; n--) push(removal!, "laser");
+      for (let n = removal ? removal.sessions - used(removal) : 0; n > 0; n--) push(removal!, removalKind(removal!.service)!);
       if (main && mainLeft > 0) { push(main, "new"); mainLeft--; }
     }
     for (; main && mainLeft > 0; mainLeft--) push(main, "retouch");

@@ -117,12 +117,12 @@ test("đến hạn theo vùng: laser mày không che dặm môi; cùng ngày là
     ({ card_item_id, tour_date, service_detail, service_session });
   const due = (tours: ReturnType<typeof tour>[]) => journeyDue([card], tours).map((d) => `${d.task}:${d.item.id}:${d.due}`);
 
-  // Laser mày 01/12 + Làm mới môi 05/12 → vẫn kiểm tra laser mày, kèm dặm môi.
+  // Laser mày 01/12 + Làm mới môi 05/12 → vẫn kiểm tra laser mày, kèm dặm môi (môi 60 ngày).
   assert.deepEqual(due([tour("LB", "2026-12-01", "laser"), tour("P", "2026-12-05", "new", null)]),
-    ["laser_check:LB:2026-12-21", "retouch:P:2027-01-19"]);
-  // Làm mới mày 01/11 + Plasma môi 10/11 → dặm mày vẫn còn, kèm kiểm tra plasma môi.
+    ["laser_check:LB:2026-12-21", "retouch:P:2027-02-03"]);
+  // Làm mới mày 01/11 + Plasma môi 10/11 → dặm mày vẫn còn, kèm kiểm tra plasma môi sau 60 ngày.
   assert.deepEqual(due([tour("B", "2026-11-01", "new", null), tour("PL", "2026-11-10", "plasma")]),
-    ["laser_check:PL:2026-11-30", "retouch:B:2026-12-16"]);
+    ["retouch:B:2026-12-16", "laser_check:PL:2027-01-09"]);
   // Cùng ngày laser + làm mới mày → làm mới là tour cuối → chờ dặm.
   assert.deepEqual(due([tour("LB", "2026-12-01", "laser"), tour("B", "2026-12-01", "new", null)]), ["retouch:B:2027-01-15"]);
   // Hoàn thành không chờ dòng mực (không bao giờ có tour).
@@ -190,10 +190,9 @@ test("lộ trình dự kiến mày: laser 20 ngày, làm mới 20 ngày, dặm 4
   // Chỉ mày: Làm mới → Dặm 45 ngày; đã có Làm mới thì laser còn buổi bị bỏ qua.
   assert.deepEqual(plan([brow], [tour("B", "2026-12-01", "new")]), ["retouch:B:2027-01-15"]);
   assert.deepEqual(plan([laser, brow], [tour("B", "2026-12-01", "new")]), ["retouch:B:2027-01-15"]);
-  // Hết buổi / DV hoàn / vùng môi chưa có lộ trình → không sinh.
+  // Hết buổi / DV hoàn → không sinh.
   assert.deepEqual(plan([brow], [tour("B", "2026-12-01", "new"), tour("B", "2027-01-15", "retouch")]), []);
   assert.deepEqual(plan([laser, { ...brow, refunded_at: "x" }], [l1]), ["laser:L:2026-12-21"]);
-  assert.deepEqual(plan([item("P", "bibir", 2)], [tour("P", "2026-12-01", "new")]), []);
   // Sửa tay ngày Làm mới (bước 0 của dòng B) → giữ ngày đó, Dặm tính tiếp từ nó.
   const pin = (itemId: string, k: number) => (itemId === "B" && k === 0 ? "2027-01-20" : null);
   assert.deepEqual(planRoadmap([laser, brow], [l1], pin).map((s) => `${s.kind}:${s.tour_date}`),
@@ -205,6 +204,29 @@ test("lộ trình dự kiến mày: laser 20 ngày, làm mới 20 ngày, dặm 4
   assert.deepEqual(plan0([brow]), ["new:2026-12-01", "retouch:2027-01-15"]);
   assert.deepEqual(plan0([laser, brow], pin), ["laser:2026-12-01", "laser:2026-12-21", "new:2027-01-20*", "retouch:2027-03-06"]);
   assert.deepEqual(plan([laser, brow], []), []); // không có ngày bắt đầu → vẫn không sinh
+});
+
+test("lộ trình dự kiến môi: plasma → làm mới → dặm, mỗi bước 60 ngày; tính riêng với mày", () => {
+  const item = (id: string, group_id: string, sessions: number, name = "") =>
+    ({ id, service_id: `s-${id}`, sessions, refunded_at: null as string | null, service: { group_id, tourable: true, name } });
+  const lip = item("P", "bibir", 2, "Nano Lip"), plasma = item("PL", "lips_treatment", 1, "Lip Spray Removal (plasma)");
+  const tour = (card_item_id: string, tour_date: string, service_detail: string) => ({ card_item_id, tour_date, service_detail });
+  const plan = (items: ReturnType<typeof item>[], tours: ReturnType<typeof tour>[], start?: Parameters<typeof planRoadmap>[3]) =>
+    planRoadmap(items, tours, undefined, start).map((s) => `${s.kind}:${s.card_item_id}:${s.tour_date}`);
+
+  // Môi làm mới luôn → dặm sau 2 tháng.
+  assert.deepEqual(plan([lip], [tour("P", "2026-12-01", "new")]), ["retouch:P:2027-01-30"]);
+  // Môi xoá sửa: Plasma → Làm mới (+60) → Dặm (+60).
+  assert.deepEqual(plan([plasma, lip], [tour("PL", "2026-12-01", "plasma")]), ["new:P:2027-01-30", "retouch:P:2027-03-31"]);
+  assert.deepEqual(plan([plasma, lip], [], "2026-12-01"), ["plasma:PL:2026-12-01", "new:P:2027-01-30", "retouch:P:2027-03-31"]);
+  // DV môi khác của nhóm lips_treatment (Dark Lip) không thuộc lộ trình.
+  assert.deepEqual(plan([item("D", "lips_treatment", 2, "Dark Lip Treatment")], [tour("D", "2026-12-01", "new")]), []);
+  // Mày + môi cùng thẻ: tính độc lập, ngày bắt đầu theo vùng.
+  const brow = item("B", "alis", 2, "Shading");
+  assert.deepEqual(plan([brow, lip], [tour("B", "2026-12-01", "new"), tour("P", "2026-12-01", "new")]),
+    ["retouch:B:2027-01-15", "retouch:P:2027-01-30"]);
+  assert.deepEqual(plan([brow, lip], [], (ids) => (ids.includes("P") ? "2026-12-10" : "2026-12-01")),
+    ["new:B:2026-12-01", "retouch:B:2027-01-15", "new:P:2026-12-10", "retouch:P:2027-02-08"]);
 });
 
 test("đến hạn bỏ tour dự kiến", () => {
