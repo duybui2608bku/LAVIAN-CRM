@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-27 — Modal Tin nhắn có cột Tóm tắt AI + căn lại ô Trạng thái / ghi chú ở Khách tiềm năng
+- **Thay đổi:** (1) `MessagesModal` (dùng ở Khách tiềm năng, Khách hàng, Đặt lịch, Quản lý bán hàng) rộng 1080px, cột phải 320px hiện bản tóm tắt AI đã lưu (`getChatSummary`, chỉ đọc, không gọi AI; VI/EN theo giao diện; tag "Có tin mới" khi có tin sau lần tóm tắt); chưa có → empty state chỉ sang popup 360°. (2) `/customers/potential`: nút ghi chú có badge căn giữa dọc (ngang icon Tin nhắn); khách Cân nhắc hiện tag cam "Cân nhắc" ngay trong ô Trạng thái, chưa chọn trạng thái thì không hiện "—".
+- **File ảnh hưởng:** `components/appointments/messages-modal.tsx`, `app/(app)/appointments/actions.ts`, `components/customers/potential-manager.tsx`, `messages/{vi,en}.json`.
+- **Còn dở / ghi chú:** tsc + eslint sạch. Người dùng không cần xem trên trình duyệt. Chưa commit (đang ở nhánh `claude/rupiah-full-number`, PR #136).
+
 ### 2026-11-27 — Ô thống kê tiền hiện số đầy đủ (Rp 44.000.000 thay vì Rp 44 jt)
 - **Thay đổi:** 6 ô thống kê tiền ở Quản lý bán hàng (Hoá đơn / Đã thu / Còn nợ) và trang Thẻ (Giá trị / Đã thu / Còn nợ) dùng `formatRupiah` thay `formatRupiahCompact`; xoá `formatRupiahCompact` (không còn chỗ dùng).
 - **File ảnh hưởng:** `lib/currency.ts`, `components/appointments/appointments-manager.tsx`, `components/cards/cards-view.tsx`.
