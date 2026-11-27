@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-27 — Sửa B3, B6, B8 (openspec `card-refund-tour-guard`)
+- **Thay đổi:** (B3) Hoàn cả thẻ xoá mềm thêm tour Chờ nhận (RPC `refund_treatment_card`); `tours_card_guard` chặn nhận / gán Master cho tour của thẻ huỷ / hoàn hoặc DV đã hoàn (`card_cancelled` → `tour.cardClosed`); tour đã có Master giữ nguyên. (B6) `plannedDateError` (`lib/tours.ts`) + `setPlannedTourDate`: ngày ghim ≥ hôm nay, sau tour thật / bước trước, trước bước đã ghim kế sau. (B8) Lead-form báo lỗi 23505 theo tên unique index (lịch hẹn / SĐT / SMAX / câu chung).
+- **File ảnh hưởng:** `supabase/migrations/20261127140000_refund_card_unclaimed_tours.sql`, `app/(app)/{tour,cards}/actions.ts`, `app/lead-form/actions.ts`, `lib/tours.ts` + test, `messages/{vi,en}.json`, `openspec/changes/card-refund-tour-guard/`.
+- **Còn dở / ghi chú:** tsc + eslint + 128 test sạch. Migration `20261127140000` ĐÃ chạy trên project Lavian ngày 2026-11-27 qua Supabase MCP (người dùng yêu cầu); đã kiểm định nghĩa 2 hàm, ACL, trigger còn gắn. DB 27/11 không có tour nào thuộc thẻ huỷ / hoàn → không cần dọn. Chưa xem trên trình duyệt.
+
 ### 2026-11-27 — Modal Tin nhắn có cột Tóm tắt AI + căn lại ô Trạng thái / ghi chú ở Khách tiềm năng
 - **Thay đổi:** (1) `MessagesModal` (dùng ở Khách tiềm năng, Khách hàng, Đặt lịch, Quản lý bán hàng) rộng 1080px, cột phải 320px hiện bản tóm tắt AI đã lưu (`getChatSummary`, chỉ đọc, không gọi AI; VI/EN theo giao diện; tag "Có tin mới" khi có tin sau lần tóm tắt); chưa có → empty state chỉ sang popup 360°. (2) `/customers/potential`: nút ghi chú có badge căn giữa dọc (ngang icon Tin nhắn); khách Cân nhắc hiện tag cam "Cân nhắc" ngay trong ô Trạng thái, chưa chọn trạng thái thì không hiện "—".
 - **File ảnh hưởng:** `components/appointments/messages-modal.tsx`, `app/(app)/appointments/actions.ts`, `components/customers/potential-manager.tsx`, `messages/{vi,en}.json`.
