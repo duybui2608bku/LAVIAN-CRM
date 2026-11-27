@@ -16,7 +16,7 @@ import { StatCard } from "@/components/common/stat-card";
 import { staffLabel, staffName, type StaffRef } from "@/components/common/user-avatar";
 import { Page, PageHeader, PageToolbar } from "@/components/layout/page";
 import { cardMoney, cardStatus, isTourable } from "@/lib/cards";
-import { formatRupiah, formatRupiahCompact } from "@/lib/currency";
+import { formatRupiah } from "@/lib/currency";
 import { matchesNameOrPhone } from "@/lib/customers";
 import type { CardItem, TreatmentCard } from "@/types/card";
 import type { Service } from "@/types/service";
@@ -105,9 +105,9 @@ export function CardsView({ cards, cardTours, services, staff, me }: {
     <PageHeader title={t("title")} />
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <StatCard label={t("statCount")} value={filtered.filter((c) => !c.cancelled_at).length} icon={CreditCard} />
-      <StatCard label={t("statValue")} value={formatRupiahCompact(sum((c) => c.money.value))} icon={ReceiptText} iconTone="info" />
-      <StatCard label={t("statCollected")} value={formatRupiahCompact(sum((c) => c.money.collected))} icon={HandCoins} iconTone="success" />
-      <StatCard label={t("statDue")} value={formatRupiahCompact(sum((c) => Math.max(c.money.due, 0)))} icon={Wallet} iconTone="warning" />
+      <StatCard label={t("statValue")} value={formatRupiah(sum((c) => c.money.value))} icon={ReceiptText} iconTone="info" />
+      <StatCard label={t("statCollected")} value={formatRupiah(sum((c) => c.money.collected))} icon={HandCoins} iconTone="success" />
+      <StatCard label={t("statDue")} value={formatRupiah(sum((c) => Math.max(c.money.due, 0)))} icon={Wallet} iconTone="warning" />
     </div>
     <PageToolbar>
       <SearchInput value={search} placeholder={t("search")} onChange={(v) => { setSearch(v); reset(); }} />
