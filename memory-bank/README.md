@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-27 — Lộ trình tour dự kiến cho môi
+- **Thay đổi:** OpenSpec `lip-tour-roadmap`. Sếp chốt: môi làm mới → dặm sau 2 tháng; môi xoá sửa: Plasma (hút dung dịch / CO2, DV "Lip Spray Removal (plasma)" nhóm `lips_treatment`) → 2 tháng Làm mới → 2 tháng Dặm; công Master Dặm 3% / Làm mới 7% (đúng `TOUR_RATES` sẵn có, không đổi). `ROADMAP_AREAS = ["alis", "bibir"]`; khoảng cách theo vùng `GAPS` (mày 20/45, môi `LIP_STEP_DAYS` = 60 cho mọi bước; "2 tháng" quy ước 60 ngày); `journeyDue` (Đến hạn) cũng dùng `GAPS`. Bước xoá của vùng = DV có Loại gợi ý laser/plasma (`removalKind`, cần `services.name` → sync + drawer bán thẻ lấy thêm `name`). DV khác của `lips_treatment` (Dark Lip, Collagen Stem Cell) không thuộc lộ trình. `start` của `planRoadmap` nhận thêm dạng hàm theo dòng DV của vùng → `syncRoadmap` lấy tour dự kiến sớm nhất **của từng vùng** (sửa bước đầu mày không kéo môi).
+- **File ảnh hưởng:** `lib/{cards,cards.test,roadmap-sync}.ts`, `components/cards/card-items-drawer.tsx`, `openspec/changes/lip-tour-roadmap/`
+- **Còn dở / ghi chú:** Không đổi DB. tsc (trừ `.next/` cũ) + eslint + 116 test sạch; chưa xem trên trình duyệt. 2 dòng môi đang có trên DB (Nano Lip thẻ ALIS0012, Ombre Effect thẻ BIBIR0011) chưa có tour thật nên chưa sinh tour dự kiến. Nút "Sạch → lên mới / Còn mực +1" vẫn chỉ cho laser mày (plasma sửa số buổi bằng nhấp đúp). Chưa commit.
+
 ### 2026-11-27 — Trang Tour của KTV: giao diện PC + bộ lọc
 - **Thay đổi:** `TechnicianTours` trước dùng giao diện thẻ mobile cho cả PC. Giờ PC (≥ 640px, `useIsMobile`) hiện **bảng** (`DataTable`): tab Chờ nhận = Ngày · Khách · Dịch vụ · Loại · Ghi chú · nút Nhận tour; tab Tour của tôi = Ngày · Khách · Dịch vụ · Loại · Ảnh · Công · Trạng thái (bấm dòng mở drawer). Segmented không còn kéo hết chiều ngang trên PC. Thêm thanh lọc cho cả 2 tab (PC + điện thoại): tìm khách / SĐT, dịch vụ (chỉ DV có trong tab), trạng thái (Tour của tôi: Chưa xác nhận / Đã xác nhận); đổi tab thì bỏ lọc DV / trạng thái. Điện thoại vẫn danh sách thẻ như cũ. i18n `tour.allServices`.
 - **File ảnh hưởng:** `components/tour/tour-view.tsx`, `messages/{vi,en}.json`

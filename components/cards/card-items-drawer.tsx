@@ -67,7 +67,7 @@ export function CardItemsDrawer({ open, title, submitText, services, deposit, ex
   const [pins, setPins] = useState<Record<string, string>>({});
   const steps = previewRoadmap ? planRoadmap(lines.flatMap((l) => {
     const s = byId.get(l.service_id);
-    return s ? [{ id: s.id, service_id: s.id, sessions: l.sessions ?? 1, refunded_at: null, service: { group_id: s.group_id, tourable: s.tourable } }] : [];
+    return s ? [{ id: s.id, service_id: s.id, sessions: l.sessions ?? 1, refunded_at: null, service: { group_id: s.group_id, tourable: s.tourable, name: s.name } }] : [];
   }), [], (id, k) => pins[`${id}:${k}`] ?? null, planStart) : [];
   const plan: CardPlan | undefined = steps.length ? {
     start: planStart,

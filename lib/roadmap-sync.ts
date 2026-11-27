@@ -14,11 +14,12 @@ type TourRow = {
  * Diff tại chỗ theo từng dòng DV (trigger tours_card_guard không cho đổi dòng DV của tour): sửa ngày / Loại nếu khác,
  * thêm phần thiếu, xoá mềm phần thừa. Tour thật không bao giờ bị đụng. Thẻ huỷ / đã hoàn → xoá hết tour dự kiến.
  * Chưa có tour thật: chuỗi tính từ tour dự kiến sớm nhất (lộ trình lập lúc bán thẻ) — `seed` = lộ trình gửi lên khi bán thẻ.
- * ponytail: không transaction — 2 người sửa cùng thẻ cùng lúc có thể lệch, lần sync sau tự sửa. 1 vùng (mày) → 1 `start` chung.
+ * ponytail: không transaction — 2 người sửa cùng thẻ cùng lúc có thể lệch, lần sync sau tự sửa. Mỗi vùng (mày / môi) 1 `start`
+ * = tour dự kiến sớm nhất của vùng đó; lúc bán thẻ dùng chung `seed.start` (bước đầu vùng khác sửa qua pin).
  */
 export async function syncRoadmap(db: Db, cardId: string, seed?: CardPlan) {
   const { data: card, error } = await db.from("treatment_cards")
-    .select("customer_id,cancelled_at,refunded_at,items:treatment_card_items(id,service_id,sessions,refunded_at,service:services(group_id,tourable))")
+    .select("customer_id,cancelled_at,refunded_at,items:treatment_card_items(id,service_id,sessions,refunded_at,service:services(group_id,tourable,name))")
     .eq("id", cardId).single();
   if (error) throw error;
   const items = card.items as unknown as PlanItem[];
@@ -40,7 +41,7 @@ export async function syncRoadmap(db: Db, cardId: string, seed?: CardPlan) {
     const h = plannedOf(itemId)[k];
     return h?.date_pinned ? h.tour_date : null;
   };
-  const start = seed?.start ?? planned[0]?.tour_date;
+  const start = seed?.start ?? ((ids: string[]) => planned.find((t) => ids.includes(t.card_item_id))?.tour_date);
 
   // Số lần (Laser n / Dặm n) đếm cả tour thật + bước dự kiến trước đó của cùng dòng.
   const seen: { card_item_id: string; tour_date: string; service_detail: string | null }[] = [...real];
