@@ -1,52 +1,86 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Empty, Popover } from "antd";
 import dayjs from "dayjs";
-import { Bell, BellRing, CalendarClock, PhoneCall } from "lucide-react";
+import { Bell, BellRing, CalendarClock, CreditCard, FileText, PhoneCall, Sparkles, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { ensureJourneyDigest } from "@/app/(app)/customers/journey/actions";
 import { createClient } from "@/lib/supabase/client";
-
-type Notification = {
-  id: string;
-  kind: string;
-  data: Record<string, unknown>;
-  link: string | null;
-  read_at: string | null;
-  created_at: string;
-};
+import {
+  mergeNotification, notificationIcon, notificationParts, todayUtc7,
+  type AppNotification, type NotificationIcon,
+} from "@/lib/notifications";
+import { toast } from "@/lib/toast";
 
 const LIMIT = 20;
+/** Cùng `ref` tới dồn dập (VD tạo 3 tour 1 lúc → 3 INSERT) → chỉ toast 1 lần trong khoảng này. */
+const TOAST_GAP_MS = 5_000;
+
+const ICONS: Record<NotificationIcon, LucideIcon> = {
+  calendar: CalendarClock, phone: PhoneCall, digest: BellRing, tour: Sparkles, card: CreditCard, document: FileText,
+};
+
+/** Chữ hiển thị của 1 thông báo (kind + data → i18n `notify`). */
+function useNotificationText() {
+  const t = useTranslations("notify");
+  return useCallback(
+    (n: AppNotification) => notificationParts(n).map(([key, values]) => t(key, values)).join(" · ") || n.kind,
+    [t],
+  );
+}
 
 /**
- * Thông báo của user: 20 cái mới nhất + nhận INSERT qua Supabase Realtime (RLS chỉ gửi dòng của mình).
- * Gọi 1 lần ở AppShell rồi truyền cho cả 2 chuông (desktop + điện thoại) — tránh 2 kênh realtime.
+ * Thông báo của user: 20 cái mới nhất + nhận INSERT qua Supabase Realtime (RLS chỉ gửi dòng của mình),
+ * toast khi có cái mới. Gọi 1 lần ở AppShell rồi truyền cho cả 2 chuông (desktop + điện thoại) — tránh 2 kênh realtime.
  */
 export function useNotifications(userId: string | null) {
-  const [items, setItems] = useState<Notification[]>([]);
+  const [items, setItems] = useState<AppNotification[]>([]);
+  const text = useNotificationText();
+  const textRef = useRef(text);
+  useEffect(() => {
+    textRef.current = text;
+  }, [text]);
 
   useEffect(() => {
     if (!userId) return;
     const supabase = createClient();
+    const toasted = new Map<string, number>();
     let active = true;
     supabase
       .from("notifications")
-      .select("id, kind, data, link, read_at, created_at")
+      .select("id, kind, data, link, ref, read_at, created_at")
       .order("created_at", { ascending: false })
       .limit(LIMIT)
       .then(({ data }) => {
-        if (active && data) setItems(data as Notification[]);
+        if (active && data) setItems(data as AppNotification[]);
       });
     const channel = supabase
       .channel(`notifications:${userId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        (payload) => setItems((prev) => [payload.new as Notification, ...prev].slice(0, LIMIT)),
+        (payload) => {
+          const n = payload.new as AppNotification;
+          setItems((prev) => mergeNotification(prev, n, LIMIT));
+          const key = n.ref ?? n.id;
+          const now = Date.now();
+          if (now - (toasted.get(key) ?? 0) > TOAST_GAP_MS) toast.info(textRef.current(n));
+          toasted.set(key, now);
+        },
       )
       .subscribe();
+
+    // Tổng hợp Đến hạn liệu trình: 1 lần / ngày / trình duyệt (server chặn trùng lần nữa).
+    const digestKey = `journey-digest:${userId}`;
+    const today = todayUtc7();
+    if (localStorage.getItem(digestKey) !== today) {
+      localStorage.setItem(digestKey, today);
+      void ensureJourneyDigest();
+    }
+
     return () => {
       active = false;
       supabase.removeChannel(channel);
@@ -73,43 +107,10 @@ export type NotificationsState = ReturnType<typeof useNotifications>;
 /** Chuông thông báo ở header: badge chưa đọc, bấm mở danh sách; bấm 1 thông báo → mở link. */
 export function NotificationBell({ state }: { state: NotificationsState }) {
   const t = useTranslations("common");
-  const tr = useTranslations("reminders.notify");
-  const tp = useTranslations("potential.notify");
+  const text = useNotificationText();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const { items, unread, markAllRead, clearUnread } = state;
-
-  const text = (n: Notification) => {
-    const d = n.data;
-    if (n.kind === "reminder_digest") {
-      const today = Number(d.today ?? 0);
-      const overdue = Number(d.overdue ?? 0);
-      return [today ? tr("digestToday", { n: today }) : null, overdue ? tr("digestOverdue", { n: overdue }) : null]
-        .filter(Boolean)
-        .join(" · ");
-    }
-    if (n.kind === "follow_up_digest") {
-      const today = Number(d.today ?? 0);
-      const overdue = Number(d.overdue ?? 0);
-      return [today ? tp("digestToday", { n: today }) : null, overdue ? tp("digestOverdue", { n: overdue }) : null]
-        .filter(Boolean)
-        .join(" · ");
-    }
-    if (n.kind === "follow_up_due") {
-      return tp("due", {
-        customer: String(d.customer ?? "—"),
-        time: d.follow_up_at ? dayjs(String(d.follow_up_at)).format("DD-MM HH:mm") : "—",
-      });
-    }
-    if (n.kind === "reminder_assigned") {
-      return tr("assigned", {
-        by: String(d.by ?? "—"),
-        customer: String(d.customer ?? "—"),
-        time: d.remind_at ? dayjs(String(d.remind_at)).format("DD-MM HH:mm") : "—",
-      });
-    }
-    return n.kind;
-  };
 
   const onOpenChange = (next: boolean) => {
     setOpen(next);
@@ -130,7 +131,7 @@ export function NotificationBell({ state }: { state: NotificationsState }) {
           {items.length ? (
             <ul className="m-0 list-none p-0">
               {items.map((n) => {
-                const Icon = n.kind.endsWith("_digest") ? BellRing : n.kind === "follow_up_due" ? PhoneCall : CalendarClock;
+                const Icon = ICONS[notificationIcon(n.kind)];
                 return (
                   <li key={n.id}>
                     <button

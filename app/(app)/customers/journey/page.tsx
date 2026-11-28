@@ -2,6 +2,7 @@ import { JourneyDueTable, type DueRow } from "@/components/cards/journey-due";
 import type { StaffRef } from "@/components/common/user-avatar";
 import { requirePermission } from "@/lib/auth";
 import { journeyDue } from "@/lib/cards";
+import { todayUtc7 } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
 import type { CardItem } from "@/types/card";
 import type { Tour } from "@/types/tour";
@@ -14,7 +15,7 @@ type Source = {
 
 const TELESALES = ["telesales", "telesales_leader"];
 /** Đầu hôm nay theo UTC+7 (VN / WIB) — lịch hẹn từ lúc này trở đi = "Đã hẹn". */
-const todayStart = () => `${new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)}T00:00:00+07:00`;
+const todayStart = () => `${todayUtc7()}T00:00:00+07:00`;
 
 /**
  * Khách hàng → Đến hạn liệu trình (Telesales gọi khách — sếp chốt 2026-11-22).
