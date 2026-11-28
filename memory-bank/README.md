@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-28 — Drawer lịch hẹn: chi tiết thẻ sổ xuống tại chỗ (openspec `appointment-drawer-card-inline`)
+- **Thay đổi:** Sếp không muốn "Mở thẻ" mở thêm drawer chồng lên. Khung Thẻ liệu trình trong `AppointmentDrawer` thành `CardPanel`: nút "Chi tiết thẻ ⌄ / Thu gọn ⌃" sổ xuống ngay dưới (grid-rows 0fr→1fr + opacity 300ms, `motion-reduce`, `inert` khi gọn, chỉ dựng từ lần mở đầu) gồm Thanh toán (form thu tiền), Lộ trình tour (+ Tạo tour), Lịch sử, Hoàn / Huỷ / In thẻ; khi mở, dòng DV sửa tại chỗ + nút Thêm dịch vụ (drawer mở cạnh). `card-drawer.tsx` tách `CardServices` / `CardBody` / `CardActions` / `AddServiceDrawer` dùng chung với `CardDrawer` (cột Thẻ trên bảng + trang Thẻ vẫn mở drawer như cũ). Form lịch hẹn `component={false}` (không lồng `<form>` thu tiền), khung thẻ bọc `ConfigProvider componentDisabled={false}` (quyền theo `cards.edit`), `FormDrawer` thêm prop `push` (drawer lịch hẹn `push={false}`). Không đổi DB.
+- **File ảnh hưởng:** `components/cards/card-drawer.tsx`, `components/appointments/{appointment-drawer,appointments-manager}.tsx`, `components/common/form-drawer.tsx`, `messages/{vi,en}.json`, `openspec/changes/appointment-drawer-card-inline/`.
+- **Còn dở / ghi chú:** Chưa xem thực tế trên trình duyệt (task 3.2). Drawer Tour mở từ lộ trình giờ đè lên drawer lịch hẹn, không đẩy sang trái.
+
 ### 2026-11-28 — Marketing: booking IG từ QC cũ không rơi khỏi chiến dịch (openspec `fix-ig-booking-old-ads`)
 - **Thay đổi:** Sếp cần số booking đúng theo camp. Lỗi: map `ad_id → campaign_id` chỉ lấy từ insights `level=ad` của khoảng ngày đang xem → khách IG bấm QC đã tắt (chạy kỳ trước), kỳ này mới gắn booking/purchase/phone, vẫn có trong tổng nhưng không vào dòng camp nào. Sửa: `unmatchedIgAdIds` (người có tag tiềm năng, gộp như `countPotential`) → `fetchFbAdCampaignsByIds` tra `GET /{ad_id}?fields=campaign_id` (song song 10, cache cả tiến trình; code 100 cache null; lỗi khác log + bỏ qua) → ghép vào map trước `countPotential`. Không đổi DB / UI.
 - **File ảnh hưởng:** `lib/marketing.ts`, `lib/smax-inbox.ts` (+test), `app/(app)/marketing/actions.ts`, `openspec/changes/fix-ig-booking-old-ads/`.

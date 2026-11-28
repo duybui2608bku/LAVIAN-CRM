@@ -82,7 +82,6 @@
     "editTitle": "Sửa lịch hẹn",
     "sectionBooking": "Khách hàng & Đặt lịch",
     "sectionCard": "Thẻ liệu trình",
-    "openCard": "Mở thẻ",
     "sectionStaff": "Nhân sự",
     "sectionNote": "Ghi chú Sales",
     "paidTotal": "Đã thu",
@@ -1022,6 +1021,8 @@
     }
   },
   "cards": {
+    "details": "Chi tiết thẻ",
+    "collapse": "Thu gọn",
     "title": "Thẻ liệu trình",
     "column": "Thẻ liệu trình",
     "code": "Mã thẻ",

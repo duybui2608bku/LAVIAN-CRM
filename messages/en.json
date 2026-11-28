@@ -82,7 +82,6 @@
     "editTitle": "Edit appointment",
     "sectionBooking": "Customer & booking",
     "sectionCard": "Treatment card",
-    "openCard": "Open card",
     "sectionStaff": "Staff",
     "sectionNote": "Sales note",
     "paidTotal": "Collected",
@@ -1022,6 +1021,8 @@
     }
   },
   "cards": {
+    "details": "Card details",
+    "collapse": "Collapse",
     "title": "Treatment cards",
     "column": "Treatment card",
     "code": "Card",

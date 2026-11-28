@@ -326,7 +326,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
       staff={staff} canEdit={canEdit} visitChoices={visitChoices}
       card={editingCard} cardTours={editingCard ? toursOfCard(editingCard, cardTours) : []} services={services}
-      deposit={editing ? depositLeft(editing.customer_id) : 0} onOpenCard={setCardId}
+      deposit={editing ? depositLeft(editing.customer_id) : 0} cardMe={cardMe}
       onSellCard={cardMe.canEdit && editing ? () => setSellFor(editing) : undefined}
       onViewInfo={setInfoFor} onOpenNotes={() => editingId && setNotesOpen({ id: editingId, field: "sales_notes" })} onClose={() => setEditingId(null)} />
     <AppointmentNotesDrawer appointment={notesFor} field={notesOpen?.field ?? "notes"} staff={staff} canEdit={canEdit}

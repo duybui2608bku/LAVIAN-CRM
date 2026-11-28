@@ -19,6 +19,7 @@ export function FormDrawer({
   onClose,
   footerExtra,
   beside,
+  push,
   children,
 }: {
   open: boolean;
@@ -35,6 +36,8 @@ export function FormDrawer({
    * Màn hình < xl: mở đè như thường. Không render lồng trong drawer kia (antd sẽ đẩy nó sang trái).
    */
   beside?: number;
+  /** false = drawer con lồng bên trong (vd. Thêm dịch vụ / Tour trong drawer lịch hẹn) không đẩy drawer này sang trái. */
+  push?: boolean;
   children: React.ReactNode;
 }) {
   const t = useTranslations("common");
@@ -47,6 +50,7 @@ export function FormDrawer({
       size={side ? `calc(100vw - ${side}px)` : width}
       styles={side ? { wrapper: { right: side } } : undefined}
       destroyOnHidden
+      push={push}
       title={title}
       closable={!pending}
       mask={side ? false : { closable: !pending }}

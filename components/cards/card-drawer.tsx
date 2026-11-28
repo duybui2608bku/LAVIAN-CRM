@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Checkbox, Divider, Empty, Image, Input, InputNumber, Modal, Popover, Radio, Select } from "antd";
-import { History as HistoryIcon, Plus, Printer, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
+import { ChevronDown, History as HistoryIcon, Plus, Printer, RotateCcw, Route, Trash2, Wallet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
 import {
@@ -56,53 +56,33 @@ export function DueText({ due }: { due: number }) {
     : <span className="font-medium text-destructive tabular-nums" title={t("refundOwed")}>− {formatRupiah(-due)}</span>;
 }
 
-/**
- * Chi tiết thẻ liệu trình: tiền, dịch vụ (đã dùng x/y buổi, hoàn), thanh toán, lộ trình tour + tạo tour.
- * Cha giữ id và truyền `card` mới nhất (sau mỗi action server revalidate → props đổi).
- */
-export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, onClose }: {
+const isActive = (card: TreatmentCard) => !card.cancelled_at && !card.refunded_at; // thẻ huỷ / đã hoàn: chỉ xem
+const consultantOf = (card: TreatmentCard, staff: StaffRef[]) => staff.find((s) => s.id === card.created_by)?.user_name ?? "";
+
+type CardProps = {
   card: TreatmentCard;
   tours: Tour[]; // tour của thẻ này
   services: Service[];
   staff: StaffRef[];
   me: CardMe;
+};
+
+/**
+ * Chi tiết thẻ liệu trình dạng drawer (cột Thẻ trên bảng, trang Thẻ): tiền, dịch vụ, thanh toán, lộ trình tour, lịch sử.
+ * Cha giữ id và truyền `card` mới nhất (sau mỗi action server revalidate → props đổi).
+ */
+export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, onClose }: CardProps & {
   /** Bấm tên khách → popup hồ sơ 360° (trang cha giữ popup). */
   onOpenCustomer?: (customerId: string) => void;
   onClose: () => void;
 }) {
   const t = useTranslations("cards");
-  const tt = useTranslations("tour");
-  const groups = useServiceGroups();
   const [adding, setAdding] = useState(false);
-  const [creatingTour, setCreatingTour] = useState(false);
-  const [tourId, setTourId] = useState<string | null>(null);
   const money = cardMoney(card);
-  const used = usageOf(tours);
-  const active = !card.cancelled_at && !card.refunded_at; // thẻ huỷ / đã hoàn: chỉ xem
-  const canEdit = me.canEdit && active;
-  const serviceOf = (id: string) => services.find((s) => s.id === id);
-  const itemOf = (id: string | null) => card.items.find((i) => i.id === id);
-  const failed = t("saveError");
-  const journey = [...tours].sort((a, b) => a.tour_date.localeCompare(b.tour_date));
-  const openTour = tours.find((x) => x.id === tourId);
-  const consultant = staff.find((s) => s.id === card.created_by)?.user_name ?? "";
-  // Laser mày đang làm dở: đã có tour Laser, DV mày chưa Làm mới → hỏi kết quả (sạch / còn mực) để lộ trình tính lại.
-  const browNew = tours.some((x) => !x.planned && x.service_detail === "new"
-    && serviceOf(itemOf(x.card_item_id)?.service_id ?? "")?.group_id === "alis");
-  const laserPending = (item: CardItem) => !item.refunded_at && !browNew && used(item.id) > 0
-    && serviceOf(item.service_id)?.group_id === "laser" && card.items.some((i) => !i.refunded_at && serviceOf(i.service_id)?.group_id === "alis");
+  const canEdit = me.canEdit && isActive(card);
 
   return <><FormDrawer open onClose={onClose} width={CARD_DRAWER_WIDTH}
-    footerExtra={<>
-      {canEdit ? <RefundCardButton card={card} used={used} /> : null}
-      {me.canCancel && active ? <ConfirmAction title={t("cancelTitle")} description={t("cancelBody")}
-        okText={t("cancelCard")} cancelText={t("back")}
-        onConfirm={async () => { if (await runAction(cancelCard(card.id), t("cancelled"), failed)) onClose(); }}>
-        <Button danger>{t("cancelCard")}</Button>
-      </ConfirmAction> : null}
-      {/* In A4 cho khách ký: CardPrint (ẩn trên màn hình) + window.print() → "Save as PDF". */}
-      <Button className="ms-auto" icon={<Printer className="size-4" />} onClick={() => window.print()}>{t("print")}</Button>
-    </>}
+    footerExtra={<CardActions card={card} tours={tours} me={me} onCancelled={onClose} />}
     title={<div className="min-w-0">
       <div className="flex items-center gap-2 text-lg font-semibold">{card.code} <CardStatusTag card={card} tours={tours} /></div>
       <div className="mt-1 text-sm font-normal">
@@ -110,7 +90,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
           className="hover:text-primary hover:underline">{card.customer?.full_name}</button> : card.customer?.full_name}
       </div>
     </div>}>
-    <CardPrint card={card} services={services} consultant={consultant} used={used} />
+    <CardPrint card={card} services={services} consultant={consultantOf(card, staff)} used={usageOf(tours)} />
     {/* Tiền thẻ */}
     <dl className="mb-4 grid grid-cols-[1fr_auto] gap-y-2 rounded-lg border border-border p-4 text-sm tabular-nums">
       <dt className="text-muted-foreground">{t("value")}</dt><dd className="text-right font-medium">{formatRupiah(money.value)}</dd>
@@ -121,31 +101,145 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
 
     <Section title={t("services")} className="mb-4"
         extra={canEdit ? <Button size="small" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>{t("addService")}</Button> : null}>
-      <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-        {card.items.map((item) => {
-          const s = serviceOf(item.service_id);
-          const n = used(item.id);
-          return <li key={item.id} className="flex items-start justify-between gap-3 p-3">
-            <div className="min-w-0">
-              <div className={item.refunded_at ? "font-medium line-through opacity-60" : "font-medium"}>{s?.name ?? "—"}</div>
-              <div className="text-xs text-muted-foreground tabular-nums">{s ? `${groups.name(s.group_id)} · ` : ""}{formatRupiah(item.price)}</div>
-              {canEdit && laserPending(item) ? <LaserResult item={item} used={n} /> : null}
-              {item.refunded_at ? <div className="mt-1 text-xs text-destructive">
-                {t("refundedLine", { amount: formatRupiah(item.refund_amount ?? 0), date: dayjs(item.refunded_at).format("DD/MM/YYYY") })}
-                {item.refund_note ? ` · ${item.refund_note}` : ""}
-              </div> : null}
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              {/* Mực / phí Master: không tạo tour → không có buổi. */}
-              {isTourable(item) ? <SessionsCell item={item} used={n} editable={canEdit && !item.refunded_at} /> : null}
-              {canEdit && !item.refunded_at ? <DeleteItemButton item={item} name={s?.name ?? ""} used={n}
-                last={card.items.length < 2} /> : null}
-            </div>
-          </li>;
-        })}
-      </ul>
+      <CardServices card={card} tours={tours} services={services} editable={canEdit} className="rounded-lg border border-border" />
     </Section>
+    <CardBody card={card} tours={tours} services={services} staff={staff} me={me} />
+  </FormDrawer>
+  {/* Ngoài drawer thẻ (không lồng) → mở bên cạnh, drawer thẻ giữ nguyên để xem thẻ đang có DV gì. */}
+  <AddServiceDrawer open={adding} card={card} tours={tours} services={services} beside={CARD_DRAWER_WIDTH} onClose={() => setAdding(false)} />
+  </>;
+}
 
+/**
+ * Thẻ liệu trình nằm trong drawer khác (drawer lịch hẹn): dịch vụ + 3 số tiền luôn hiện; "Chi tiết thẻ" sổ xuống ngay dưới
+ * (thanh toán, lộ trình tour, lịch sử, hoàn / huỷ / in) thay vì mở thêm drawer thẻ chồng lên.
+ * `beside` = rộng drawer chứa panel → drawer Thêm dịch vụ mở cạnh. Drawer chứa nên tắt `push` (drawer con không đẩy nó).
+ */
+export function CardPanel({ card, tours, services, staff, me, beside }: CardProps & { beside: number }) {
+  const t = useTranslations("cards");
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false); // chỉ dựng phần chi tiết từ lần mở đầu, sau đó giữ để thu gọn vẫn mượt
+  const [adding, setAdding] = useState(false);
+  const bodyId = useId();
+  const m = cardMoney(card);
+  const canEdit = me.canEdit && isActive(card);
+  const money: [string, React.ReactNode][] = [
+    [t("value"), formatRupiah(m.value)],
+    [t("collected"), <span key="c" className="text-success">{formatRupiah(m.collected)}</span>],
+    [m.due < 0 ? t("refundOwed") : t("due"), <DueText key="d" due={m.due} />],
+  ];
+
+  return <div className="overflow-hidden rounded-lg border border-border">
+    <div className="flex items-center justify-between gap-2 py-2 ps-4 pe-2">
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="font-semibold">{card.code}</span>
+        <CardStatusTag card={card} tours={tours} />
+      </span>
+      <span className="flex shrink-0 items-center gap-1">
+        {open && canEdit ? <Button size="small" icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>{t("addService")}</Button> : null}
+        <Button type="link" size="small" aria-expanded={open} aria-controls={bodyId} iconPlacement="end"
+          icon={<ChevronDown className={`size-4 transition-transform duration-300 motion-reduce:transition-none ${open ? "rotate-180" : ""}`} />}
+          onClick={() => { setMounted(true); setOpen((v) => !v); }}>
+          {t(open ? "collapse" : "details")}
+        </Button>
+      </span>
+    </div>
+    {/* Đang mở: dòng dịch vụ sửa được tại chỗ (số buổi, xoá DV, kết quả laser) như drawer thẻ. */}
+    <CardServices card={card} tours={tours} services={services} editable={open && canEdit} className="border-t border-border" />
+    <dl className="grid grid-cols-3 gap-3 border-t border-border bg-muted/50 px-4 py-3 tabular-nums max-sm:grid-cols-1">
+      {money.map(([label, value]) => <div key={label} className="min-w-0">
+        <dt className="text-xs text-muted-foreground">{label}</dt>
+        <dd className="mt-0.5 truncate font-medium">{value}</dd>
+      </div>)}
+    </dl>
+    {/* Sổ xuống: grid-rows 0fr → 1fr (cao theo nội dung, không đo bằng JS); thu gọn = inert (không tab vào được). */}
+    <div id={bodyId} inert={!open} className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+      open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+      <div className="min-h-0 overflow-hidden">
+        {mounted ? <div className="border-t border-border p-4">
+          {/* Bản in chỉ dựng khi đang mở → không trùng bản in của drawer thẻ. */}
+          {open ? <CardPrint card={card} services={services} consultant={consultantOf(card, staff)} used={usageOf(tours)} /> : null}
+          {card.note ? <p className="mb-4 whitespace-pre-line text-sm text-muted-foreground">{card.note}</p> : null}
+          <CardBody card={card} tours={tours} services={services} staff={staff} me={me} />
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4 max-sm:[&>*]:flex-1">
+            <CardActions card={card} tours={tours} me={me} />
+          </div>
+        </div> : null}
+      </div>
+    </div>
+    <AddServiceDrawer open={adding} card={card} tours={tours} services={services} beside={beside} onClose={() => setAdding(false)} />
+  </div>;
+}
+
+/** Hoàn thẻ · Huỷ thẻ · In thẻ (canh phải). In cần `CardPrint` đang được dựng (ẩn trên màn hình) + window.print() → "Save as PDF". */
+function CardActions({ card, tours, me, onCancelled }: Pick<CardProps, "card" | "tours" | "me"> & { onCancelled?: () => void }) {
+  const t = useTranslations("cards");
+  const active = isActive(card);
+  return <>
+    {me.canEdit && active ? <RefundCardButton card={card} used={usageOf(tours)} /> : null}
+    {me.canCancel && active ? <ConfirmAction title={t("cancelTitle")} description={t("cancelBody")}
+      okText={t("cancelCard")} cancelText={t("back")}
+      onConfirm={async () => { if (await runAction(cancelCard(card.id), t("cancelled"), t("saveError"))) onCancelled?.(); }}>
+      <Button danger>{t("cancelCard")}</Button>
+    </ConfirmAction> : null}
+    <Button className="ms-auto" icon={<Printer className="size-4" />} onClick={() => window.print()}>{t("print")}</Button>
+  </>;
+}
+
+/** Dòng dịch vụ: tên, nhóm · giá, "Đã dùng x/y" (sửa tại chỗ khi `editable`), dòng đã hoàn, xoá DV, kết quả laser. */
+function CardServices({ card, tours, services, editable, className }: Pick<CardProps, "card" | "tours" | "services"> & {
+  editable: boolean; className?: string;
+}) {
+  const t = useTranslations("cards");
+  const groups = useServiceGroups();
+  const used = usageOf(tours);
+  const serviceOf = (id: string) => services.find((s) => s.id === id);
+  const itemOf = (id: string | null) => card.items.find((i) => i.id === id);
+  // Laser mày đang làm dở: đã có tour Laser, DV mày chưa Làm mới → hỏi kết quả (sạch / còn mực) để lộ trình tính lại.
+  const browNew = tours.some((x) => !x.planned && x.service_detail === "new"
+    && serviceOf(itemOf(x.card_item_id)?.service_id ?? "")?.group_id === "alis");
+  const laserPending = (item: CardItem) => !item.refunded_at && !browNew && used(item.id) > 0
+    && serviceOf(item.service_id)?.group_id === "laser" && card.items.some((i) => !i.refunded_at && serviceOf(i.service_id)?.group_id === "alis");
+
+  return <ul className={`flex flex-col divide-y divide-border ${className ?? ""}`}>
+    {card.items.map((item) => {
+      const s = serviceOf(item.service_id);
+      const n = used(item.id);
+      return <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+        <div className="min-w-0">
+          <div className={item.refunded_at ? "truncate text-sm line-through opacity-60" : "truncate text-sm font-medium"}>{s?.name ?? "—"}</div>
+          <div className="text-xs text-muted-foreground tabular-nums">{s ? `${groups.name(s.group_id)} · ` : ""}{formatRupiah(item.price)}</div>
+          {editable && laserPending(item) ? <LaserResult item={item} used={n} /> : null}
+          {item.refunded_at ? <div className="mt-1 text-xs text-destructive">
+            {t("refundedLine", { amount: formatRupiah(item.refund_amount ?? 0), date: dayjs(item.refunded_at).format("DD/MM/YYYY") })}
+            {item.refund_note ? ` · ${item.refund_note}` : ""}
+          </div> : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          {/* Mực / phí Master: không tạo tour → không có buổi. */}
+          {isTourable(item) ? <SessionsCell item={item} used={n} editable={editable && !item.refunded_at} /> : null}
+          {editable && !item.refunded_at ? <DeleteItemButton item={item} name={s?.name ?? ""} used={n}
+            last={card.items.length < 2} /> : null}
+        </div>
+      </li>;
+    })}
+  </ul>;
+}
+
+/** Thanh toán (form thu tiền) + Lộ trình tour (tạo tour, mở drawer tour) + Lịch sử — chung cho drawer thẻ và CardPanel. */
+function CardBody({ card, tours, services, staff, me }: CardProps) {
+  const t = useTranslations("cards");
+  const tt = useTranslations("tour");
+  const [creatingTour, setCreatingTour] = useState(false);
+  const [tourId, setTourId] = useState<string | null>(null);
+  const active = isActive(card);
+  const canEdit = me.canEdit && active;
+  const serviceOf = (id: string) => services.find((s) => s.id === id);
+  const itemOf = (id: string | null) => card.items.find((i) => i.id === id);
+  const journey = [...tours].sort((a, b) => a.tour_date.localeCompare(b.tour_date));
+  const openTour = tours.find((x) => x.id === tourId);
+
+  return <>
     <Section title={t("payments")} className="mb-4">
       {canEdit ? <PaymentForm card={card} /> : null}
       {card.deposit_used || card.payments.length || card.refunded_at ? <ul className="flex flex-col divide-y divide-border rounded-lg border border-border text-sm">
@@ -168,7 +262,7 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
               {p.amount < 0 ? `− ${formatRupiah(-p.amount)}` : formatRupiah(p.amount)}
             </span>
             {me.isAdmin && active ? <ConfirmAction title={t("deletePaymentTitle")} okText={t("delete")} cancelText={t("back")}
-              onConfirm={() => runAction(deleteCardPayment(p.id), t("saved"), failed)}>
+              onConfirm={() => runAction(deleteCardPayment(p.id), t("saved"), t("saveError"))}>
               <Button type="text" size="small" aria-label={t("delete")} icon={<Trash2 className="size-4" />} />
             </ConfirmAction> : null}
           </div>
@@ -216,13 +310,18 @@ export function CardDrawer({ card, tours, services, staff, me, onOpenCustomer, o
       onClose={() => setCreatingTour(false)} /> : null}
     {openTour ? <TourDrawer key={openTour.id} tour={openTour} me={me.tour} services={services} staff={staff}
       customers={[]} onClose={() => setTourId(null)} /> : null}
-  </FormDrawer>
-  {/* Ngoài drawer thẻ (không lồng) → mở bên cạnh, drawer thẻ giữ nguyên để xem thẻ đang có DV gì. */}
-  <CardItemsDrawer open={adding} title={t("addServiceTitle", { code: card.code })} submitText={t("addService")}
-    services={services} existing={card.items.filter((i) => !i.refunded_at)} currentValue={money.value} beside={CARD_DRAWER_WIDTH}
-    planned={tours.filter((x) => x.planned)}
-    onClose={() => setAdding(false)} onSubmit={(items) => runAction(addCardItems(card.id, items), t("saved"), failed)} />
   </>;
+}
+
+/** Drawer thêm DV vào thẻ, mở cạnh drawer đang chứa thẻ (rộng `beside` px). */
+function AddServiceDrawer({ open, card, tours, services, beside, onClose }: Pick<CardProps, "card" | "tours" | "services"> & {
+  open: boolean; beside: number; onClose: () => void;
+}) {
+  const t = useTranslations("cards");
+  return <CardItemsDrawer open={open} title={t("addServiceTitle", { code: card.code })} submitText={t("addService")}
+    services={services} existing={card.items.filter((i) => !i.refunded_at)} currentValue={cardMoney(card).value} beside={beside}
+    planned={tours.filter((x) => x.planned)}
+    onClose={onClose} onSubmit={(items) => runAction(addCardItems(card.id, items), t("saved"), t("saveError"))} />;
 }
 
 /** Lịch sử thao tác (nhật ký DB: ai sửa buổi, hoàn, thu / xoá tiền, tạo / sửa / xoá tour) — bấm Xem mới tải. */
