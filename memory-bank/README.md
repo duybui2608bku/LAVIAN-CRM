@@ -56,6 +56,20 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-28 — Drawer lịch hẹn: chi tiết thẻ sổ xuống tại chỗ (openspec `appointment-drawer-card-inline`)
+- **Thay đổi:** Sếp không muốn "Mở thẻ" mở thêm drawer chồng lên. Khung Thẻ liệu trình trong `AppointmentDrawer` thành `CardPanel`: nút "Chi tiết thẻ ⌄ / Thu gọn ⌃" sổ xuống ngay dưới (grid-rows 0fr→1fr + opacity 300ms, `motion-reduce`, `inert` khi gọn, chỉ dựng từ lần mở đầu) gồm Thanh toán (form thu tiền), Lộ trình tour (+ Tạo tour), Lịch sử, Hoàn / Huỷ / In thẻ; khi mở, dòng DV sửa tại chỗ + nút Thêm dịch vụ (drawer mở cạnh). `card-drawer.tsx` tách `CardServices` / `CardBody` / `CardActions` / `AddServiceDrawer` dùng chung với `CardDrawer` (cột Thẻ trên bảng + trang Thẻ vẫn mở drawer như cũ). Form lịch hẹn `component={false}` (không lồng `<form>` thu tiền), khung thẻ bọc `ConfigProvider componentDisabled={false}` (quyền theo `cards.edit`), `FormDrawer` thêm prop `push` (drawer lịch hẹn `push={false}`). Không đổi DB.
+- **File ảnh hưởng:** `components/cards/card-drawer.tsx`, `components/appointments/{appointment-drawer,appointments-manager}.tsx`, `components/common/form-drawer.tsx`, `messages/{vi,en}.json`, `openspec/changes/appointment-drawer-card-inline/`.
+- **Còn dở / ghi chú:** Chưa xem thực tế trên trình duyệt (task 3.2). Drawer Tour mở từ lộ trình giờ đè lên drawer lịch hẹn, không đẩy sang trái.
+
+### 2026-11-28 — Marketing: booking IG từ QC cũ không rơi khỏi chiến dịch (openspec `fix-ig-booking-old-ads`)
+- **Thay đổi:** Sếp cần số booking đúng theo camp. Lỗi: map `ad_id → campaign_id` chỉ lấy từ insights `level=ad` của khoảng ngày đang xem → khách IG bấm QC đã tắt (chạy kỳ trước), kỳ này mới gắn booking/purchase/phone, vẫn có trong tổng nhưng không vào dòng camp nào. Sửa: `unmatchedIgAdIds` (người có tag tiềm năng, gộp như `countPotential`) → `fetchFbAdCampaignsByIds` tra `GET /{ad_id}?fields=campaign_id` (song song 10, cache cả tiến trình; code 100 cache null; lỗi khác log + bỏ qua) → ghép vào map trước `countPotential`. Không đổi DB / UI.
+- **File ảnh hưởng:** `lib/marketing.ts`, `lib/smax-inbox.ts` (+test), `app/(app)/marketing/actions.ts`, `openspec/changes/fix-ig-booking-old-ads/`.
+- **Còn dở / ghi chú:**
+  - **`FB_TOKEN` trong `.env.local` hết hạn 21/11/2026** → chưa thử với Meta thật; cần token mới (system user token để khỏi hết hạn).
+  - Camp tra được nhưng không có hiển thị trong kỳ thì không có dòng trong bảng (bảng chỉ liệt kê camp có impressions) — booking đó vẫn chỉ nằm ở tổng.
+  - WA vẫn theo số WA (nhiều camp chung số → cùng số liệu): SMAX dùng WhatsApp Web, không có referral ad_id; muốn chính xác thì mỗi camp WA 1 số riêng hoặc chuyển WhatsApp Cloud API.
+  - Graph API mới nhất v27.0, code đang `v25.0`.
+
 ### 2026-11-28 — Thẻ liệu trình trong drawer lịch hẹn (openspec `appointment-drawer-card`)
 - **Thay đổi:** Theo yêu cầu sếp, mục "Tài chính" của drawer lịch hẹn (Quản lý bán hàng → bấm tên khách) đổi thành **"Thẻ liệu trình"**, chỉ xem: khung viền gồm mã thẻ + trạng thái + nút "Mở thẻ" (mở `CardDrawer` chồng lên), danh sách dịch vụ (nhóm · giá, "Đã dùng x/y buổi", dòng hoàn = gạch ngang + "Đã hoàn"), dải Giá trị thẻ / Đã thu / Công nợ ở đáy. Chưa có thẻ: Tiền cọc chưa trừ + nút "Bán thẻ liệu trình" (cần `cards.edit`, khách đã đến). Thu tiền / tour / hoàn / huỷ vẫn chỉ ở drawer thẻ. Không query mới, không migration.
 - **File ảnh hưởng:** `components/appointments/appointment-drawer.tsx` (`CardSummary`), `components/appointments/appointments-manager.tsx`, `messages/{vi,en}.json` (`appointments.sectionCard`, `openCard`; bỏ `sectionFinance`), `openspec/changes/appointment-drawer-card/`.

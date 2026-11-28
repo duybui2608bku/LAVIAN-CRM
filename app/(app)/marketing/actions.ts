@@ -4,12 +4,13 @@ import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import {
   fetchFbAdCampaigns,
+  fetchFbAdCampaignsByIds,
   fetchFbAds,
   fetchFbCampaigns,
   setFbCampaignStatus,
   type FbCampaign,
 } from "@/lib/marketing";
-import { countPotential, untilToday, type PotentialCounts } from "@/lib/smax-inbox";
+import { countPotential, unmatchedIgAdIds, untilToday, type PotentialCounts } from "@/lib/smax-inbox";
 import { fetchIgByPhone, fetchInboxThreads } from "@/lib/smax-threads";
 
 const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -33,6 +34,9 @@ async function fetchPotential(from: string, to: string): Promise<PotentialCounts
   // Theo tin nhắn từ `from` tới hôm nay: đủ khách mới của kỳ + khách được gắn booking/purchase trong kỳ (như Báo cáo SMAX).
   const threadsP = fetchInboxThreads(from, untilToday(to));
   const [threads, ads, igByPhone] = await Promise.all([threadsP, fetchFbAdCampaigns(from, to), fetchIgByPhone(from, [threadsP])]);
+  // Khách bấm QC cũ (không chạy trong kỳ) → ad_id không có trong insights kỳ này; tra thẳng để không rơi khỏi chiến dịch.
+  for (const [ad, campaign] of await fetchFbAdCampaignsByIds(unmatchedIgAdIds(threads, ads, igByPhone)))
+    ads.set(ad, campaign);
   return countPotential(threads, ads, { from, to, igByPhone });
 }
 
