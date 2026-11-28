@@ -821,11 +821,6 @@
       "overdue": "Overdue",
       "done": "Messaged"
     },
-    "notify": {
-      "digestToday": "You have {n} reminders today",
-      "digestOverdue": "{n} overdue",
-      "assigned": "{by} added a reminder for your customer {customer} at {time}"
-    },
     "noTelesales": "This customer has no telesales in charge, so nobody will be notified about this reminder.",
     "notePlaceholder": "Note (optional)",
     "notifyTo": "Notifies"
@@ -852,12 +847,7 @@
     "colSalesStatus": "Sales Status",
     "colFollowUp": "Follow-up at",
     "empty": "No potential customers",
-    "convertedOk": "Customer moved to Booking",
-    "notify": {
-      "due": "Time to follow up {customer} ({time})",
-      "digestToday": "{n} customers to follow up today",
-      "digestOverdue": "{n} overdue follow-ups"
-    }
+    "convertedOk": "Customer moved to Booking"
   },
   "bookings": {
     "title": "Booking Management",
@@ -1215,5 +1205,32 @@
     "chat": "Open SMAX chat",
     "whatsapp": "WhatsApp",
     "call": "Call"
+  },
+  "notify": {
+    "reminderToday": "You have {n} reminders today",
+    "reminderOverdue": "{n} overdue",
+    "reminderAssigned": "{by} set a reminder for your customer {customer} at {time}",
+    "followUpDue": "Time to follow up with {customer} ({time})",
+    "followUpToday": "{n} customers to contact today",
+    "followUpOverdue": "{n} overdue follow-ups",
+    "journeyToday": "{n} treatment follow-ups due today",
+    "journeyOverdue": "{n} overdue treatment follow-ups",
+    "appointment_created": "New appointment for {customer} at {time}",
+    "appointment_assigned": "You were assigned {customer} · appointment {time}",
+    "appointment_arrived": "{customer} has arrived",
+    "appointment_rescheduled": "{customer} rescheduled to {time}",
+    "appointment_cancelled": "Appointment {time} for {customer} was cancelled",
+    "tour_pending": "Tour waiting to be claimed: {customer} · {date}",
+    "tour_assigned": "You were assigned a tour: {customer} · {date}",
+    "tour_rescheduled": "Tour for {customer} moved to {date}",
+    "tour_cancelled": "Tour for {customer} on {date} was cancelled",
+    "card_created": "{customer} bought card {code}",
+    "card_payment": "Card {code} ({customer}) received {amount}",
+    "card_refunded": "Card {code} ({customer}) refunded {amount}",
+    "card_refunded_service": "Card {code} ({customer}) refunded {service}: {amount}",
+    "card_cancelled": "Card {code} of {customer} was cancelled",
+    "document_new": "{by} posted a new document: {title}",
+    "document_comment": "{by} commented on {title}",
+    "document_reply": "{by} replied to your comment on {title}"
   }
 }

@@ -821,11 +821,6 @@
       "overdue": "Quá hạn",
       "done": "Đã nhắc"
     },
-    "notify": {
-      "digestToday": "Hôm nay bạn có {n} lịch nhắc hẹn",
-      "digestOverdue": "{n} lịch quá hạn",
-      "assigned": "{by} tạo lịch nhắc cho khách {customer} của bạn lúc {time}"
-    },
     "noTelesales": "Khách chưa có Telesales phụ trách nên lịch nhắc này sẽ không gửi thông báo cho ai.",
     "notePlaceholder": "Ghi chú (không bắt buộc)",
     "notifyTo": "Thông báo cho"
@@ -852,12 +847,7 @@
     "colSalesStatus": "Trạng thái Sales",
     "colFollowUp": "Ngày giờ liên hệ lại",
     "empty": "Không có khách tiềm năng nào",
-    "convertedOk": "Đã chuyển khách sang Đã đặt lịch",
-    "notify": {
-      "due": "Tới giờ liên hệ lại {customer} ({time})",
-      "digestToday": "Hôm nay {n} khách cần liên hệ",
-      "digestOverdue": "{n} khách quá hạn liên hệ"
-    }
+    "convertedOk": "Đã chuyển khách sang Đã đặt lịch"
   },
   "bookings": {
     "title": "Quản lý đặt lịch",
@@ -1215,5 +1205,32 @@
     "chat": "Mở chat SMAX",
     "whatsapp": "Nhắn WhatsApp",
     "call": "Gọi"
+  },
+  "notify": {
+    "reminderToday": "Hôm nay bạn có {n} lịch nhắc hẹn",
+    "reminderOverdue": "{n} lịch quá hạn",
+    "reminderAssigned": "{by} tạo lịch nhắc cho khách {customer} của bạn lúc {time}",
+    "followUpDue": "Tới giờ liên hệ lại {customer} ({time})",
+    "followUpToday": "Hôm nay {n} khách cần liên hệ",
+    "followUpOverdue": "{n} khách quá hạn liên hệ",
+    "journeyToday": "Hôm nay {n} khách đến hạn liệu trình",
+    "journeyOverdue": "{n} khách quá hạn liệu trình",
+    "appointment_created": "Lịch hẹn mới cho khách {customer} lúc {time}",
+    "appointment_assigned": "Bạn được giao khách {customer} · hẹn {time}",
+    "appointment_arrived": "Khách {customer} đã đến cơ sở",
+    "appointment_rescheduled": "Khách {customer} đổi lịch hẹn sang {time}",
+    "appointment_cancelled": "Đã huỷ lịch hẹn {time} của khách {customer}",
+    "tour_pending": "Tour chờ nhận: khách {customer} · ngày {date}",
+    "tour_assigned": "Bạn được giao tour khách {customer} · ngày {date}",
+    "tour_rescheduled": "Tour khách {customer} đổi sang ngày {date}",
+    "tour_cancelled": "Đã huỷ tour khách {customer} ngày {date}",
+    "card_created": "Khách {customer} đã mua thẻ {code}",
+    "card_payment": "Thẻ {code} ({customer}) vừa thu {amount}",
+    "card_refunded": "Thẻ {code} ({customer}) hoàn tiền {amount}",
+    "card_refunded_service": "Thẻ {code} ({customer}) hoàn dịch vụ {service}: {amount}",
+    "card_cancelled": "Đã huỷ thẻ {code} của khách {customer}",
+    "document_new": "{by} đăng tài liệu mới: {title}",
+    "document_comment": "{by} bình luận tài liệu {title}",
+    "document_reply": "{by} trả lời bình luận của bạn trong {title}"
   }
 }
