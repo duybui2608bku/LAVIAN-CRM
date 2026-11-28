@@ -198,7 +198,7 @@ export function AdsStatsView() {
       text
     );
   };
-  // KH tiềm năng → Booking → Show up: cùng cách gán chiến dịch, cùng tooltip WA dùng chung / lỗi.
+  // Phễu theo chiến dịch (hiện chỉ còn Đến cơ sở): cùng cách gán chiến dịch, cùng tooltip WA dùng chung / lỗi.
   const funnelColumn = (key: FunnelKey, title: string, width: number): TableColumnType<CampaignRow> => ({
     key,
     title,
@@ -207,11 +207,6 @@ export function AdsStatsView() {
     render: (_, r) => funnelCell(r, count(funnelOf(r, key))),
     sorter: (a, b) => (funnelOf(a, key) ?? -1) - (funnelOf(b, key) ?? -1),
   });
-  const costPerBooking = (r: CampaignRow) => ratio(r.spend, funnelOf(r, "booking"));
-  const bookingRate = (r: CampaignRow) => {
-    const booking = funnelOf(r, "booking");
-    return booking == null || !r.messages ? null : booking / r.messages;
-  };
 
   const statusLabel = (status: string) =>
     t.has(`status_${status}`) ? t(`status_${status}`) : status;
@@ -318,29 +313,8 @@ export function AdsStatsView() {
         (ratio(a.spend, a.messages) ?? Infinity) -
         (ratio(b.spend, b.messages) ?? Infinity),
     },
-    funnelColumn("potential", t("colPotential"), 140),
-    funnelColumn("booking", t("colBooking"), 110),
-    {
-      key: "bookingRate",
-      title: t("bookingRate"),
-      align: "right",
-      width: 130,
-      // Đặt lịch ÷ Tin nhắn; 0 hoặc thiếu → "—". Dòng con WA/IG không có tin nhắn riêng → trống (không nằm trong SPLIT_KEYS).
-      render: (_, r) => {
-        const rate = bookingRate(r);
-        return funnelCell(r, funnelOf(r, "booking") == null ? null : rate ? pct.format(rate) : "—");
-      },
-      sorter: (a, b) => (bookingRate(a) ?? -1) - (bookingRate(b) ?? -1),
-    },
-    {
-      key: "costPerBooking",
-      title: t("costPerBooking"),
-      align: "right",
-      width: 160,
-      // Mẫu 0 (chưa có đặt lịch) → "—"; phễu lỗi → "—" kèm lỗi.
-      render: (_, r) => funnelCell(r, funnelOf(r, "booking") == null ? null : (money(costPerBooking(r)) ?? "—")),
-      sorter: (a, b) => (costPerBooking(a) ?? Infinity) - (costPerBooking(b) ?? Infinity),
-    },
+    // KH tiềm năng / Đặt lịch / Tỉ lệ / Chi tiêu ÷ Đặt lịch theo chiến dịch đang sai (số WA dùng chung nhiều camp)
+    // → tạm ẩn, xem theo từng số WA ở khối "Theo số WA" phía trên.
     funnelColumn("showUp", t("colShowUp"), 110),
     {
       key: "impressions",
@@ -361,7 +335,7 @@ export function AdsStatsView() {
   ];
 
   // Dòng con WA/IG chỉ hiện nền tảng + phễu; các cột khác là số của cả chiến dịch (ở dòng cha).
-  const SPLIT_KEYS = ["platform", "potential", "booking", "showUp"];
+  const SPLIT_KEYS = ["platform", "showUp"];
   const tableColumns = columns.map((c) =>
     SPLIT_KEYS.includes(String(c.key))
       ? c
@@ -425,9 +399,35 @@ export function AdsStatsView() {
               pending && "opacity-60",
             )}
           >
-            {byWa.map((g) => (
-              <StatCard key={g.wa ?? "none"} label={g.wa ?? t("waUnknown")} value={count(g.messages) ?? "—"} />
-            ))}
+            {byWa.map((g) => {
+              // Phễu SMAX theo số WA (khách nhắn vào số đó) — "Chưa gắn WA" không có phễu.
+              const f = g.wa ? potential?.byWa[g.wa] : undefined;
+              const funnel = (n: React.ReactNode) => (g.wa && potential ? (n ?? "—") : "—");
+              const lines: [string, React.ReactNode][] = [
+                ["colPotential", funnel(count(f?.potential ?? 0))],
+                ["colBooking", funnel(withRate(f?.booking ?? 0, g.messages))],
+                ["costPerBooking", funnel(money(ratio(g.spend, f?.booking ?? 0)))],
+              ];
+              return (
+                <div key={g.wa ?? "none"} className="surface flex min-w-0 flex-col gap-2 p-3 sm:p-4">
+                  <p className="truncate text-xs font-medium text-muted-foreground sm:text-sm">{g.wa ?? t("waUnknown")}</p>
+                  <div className="flex items-baseline gap-1.5 truncate">
+                    <span className="text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">
+                      {stats ? (count(g.messages) ?? "—") : <span className="inline-block h-7 w-16 animate-pulse rounded-md bg-muted" />}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{t("messagesUnit")}</span>
+                  </div>
+                  <dl className="space-y-1 border-t border-border pt-2 text-xs">
+                    {lines.map(([key, value]) => (
+                      <div key={key} className="flex items-baseline justify-between gap-2">
+                        <dt className="truncate text-muted-foreground">{t(key)}</dt>
+                        <dd className="shrink-0 font-medium tabular-nums">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              );
+            })}
           </div>
         </Section>
       )}
@@ -459,7 +459,7 @@ export function AdsStatsView() {
                     </span>
                   ),
                   aside: cell("status"),
-                  metrics: (["spend", "messages", "costPerMessage", "potential", "booking", "bookingRate", "costPerBooking", "showUp", "impressions", "reach"] as const).map((k) => ({
+                  metrics: (["spend", "messages", "costPerMessage", "showUp", "impressions", "reach"] as const).map((k) => ({
                     label: columns.find((c) => c.key === k)!.title as React.ReactNode,
                     value: cell(k),
                   })),
@@ -487,7 +487,7 @@ export function AdsStatsView() {
               showTotal: (total, [from, to]) =>
                 t("totalCampaigns", { from, to, total }),
             }}
-            scroll={{ x: 1810 }}
+            scroll={{ x: 1270 }}
             size="middle"
             locale={{ emptyText: stats?.errors.campaigns ?? t("noCampaigns") }}
           />
