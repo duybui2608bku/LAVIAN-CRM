@@ -142,6 +142,7 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     onEdit: (_, appointmentId) => setEditingId(appointmentId),
   });
   const editing = editingId ? rows.find((row) => row.id === editingId) ?? null : null;
+  const editingCard = editing ? cardByAppointment.get(editing.id) : undefined;
   const notesFor = notesOpen ? rows.find((row) => row.id === notesOpen.id) ?? null : null;
   const resetPage = () => setPage(1);
   const clearFilters = () => { setDates({ from: "", to: "" }); setCustomerFilter(""); setSearch(""); setVisit(""); setBooking(""); setPage(1); };
@@ -324,7 +325,9 @@ export function AppointmentsManager({ appointments, customers, staff, services, 
     <MessagesModal customer={chatFor} onClose={() => setChatFor(null)} />
     <AppointmentDrawer appointment={editing} customer={editing ? customerMap.get(editing.customer_id) : undefined}
       staff={staff} canEdit={canEdit} visitChoices={visitChoices}
-      card={editing ? cardByAppointment.get(editing.id) : undefined} deposit={editing ? depositLeft(editing.customer_id) : 0}
+      card={editingCard} cardTours={editingCard ? toursOfCard(editingCard, cardTours) : []} services={services}
+      deposit={editing ? depositLeft(editing.customer_id) : 0} onOpenCard={setCardId}
+      onSellCard={cardMe.canEdit && editing ? () => setSellFor(editing) : undefined}
       onViewInfo={setInfoFor} onOpenNotes={() => editingId && setNotesOpen({ id: editingId, field: "sales_notes" })} onClose={() => setEditingId(null)} />
     <AppointmentNotesDrawer appointment={notesFor} field={notesOpen?.field ?? "notes"} staff={staff} canEdit={canEdit}
       customerName={notesFor ? customerMap.get(notesFor.customer_id)?.full_name ?? "" : ""} onClose={() => setNotesOpen(null)} />

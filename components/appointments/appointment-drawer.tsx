@@ -2,20 +2,21 @@
 
 import { useTransition } from "react";
 import { Button, Empty, Form, Select } from "antd";
-import { NotebookPen, PanelRightOpen, Plus, X } from "lucide-react";
+import { ChevronRight, NotebookPen, PanelRightOpen, Plus, ShoppingCart, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { patchAppointment } from "@/app/(app)/appointments/actions";
 import { setAppointmentPerformers } from "@/app/(app)/customers/customer-360-actions";
 import { AppointmentDate } from "@/components/appointments/appointment-date";
 import { type AppointmentStaff } from "@/components/appointments/appointments-manager";
-import { DueText } from "@/components/cards/card-drawer";
-import { cardMoney } from "@/lib/cards";
-import { confirmStatus } from "@/lib/kpi";
+import { CardStatusTag, DueText, usageOf } from "@/components/cards/card-drawer";
+import { cardMoney, isTourable } from "@/lib/cards";
+import { confirmStatus, isArrived } from "@/lib/kpi";
 import { formatRupiah } from "@/lib/currency";
 import { StatusTag } from "@/components/common/cells";
 import { NoteItem } from "@/components/common/notes";
 import { FormDrawer } from "@/components/common/form-drawer";
 import { Section } from "@/components/common/section";
+import { useServiceGroups } from "@/components/common/service-groups";
 import { staffName, staffOptions } from "@/components/common/user-avatar";
 import { toast } from "@/lib/toast";
 import {
@@ -23,6 +24,8 @@ import {
 } from "@/types/appointment";
 import { PERFORMER_ROLES, type AppointmentPerformer } from "@/types/customer-360";
 import type { TreatmentCard } from "@/types/card";
+import type { Service } from "@/types/service";
+import type { Tour } from "@/types/tour";
 
 // Trường drawer sửa được — gửi lên server chỉ những trường đã đổi. Dịch vụ / tiền nằm ở thẻ liệu trình (cột Thẻ trên bảng).
 const FIELDS = ["scheduled_at", "visit_status", "sales_id", "technician_id"] as const satisfies readonly (keyof AppointmentPatch)[];
@@ -40,8 +43,15 @@ type Props = {
   visitChoices: VisitStatus[];
   /** Thẻ liệu trình bán ở lịch này (chưa huỷ). */
   card: TreatmentCard | undefined;
+  /** Tour của thẻ (đếm buổi đã dùng). */
+  cardTours: Tour[];
+  services: Service[];
   /** Cọc chưa trừ vào thẻ nào của khách (hiện khi lịch chưa có thẻ). */
   deposit: number;
+  /** Mở drawer thẻ (chồng lên drawer này) — mọi chỗ sửa thẻ nằm ở đó. */
+  onOpenCard: (cardId: string) => void;
+  /** Bán thẻ cho lịch này; không truyền = không có quyền bán. */
+  onSellCard?: () => void;
   onViewInfo: (customer: AppointmentCustomer) => void;
   onOpenNotes: () => void;
   onClose: () => void;
@@ -54,19 +64,12 @@ export function AppointmentDrawer({ appointment, ...props }: Omit<Props, "appoin
 }
 
 function AppointmentDrawerBody({
-  appointment: a, customer, staff, canEdit, visitChoices, card, deposit, onViewInfo, onOpenNotes, onClose,
+  appointment: a, customer, staff, canEdit, visitChoices, card, cardTours, services, deposit, onOpenCard, onSellCard, onViewInfo, onOpenNotes, onClose,
 }: Props) {
   const t = useTranslations("appointments");
   const tn = useTranslations("notes");
   const [form] = Form.useForm<Values>();
   const [pending, start] = useTransition();
-  // Tài chính chỉ xem, giống cột Tài chính trên bảng: có thẻ → Giá trị / Đã thu / Công nợ; chưa có → cọc chưa trừ.
-  const m = card && cardMoney(card);
-  const finance: [string, React.ReactNode][] = m
-    ? [[t("cardValue"), formatRupiah(m.value)], [t("paidTotal"), <span key="c" className="text-success">{formatRupiah(m.collected)}</span>],
-      [t("due"), <DueText key="d" due={m.due} />]]
-    : [[t("deposit"), formatRupiah(deposit)]];
-
   const submit = (values: Values) => {
     const patch = Object.fromEntries(FIELDS
       .map((f) => [f, values[f] ?? null] as const)
@@ -112,11 +115,17 @@ function AppointmentDrawerBody({
         </div>
       </Section>
 
-      {/* Tài chính: chỉ xem — tiền sửa ở drawer thẻ liệu trình (bấm mã thẻ trên bảng). */}
-      <Section title={t("sectionFinance")}>
-        <div className="grid grid-cols-3 gap-x-4 tabular-nums max-sm:grid-cols-1">
-          {finance.map(([label, value]) => <Form.Item key={label} label={label}>{value}</Form.Item>)}
-        </div>
+      {/* Thẻ liệu trình: chỉ xem — thu tiền / tour / hoàn đều ở drawer thẻ (nút Mở thẻ). */}
+      <Section title={t("sectionCard")} className="mb-6">
+        {card ? <CardSummary card={card} tours={cardTours} services={services} onOpen={() => onOpenCard(card.id)} />
+          : <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border px-4 py-3">
+            <div>
+              <div className="text-xs text-muted-foreground">{t("deposit")}</div>
+              <div className="font-medium tabular-nums">{formatRupiah(deposit)}</div>
+            </div>
+            {onSellCard ? <Button icon={<ShoppingCart className="size-4" />} disabled={!isArrived(a.visit_status)}
+              title={isArrived(a.visit_status) ? undefined : t("sellCardNeedsArrival")} onClick={onSellCard}>{t("sellCard")}</Button> : null}
+          </div>}
       </Section>
 
       <Section title={t("sectionStaff")}>
@@ -184,4 +193,53 @@ function AppointmentDrawerBody({
       </Section>
     </Form>
   </FormDrawer>;
+}
+
+/** Tóm tắt thẻ: mã + trạng thái, dịch vụ (đã dùng x/y buổi), 3 số tiền ở đáy khung. */
+function CardSummary({ card, tours, services, onOpen }: { card: TreatmentCard; tours: Tour[]; services: Service[]; onOpen: () => void }) {
+  const t = useTranslations("appointments");
+  const tc = useTranslations("cards");
+  const groups = useServiceGroups();
+  const m = cardMoney(card);
+  const used = usageOf(tours);
+  const money: [string, React.ReactNode][] = [
+    [tc("value"), formatRupiah(m.value)],
+    [tc("collected"), <span key="c" className="text-success">{formatRupiah(m.collected)}</span>],
+    [m.due < 0 ? tc("refundOwed") : tc("due"), <DueText key="d" due={m.due} />],
+  ];
+  return <div className="overflow-hidden rounded-lg border border-border">
+    <div className="flex items-center justify-between gap-3 py-2 ps-4 pe-2">
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="font-semibold">{card.code}</span>
+        <CardStatusTag card={card} tours={tours} />
+      </span>
+      {/* disabled={false}: vẫn mở được thẻ khi form chỉ xem. */}
+      <Button type="link" size="small" disabled={false} icon={<ChevronRight className="size-4" />} iconPlacement="end" onClick={onOpen}>
+        {t("openCard")}
+      </Button>
+    </div>
+    <ul className="divide-y divide-border border-t border-border">
+      {card.items.map((item) => {
+        const s = services.find((x) => x.id === item.service_id);
+        const n = used(item.id);
+        return <li key={item.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <div className="min-w-0">
+            <div className={item.refunded_at ? "truncate text-sm line-through opacity-60" : "truncate text-sm font-medium"}>{s?.name ?? "—"}</div>
+            <div className="text-xs text-muted-foreground tabular-nums">{s ? `${groups.name(s.group_id)} · ` : ""}{formatRupiah(item.price)}</div>
+          </div>
+          {item.refunded_at ? <span className="shrink-0 text-xs text-destructive">{tc("status.refunded")}</span>
+            // Mực / phí Master: không tạo tour → không có buổi.
+            : isTourable(item) ? <span className={`shrink-0 text-sm tabular-nums ${n >= item.sessions ? "text-success" : "text-muted-foreground"}`}>
+              {tc("usedSessions", { used: n, total: item.sessions })}
+            </span> : null}
+        </li>;
+      })}
+    </ul>
+    <dl className="grid grid-cols-3 gap-3 border-t border-border bg-muted/50 px-4 py-3 tabular-nums max-sm:grid-cols-1">
+      {money.map(([label, value]) => <div key={label} className="min-w-0">
+        <dt className="text-xs text-muted-foreground">{label}</dt>
+        <dd className="mt-0.5 truncate font-medium">{value}</dd>
+      </div>)}
+    </dl>
+  </div>;
 }
