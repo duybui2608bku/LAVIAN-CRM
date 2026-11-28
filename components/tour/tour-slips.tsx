@@ -1,20 +1,19 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import dayjs from "dayjs";
+import { useMounted } from "@/hooks/use-mounted";
 import { detailLabelEn, type TourGroup } from "@/components/tour/tour-data";
 import { formatRupiah } from "@/lib/currency";
 import { tourBill, tourCommission } from "@/lib/tours";
 
-const noopSubscribe = () => () => {};
 
 /**
  * Phiếu tour tiếng Anh — mỗi KTV một trang. Ẩn trên màn hình, chỉ hiện khi in
  * (CSS `.tour-print` trong globals.css). Nút "Phiếu tour (PDF)" gọi window.print().
  */
 export function TourSlips({ groups, month }: { groups: TourGroup[]; month: string }) {
-  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const mounted = useMounted();
   if (!mounted) return null;
   const period = dayjs(`${month}-01`).locale("en").format("MMMM YYYY");
   const printed = dayjs().format("DD/MM/YYYY HH:mm");

@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { buildDays, change, dayCount, previousRange, salesCommission, totals, vnDay } from "./reports.ts";
+import { buildDays, change, dayCount, previousRange, rangeError, salesCommission, totals, vnDay } from "./reports.ts";
+
+test("rangeError: sai định dạng / ngược / quá dài", () => {
+  assert.equal(rangeError("2026-11-01", "2026-11-07"), null);
+  assert.equal(rangeError("2026-11-01", "2026-11-01", 1), null);
+  assert.equal(rangeError("2026-11-1", "2026-11-07"), "Khoảng ngày không hợp lệ.");
+  assert.equal(rangeError("2026-11-07", "2026-11-01"), "Khoảng ngày không hợp lệ.");
+  assert.equal(rangeError("2026-11-01", "2026-12-01", 31), null);
+  assert.equal(rangeError("2026-11-01", "2026-12-02", 31), "Chọn tối đa 31 ngày.");
+});
 
 test("previousRange lấy kỳ liền trước cùng số ngày", () => {
   assert.equal(dayCount("2026-11-01", "2026-11-07"), 7);

@@ -3,7 +3,7 @@
 import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { fetchFbAdsDaily, fetchSmaxHandledConversations, supaRange } from "@/lib/marketing";
-import { dayCount, previousRange } from "@/lib/reports";
+import { previousRange, rangeError } from "@/lib/reports";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -14,7 +14,6 @@ import {
 } from "@/lib/telesales-report";
 import { TELESALES_DEPARTMENTS } from "@/types/user";
 
-const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 366;
 const APPT_COLUMNS =
   "id, created_at, scheduled_at, booking_confirm, visit_status, staff_id, customer:customers!inner(created_at, source)";
@@ -30,10 +29,10 @@ export interface TelesalesReport {
 /** Báo cáo Leader Telesales theo khoảng ngày VN `YYYY-MM-DD` (kèm kỳ liền trước để so sánh). */
 export async function getTelesalesReport(from: string, to: string): Promise<TelesalesReport> {
   await requirePermission("telesales.view");
-  const previous = YMD_RE.test(from) && YMD_RE.test(to) ? previousRange(from, to) : { from, to };
+  const error = rangeError(from, to, MAX_DAYS);
+  const previous = error ? { from, to } : previousRange(from, to);
   const out: TelesalesReport = { data: null, previous, errors: {} };
-  if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to) return { ...out, error: "Khoảng ngày không hợp lệ." };
-  if (dayCount(from, to) > MAX_DAYS) return { ...out, error: `Chọn tối đa ${MAX_DAYS} ngày.` };
+  if (error) return { ...out, error };
 
   const supabase = await createClient();
   const range = supaRange(previous.from, to);

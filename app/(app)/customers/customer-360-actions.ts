@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireAnyPermission, requirePermission } from "@/lib/auth";
 import { canSeeFinance, canSeePhotos, customerRole } from "@/lib/customer-360";
 import { detectPortrait, SUMMARY_FIELDS, summarizeAndSave } from "@/lib/chat-summary";
-import { AppError, normalizeError } from "@/lib/errors";
+import { normalizeError } from "@/lib/errors";
 import { newNote } from "@/lib/notes";
 import { latestMaster } from "@/lib/tours";
 import { fetchThreadMessages, type ChatMessage } from "@/lib/smax-messages";
@@ -21,16 +21,8 @@ type Result = { error?: string };
 const BUCKET = "ba-photos";
 const SIGNED_URL_TTL = 3600; // 1 giờ
 
-const forbidden = () => new AppError("Bạn không có quyền thực hiện thao tác này.", { code: "FORBIDDEN", status: 403 });
-
 /** Xem hồ sơ 360°: user đang hoạt động có quyền xem khách hoặc lịch hẹn. */
 const viewer = () => requireAnyPermission("customers.view", "appointments.view", "appointments.edit");
-
-async function requirePhotos() {
-  const profile = await requirePermission("appointments.edit");
-  if (!canSeePhotos(profile)) throw forbidden();
-  return profile;
-}
 
 const APPT_FIELDS = "id,customer_id,scheduled_at,booking_confirm,checked_in,visit_status,service_categories,service_ids,staff_id,sales_id,technician_id,notes,sales_notes,performers:appointment_performers(profile_id,role)";
 const MONEY_LOG_FIELDS = ["bill_amount", "paid_amount"];
@@ -217,56 +209,6 @@ export async function addQuickNote(customerId: string, input: NoteInput): Promis
     revalidatePath("/customers/bookings");
     revalidatePath("/customers/potential");
     revalidatePath("/appointments");
-    return {};
-  } catch (error) {
-    return { error: normalizeError(error).message };
-  }
-}
-
-/** Ảnh B/A của 1 lịch (Drawer Sales) — signed URL. */
-export async function getAppointmentPhotos(appointmentId: string): Promise<{ photos?: AppointmentPhoto[]; error?: string }> {
-  try {
-    await requirePhotos();
-    z.uuid().parse(appointmentId);
-    const db = await createClient();
-    const { data, error } = await db.from("appointment_photos").select(PHOTO_FIELDS)
-      .eq("appointment_id", appointmentId).order("created_at");
-    if (error) throw error;
-    return { photos: await signPhotos(db, (data ?? []) as PhotoRow[]) };
-  } catch (error) {
-    return { error: normalizeError(error).message };
-  }
-}
-
-/** Ghi dòng ảnh sau khi client đã tải file thẳng lên Storage (path phải nằm trong thư mục khách/lịch). */
-export async function addAppointmentPhoto(appointmentId: string, kind: "before" | "after", path: string): Promise<Result> {
-  try {
-    const profile = await requirePhotos();
-    z.uuid().parse(appointmentId);
-    z.enum(["before", "after"]).parse(kind);
-    const db = await createClient();
-    const { data, error } = await db.from("clinic_appointments").select("customer_id")
-      .eq("id", appointmentId).is("deleted_at", null).single();
-    if (error) throw error;
-    if (!new RegExp(`^${data.customer_id}/${appointmentId}/[0-9a-f-]{36}\\.[a-z0-9]{2,5}$`).test(path)) throw new Error("Đường dẫn ảnh không hợp lệ.");
-    const { error: insErr } = await db.from("appointment_photos")
-      .insert({ appointment_id: appointmentId, customer_id: data.customer_id, kind, path, created_by: profile.id });
-    if (insErr) throw insErr;
-    return {};
-  } catch (error) {
-    return { error: normalizeError(error).message };
-  }
-}
-
-/** Xoá 1 ảnh — chỉ người tải lên hoặc admin (RLS chặn người khác). */
-export async function deleteAppointmentPhoto(photoId: string): Promise<Result> {
-  try {
-    await requirePhotos();
-    z.uuid().parse(photoId);
-    const db = await createClient();
-    const { data, error } = await db.from("appointment_photos").delete().eq("id", photoId).select("path").single();
-    if (error) throw new AppError("Chỉ người tải lên được xoá ảnh này.", { code: "FORBIDDEN", status: 403 });
-    await db.storage.from(BUCKET).remove([data.path]); // best-effort: file mồ côi không ảnh hưởng hiển thị
     return {};
   } catch (error) {
     return { error: normalizeError(error).message };

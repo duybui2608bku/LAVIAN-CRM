@@ -1,4 +1,3 @@
-import axios from "axios";
 import { ZodError } from "zod";
 
 const FALLBACK_MESSAGE = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.";
@@ -28,25 +27,11 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 /**
- * Gom lỗi từ mọi nguồn (Axios / Supabase / Zod / Error / giá trị lạ) về một
+ * Gom lỗi từ mọi nguồn (Supabase / Zod / Error / giá trị lạ) về một
  * `AppError`. Luôn trả về AppError, không bao giờ ném thêm.
  */
 export function normalizeError(err: unknown): AppError {
   if (isAppError(err)) return err;
-
-  if (axios.isAxiosError(err)) {
-    const status = err.response?.status;
-    const data = err.response?.data as
-      | { message?: string; error?: string }
-      | undefined;
-    const message =
-      data?.message ?? data?.error ?? err.message ?? FALLBACK_MESSAGE;
-    return new AppError(message, {
-      code: err.code ?? "AXIOS_ERROR",
-      status,
-      cause: err,
-    });
-  }
 
   if (err instanceof ZodError) {
     const message =

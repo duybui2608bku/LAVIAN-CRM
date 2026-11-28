@@ -10,10 +10,9 @@ import {
   setFbCampaignStatus,
   type FbCampaign,
 } from "@/lib/marketing";
+import { rangeError } from "@/lib/reports";
 import { countPotential, unmatchedIgAdIds, untilToday, type PotentialCounts } from "@/lib/smax-inbox";
 import { fetchIgByPhone, fetchInboxThreads } from "@/lib/smax-threads";
-
-const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface AdsStats {
   /** Currency tài khoản ads (vd. "IDR", "VND"); null khi FB lỗi. */
@@ -51,8 +50,8 @@ export async function getAdsStats(from: string, to: string): Promise<AdsStats> {
     potential: null,
     errors: {},
   };
-  if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to)
-    return { ...stats, error: "Khoảng ngày không hợp lệ." };
+  const error = rangeError(from, to);
+  if (error) return { ...stats, error };
 
   const [fb, campaigns, potential] = await Promise.allSettled([
     fetchFbAds(from, to),

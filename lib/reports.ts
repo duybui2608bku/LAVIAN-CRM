@@ -3,6 +3,7 @@
  * Ngày là chuỗi `YYYY-MM-DD` theo giờ VN/WIB (UTC+7), số học Date.UTC — không dính timezone máy.
  * Định nghĩa Đặt cọc / Đặt lịch: lib/kpi.ts (dùng chung với Báo cáo Telesales + pipeline /customers).
  */
+import { addDays } from "./date-presets.ts";
 import { hasDeposit, vnDay } from "./kpi.ts";
 
 export { vnDay };
@@ -37,17 +38,19 @@ export type DayRow = {
 type Base = Omit<DayRow, "date">;
 export type Totals = Record<Metric, number | null>;
 
-export function addDays(ymd: string, n: number): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  const t = new Date(Date.UTC(y, m - 1, d + n));
-  const p = (x: number) => String(x).padStart(2, "0");
-  return `${t.getUTCFullYear()}-${p(t.getUTCMonth() + 1)}-${p(t.getUTCDate())}`;
-}
-
 /** Số ngày của khoảng [from, to] (tính cả 2 đầu). */
 export function dayCount(from: string, to: string): number {
   const ms = (s: string) => Date.parse(`${s}T00:00:00Z`);
   return Math.round((ms(to) - ms(from)) / 86_400_000) + 1;
+}
+
+const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Lỗi khoảng ngày `YYYY-MM-DD` (sai định dạng / ngược / dài quá `maxDays`); hợp lệ → null. */
+export function rangeError(from: string, to: string, maxDays = Infinity): string | null {
+  if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to) return "Khoảng ngày không hợp lệ.";
+  if (dayCount(from, to) > maxDays) return `Chọn tối đa ${maxDays} ngày.`;
+  return null;
 }
 
 /** Kỳ liền trước cùng số ngày. */

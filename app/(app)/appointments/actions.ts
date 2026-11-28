@@ -232,21 +232,6 @@ export async function deleteAppointmentNote(id: string, field: NoteField, noteId
   }
 }
 
-export async function deleteAppointment(id: string): Promise<{ error?: string }> {
-  try {
-    await requirePermission("appointments.delete");
-    z.uuid().parse(id);
-    const db = await client();
-    const { error } = await db.from("clinic_appointments").update({ deleted_at: new Date().toISOString() })
-      .eq("id", id).is("deleted_at", null).select("id").single();
-    if (error) throw error;
-    refresh();
-    return {};
-  } catch (error) {
-    return failure(error);
-  }
-}
-
 /** 30 tin SMAX gần nhất với khách (modal Tin nhắn, popup 360°). Link hội thoại đọc từ DB — không nhận link từ client. */
 export async function getCustomerMessages(customerId: string): Promise<{ messages?: ChatMessage[]; error?: string }> {
   try {

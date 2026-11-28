@@ -11,14 +11,12 @@
     "confirmation": "Status",
     "services": "Services",
     "serviceCategories": "Service group",
-    "serviceDetails": "Service details",
     "staff": "Telesales",
     "note": "Note",
     "choose": "Choose…",
     "chooseCustomer": "Choose a name or search by phone",
     "chooseDate": "Choose date and time",
     "showUp": "Showed up",
-    "notShowUp": "Not arrived",
     "allArrivals": "All statuses",
     "allDates": "All dates",
     "allCustomers": "Show all customers",
@@ -26,7 +24,6 @@
     "tomorrow": "Tomorrow",
     "search": "Search name or phone…",
     "empty": "No appointments yet. Click Add appointment to create one.",
-    "saving": "Saving…",
     "saved": "Appointment saved",
     "saveError": "Could not save. Please try again.",
     "duplicate": "This customer already has an appointment at the selected date and time.",
@@ -86,8 +83,6 @@
     "sectionNote": "Sales note",
     "paidTotal": "Collected",
     "due": "Balance due",
-    "paidInput": "Extra paid after deposit (IDR)",
-    "billInput": "Edit service value (IDR)",
     "saveUpdate": "Save changes",
     "openEdit": "Open appointment details",
     "statTotal": "Total customers",
@@ -126,14 +121,11 @@
     "cardValue": "Card value"
   },
   "common": {
-    "appName": "LAVIAN CRM",
-    "getStarted": "Get started",
     "language": "Language",
     "pageInfo": "{from}–{to} of {total}",
     "cancel": "Cancel",
     "save": "Save",
     "actions": "Actions",
-    "filters": "Filters",
     "clearFilters": "Clear filters",
     "account": "Account",
     "darkMode": "Dark mode",
@@ -152,9 +144,6 @@
       "lastMonth": "Last month",
       "custom": "Custom"
     }
-  },
-  "home": {
-    "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
   },
   "tour": {
     "title": "Tours",
@@ -214,7 +203,6 @@
     "create": "New tour",
     "created": "Tour created",
     "chooseCustomer": "Choose customer",
-    "chooseService": "Choose service",
     "required": "Required",
     "open": "View / edit",
     "actions": "Actions",
@@ -266,9 +254,6 @@
     "potential": "Customers Management",
     "journey": "Treatment follow-ups"
   },
-  "theme": {
-    "toggle": "Toggle theme"
-  },
   "errors": {
     "notFoundTitle": "Page not found",
     "notFoundBody": "The page you are looking for doesn't exist or has been moved.",
@@ -282,8 +267,6 @@
     "password": "Password",
     "emailInvalid": "Invalid email",
     "passwordRequired": "Password is required",
-    "showPassword": "Show password",
-    "hidePassword": "Hide password",
     "rememberMe": "Remember me",
     "signIn": "Sign in",
     "signOut": "Sign out",
@@ -331,7 +314,6 @@
     "departmentOk": "Department updated",
     "avatarOk": "Avatar updated",
     "changeAvatar": "Click to change avatar",
-    "clearDepartment": "Clear department",
     "colStatus": "Status",
     "colCreated": "Created",
     "colActions": "Actions",
@@ -351,7 +333,6 @@
     "passwordMin": "Password must be at least 6 characters",
     "nameRequired": "Name is required",
     "avatarUrl": "Avatar",
-    "urlInvalid": "Invalid URL",
     "resetTitle": "Reset password",
     "resetSubmit": "Update",
     "resetOk": "Password reset",
@@ -393,13 +374,10 @@
     "tourableLabel": "Creates tours"
   },
   "customers": {
-    "bookingsTitle": "Booking management",
     "region": "Region",
     "province": "Province",
     "city": "Regency / City",
     "allProvince": "All provinces",
-    "colRating": "Rating",
-    "allRating": "All ratings",
     "addressDetail": "Address detail",
     "paymentConfirm": "Payment confirm",
     "uploadImage": "Double-click to choose · Click + Ctrl+V to paste",
@@ -422,7 +400,6 @@
     "colName": "Full name",
     "phoneInvalid": "Invalid phone number",
     "colPhone": "Phone",
-    "colTags": "Tags",
     "colStage": "Status",
     "colSalesStatus": "Sales Status",
     "colDeposit": "Deposit",
@@ -463,8 +440,6 @@
       }
     },
     "colSource": "Source",
-    "colWaNumber": "WA Number",
-    "colInstagram": "Instagram",
     "colStaff": "Staff",
     "colSales": "Sales",
     "colTechnician": "Technician",
@@ -473,16 +448,9 @@
     "allStage": "All statuses",
     "allSource": "All sources",
     "allStaff": "All staff",
-    "allSales": "All Sales",
-    "allTechnician": "All technicians",
-    "dateRange": "Created date range",
     "pickDate": "Pick a date",
-    "clearDate": "Clear date",
-    "clear": "Clear",
     "empty": "No customers",
     "pageInfo": "{from}–{to} of {total}",
-    "prevPage": "Previous page",
-    "nextPage": "Next page",
     "edit": "Edit",
     "delete": "Delete",
     "deleteConfirm": "Delete customer?",
@@ -542,7 +510,6 @@
     "close": "Close",
     "log": "Event log",
     "deposit": "Deposit",
-    "currencyPlaceholder": "0",
     "currency": "Currency",
     "existingCustomer": "This customer already exists. You can update the record but cannot add it again.",
     "update": "Update",
@@ -828,7 +795,6 @@
   },
   "potential": {
     "title": "Customers Management",
-    "description": "Customers who have not booked yet",
     "kpiTotal": "Total potential",
     "kpiOverdue": "Overdue follow-ups",
     "kpiToday": "Follow up today",
@@ -852,7 +818,6 @@
   },
   "bookings": {
     "title": "Booking Management",
-    "description": "LAVIAN · Centralized appointment management",
     "create": "Create appointment",
     "kpiToday": "Today's appointments",
     "kpiPending": "Unconfirmed",
@@ -987,10 +952,7 @@
       "upload": "Upload {kind}",
       "deleteConfirm": "Delete this photo?",
       "delete": "Delete photo",
-      "deleted": "Photo deleted",
-      "uploaded": "Photo uploaded",
-      "tooLarge": "Max 10MB per photo",
-      "notImage": "Images only"
+      "deleted": "Photo deleted"
     },
     "messages": {
       "search": "Search conversation",

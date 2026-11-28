@@ -3,8 +3,7 @@
 import { getCurrentProfile } from "@/lib/auth";
 import { journeyDigestCounts, todayUtc7 } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
-
-const TELESALES = ["telesales", "telesales_leader"];
+import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 /**
  * Thông báo tổng hợp Đến hạn liệu trình — 1 / Telesales / ngày, tạo lần đầu mở app trong ngày (chuông gọi,
@@ -14,7 +13,7 @@ const TELESALES = ["telesales", "telesales_leader"];
 export async function ensureJourneyDigest() {
   try {
     const profile = await getCurrentProfile();
-    if (!profile || !TELESALES.includes(profile.department ?? "")) return;
+    if (!profile || !TELESALES_DEPARTMENTS.includes(profile.department ?? "")) return;
     const db = await createClient();
     const today = todayUtc7();
     const { data: sent } = await db.from("notifications").select("id")

@@ -22,7 +22,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
     .select(`id, title, category, content, pdf_path, departments, created_at, updated_at, ${DOCUMENT_AUTHOR}`)
     .eq("id", id)
     .maybeSingle();
-  // Lỗi truy vấn thật → trang lỗi (trước đây bị nuốt thành 404).
+  // Lỗi truy vấn thật (trừ id sai định dạng 22P02) → trang lỗi.
   if (error && error.code !== "22P02") throw error;
   if (!data) notFound();
   const doc = data as unknown as DocumentRecord;

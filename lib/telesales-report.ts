@@ -9,6 +9,7 @@
  *  - Lịch hẹn      = lịch có NGÀY HẸN trong kỳ; Khách đến = trong số đó đã đến (`isArrived`).
  *  - Show-up       = Khách đến / Lịch hẹn.
  */
+import { addDays } from "./date-presets.ts";
 import { confirmStatus, isArrived, vnDay } from "./kpi.ts";
 
 export { vnDay };
@@ -63,11 +64,6 @@ export type TelesalesReportData = {
   /** Booking/lịch hẹn của người ngoài danh sách Telesales hoặc chưa gán; null = không có. */
   other: StaffCounts | null;
 };
-
-function addDays(ymd: string, n: number): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
-}
 
 const inPeriod = (day: string, from: string, to: string) => day >= from && day <= to;
 

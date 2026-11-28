@@ -6,6 +6,7 @@ import { todayUtc7 } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
 import type { CardItem } from "@/types/card";
 import type { Tour } from "@/types/tour";
+import { TELESALES_DEPARTMENTS } from "@/types/user";
 
 type Source = {
   cards: { id: string; customer_id: string; cancelled_at: null; items: Pick<CardItem, "id" | "service_id" | "sessions" | "refunded_at" | "service">[] }[];
@@ -13,7 +14,6 @@ type Source = {
   customers: DueRow["customer"][];
 } | null;
 
-const TELESALES = ["telesales", "telesales_leader"];
 /** Đầu hôm nay theo UTC+7 (VN / WIB) — lịch hẹn từ lúc này trở đi = "Đã hẹn". */
 const todayStart = () => `${todayUtc7()}T00:00:00+07:00`;
 
@@ -44,5 +44,5 @@ export default async function JourneyPage() {
   });
 
   return <JourneyDueTable rows={rows} staff={(staff.data ?? []) as StaffRef[]}
-    me={{ id: profile.id, telesales: TELESALES.includes(profile.department ?? "") }} />;
+    me={{ id: profile.id, telesales: TELESALES_DEPARTMENTS.includes(profile.department ?? "") }} />;
 }
