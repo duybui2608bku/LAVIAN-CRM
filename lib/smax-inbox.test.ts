@@ -12,6 +12,7 @@ import {
   statusTotal,
   sumChannels,
   UNASSIGNED,
+  unmatchedIgAdIds,
 } from "./smax-inbox.ts";
 
 const t = (id: string, platform: string, tags: string[]) => ({ id, platform, tag_aliases: tags });
@@ -112,6 +113,20 @@ test("countPotential: 1 hội thoại tính 1 lần, IG theo ad_id, WA theo số
   const f = (potential: number, booking: number, showUp: number) => ({ potential, booking, showUp });
   // Booking = booking/cọc, Show up = purchase — tập con của tiềm năng; total gồm khách IG không có quảng cáo.
   assert.deepEqual(r, { byCampaign: { c1: f(2, 1, 1), c2: f(1, 1, 0) }, byWa: { "WA-3455": f(2, 1, 1) }, total: f(6, 3, 2) });
+});
+
+test("unmatchedIgAdIds: chỉ ad_id IG chưa khớp của khách có tag tiềm năng, không trùng", () => {
+  const ids = unmatchedIgAdIds(
+    [
+      { id: "1", platform: "instagram", tag_aliases: ["booking"], instagram: { ad_id: "old1" }, customer: { instagram: { ad_id: "old2" } } },
+      { id: "2", platform: "instagram", tag_aliases: ["phone"], instagram: { ad_id: "old1" } }, // trùng ad
+      { id: "3", platform: "instagram", tag_aliases: ["booking"], instagram: { ad_id: "ad1" } }, // đã khớp
+      { id: "4", platform: "instagram", tag_aliases: ["follow-up"], instagram: { ad_id: "old3" } }, // không vào phễu
+      { id: "5", platform: "whatsappweb", tag_aliases: ["booking"], instagram: { ad_id: "old4" } }, // không phải IG
+    ],
+    new Map([["ad1", "c1"]]),
+  );
+  assert.deepEqual(ids, ["old1", "old2"]);
 });
 
 test("countPotential: Đặt lịch / Đến cơ sở theo lúc gắn tag (gồm khách cũ), người đặt lịch/đến cũng là tiềm năng", () => {

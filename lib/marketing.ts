@@ -397,6 +397,44 @@ export async function fetchFbAdCampaigns(
   return out;
 }
 
+// ad → campaign không bao giờ đổi → cache cả tiến trình; null = Meta báo không tồn tại / không có quyền (code 100).
+const adCampaignCache = new Map<string, string | null>();
+
+/**
+ * campaign_id của các ad_id cụ thể (QC cũ không chạy trong kỳ nên không có trong insights) — `GET /{ad_id}`,
+ * song song có giới hạn. Best-effort: lỗi tạm thời → log, bỏ qua (lần sau tra lại).
+ */
+export async function fetchFbAdCampaignsByIds(ids: string[]): Promise<Map<string, string>> {
+  const token = process.env.FB_TOKEN;
+  if (!token) throw new Error("Thiếu FB_TOKEN.");
+  const queue = [...new Set(ids)].filter((id) => /^\d+$/.test(id) && !adCampaignCache.has(id));
+  await Promise.all(
+    Array.from({ length: Math.min(10, queue.length) }, async () => {
+      for (let id = queue.shift(); id; id = queue.shift()) {
+        const qs = new URLSearchParams({ fields: "campaign_id", access_token: token });
+        try {
+          const res = await fetch(`${FB_API}/${id}?${qs}`, { cache: "no-store" });
+          const json = (await res.json().catch(() => null)) as {
+            campaign_id?: string;
+            error?: { code?: number; message?: string };
+          } | null;
+          if (json?.campaign_id) adCampaignCache.set(id, json.campaign_id);
+          else if (json?.error?.code === 100) adCampaignCache.set(id, null);
+          else console.error(`[fb] ad ${id}:`, json?.error?.message ?? res.status);
+        } catch (err) {
+          console.error(`[fb] ad ${id}:`, err);
+        }
+      }
+    }),
+  );
+  const out = new Map<string, string>();
+  for (const id of ids) {
+    const c = adCampaignCache.get(id);
+    if (c) out.set(id, c);
+  }
+  return out;
+}
+
 export interface SmaxTagStat {
   name: string;
   cur: number;

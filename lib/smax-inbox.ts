@@ -419,6 +419,22 @@ export type PotentialCounts = {
 const emptyFunnel = (): Funnel => ({ potential: 0, booking: 0, showUp: 0 });
 
 /**
+ * ad_id IG (hội thoại + khách) của những người CÓ THỂ vào phễu (có tag tiềm năng, cùng cách gộp như `countPotential`)
+ * mà chưa có trong `adCampaign` — để tra riêng QC cũ không chạy trong kỳ.
+ */
+export function unmatchedIgAdIds(
+  threads: InboxThread[],
+  adCampaign: Map<string, string>,
+  igByPhone?: IgByPhone,
+): string[] {
+  const ids = byCustomer(threads, igByPhone)
+    .filter((t) => t.platform === "instagram" && POTENTIAL_ALIASES.some((a) => t.tag_aliases?.includes(a)))
+    .flatMap((t) => [t.instagram?.ad_id, t.customer?.instagram?.ad_id])
+    .filter((id): id is string => Boolean(id) && !adCampaign.has(id!));
+  return [...new Set(ids)];
+}
+
+/**
  * `adCampaign`: ad_id → campaign_id (từ FB). Mỗi người tính tối đa 1 lần mỗi chỉ số (gộp IG ↔ WA theo `igByPhone`).
  * Có `from`/`to` (ngày WIB) — `threads` = hội thoại có tin nhắn từ `from` tới hôm nay:
  * - Đặt lịch / Đến cơ sở = tag booking (hoặc deposit) / purchase GẮN trong kỳ, mọi khách (giống Báo cáo SMAX).
