@@ -56,6 +56,11 @@ Tiêu đề: `### YYYY-MM-DD — <tiêu đề ngắn>` — kèm 3 gạch đầu 
 
 ## Nhật ký session
 
+### 2026-11-28 — Marketing: ẩn 4 cột phễu theo chiến dịch, đưa lên thẻ số WA (openspec `marketing-wa-funnel`)
+- **Thay đổi:** Số phễu theo chiến dịch sai (số WA dùng chung nhiều camp) → bảng chiến dịch ẩn cột KH tiềm năng, Đặt lịch, Tỉ lệ đặt lịch, Chi tiêu / Đặt lịch (giữ Đến cơ sở; scroll x 1810 → 1270). Khối "Theo số WA": mỗi thẻ WA-xxxx = Tin nhắn + KH tiềm năng, Đặt lịch · %, Chi tiêu / Đặt lịch (phễu `potential.byWa`, chi tiêu = tổng camp mang số đó). `summarizeByWa` thêm `spend`.
+- **File ảnh hưởng:** `components/marketing/ads-stats.tsx`, `lib/wa.ts`, `lib/wa.test.ts`, `messages/{vi,en}.json`, `openspec/changes/marketing-wa-funnel/`.
+- **Còn dở / ghi chú:** Chưa xem trên trình duyệt. Muốn hiện lại cột: khôi phục các `funnelColumn("potential"|"booking")` + cột `bookingRate`/`costPerBooking` (xem git). Phễu thẻ WA chỉ tính khách nhắn vào WA (không gồm IG của camp WA+IG).
+
 ### 2026-11-28 — Drawer lịch hẹn: chi tiết thẻ sổ xuống tại chỗ (openspec `appointment-drawer-card-inline`)
 - **Thay đổi:** Sếp không muốn "Mở thẻ" mở thêm drawer chồng lên. Khung Thẻ liệu trình trong `AppointmentDrawer` thành `CardPanel`: nút "Chi tiết thẻ ⌄ / Thu gọn ⌃" sổ xuống ngay dưới (grid-rows 0fr→1fr + opacity 300ms, `motion-reduce`, `inert` khi gọn, chỉ dựng từ lần mở đầu) gồm Thanh toán (form thu tiền), Lộ trình tour (+ Tạo tour), Lịch sử, Hoàn / Huỷ / In thẻ; khi mở, dòng DV sửa tại chỗ + nút Thêm dịch vụ (drawer mở cạnh). `card-drawer.tsx` tách `CardServices` / `CardBody` / `CardActions` / `AddServiceDrawer` dùng chung với `CardDrawer` (cột Thẻ trên bảng + trang Thẻ vẫn mở drawer như cũ). Form lịch hẹn `component={false}` (không lồng `<form>` thu tiền), khung thẻ bọc `ConfigProvider componentDisabled={false}` (quyền theo `cards.edit`), `FormDrawer` thêm prop `push` (drawer lịch hẹn `push={false}`). Không đổi DB.
 - **File ảnh hưởng:** `components/cards/card-drawer.tsx`, `components/appointments/{appointment-drawer,appointments-manager}.tsx`, `components/common/form-drawer.tsx`, `messages/{vi,en}.json`, `openspec/changes/appointment-drawer-card-inline/`.

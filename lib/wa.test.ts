@@ -31,14 +31,14 @@ test("campaignIg: token IG / IGonly / ONLYIG trong tên chiến dịch", () => {
 
 test("summarizeByWa: gộp theo số, nhiều tin nhắn trước, chưa gắn WA cuối", () => {
   const rows = summarizeByWa([
-    { name: "WA3455 - A", messages: 10 },
-    { name: "WA4943 - B", messages: 30 },
-    { name: "WA3455 - C", messages: 25 },
-    { name: "IG only", messages: 99 },
+    { name: "WA3455 - A", messages: 10, spend: 100 },
+    { name: "WA4943 - B", messages: 30, spend: 300 },
+    { name: "WA3455 - C", messages: 25, spend: 50 },
+    { name: "IG only", messages: 99, spend: 0 },
   ]);
   assert.deepEqual(rows, [
-    { wa: "WA-3455", messages: 35 },
-    { wa: "WA-4943", messages: 30 },
-    { wa: null, messages: 99 },
+    { wa: "WA-3455", messages: 35, spend: 150 },
+    { wa: "WA-4943", messages: 30, spend: 300 },
+    { wa: null, messages: 99, spend: 0 },
   ]);
 });
