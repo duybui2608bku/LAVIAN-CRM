@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { addDays } from "./date-presets.ts";
+
 // Thẻ liệu trình — tiền + quy tắc dùng chung client/server. Literal (không import "@/…") để node --test chạy được.
 export const CARD_PAYMENT_METHODS = ["cash", "bank", "card"] as const; // khớp check DB treatment_card_payments.method
 export type CardPaymentMethod = (typeof CARD_PAYMENT_METHODS)[number];
@@ -128,8 +130,6 @@ export function tourKindDetail(kind: TourKind, date: string, others: KindTour[])
   const n = others.filter((t) => t.service_detail === kind && t.tour_date <= date).length + 1;
   return { service_detail: kind, service_session: Math.min(n, MAX_TOUR_SESSION) };
 }
-
-const addDays = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
 type DueItem = { id: string; service_id: string; sessions: number; refunded_at: string | null } & ItemService;
 type DueCard = { cancelled_at: string | null; refunded_at?: string | null; items: DueItem[] };

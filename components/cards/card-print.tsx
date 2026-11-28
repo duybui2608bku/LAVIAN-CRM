@@ -1,8 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import dayjs from "dayjs";
+import { useMounted } from "@/hooks/use-mounted";
 import logo from "@/app/assets/logo.png";
 import { useServiceGroups } from "@/components/common/service-groups";
 import { cardMoney, isTourable } from "@/lib/cards";
@@ -10,7 +10,6 @@ import { formatIdr } from "@/lib/currency";
 import type { TreatmentCard } from "@/types/card";
 import type { Service } from "@/types/service";
 
-const noopSubscribe = () => () => {};
 const METHOD_EN = { cash: "Cash", bank: "Bank transfer", card: "Card" } as const;
 
 /**
@@ -23,7 +22,7 @@ export function CardPrint({ card, services, consultant, used }: {
   consultant: string; // người tạo thẻ (Beauty Consultant)
   used: (itemId: string) => number;
 }) {
-  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const mounted = useMounted();
   const groups = useServiceGroups();
   if (!mounted) return null;
   const money = cardMoney(card);

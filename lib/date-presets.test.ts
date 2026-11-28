@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { DATE_PRESETS, matchPreset, presetRange } from "./date-presets.ts";
+import { addDays, DATE_PRESETS, matchPreset, presetRange } from "./date-presets.ts";
 
 // 2026-11-14 là thứ Bảy.
 const SAT = "2026-11-14";
+
+test("addDays cộng/trừ qua tháng và năm", () => {
+  assert.equal(addDays("2026-07-17", -1), "2026-07-16");
+  assert.equal(addDays("2026-07-01", -1), "2026-06-30");
+  assert.equal(addDays("2026-01-01", -1), "2025-12-31");
+  assert.equal(addDays("2026-02-28", 1), "2026-03-01");
+});
 
 test("mốc ngày cơ bản", () => {
   assert.deepEqual(presetRange("today", SAT), { from: SAT, to: SAT });

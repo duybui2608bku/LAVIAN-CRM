@@ -1,5 +1,4 @@
 export const IDR_CURRENCY = "IDR";
-export const RUPIAH_LABEL = "RP";
 
 export function formatRupiah(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return "";

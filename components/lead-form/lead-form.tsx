@@ -105,11 +105,10 @@ const fillSavedStaff = (form: FormInstance<Values>, staff: StaffRef[]) => {
   if (staff.some((s) => s.id === id)) form.setFieldValue("staff_id", id);
 };
 
-const formatIdr =(v: number | string | undefined) =>
+const formatIdr = (v: number | string | undefined) =>
   v === undefined || v === "" ? "" : Number(v).toLocaleString("id-ID");
 const parseIdr = (v: string | undefined) =>
   sanitizeCurrencyInput(v ?? "") as unknown as number;
-
 
 type LeadFormProps = {
   staff: StaffRef[];

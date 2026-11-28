@@ -19,7 +19,6 @@
     "@tiptap/react": "3.32.2",
     "@tiptap/starter-kit": "3.32.2",
     "antd": "^6.6.7",
-    "axios": "^1.18.1",
     "chart.js": "^4.6.1",
     "chartjs-chart-funnel": "^4.2.5",
     "clsx": "^2.1.1",

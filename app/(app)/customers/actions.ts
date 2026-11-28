@@ -21,6 +21,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile, requireAnyPermission, requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { fetchFbAds } from "@/lib/marketing";
+import { rangeError } from "@/lib/reports";
 import type { Appointment, AppointmentLog } from "@/types/appointment";
 import type { CustomerInput, CustomerNote } from "@/types/customer";
 import type { Service } from "@/types/service";
@@ -273,23 +274,6 @@ export async function convertPotentialCustomer(id: string): Promise<Result> {
   }
 }
 
-/** Xóa mềm: đặt deleted_at (giữ lịch sử). */
-export async function deleteCustomer(id: string): Promise<Result> {
-  try {
-    await requirePermission("customers.delete");
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("customers")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) throw error;
-    revalidateCustomers();
-    return {};
-  } catch (e) {
-    return { error: normalizeError(e).message };
-  }
-}
-
 /** Số tin nhắn từ các tài khoản quảng cáo FB trong khoảng ngày `YYYY-MM-DD` (pipeline /customers). */
 export async function getAdMessages(
   from: string,
@@ -297,9 +281,8 @@ export async function getAdMessages(
 ): Promise<{ messages?: number; error?: string }> {
   if (!(await getCurrentProfile())?.permissions.includes("customers.view"))
     return { error: "Bạn không có quyền thực hiện thao tác này." };
-  const ymd = /^\d{4}-\d{2}-\d{2}$/;
-  if (!ymd.test(from) || !ymd.test(to) || from > to)
-    return { error: "Khoảng ngày không hợp lệ." };
+  const error = rangeError(from, to);
+  if (error) return { error };
   try {
     return { messages: (await fetchFbAds(from, to)).messages };
   } catch (err) {

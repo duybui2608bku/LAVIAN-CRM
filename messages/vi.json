@@ -11,14 +11,12 @@
     "confirmation": "Trạng thái",
     "services": "Dịch vụ",
     "serviceCategories": "Nhóm dịch vụ",
-    "serviceDetails": "DV chi tiết",
     "staff": "Telesales",
     "note": "Ghi chú",
     "choose": "Chọn…",
     "chooseCustomer": "Chọn tên hoặc tìm số điện thoại",
     "chooseDate": "Chọn ngày và giờ",
     "showUp": "Đã đến",
-    "notShowUp": "Chưa đến",
     "allArrivals": "Tất cả trạng thái",
     "allDates": "Tất cả ngày",
     "allCustomers": "Xem tất cả khách",
@@ -26,7 +24,6 @@
     "tomorrow": "Ngày mai",
     "search": "Tìm tên hoặc số điện thoại…",
     "empty": "Chưa có lịch hẹn. Bấm Thêm lịch hẹn để tạo.",
-    "saving": "Đang lưu…",
     "saved": "Đã lưu lịch hẹn",
     "saveError": "Chưa lưu được. Vui lòng thử lại.",
     "duplicate": "Khách này đã có lịch hẹn vào ngày giờ đã chọn.",
@@ -86,8 +83,6 @@
     "sectionNote": "Ghi chú Sales",
     "paidTotal": "Đã thu",
     "due": "Công nợ",
-    "paidInput": "Thu thêm sau tiền cọc (IDR)",
-    "billInput": "Chỉnh sửa giá trị dịch vụ (IDR)",
     "saveUpdate": "Lưu cập nhật",
     "openEdit": "Mở chi tiết lịch hẹn",
     "statTotal": "Tổng khách hàng",
@@ -126,14 +121,11 @@
     "cardValue": "Giá trị thẻ"
   },
   "common": {
-    "appName": "LAVIAN CRM",
-    "getStarted": "Bắt đầu",
     "language": "Ngôn ngữ",
     "pageInfo": "{from}–{to} trên {total}",
     "cancel": "Huỷ",
     "save": "Lưu",
     "actions": "Thao tác",
-    "filters": "Bộ lọc",
     "clearFilters": "Xoá lọc",
     "account": "Tài khoản",
     "darkMode": "Giao diện tối",
@@ -152,9 +144,6 @@
       "lastMonth": "Tháng trước",
       "custom": "Tùy chỉnh"
     }
-  },
-  "home": {
-    "tagline": "Next.js · Tailwind · shadcn/ui · React Query · Zustand · Supabase"
   },
   "tour": {
     "title": "Tour",
@@ -214,7 +203,6 @@
     "create": "Tạo tour",
     "created": "Đã tạo tour",
     "chooseCustomer": "Chọn khách hàng",
-    "chooseService": "Chọn dịch vụ",
     "required": "Bắt buộc",
     "open": "Xem / sửa",
     "actions": "Thao tác",
@@ -266,9 +254,6 @@
     "potential": "Quản lý khách hàng",
     "journey": "Đến hạn liệu trình"
   },
-  "theme": {
-    "toggle": "Chuyển giao diện sáng/tối"
-  },
   "errors": {
     "notFoundTitle": "Không tìm thấy trang",
     "notFoundBody": "Trang bạn tìm không tồn tại hoặc đã được di chuyển.",
@@ -282,8 +267,6 @@
     "password": "Mật khẩu",
     "emailInvalid": "Email không hợp lệ",
     "passwordRequired": "Vui lòng nhập mật khẩu",
-    "showPassword": "Hiện mật khẩu",
-    "hidePassword": "Ẩn mật khẩu",
     "rememberMe": "Ghi nhớ đăng nhập",
     "signIn": "Đăng nhập",
     "signOut": "Đăng xuất",
@@ -331,7 +314,6 @@
     "departmentOk": "Đã cập nhật bộ phận",
     "avatarOk": "Đã cập nhật ảnh đại diện",
     "changeAvatar": "Bấm để đổi ảnh đại diện",
-    "clearDepartment": "Bỏ bộ phận",
     "colStatus": "Trạng thái",
     "colCreated": "Ngày tạo",
     "colActions": "Thao tác",
@@ -351,7 +333,6 @@
     "passwordMin": "Mật khẩu tối thiểu 6 ký tự",
     "nameRequired": "Vui lòng nhập tên",
     "avatarUrl": "Ảnh đại diện",
-    "urlInvalid": "URL không hợp lệ",
     "resetTitle": "Đặt lại mật khẩu",
     "resetSubmit": "Cập nhật",
     "resetOk": "Đã đặt lại mật khẩu",
@@ -393,13 +374,10 @@
     "tourableLabel": "Tạo tour"
   },
   "customers": {
-    "bookingsTitle": "Quản lý đặt lịch",
     "region": "Khu vực",
     "province": "Tỉnh",
     "city": "Huyện / Thành phố",
     "allProvince": "Tất cả tỉnh",
-    "colRating": "Đánh giá",
-    "allRating": "Tất cả đánh giá",
     "addressDetail": "Địa chỉ chi tiết",
     "paymentConfirm": "Xác nhận thanh toán",
     "uploadImage": "Bấm đúp để chọn tệp · Bấm rồi Ctrl+V để dán ảnh",
@@ -462,8 +440,6 @@
       }
     },
     "colSource": "Nguồn",
-    "colWaNumber": "Số WA",
-    "colInstagram": "Instagram",
     "colStaff": "Nhân viên",
     "colSales": "Sales",
     "colTechnician": "Master",
@@ -472,16 +448,9 @@
     "allStage": "Tất cả trạng thái",
     "allSource": "Tất cả nguồn",
     "allStaff": "Tất cả nhân viên",
-    "allSales": "Tất cả Sales",
-    "allTechnician": "Tất cả Master",
-    "dateRange": "Khoảng ngày tạo",
     "pickDate": "Chọn ngày",
-    "clearDate": "Xoá ngày",
-    "clear": "Xoá",
     "empty": "Không có khách hàng nào",
     "pageInfo": "{from}–{to} trên {total}",
-    "prevPage": "Trang trước",
-    "nextPage": "Trang sau",
     "edit": "Sửa",
     "delete": "Xóa",
     "deleteConfirm": "Xóa khách hàng?",
@@ -501,7 +470,6 @@
     "createSubmit": "Thêm",
     "updateOk": "Đã cập nhật",
     "createOk": "Đã thêm khách hàng",
-    "colTags": "Thẻ",
     "openThread": "Mở hội thoại",
     "openProfile": "Mở hồ sơ khách 360°",
     "colMessages": "Tin nhắn",
@@ -542,7 +510,6 @@
     "close": "Đóng",
     "log": "Log sự kiện",
     "deposit": "Tiền cọc",
-    "currencyPlaceholder": "0",
     "currency": "Loại tiền",
     "existingCustomer": "Khách hàng đã tồn tại. Không thể thêm mới; bạn chỉ có thể cập nhật thông tin.",
     "update": "Cập nhật",
@@ -828,7 +795,6 @@
   },
   "potential": {
     "title": "Quản lý khách hàng",
-    "description": "Quản lý khách hàng chưa đặt lịch",
     "kpiTotal": "Tổng khách tiềm năng",
     "kpiOverdue": "Quá hạn liên hệ",
     "kpiToday": "Cần liên hệ hôm nay",
@@ -852,7 +818,6 @@
   },
   "bookings": {
     "title": "Quản lý đặt lịch",
-    "description": "LAVIAN · Quản lý lịch hẹn tập trung",
     "create": "Tạo lịch hẹn",
     "kpiToday": "Lịch hôm nay",
     "kpiPending": "Chưa xác nhận",
@@ -987,10 +952,7 @@
       "upload": "Tải ảnh {kind}",
       "deleteConfirm": "Xoá ảnh này?",
       "delete": "Xoá ảnh",
-      "deleted": "Đã xoá ảnh",
-      "uploaded": "Đã tải ảnh lên",
-      "tooLarge": "Ảnh tối đa 10MB",
-      "notImage": "Chỉ nhận file ảnh"
+      "deleted": "Đã xoá ảnh"
     },
     "messages": {
       "search": "Tìm trong hội thoại",

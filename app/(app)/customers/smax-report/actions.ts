@@ -2,12 +2,11 @@
 
 import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
-import { dayCount } from "@/lib/reports";
+import { rangeError } from "@/lib/reports";
 import { buildFollowupReport, buildInboxReport, createdIn, staffAvatars, untilToday, type FollowupReport, type InboxReport } from "@/lib/smax-inbox";
 import { fetchIgByPhone, fetchInboxThreads } from "@/lib/smax-threads";
 import { createClient } from "@/lib/supabase/server";
 
-const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 31;
 
 type Result<T> = { data: T | null; avatars?: Record<string, string | null>; error?: string };
@@ -22,8 +21,8 @@ async function loadAvatars() {
 /** Kiểm quyền + khoảng ngày WIB `YYYY-MM-DD`, rồi lấy hội thoại + tính báo cáo (`build`). */
 async function withRange<T>(from: string, to: string, build: () => Promise<T>): Promise<Result<T>> {
   await requirePermission("customers.view");
-  if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to) return { data: null, error: "Khoảng ngày không hợp lệ." };
-  if (dayCount(from, to) > MAX_DAYS) return { data: null, error: `Chọn tối đa ${MAX_DAYS} ngày.` };
+  const error = rangeError(from, to, MAX_DAYS);
+  if (error) return { data: null, error };
   const [data, avatars] = await Promise.allSettled([build(), loadAvatars()]);
   if (data.status === "rejected") return { data: null, error: normalizeError(data.reason).message };
   return { data: data.value, avatars: avatars.status === "fulfilled" ? avatars.value : undefined };

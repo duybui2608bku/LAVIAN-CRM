@@ -1,5 +1,5 @@
 /** Lấy hội thoại SMAX cho Báo cáo Smax — CHỈ server (env `SMAX_TOKEN`). Logic tính ở lib/smax-inbox.ts. */
-import { addDays } from "./reports";
+import { addDays } from "./date-presets";
 import { fetchMessagesByRef } from "./smax-messages";
 import { igPhoneIndex, igPhones, findPhones, inboxDateRange, POTENTIAL_ALIASES, type IgByPhone, type InboxThread } from "./smax-inbox";
 

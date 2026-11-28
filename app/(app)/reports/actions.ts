@@ -3,11 +3,10 @@
 import { requirePermission } from "@/lib/auth";
 import { normalizeError } from "@/lib/errors";
 import { fetchFbAdsDaily, supaRange } from "@/lib/marketing";
-import { buildDays, dayCount, previousRange, salesCommission, type DayRow } from "@/lib/reports";
+import { buildDays, previousRange, rangeError, salesCommission, type DayRow } from "@/lib/reports";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 
-const YMD_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 366;
 type Seller = { user_name: string } | null;
 
@@ -26,12 +25,10 @@ export interface Report {
 /** Báo cáo theo khoảng ngày VN `YYYY-MM-DD` (kèm kỳ trước để so sánh). */
 export async function getReport(from: string, to: string): Promise<Report> {
   await requirePermission("reports.view");
-  const previous = YMD_RE.test(from) && YMD_RE.test(to) ? previousRange(from, to) : { from, to };
+  const error = rangeError(from, to, MAX_DAYS);
+  const previous = error ? { from, to } : previousRange(from, to);
   const report: Report = { currency: null, rows: [], sales: null, previous, errors: {} };
-  if (!YMD_RE.test(from) || !YMD_RE.test(to) || from > to)
-    return { ...report, error: "Khoảng ngày không hợp lệ." };
-  if (dayCount(from, to) > MAX_DAYS)
-    return { ...report, error: `Chọn tối đa ${MAX_DAYS} ngày.` };
+  if (error) return { ...report, error };
 
   const start = previous.from;
   const supabase = await createClient();

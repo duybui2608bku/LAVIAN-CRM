@@ -54,9 +54,6 @@ export const needsAppointment = (stage: string | null | undefined, currentStage?
 export const SERVICE_GROUP_STAGES: readonly string[] = [POTENTIAL_STAGE, "consider", BOOKED_STAGE, "purchase"];
 export const needsServiceGroup = (stage: string | null | undefined) => !!stage && SERVICE_GROUP_STAGES.includes(stage);
 
-/** Stage hiện ở trang Booking management (/customers/bookings). */
-export const BOOKING_PAGE_STAGES = [BOOKED_STAGE, "deposited"] as const;
-
 /** Stage hợp lệ (kể cả show_up đang giữ nguyên khi sửa khách). */
 export function isStage(v: string | null | undefined): boolean {
   return CUSTOMER_OPTIONS.some((o) => o.kind === "stage" && o.value === v);

@@ -127,7 +127,7 @@ export function AdsStatsView() {
     { key: "colBooking", value: withRate(total?.booking ?? null, s?.messages ?? null) },
     { key: "colShowUp", value: count(total?.showUp ?? null) },
   ];
-  // Lỗi từng nguồn hiện 1 lần ở đầu trang (trước đây lặp lại dưới nhiều card).
+  // Lỗi từng nguồn hiện 1 lần ở đầu trang, không lặp dưới từng card.
   const errorLines = [...new Set([stats?.error, e?.fb, e?.potential].filter(Boolean))] as string[];
 
   // Bật/tắt chiến dịch: FB nhận xong thì vá trạng thái tại chỗ, không tải lại cả trang.
